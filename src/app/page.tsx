@@ -1,39 +1,197 @@
+import Link from "next/link";
+import {
+  LayoutDashboard,
+  Users,
+  Clapperboard,
+  Megaphone,
+  FileText,
+  BookOpen,
+  Shirt,
+  Share2,
+  Mail,
+  Calculator,
+  ShieldCheck,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { LayoutDashboard } from "lucide-react";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { setCurrentProjet } from "@/lib/projet-context";
+import { projetNomPublic } from "@/lib/projets/types";
+import { formatDateShort } from "@/lib/format-date";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+
+type DashboardProjet = {
+  id: string;
+  nom: string;
+  confidentiel: boolean;
+  nom_code: string | null;
+  lieu: string | null;
+  date_debut: string | null;
+  date_fin: string | null;
+};
+
+type DashboardAnnonce = {
+  id: string;
+  titre: string;
+  lieu: string | null;
+  date_recherchee: string | null;
+  projet_id: string;
+  projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
+};
+
+const SECTIONS: { label: string; href: string; description: string; icon: LucideIcon; chefOnly?: boolean }[] = [
+  { label: "Base Profils", href: "/figurants", description: "Fiches figurants, photos, disponibilités", icon: Users },
+  { label: "Projets", href: "/projets", description: "Tournages et infos production", icon: Clapperboard },
+  { label: "Annonces", href: "/annonces", description: "Offres publiées, candidatures reçues", icon: Megaphone },
+  { label: "Candidatures", href: "/candidatures", description: "Trier, répondre, ajouter au booking", icon: FileText },
+  { label: "Bookings", href: "/bookings", description: "Journées, convocations, messages", icon: BookOpen },
+  { label: "Essayages", href: "/essayages", description: "Planning essayages, mensurations", icon: Shirt },
+  { label: "Partage", href: "/partage", description: "Liens publics documents & essayages", icon: Share2 },
+  { label: "Modèles", href: "/modeles", description: "Modèles de messages", icon: Mail },
+  { label: "Barème", href: "/bareme", description: "Cachets et majorations ACFDA", icon: Calculator },
+  { label: "RGPD", href: "/rgpd", description: "Anonymisation, conformité", icon: ShieldCheck },
+  { label: "Équipe", href: "/equipe", description: "Inviter des assistant·es", icon: UsersRound, chefOnly: true },
+];
+
+export default async function Home() {
+  const supabase = createAdminClient();
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  const today = new Date().toISOString().slice(0, 10);
+
+  let projetsQuery = supabase
+    .from("projets")
+    .select("id, nom, confidentiel, nom_code, lieu, date_debut, date_fin")
+    .or(`date_fin.is.null,date_fin.gte.${today}`)
+    .order("date_debut", { ascending: true, nullsFirst: false });
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
+
+  let annoncesQuery = supabase
+    .from("annonces")
+    .select("id, titre, lieu, date_recherchee, projet_id, projets(nom, confidentiel, nom_code)")
+    .eq("statut", "ouverte")
+    .order("date_recherchee", { ascending: true, nullsFirst: false });
+  if (accessibleIds !== null) annoncesQuery = annoncesQuery.in("projet_id", idsOrNone(accessibleIds));
+
+  const [{ data: projets }, { data: annonces }] = await Promise.all([
+    projetsQuery.returns<DashboardProjet[]>(),
+    annoncesQuery.returns<DashboardAnnonce[]>(),
+  ]);
+
+  const annonceIds = (annonces ?? []).map((a) => a.id);
+  const { data: candidaturesRaw } =
+    annonceIds.length > 0
+      ? await supabase.from("candidatures").select("annonce_id").in("annonce_id", annonceIds)
+      : { data: [] as { annonce_id: string }[] };
+  const candidatureCounts = new Map<string, number>();
+  for (const c of candidaturesRaw ?? []) {
+    candidatureCounts.set(c.annonce_id, (candidatureCounts.get(c.annonce_id) ?? 0) + 1);
+  }
+
+  const sections = SECTIONS.filter((s) => !s.chefOnly || profile?.role === "chef");
+
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-text"><LayoutDashboard size={28} strokeWidth={1.75} />Tableau de bord</h1>
+        <h1 className="flex items-center gap-2 text-3xl font-semibold">
+          <LayoutDashboard size={28} strokeWidth={1.75} />
+          Tableau de bord
+        </h1>
         <p className="mt-2 text-text-muted">
-          Bienvenue sur Booking Extras. On construit l&apos;application section par
-          section — la prochaine étape est la gestion des figurants.
+          {profile?.nom ? `Bienvenue, ${profile.nom}.` : "Bienvenue sur Booking Extras."}
         </p>
       </div>
 
-      <Card className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <Badge tone="coral">Étape 1</Badge>
-          <h2 className="text-lg font-semibold">Base du projet</h2>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Projets en cours</h2>
+        {(projets ?? []).length === 0 ? (
+          <Card>
+            <p className="text-sm text-text-muted">
+              Aucun projet en cours.{" "}
+              <Link href="/projets/nouveau" className="text-coral hover:underline">
+                Créer un projet
+              </Link>
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {projets!.map((p) => (
+              <form key={p.id} action={setCurrentProjet.bind(null, p.id, "/bookings")}>
+                <button
+                  type="submit"
+                  className="flex w-full flex-col gap-2 rounded-2xl border border-border bg-ink-raised px-5 py-4 text-left transition-colors hover:border-coral/60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{projetNomPublic(p)}</span>
+                    {p.confidentiel && <Badge tone="coral">Confidentiel</Badge>}
+                  </div>
+                  <span className="text-xs text-text-muted">
+                    {p.date_debut
+                      ? `${formatDateShort(p.date_debut)}${p.date_fin ? ` → ${formatDateShort(p.date_fin)}` : ""}`
+                      : "Dates à définir"}
+                    {p.lieu ? ` · ${p.lieu}` : ""}
+                  </span>
+                  <span className="text-xs font-medium text-coral">Voir le booking →</span>
+                </button>
+              </form>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Annonces en cours</h2>
+        {(annonces ?? []).length === 0 ? (
+          <Card>
+            <p className="text-sm text-text-muted">Aucune annonce ouverte pour l&apos;instant.</p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {annonces!.map((a) => {
+              const count = candidatureCounts.get(a.id) ?? 0;
+              return (
+                <Link
+                  key={a.id}
+                  href={`/annonces/${a.id}`}
+                  className="flex flex-col gap-2 rounded-2xl border border-border bg-ink-raised px-5 py-4 transition-colors hover:border-coral/60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{a.titre}</span>
+                    <Badge tone="turquoise">
+                      {count} candidature{count > 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-text-muted">
+                    {projetNomPublic(a.projets, "Projet confidentiel")}
+                    {a.date_recherchee ? ` · ${formatDateShort(a.date_recherchee)}` : ""}
+                    {a.lieu ? ` · ${a.lieu}` : ""}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Toutes les sections</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {sections.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="flex flex-col gap-1.5 rounded-2xl border border-border bg-ink-raised px-4 py-4 transition-colors hover:border-coral/60"
+            >
+              <s.icon size={20} strokeWidth={1.75} className="text-coral" />
+              <span className="font-medium">{s.label}</span>
+              <span className="text-xs text-text-muted">{s.description}</span>
+            </Link>
+          ))}
         </div>
-        <p className="text-sm text-text-muted">
-          Next.js, Tailwind et la palette de marque sont en place. Prochaine
-          étape : brancher Supabase en local et construire la fiche Figurant.
-        </p>
-        <div className="flex gap-3">
-          <Badge tone="turquoise">Turquoise</Badge>
-          <Badge tone="yellow">Jaune</Badge>
-          <Badge tone="coral">Corail</Badge>
-          <Badge>Neutre</Badge>
-        </div>
-        <div className="flex gap-3 pt-2">
-          <Button variant="primary">Bouton principal</Button>
-          <Button variant="secondary">Secondaire</Button>
-          <Button variant="turquoise">Turquoise</Button>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
