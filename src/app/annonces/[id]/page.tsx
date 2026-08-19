@@ -1,0 +1,131 @@
+import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { Card, Badge } from "@/components/ui/card";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { CopyLink } from "@/components/annonces/copy-link";
+import { ToggleStatutButton } from "@/components/annonces/toggle-statut-button";
+import { QuestionsManager } from "@/components/annonces/questions-manager";
+import { DatesManager } from "@/components/annonces/dates-manager";
+import { BackLink } from "@/components/ui/back-link";
+import type { AnnonceAvecProjet } from "@/lib/annonces/types";
+import { deleteAnnonce } from "@/lib/annonces/actions";
+import { getAnnonceQuestions, getQuestionTemplates } from "@/lib/annonces/questions";
+import { getAnnonceDates } from "@/lib/annonces/dates";
+
+export default async function AnnonceDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = createAdminClient();
+
+  const { data: annonce } = await supabase
+    .from("annonces")
+    .select("*, projets(nom, confidentiel)")
+    .eq("id", id)
+    .single<AnnonceAvecProjet>();
+
+  if (!annonce) notFound();
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const protocol = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
+  const publicUrl = `${protocol}://${host}/postuler/${annonce.public_token}`;
+
+  const { count: candidatureCount } = await supabase
+    .from("candidatures")
+    .select("id", { count: "exact", head: true })
+    .eq("annonce_id", id);
+
+  const [questions, templates, dates] = await Promise.all([
+    getAnnonceQuestions(id),
+    getQuestionTemplates(),
+    getAnnonceDates(id),
+  ]);
+
+  const boundDeleteAnnonce = deleteAnnonce.bind(null, id);
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <BackLink href="/annonces" label="Annonces" />
+
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-semibold">{annonce.titre}</h1>
+            <Badge tone={annonce.statut === "ouverte" ? "turquoise" : "default"}>
+              {annonce.statut === "ouverte" ? "Ouverte" : "Fermée"}
+            </Badge>
+          </div>
+          <p className="mt-1 text-text-muted">
+            {annonce.projets?.nom}
+            {annonce.date_recherchee ? ` · ${annonce.date_recherchee}` : ""}
+            {annonce.lieu ? ` · ${annonce.lieu}` : ""}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <ButtonLink href={`/annonces/${id}/modifier`} variant="secondary">
+            Modifier
+          </ButtonLink>
+          <form action={boundDeleteAnnonce}>
+            <Button type="submit" variant="ghost">
+              Supprimer
+            </Button>
+          </form>
+        </div>
+      </div>
+
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Lien public à diffuser</h2>
+        <CopyLink url={publicUrl} />
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-2 text-sm text-text-muted">
+            <span>
+              {candidatureCount ?? 0}
+              {annonce.limite_candidatures !== null ? `/${annonce.limite_candidatures}` : ""} candidature
+              {(candidatureCount ?? 0) > 1 ? "s" : ""} reçue{(candidatureCount ?? 0) > 1 ? "s" : ""}
+            </span>
+            {annonce.limite_candidatures !== null && (candidatureCount ?? 0) >= annonce.limite_candidatures && (
+              <Badge tone="danger">Complet</Badge>
+            )}
+          </p>
+          <ToggleStatutButton id={id} statut={annonce.statut} />
+        </div>
+      </Card>
+
+      {annonce.description && (
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">Description</h2>
+          <p className="text-sm whitespace-pre-wrap">{annonce.description}</p>
+        </Card>
+      )}
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Questions (Oui/Non)</h2>
+          <p className="text-sm text-text-muted">
+            Posées aux candidats sur le formulaire public, en plus du message obligatoire.
+          </p>
+        </div>
+        <QuestionsManager annonceId={id} questions={questions} templates={templates} />
+      </Card>
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Dates de disponibilité à demander</h2>
+          <p className="text-sm text-text-muted">
+            Chaque candidat indiquera s&apos;il est disponible ou non pour chacune de ces dates.
+          </p>
+        </div>
+        <DatesManager annonceId={id} dates={dates} />
+      </Card>
+
+      <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text-muted hover:text-coral">
+        Voir le projet →
+      </Link>
+    </div>
+  );
+}

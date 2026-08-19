@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light theme: white page (see body { background } for the white-to-
+     violet gradient), darker lavender-gray cards/borders so they read as
+     distinct "squares" instead of blending into the page. */
+  --color-ink: #ffffff;
+  --color-ink-raised: #ece4f7;
+  --color-ink-raised-2: #ddceef;
+  --color-border: #c7b5e3;
+
+  --color-text: #180f26;
+  --color-text-muted: #4b3f66;
+
+  /* "coral" is the historical name for the primary accent token — kept to
+     avoid a mass rename across the app. Now a muted sage green, deliberately
+     less saturated than "turquoise" below so the two greens stay
+     distinguishable (sage = primary/brand, vivid green = confirmed status). */
+  --color-coral: #5b7355;
+  --color-coral-hover: #46593f;
+  /* "turquoise" = positive/confirmed status, a franker, saturated green. */
+  --color-turquoise: #16a34a;
+  --color-yellow: #d97706;
+  /* Dedicated negative/error/refused status color, split out from coral. */
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  /* Highlighter-pen yellow — used only to flag "a répondu (BIEN REÇU)" in
+     Booking, deliberately more saturated than --color-yellow so it reads as
+     an urgent visual flag rather than a status tone. */
+  --color-yellow-fluo: #eaff00;
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-inter);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--color-ink);
+  --color-ink-raised: var(--color-ink-raised);
+  --color-ink-raised-2: var(--color-ink-raised-2);
+  --color-border: var(--color-border);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-coral: var(--color-coral);
+  --color-coral-hover: var(--color-coral-hover);
+  --color-turquoise: var(--color-turquoise);
+  --color-yellow: var(--color-yellow);
+  --color-danger: var(--color-danger);
+  --color-danger-hover: var(--color-danger-hover);
+  --color-yellow-fluo: var(--color-yellow-fluo);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(160deg, #ffffff 0%, #f3ecfb 45%, #dfc9f2 100%) fixed;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--color-coral);
+  color: var(--color-ink);
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  .print-hide {
+    display: none !important;
+  }
 }

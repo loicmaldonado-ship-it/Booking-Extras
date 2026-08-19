@@ -1,0 +1,68 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentProfile } from "@/lib/auth/session";
+
+async function requireChef() {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "chef") {
+    throw new Error("Réservé à la cheffe.");
+  }
+  return profile;
+}
+
+async function findOrInviteProfile(email: string) {
+  const admin = createAdminClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${siteUrl}/auth/invite`,
+  });
+  if (!inviteError && invited.user) {
+    return { id: invited.user.id, error: null as string | null };
+  }
+
+  const { data: list } = await admin.auth.admin.listUsers();
+  const existing = list?.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  if (existing) {
+    return { id: existing.id, error: null as string | null };
+  }
+
+  return { id: null, error: inviteError?.message ?? "Impossible d'inviter cet email." };
+}
+
+export async function inviteAssistant(_prevState: unknown, formData: FormData) {
+  await requireChef();
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const projetId = String(formData.get("projet_id") ?? "");
+
+  if (!email || !projetId) {
+    return { error: "Email et projet sont obligatoires." };
+  }
+
+  const { id: profileId, error } = await findOrInviteProfile(email);
+  if (!profileId) {
+    return { error };
+  }
+
+  const admin = createAdminClient();
+  const { error: membreError } = await admin
+    .from("projet_membres")
+    .upsert({ projet_id: projetId, profile_id: profileId }, { onConflict: "projet_id,profile_id" });
+
+  if (membreError) {
+    return { error: membreError.message };
+  }
+
+  revalidatePath("/equipe");
+  return { success: true };
+}
+
+export async function revokeAccess(projetMembreId: string) {
+  await requireChef();
+  const admin = createAdminClient();
+  await admin.from("projet_membres").delete().eq("id", projetMembreId);
+  revalidatePath("/equipe");
+}

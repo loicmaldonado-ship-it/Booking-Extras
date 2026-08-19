@@ -1,0 +1,192 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { Civilite, Genre, PhotoType, Pronom } from "./types";
+
+function str(fd: FormData, key: string): string | null {
+  const v = fd.get(key);
+  if (typeof v !== "string" || v.trim() === "") return null;
+  return v.trim();
+}
+
+function num(fd: FormData, key: string): number | null {
+  const v = str(fd, key);
+  if (v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function buildFigurantPayload(fd: FormData) {
+  return {
+    civilite: str(fd, "civilite") as Civilite | null,
+    prenom: str(fd, "prenom") ?? "",
+    nom: str(fd, "nom") ?? "",
+    pronom: str(fd, "pronom") as Pronom | null,
+    genre: str(fd, "genre") as Genre | null,
+    email: str(fd, "email"),
+    telephone: str(fd, "telephone"),
+    ville: str(fd, "ville"),
+    adresse: str(fd, "adresse"),
+    date_naissance: str(fd, "date_naissance"),
+    logement_france: str(fd, "logement_france"),
+    taille_cm: num(fd, "taille_cm"),
+    poids_kg: num(fd, "poids_kg"),
+    pointure: num(fd, "pointure"),
+    tour_poitrine_cm: num(fd, "tour_poitrine_cm"),
+    tour_taille_cm: num(fd, "tour_taille_cm"),
+    tour_hanches_cm: num(fd, "tour_hanches_cm"),
+    tour_tete_cm: num(fd, "tour_tete_cm"),
+    tour_cou_cm: num(fd, "tour_cou_cm"),
+    jambes_ext_cm: num(fd, "jambes_ext_cm"),
+    jambes_int_cm: num(fd, "jambes_int_cm"),
+    carrure_cm: num(fd, "carrure_cm"),
+    veste: str(fd, "veste"),
+    pantalon: str(fd, "pantalon"),
+    gant: str(fd, "gant"),
+    couleur_yeux: str(fd, "couleur_yeux"),
+    couleur_cheveux: str(fd, "couleur_cheveux"),
+    compte_myrole: fd.get("compte_myrole") === "on",
+    tags: (str(fd, "tags") ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+    notes_internes: str(fd, "notes_internes"),
+  };
+}
+
+export async function createFigurant(_prevState: unknown, formData: FormData) {
+  const payload = buildFigurantPayload(formData);
+  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
+    return { error: "Prénom, nom, email et téléphone sont obligatoires." };
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("figurants")
+    .insert(payload)
+    .select("id")
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await handleLiens(formData, data.id);
+
+  revalidatePath("/figurants");
+  redirect(`/figurants/${data.id}`);
+}
+
+export async function updateFigurant(
+  id: string,
+  _prevState: unknown,
+  formData: FormData
+) {
+  const payload = buildFigurantPayload(formData);
+  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
+    return { error: "Prénom, nom, email et téléphone sont obligatoires." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("figurants").update(payload).eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await handleLiens(formData, id);
+
+  revalidatePath("/figurants");
+  revalidatePath(`/figurants/${id}`);
+  redirect(`/figurants/${id}`);
+}
+
+export async function deleteFigurant(id: string) {
+  const supabase = createAdminClient();
+  await supabase.from("figurants").delete().eq("id", id);
+  revalidatePath("/figurants");
+  redirect("/figurants");
+}
+
+// Une photo à la fois : un lot de plusieurs photos de téléphone dans une
+// seule requête peut dépasser ce que le parseur multipart de Next.js/Node
+// encaisse ("Failed to parse body as FormData"), même sous la limite de
+// taille configurée. Un fichier par appel reste largement sous ce seuil.
+export async function uploadFigurantPhoto(figurantId: string, _prevState: unknown, formData: FormData) {
+  const file = formData.get("photo");
+  const type = str(formData, "type") as PhotoType | null;
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choisis une photo." };
+  }
+  if (!type) {
+    return { error: "Type de photo manquant." };
+  }
+
+  const supabase = createAdminClient();
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${figurantId}/${type}-${crypto.randomUUID()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("figurant-photos")
+    .upload(path, file, { contentType: file.type, upsert: false });
+
+  if (uploadError) {
+    return { error: uploadError.message };
+  }
+
+  const prise_le = type === "selfie" ? str(formData, "prise_le") : null;
+
+  const { error: insertError } = await supabase
+    .from("figurant_photos")
+    .insert({ figurant_id: figurantId, type, storage_path: path, prise_le });
+
+  if (insertError) {
+    return { error: insertError.message };
+  }
+
+  revalidatePath(`/figurants/${figurantId}`);
+  return { success: true as const };
+}
+
+async function handleLiens(formData: FormData, figurantId: string) {
+  const labels = formData.getAll("lien_label");
+  const urls = formData.getAll("lien_url");
+  if (labels.length === 0) return;
+
+  const supabase = createAdminClient();
+  const rows = labels
+    .map((label, i) => ({
+      figurant_id: figurantId,
+      label: String(label ?? "").trim(),
+      url: String(urls[i] ?? "").trim(),
+    }))
+    .filter((r) => r.label && r.url);
+
+  if (rows.length > 0) {
+    await supabase.from("figurant_liens").insert(rows);
+  }
+}
+
+export async function deletePhoto(photoId: string, figurantId: string) {
+  const supabase = createAdminClient();
+  const { data: photo } = await supabase
+    .from("figurant_photos")
+    .select("storage_path")
+    .eq("id", photoId)
+    .single();
+
+  if (photo) {
+    await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
+  }
+  await supabase.from("figurant_photos").delete().eq("id", photoId);
+  revalidatePath(`/figurants/${figurantId}`);
+}
+
+export async function deleteLien(lienId: string, figurantId: string) {
+  const supabase = createAdminClient();
+  await supabase.from("figurant_liens").delete().eq("id", lienId);
+  revalidatePath(`/figurants/${figurantId}`);
+}

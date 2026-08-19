@@ -1,0 +1,79 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { cn } from "@/lib/cn";
+import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+
+type FigurantCard = {
+  id: string;
+  prenom: string;
+  nom: string;
+  ville: string | null;
+  portraitUrl: string | null;
+};
+
+export function FigurantsTrombiGrid({
+  figurants,
+  projets,
+}: {
+  figurants: FigurantCard[];
+  projets: { id: string; nom: string }[];
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {selected.size > 0 && (
+        <AddToJourneeBar
+          figurantIds={Array.from(selected)}
+          projets={projets}
+          onDone={() => setSelected(new Set())}
+        />
+      )}
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {figurants.map((f) => (
+          <div
+            key={f.id}
+            className={cn(
+              "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
+              selected.has(f.id)
+                ? "border-coral bg-coral/10"
+                : "border-border bg-ink-raised hover:border-coral/60"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={selected.has(f.id)}
+              onChange={() => toggle(f.id)}
+              className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
+            />
+            <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
+              <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                {f.portraitUrl && <Image src={f.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+              </div>
+              <div className="text-sm font-medium">
+                {f.prenom} {f.nom}
+              </div>
+              <div className="text-xs text-text-muted">{f.ville ?? "—"}</div>
+            </Link>
+          </div>
+        ))}
+        {figurants.length === 0 && (
+          <p className="col-span-full py-10 text-center text-text-muted">Aucun figurant pour l&apos;instant.</p>
+        )}
+      </div>
+    </div>
+  );
+}

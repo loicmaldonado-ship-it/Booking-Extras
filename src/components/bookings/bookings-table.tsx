@@ -1,0 +1,1482 @@
+"use client";
+
+import { Fragment, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import { StatusSelect } from "@/components/ui/status-select";
+import { Badge } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
+import { cn } from "@/lib/cn";
+import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations } from "@/lib/bookings/actions";
+import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
+import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
+import { toggleMessageRepondu } from "@/lib/figurants/messages-actions";
+import type { InboxReply } from "@/lib/email/inbox";
+import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
+import { CACHETS } from "@/lib/candidatures/types";
+import { computeAge } from "@/lib/documents/fields";
+import { buildConvocationMailto, substituteTokens, type ConvocationSettings } from "@/lib/bookings/convocation";
+import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
+import { projetNomPublic } from "@/lib/projets/types";
+import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
+import type { Genre } from "@/lib/figurants/types";
+import type { MessageTemplate } from "@/lib/templates/types";
+
+export type StaffMessageRow = {
+  id: string;
+  categorie: FigurantMessageCategorie;
+  sujet: string | null;
+  corps: string;
+  created_at: string;
+  repondu: boolean;
+};
+
+function formatMessageDateTime(iso: string) {
+  return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+// Mail (Mac) n'a pas d'URL publique pour ouvrir une recherche pré-remplie
+// (contrairement à Gmail) — on copie donc le texte pour un collage manuel
+// dans la barre de recherche de l'app mail/SMS.
+async function copyTextToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand("copy");
+    } catch {
+      // Aucun mécanisme de copie disponible dans ce navigateur.
+    }
+    document.body.removeChild(textarea);
+  }
+}
+
+export type Row = {
+  id: string;
+  figurant_id?: string;
+  date: string;
+  heure_convocation: string | null;
+  fonction: string | null;
+  cachet: string | null;
+  statut: BookingStatut;
+  convocation_envoyee: boolean;
+  reponse_recue: boolean;
+  notes: string | null;
+  covoiturage_role?: "conducteur" | "passager" | null;
+  covoiturage_lieu_depart?: string | null;
+  covoiturage_conducteur_id?: string | null;
+  figurants: {
+    prenom: string;
+    nom: string;
+    ville: string | null;
+    email: string | null;
+    telephone: string | null;
+    genre: Genre | null;
+    date_naissance: string | null;
+  } | null;
+  projets: { nom: string; confidentiel: boolean; nom_code?: string | null; lieu: string | null; signature: string | null } | null;
+  portraitUrl: string | null;
+  essaiOk?: boolean;
+  numeroCostume?: string | null;
+};
+
+function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
+  if (r.covoiturage_role === "conducteur") {
+    const passagers = rows.filter((p) => p.covoiturage_conducteur_id === r.figurant_id);
+    if (passagers.length === 0) return null;
+    const noms = passagers.map((p) => p.figurants?.prenom).filter(Boolean).join(", ");
+    return `Rappel covoiturage : vous conduisez ${noms}. Départ : ${r.covoiturage_lieu_depart ?? "à confirmer"}.`;
+  }
+  if (r.covoiturage_role === "passager" && r.covoiturage_conducteur_id) {
+    const chauffeur = rows.find((c) => c.figurant_id === r.covoiturage_conducteur_id);
+    if (!chauffeur?.figurants) return null;
+    const tel = chauffeur.figurants.telephone ? ` (${chauffeur.figurants.telephone})` : "";
+    return `Rappel covoiturage : vous êtes avec ${chauffeur.figurants.prenom} ${chauffeur.figurants.nom}${tel}. Départ : ${chauffeur.covoiturage_lieu_depart ?? "à confirmer"}.`;
+  }
+  return null;
+}
+
+function rowTokens(r: Row, journeeLieu?: string | null) {
+  return {
+    prenom: r.figurants?.prenom ?? "",
+    projet: projetNomPublic(r.projets, "notre tournage"),
+    date: r.date,
+    lieu: journeeLieu || r.projets?.lieu || "",
+    cachet: r.cachet ?? "",
+    fonction: r.fonction ?? "",
+    signature: r.projets?.signature ?? "",
+  };
+}
+
+const DEFAULT_LIBRE_BODY = "Bonjour {prenom},\n\n";
+
+const AGE_BRACKETS = [
+  { key: "-18", label: "- 18 ans", test: (age: number) => age < 18 },
+  { key: "18-30", label: "18-30 ans", test: (age: number) => age >= 18 && age <= 30 },
+  { key: "31-50", label: "31-50 ans", test: (age: number) => age >= 31 && age <= 50 },
+  { key: "51+", label: "51 ans +", test: (age: number) => age >= 51 },
+] as const;
+
+function ageBracketKey(dateNaissance: string | null): string | null {
+  const age = computeAge(dateNaissance);
+  if (age === null) return null;
+  return AGE_BRACKETS.find((b) => b.test(age))?.key ?? null;
+}
+
+type RowChanges = Partial<{
+  statut: BookingStatut;
+  fonction: string | null;
+  cachet: string | null;
+  heure_convocation: string | null;
+  reponse_recue: boolean;
+  notes: string | null;
+}>;
+type GroupBy =
+  | "none"
+  | "fonction"
+  | "cachet"
+  | "fonction+cachet"
+  | "statut"
+  | "statut+fonction"
+  | "fonction+age"
+  | "sexe"
+  | "age"
+  | "heure";
+type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure";
+
+type NestedGroup = {
+  label: string | null;
+  rows: Row[];
+  subgroups: { label: string; rows: Row[] }[] | null;
+};
+
+function dimensionLabel(r: Row, dimension: Dimension) {
+  if (dimension === "statut") return STATUTS.find((s) => s.value === r.statut)?.label ?? r.statut;
+  if (dimension === "fonction") return r.fonction ?? "Sans fonction";
+  if (dimension === "cachet") return r.cachet ?? "Sans cachet";
+  if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
+  if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
+  const bracket = AGE_BRACKETS.find((b) => b.key === ageBracketKey(r.figurants?.date_naissance ?? null));
+  return bracket?.label ?? "Âge non renseigné";
+}
+
+function repondusSuffix(rowsList: Row[]) {
+  const concernes = rowsList.filter((r) => r.convocation_envoyee);
+  if (concernes.length === 0) return "";
+  const repondus = concernes.filter((r) => r.reponse_recue).length;
+  return ` — ${repondus}/${concernes.length} répondu${repondus > 1 ? "s" : ""}`;
+}
+
+function groupRows(rows: Row[], dimension: Dimension) {
+  const map = new Map<string, Row[]>();
+  for (const r of rows) {
+    const key = dimensionLabel(r, dimension);
+    const list = map.get(key) ?? [];
+    list.push(r);
+    map.set(key, list);
+  }
+  return Array.from(map.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([label, groupRows]) => ({ label, rows: groupRows }));
+}
+
+const fieldClass =
+  "w-full rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60";
+
+const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
+
+export function BookingsTable({
+  rows,
+  projetId,
+  date,
+  templates = [],
+  journeeLieu = null,
+  convocationSettings = null,
+  initialReplies = [],
+  messagesByFigurant = {},
+}: {
+  rows: Row[];
+  projetId?: string;
+  date?: string;
+  templates?: MessageTemplate[];
+  journeeLieu?: string | null;
+  convocationSettings?: ConvocationSettings | null;
+  initialReplies?: InboxReply[];
+  messagesByFigurant?: Record<string, StaffMessageRow[]>;
+}) {
+  const router = useRouter();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [pending, startTransition] = useTransition();
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const [activeFonction, setActiveFonction] = useState<string | null>(null);
+  const [activeCachet, setActiveCachet] = useState<string | null>(null);
+  const [groupBy, setGroupBy] = useState<GroupBy>("fonction+cachet");
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  const [showArchived, setShowArchived] = useState(false);
+  const [onlyNonRepondus, setOnlyNonRepondus] = useState(false);
+  const [bulkFonction, setBulkFonction] = useState("");
+  const [bulkHeure, setBulkHeure] = useState("08:00");
+  const [viewMode, setViewMode] = useState<"liste" | "trombi">("trombi");
+  const [essayageOpen, setEssayageOpen] = useState(false);
+  const [essayageDate, setEssayageDate] = useState("");
+  const [essayageLieu, setEssayageLieu] = useState("");
+  const [essayageResult, setEssayageResult] = useState<string | null>(null);
+  const [messageMode, setMessageMode] = useState<"none" | "convocation-confirm" | "libre-compose" | "libre-confirm">(
+    "none"
+  );
+  const [libreSubject, setLibreSubject] = useState(`Message – ${date ?? ""}`);
+  const [libreMessage, setLibreMessage] = useState(DEFAULT_LIBRE_BODY);
+  const [sendPending, setSendPending] = useState(false);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [repliesPending, setRepliesPending] = useState(false);
+  const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
+  const [repliesError, setRepliesError] = useState<string | null>(null);
+  const [lastCheckInfo, setLastCheckInfo] = useState<string | null>(null);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+
+  function toggleMessagesExpanded(id: string) {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleRepondu(messageId: string, value: boolean) {
+    startTransition(async () => {
+      await toggleMessageRepondu(messageId, value);
+      router.refresh();
+    });
+  }
+
+  const fonctions = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.fonction).filter((f): f is string => !!f))).sort(),
+    [rows]
+  );
+
+  const cachetCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      if (r.cachet) counts.set(r.cachet, (counts.get(r.cachet) ?? 0) + 1);
+    }
+    return counts;
+  }, [rows]);
+
+  const archivedCount = rows.filter((r) => STATUTS_ARCHIVES.has(r.statut)).length;
+
+  const activeRows = rows.filter((r) => !STATUTS_ARCHIVES.has(r.statut));
+  const reponduCount = activeRows.filter((r) => r.reponse_recue).length;
+  const nonRepondusCount = activeRows.filter((r) => r.convocation_envoyee && !r.reponse_recue).length;
+
+  const filteredRows = rows.filter(
+    (r) =>
+      (!activeFonction || r.fonction === activeFonction) &&
+      (!activeCachet || r.cachet === activeCachet) &&
+      !hiddenIds.has(r.id) &&
+      (showArchived || !STATUTS_ARCHIVES.has(r.statut)) &&
+      (!onlyNonRepondus || (r.convocation_envoyee && !r.reponse_recue))
+  );
+
+  const groups = useMemo((): NestedGroup[] => {
+    if (groupBy === "none") return [{ label: null, rows: filteredRows, subgroups: null }];
+
+    if (groupBy === "statut+fonction") {
+      return groupRows(filteredRows, "statut").map((primary) => ({
+        label: `${primary.label} (${primary.rows.length})`,
+        rows: primary.rows,
+        subgroups: groupRows(primary.rows, "fonction"),
+      }));
+    }
+
+    if (groupBy === "fonction+age") {
+      return groupRows(filteredRows, "fonction").map((primary) => ({
+        label: `${primary.label} (${primary.rows.length})`,
+        rows: primary.rows,
+        subgroups: groupRows(primary.rows, "age"),
+      }));
+    }
+
+    if (groupBy === "fonction+cachet") {
+      const map = new Map<string, Row[]>();
+      for (const r of filteredRows) {
+        const key = `${r.fonction ?? "Sans fonction"} · ${r.cachet ?? "Sans cachet"}`;
+        const list = map.get(key) ?? [];
+        list.push(r);
+        map.set(key, list);
+      }
+      return Array.from(map.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([label, rows]) => ({ label, rows, subgroups: null }));
+    }
+
+    return groupRows(filteredRows, groupBy).map((g) => ({ ...g, subgroups: null }));
+  }, [groupBy, filteredRows]);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function documentHref(path: "trombis" | "fiches") {
+    const params = new URLSearchParams({ projet_id: projetId ?? "", date: date ?? "", sort: groupBy });
+    if (selected.size > 0) params.set("booking_ids", Array.from(selected).join(","));
+    return `/bookings/documents/${path}?${params.toString()}`;
+  }
+
+  function toggleAll() {
+    setSelected((prev) =>
+      prev.size === filteredRows.length ? new Set() : new Set(filteredRows.map((r) => r.id))
+    );
+  }
+
+  function toggleGroup(groupRows: Row[]) {
+    const allSelected = groupRows.every((r) => selected.has(r.id));
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of groupRows) {
+        if (allSelected) next.delete(r.id);
+        else next.add(r.id);
+      }
+      return next;
+    });
+  }
+
+  function applyBulkStatut(statut: string) {
+    if (!statut || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { statut: statut as BookingStatut });
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  function applyBulkFonction() {
+    if (!bulkFonction.trim() || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { fonction: bulkFonction.trim() });
+      setSelected(new Set());
+      setBulkFonction("");
+      router.refresh();
+    });
+  }
+
+  function applyBulkCachet(cachet: string) {
+    if (!cachet || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { cachet });
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  function applyBulkHeure() {
+    if (!bulkHeure || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { heure_convocation: bulkHeure });
+      setSelected(new Set());
+      setBulkHeure("");
+      router.refresh();
+    });
+  }
+
+  function hideSelection() {
+    setHiddenIds((prev) => new Set([...prev, ...selected]));
+    setSelected(new Set());
+  }
+
+  function sendToEssayage() {
+    if (!projetId || !essayageDate || selected.size === 0) return;
+    const figurantIds = rows
+      .filter((r) => selected.has(r.id) && r.figurant_id)
+      .map((r) => r.figurant_id!);
+    setEssayageResult(null);
+    startTransition(async () => {
+      const result = await sendFigurantsToEssayage(figurantIds, projetId, essayageDate, essayageLieu.trim() || null);
+      if (result.error) {
+        setEssayageResult(result.error);
+        return;
+      }
+      setEssayageResult(
+        `${result.added} envoyé(s)${result.skipped ? `, ${result.skipped} déjà présent(s)` : ""}.`
+      );
+      setSelected(new Set());
+    });
+  }
+
+  function checkReplies() {
+    setRepliesPending(true);
+    setRepliesError(null);
+    startTransition(async () => {
+      const result = await checkEmailReplies();
+      setRepliesPending(false);
+      if (result.error) {
+        setRepliesError(result.error);
+        return;
+      }
+      setReplies(result.replies);
+      setLastCheckInfo(
+        result.matched.length > 0
+          ? `${result.matched.length} nouvelle${result.matched.length > 1 ? "s" : ""} réponse${result.matched.length > 1 ? "s" : ""}${
+              result.unmatchedCount > 0 ? ` (${result.unmatchedCount} email(s) d'expéditeur inconnu ignoré(s))` : ""
+            }.`
+          : "Aucune nouvelle réponse."
+      );
+      if (result.matched.length > 0) router.refresh();
+    });
+  }
+
+  function clearReplies() {
+    setReplies([]);
+    setLastCheckInfo(null);
+    startTransition(async () => {
+      await clearUnreviewedReplies();
+    });
+  }
+
+  const selectedRows = rows.filter((r) => selected.has(r.id));
+  const selectedWithEmail = selectedRows.filter((r) => r.figurants?.email && r.figurant_id);
+  const selectedWithoutEmail = selectedRows.length - selectedWithEmail.length;
+
+  function convocationFor(r: Row) {
+    return buildConvocationMailto({
+      figurantPrenom: r.figurants!.prenom,
+      figurantEmail: r.figurants!.email!,
+      date: r.date,
+      heureConvocation: r.heure_convocation,
+      fonction: r.fonction,
+      lieu: journeeLieu || r.projets?.lieu || null,
+      projetNom: r.projets?.nom ?? "",
+      confidentiel: r.projets?.confidentiel ?? false,
+      nomCode: r.projets?.nom_code ?? null,
+      signature: r.projets?.signature ?? null,
+      covoiturageInfo: covoiturageReminderLine(r, rows),
+      numeroCostume: r.numeroCostume ?? null,
+      convocationSettings,
+    });
+  }
+
+  function openConvocationConfirm() {
+    if (selected.size === 0) return;
+    setSendResult(null);
+    setMessageMode("convocation-confirm");
+  }
+
+  function openLibreCompose() {
+    if (selected.size === 0) return;
+    setSendResult(null);
+    setLibreSubject(`Message – ${date ?? ""}`);
+    setLibreMessage(DEFAULT_LIBRE_BODY);
+    setMessageMode("libre-compose");
+  }
+
+  function applyLibreTemplate(template?: MessageTemplate) {
+    setLibreSubject(template ? template.sujet : `Message – ${date ?? ""}`);
+    setLibreMessage(template ? template.corps : DEFAULT_LIBRE_BODY);
+  }
+
+  function cancelMessageComposer() {
+    setMessageMode("none");
+    setSendResult(null);
+  }
+
+  function confirmSendConvocation() {
+    if (selectedWithEmail.length === 0) return;
+    setSendPending(true);
+    setSendResult(null);
+    startTransition(async () => {
+      const result = await sendBulkConvocations(
+        selectedWithEmail.map((r) => {
+          const { subject, body } = convocationFor(r);
+          return { bookingId: r.id, figurantId: r.figurant_id!, email: r.figurants!.email!, corps: body, subject };
+        })
+      );
+      setSendPending(false);
+      setSendResult(result);
+      if (result.failed === 0) {
+        setSelected(new Set());
+        setMessageMode("none");
+      }
+      router.refresh();
+    });
+  }
+
+  function confirmSendLibre() {
+    if (selectedWithEmail.length === 0 || !libreMessage.trim()) return;
+    setSendPending(true);
+    setSendResult(null);
+    startTransition(async () => {
+      let sent = 0;
+      let failed = 0;
+      for (const r of selectedWithEmail) {
+        const tokens = rowTokens(r, journeeLieu);
+        const subject = substituteTokens(libreSubject, tokens);
+        const body = substituteTokens(libreMessage, tokens);
+        const result = await recordBookingMessage(r.figurant_id!, body, r.figurants!.email, subject);
+        if (result?.error) failed += 1;
+        else sent += 1;
+      }
+      setSendPending(false);
+      setSendResult({ sent, failed });
+      if (failed === 0) {
+        setSelected(new Set());
+        setMessageMode("none");
+      }
+      router.refresh();
+    });
+  }
+
+  async function copyConvocationText(r: Row) {
+    if (!r.figurants) return;
+    const text = buildConvocationMailto({
+      figurantPrenom: r.figurants.prenom,
+      figurantEmail: r.figurants.email ?? "convocation@booking-extras.local",
+      date: r.date,
+      heureConvocation: r.heure_convocation,
+      fonction: r.fonction,
+      lieu: journeeLieu || r.projets?.lieu || null,
+      projetNom: r.projets?.nom ?? "",
+      confidentiel: r.projets?.confidentiel ?? false,
+      nomCode: r.projets?.nom_code ?? null,
+      signature: r.projets?.signature ?? null,
+      covoiturageInfo: covoiturageReminderLine(r, rows),
+      numeroCostume: r.numeroCostume ?? null,
+      convocationSettings,
+    }).body;
+    await copyTextToClipboard(text);
+    setCopiedId(r.id);
+    setTimeout(() => setCopiedId((id) => (id === r.id ? null : id)), 1500);
+  }
+
+  async function copyEmail(email: string, key: string) {
+    await copyTextToClipboard(email);
+    setCopiedId(key);
+    setTimeout(() => setCopiedId((id) => (id === key ? null : id)), 1500);
+  }
+
+  function updateRow(id: string, changes: RowChanges) {
+    setRowError(null);
+    startTransition(async () => {
+      const result = await bulkUpdateBookings([id], changes);
+      if (result.error) {
+        setRowError({ id, message: result.error });
+      } else {
+        router.refresh();
+      }
+    });
+  }
+
+  function renderContactLinks(r: Row) {
+    if (!r.figurants?.email && !r.figurants?.telephone) return null;
+    const emailKey = `email-${r.id}`;
+    return (
+      <div className="flex flex-col gap-0.5 text-[10px]">
+        {r.figurants?.email && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              copyEmail(r.figurants!.email!, emailKey);
+            }}
+            title="Copier pour coller dans la recherche Mail"
+            className="w-fit truncate text-left text-coral hover:underline"
+          >
+            {copiedId === emailKey ? "Copié !" : r.figurants.email}
+          </button>
+        )}
+        {r.figurants?.telephone && (
+          <a
+            href={smsConversationHref(r.figurants.telephone)}
+            onClick={(e) => e.stopPropagation()}
+            className="truncate text-coral hover:underline"
+          >
+            {r.figurants.telephone}
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  function renderMessageHistory(r: Row) {
+    const msgs = messagesByFigurant[r.figurant_id ?? ""] ?? [];
+    if (msgs.length === 0) return null;
+    const expanded = expandedMessages.has(r.id);
+    return (
+      <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={() => toggleMessagesExpanded(r.id)}
+          className="w-fit text-left text-[10px] font-medium text-coral hover:underline"
+        >
+          {expanded ? "Masquer les messages" : `${msgs.length} message${msgs.length > 1 ? "s" : ""} envoyé${msgs.length > 1 ? "s" : ""} ▾`}
+        </button>
+        {expanded && (
+          <div className="flex flex-col gap-1 rounded-lg border border-border bg-ink p-1.5">
+            {msgs.map((m) => (
+              <label key={m.id} className="flex items-start gap-1.5 text-[10px]">
+                <input
+                  type="checkbox"
+                  checked={m.repondu}
+                  disabled={pending}
+                  onChange={(e) => toggleRepondu(m.id, e.target.checked)}
+                  className="mt-0.5 h-3 w-3 shrink-0 rounded border-border accent-yellow"
+                  title="A répondu à ce message"
+                />
+                <span className="flex-1">
+                  <span className="font-medium text-text-muted">
+                    {FIGURANT_MESSAGE_CATEGORIES.find((c) => c.value === m.categorie)?.label ?? m.categorie}
+                  </span>
+                  {" · "}
+                  {formatMessageDateTime(m.created_at)}
+                  {m.sujet && <> — « {m.sujet} »</>}
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderRow(r: Row) {
+    return (
+      <tr
+        key={r.id}
+        className={cn(
+          "border-b border-border last:border-0 hover:bg-ink-raised-2",
+          r.statut === "confirmé" && "border-l-2 border-l-turquoise",
+          r.reponse_recue && "bg-yellow-fluo/30 border-l-4 border-l-yellow-fluo"
+        )}
+      >
+        <td className="px-4 py-4 align-middle">
+          <input
+            type="checkbox"
+            checked={selected.has(r.id)}
+            onChange={() => toggle(r.id)}
+            className="h-4 w-4 rounded border-border accent-coral"
+          />
+        </td>
+        <td className="px-4 py-4 align-middle">
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
+            {r.portraitUrl && (
+              <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <Link href={`/bookings/${r.id}`} className="flex items-center gap-2 truncate font-medium hover:text-coral">
+            {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+            {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
+            {r.numeroCostume && <Badge tone="coral">Costume {r.numeroCostume}</Badge>}
+          </Link>
+          <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
+          {renderContactLinks(r)}
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <input
+            type="time"
+            defaultValue={r.heure_convocation ? r.heure_convocation.slice(0, 5) : ""}
+            disabled={pending}
+            className={fieldClass}
+            onBlur={(e) => {
+              const value = e.target.value || null;
+              if (value !== r.heure_convocation) updateRow(r.id, { heure_convocation: value });
+            }}
+          />
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <input
+            list="fonctions-suggestions"
+            defaultValue={r.fonction ?? ""}
+            disabled={pending}
+            placeholder="Passant..."
+            className={fieldClass}
+            onBlur={(e) => {
+              const value = e.target.value.trim() || null;
+              if (value !== r.fonction) updateRow(r.id, { fonction: value });
+            }}
+          />
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <select
+            value={r.cachet ?? ""}
+            disabled={pending}
+            className={fieldClass}
+            onChange={(e) => updateRow(r.id, { cachet: e.target.value || null })}
+          >
+            <option value=""></option>
+            {CACHETS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <StatusSelect
+            tone={STATUTS.find((s) => s.value === r.statut)?.tone ?? "default"}
+            value={r.statut}
+            disabled={pending}
+            onChange={(e) => updateRow(r.id, { statut: e.target.value as BookingStatut })}
+          >
+            {STATUTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </StatusSelect>
+          {rowError?.id === r.id && <p className="mt-1 text-xs text-danger">{rowError.message}</p>}
+        </td>
+        <td className="px-6 py-4 align-middle">
+          <div className="flex flex-col gap-2">
+            <label
+              className={cn(
+                "flex w-fit items-center gap-1.5 text-xs font-medium",
+                r.reponse_recue ? "text-yellow" : "text-text-muted"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={r.reponse_recue}
+                disabled={pending}
+                onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
+                className="h-4 w-4 rounded border-border accent-yellow"
+              />
+              Répondu
+            </label>
+            <input
+              defaultValue={r.notes ?? ""}
+              placeholder="Note..."
+              disabled={pending}
+              className={fieldClass}
+              onBlur={(e) => {
+                const value = e.target.value.trim() || null;
+                if (value !== r.notes) updateRow(r.id, { notes: value });
+              }}
+            />
+            {r.figurants && (
+              <button
+                type="button"
+                onClick={() => copyConvocationText(r)}
+                className="w-fit rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              >
+                {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
+              </button>
+            )}
+            {renderMessageHistory(r)}
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  function renderTrombiCard(r: Row) {
+    return (
+      <div
+        key={r.id}
+        className={cn(
+          "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
+          r.reponse_recue
+            ? "border-yellow-fluo bg-yellow-fluo/30 hover:border-yellow-fluo"
+            : r.statut === "confirmé"
+              ? "border-turquoise/40 bg-turquoise/10 hover:border-turquoise/60"
+              : "border-border bg-ink-raised hover:border-coral/60"
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={selected.has(r.id)}
+          onChange={() => toggle(r.id)}
+          className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
+        />
+        <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
+            {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          </div>
+          <div className="text-sm font-medium">
+            {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          </div>
+          {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
+        </Link>
+        {renderContactLinks(r)}
+        <input
+          list="fonctions-suggestions"
+          defaultValue={r.fonction ?? ""}
+          disabled={pending}
+          placeholder="Fonction..."
+          className={cn(fieldClass, "text-center")}
+          onBlur={(e) => {
+            const value = e.target.value.trim() || null;
+            if (value !== r.fonction) updateRow(r.id, { fonction: value });
+          }}
+        />
+        <select
+          value={r.cachet ?? ""}
+          disabled={pending}
+          className={cn(fieldClass, "text-center")}
+          onChange={(e) => updateRow(r.id, { cachet: e.target.value || null })}
+        >
+          <option value="">Cachet...</option>
+          {CACHETS.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <input
+          type="time"
+          defaultValue={r.heure_convocation ? r.heure_convocation.slice(0, 5) : ""}
+          disabled={pending}
+          className={cn(fieldClass, "text-center")}
+          onBlur={(e) => {
+            const value = e.target.value || null;
+            if (value !== r.heure_convocation) updateRow(r.id, { heure_convocation: value });
+          }}
+        />
+        <StatusSelect
+          tone={STATUTS.find((s) => s.value === r.statut)?.tone ?? "default"}
+          value={r.statut}
+          disabled={pending}
+          onChange={(e) => updateRow(r.id, { statut: e.target.value as BookingStatut })}
+          className="w-full"
+        >
+          {STATUTS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </StatusSelect>
+        {r.figurants && (
+          <button
+            type="button"
+            onClick={() => copyConvocationText(r)}
+            className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+          >
+            {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
+          </button>
+        )}
+        {renderMessageHistory(r)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <datalist id="fonctions-suggestions">
+        {fonctions.map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
+
+      {activeRows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={cn(
+              "flex w-fit items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold",
+              reponduCount === activeRows.length
+                ? "border-yellow-fluo bg-yellow-fluo/40 text-text"
+                : "border-border bg-ink-raised text-text-muted"
+            )}
+          >
+            {reponduCount}/{activeRows.length} ont répondu à la convocation (BIEN REÇU)
+          </div>
+          {nonRepondusCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setOnlyNonRepondus((v) => !v)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                onlyNonRepondus
+                  ? "border-danger bg-danger/15 text-danger"
+                  : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {onlyNonRepondus ? "Voir tout le monde" : `Voir les ${nonRepondusCount} non-répondu${nonRepondusCount > 1 ? "s" : ""}`}
+            </button>
+          )}
+          <Button type="button" variant="ghost" disabled={repliesPending} onClick={checkReplies}>
+            {repliesPending ? "Vérification..." : "Vérifier les réponses"}
+          </Button>
+        </div>
+      )}
+
+      {(repliesError || lastCheckInfo || replies.length > 0) && (
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
+          {repliesError && <p className="text-sm text-danger">Échec de la vérification : {repliesError}</p>}
+          <div className="flex items-center justify-between">
+            <span className="text-sm">
+              {lastCheckInfo}
+              {replies.length > 0 && (
+                <span className={lastCheckInfo ? "ml-2 text-text-muted" : ""}>
+                  {replies.length} réponse{replies.length > 1 ? "s" : ""} à traiter.
+                </span>
+              )}
+            </span>
+            {replies.length > 0 && (
+              <button type="button" onClick={clearReplies} className="text-xs text-text-muted hover:text-coral">
+                Effacer la liste
+              </button>
+            )}
+          </div>
+          {replies.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {replies.map((r) => (
+                <Link
+                  key={r.messageId}
+                  href={`/figurants/${r.figurantId}`}
+                  className="flex flex-wrap items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-ink-raised-2"
+                >
+                  <span className="shrink-0 font-medium">{r.prenom} {r.nom}</span>
+                  {r.sentiment === "positif" && <Badge tone="turquoise">Semble positif</Badge>}
+                  {r.sentiment === "negatif" && <Badge tone="danger">Semble négatif</Badge>}
+                  {r.sujet && <span className="shrink-0 font-medium text-text-muted">« {r.sujet} »</span>}
+                  <span className="truncate text-text-muted">{r.corps.slice(0, 120)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted">Vue :</span>
+        {[
+          { value: "liste" as const, label: "Liste" },
+          { value: "trombi" as const, label: "Trombinoscope" },
+        ].map((v) => (
+          <button
+            key={v.value}
+            type="button"
+            onClick={() => setViewMode(v.value)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              viewMode === v.value
+                ? "border-coral bg-coral/15 text-coral"
+                : "border-border text-text-muted hover:text-text"
+            )}
+          >
+            {v.label}
+          </button>
+        ))}
+        {projetId && date && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-text-muted">
+              {selected.size > 0 ? `Trombis / Fiches (${selected.size} sélectionné${selected.size > 1 ? "s" : ""})` : "Trombis / Fiches (tous)"}
+            </span>
+            <Link
+              href={documentHref("trombis")}
+              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              Trombis
+            </Link>
+            <Link
+              href={documentHref("fiches")}
+              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              Fiches mensuration
+            </Link>
+          </div>
+        )}
+        {filteredRows.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleAll}
+            className={cn(
+              "rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text",
+              !(projetId && date) && "ml-auto"
+            )}
+          >
+            {selected.size === filteredRows.length ? "Tout désélectionner" : "Tout sélectionner"}
+          </button>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted">Grouper par :</span>
+        {[
+          { value: "none" as const, label: "Aucun" },
+          { value: "heure" as const, label: "Heure de convocation" },
+          { value: "fonction" as const, label: "Fonction" },
+          { value: "cachet" as const, label: "Cachet" },
+          { value: "fonction+cachet" as const, label: "Fonction + Cachet" },
+          { value: "statut" as const, label: "Statut" },
+          { value: "statut+fonction" as const, label: "Statut + Fonction" },
+          { value: "fonction+age" as const, label: "Fonction + Âge" },
+          { value: "sexe" as const, label: "Genre" },
+          { value: "age" as const, label: "Âge" },
+        ].map((g) => (
+          <button
+            key={g.value}
+            type="button"
+            onClick={() => setGroupBy(g.value)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              groupBy === g.value
+                ? "border-yellow bg-yellow/15 text-yellow"
+                : "border-border text-text-muted hover:text-text"
+            )}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted">Filtrer fonction :</span>
+        <button
+          type="button"
+          onClick={() => setActiveFonction(null)}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            !activeFonction ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Toutes
+        </button>
+        {fonctions.map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setActiveFonction((prev) => (prev === f ? null : f))}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+              activeFonction === f
+                ? "border-coral bg-coral/15 text-coral"
+                : "border-border text-text-muted hover:text-text"
+            )}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted">Filtrer cachet :</span>
+        <button
+          type="button"
+          onClick={() => setActiveCachet(null)}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            !activeCachet ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Tous
+        </button>
+        {CACHETS.map((c) => {
+          const count = cachetCounts.get(c) ?? 0;
+          return (
+            <button
+              key={c}
+              type="button"
+              disabled={count === 0}
+              onClick={() => setActiveCachet((prev) => (prev === c ? null : c))}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-30",
+                activeCachet === c
+                  ? "border-turquoise bg-turquoise/15 text-turquoise"
+                  : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {c} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+
+      {hiddenIds.size > 0 && (
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          <span>{hiddenIds.size} masqué{hiddenIds.size > 1 ? "s" : ""}</span>
+          <button type="button" onClick={() => setHiddenIds(new Set())} className="text-coral hover:underline">
+            Tout réafficher
+          </button>
+        </div>
+      )}
+
+      {archivedCount > 0 && (
+        <div className="flex items-center gap-3 text-xs text-text-muted">
+          <span>
+            {archivedCount} indisponible{archivedCount > 1 ? "s" : ""}/annulé{archivedCount > 1 ? "s" : ""} masqué
+            {archivedCount > 1 ? "s" : ""} (contacté{archivedCount > 1 ? "s" : ""} précédemment)
+          </span>
+          <button type="button" onClick={() => setShowArchived((v) => !v)} className="text-coral hover:underline">
+            {showArchived ? "Masquer à nouveau" : "Afficher"}
+          </button>
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          <span className="text-sm">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+          <select
+            onChange={(e) => {
+              applyBulkStatut(e.target.value);
+              e.target.value = "";
+            }}
+            disabled={pending}
+            defaultValue=""
+            className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+          >
+            <option value="" disabled>
+              {pending ? "Mise à jour..." : "Marquer statut..."}
+            </option>
+            {STATUTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                Marquer {s.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <input
+              list="fonctions-suggestions"
+              value={bulkFonction}
+              onChange={(e) => setBulkFonction(e.target.value)}
+              placeholder="Fonction..."
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="secondary" disabled={pending || !bulkFonction.trim()} onClick={applyBulkFonction}>
+              Appliquer
+            </Button>
+          </div>
+          <select
+            onChange={(e) => {
+              applyBulkCachet(e.target.value);
+              e.target.value = "";
+            }}
+            disabled={pending}
+            defaultValue=""
+            className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+          >
+            <option value="" disabled>
+              {pending ? "Mise à jour..." : "Marquer cachet..."}
+            </option>
+            {CACHETS.map((c) => (
+              <option key={c} value={c}>
+                Marquer {c}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              value={bulkHeure}
+              onChange={(e) => setBulkHeure(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="secondary" disabled={pending || !bulkHeure} onClick={applyBulkHeure}>
+              Appliquer l&apos;heure
+            </Button>
+          </div>
+          <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openConvocationConfirm}>
+            Convocation
+          </Button>
+          <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openLibreCompose}>
+            Message libre
+          </Button>
+          {projetId && (
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setEssayageOpen((v) => !v)}>
+              Envoyer à un essayage
+            </Button>
+          )}
+          <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
+            Masquer la sélection
+          </Button>
+          {essayageOpen && projetId && (
+            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
+              <input
+                type="date"
+                value={essayageDate}
+                onChange={(e) => setEssayageDate(e.target.value)}
+                disabled={pending}
+                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              />
+              <input
+                value={essayageLieu}
+                onChange={(e) => setEssayageLieu(e.target.value)}
+                placeholder="Lieu (optionnel)"
+                disabled={pending}
+                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              />
+              <Button type="button" variant="turquoise" disabled={pending || !essayageDate} onClick={sendToEssayage}>
+                {pending ? "Envoi..." : "Envoyer"}
+              </Button>
+              {essayageResult && <span className="text-xs text-text-muted">{essayageResult}</span>}
+            </div>
+          )}
+
+          {messageMode === "convocation-confirm" && (
+            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  Envoyer la convocation par email à {selectedWithEmail.length} personne
+                  {selectedWithEmail.length > 1 ? "s" : ""}
+                  {selectedWithoutEmail > 0 && (
+                    <span className="ml-2 text-xs text-danger">
+                      ({selectedWithoutEmail} sans email, ignoré{selectedWithoutEmail > 1 ? "s" : ""})
+                    </span>
+                  )}
+                </span>
+              </div>
+              <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
+                {selectedWithEmail.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-2 py-0.5">
+                    <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                    <span className="text-text-muted">
+                      {r.heure_convocation ? r.heure_convocation.slice(0, 5) : "heure à confirmer"}
+                    </span>
+                  </div>
+                ))}
+                {selectedWithEmail.length === 0 && (
+                  <p className="text-text-muted">Personne avec un email dans la sélection.</p>
+                )}
+              </div>
+              {sendResult && (
+                <p className="text-xs text-text-muted">
+                  {sendResult.sent} envoyé{sendResult.sent > 1 ? "s" : ""}
+                  {sendResult.failed > 0 ? `, ${sendResult.failed} échec(s)` : ""}.
+                </p>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" disabled={sendPending} onClick={cancelMessageComposer}>
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  disabled={sendPending || selectedWithEmail.length === 0}
+                  onClick={confirmSendConvocation}
+                >
+                  {sendPending ? "Envoi..." : `Confirmer et envoyer (${selectedWithEmail.length})`}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {(messageMode === "libre-compose" || messageMode === "libre-confirm") && (
+            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+              <span className="text-sm font-medium">
+                Message libre pour {selectedWithEmail.length} personne{selectedWithEmail.length > 1 ? "s" : ""}
+                {selectedWithoutEmail > 0 && (
+                  <span className="ml-2 text-xs text-danger">
+                    ({selectedWithoutEmail} sans email, ignoré{selectedWithoutEmail > 1 ? "s" : ""})
+                  </span>
+                )}
+              </span>
+
+              {messageMode === "libre-compose" && (
+                <>
+                  {templates.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-text-muted">Modèle :</span>
+                      <button
+                        type="button"
+                        onClick={() => applyLibreTemplate()}
+                        className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                      >
+                        Vierge
+                      </button>
+                      {templates.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => applyLibreTemplate(t)}
+                          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                        >
+                          {t.nom}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <Input value={libreSubject} onChange={(e) => setLibreSubject(e.target.value)} placeholder="Sujet" />
+                  <textarea
+                    value={libreMessage}
+                    onChange={(e) => setLibreMessage(e.target.value)}
+                    placeholder="Votre message"
+                    rows={4}
+                    className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button type="button" variant="ghost" onClick={cancelMessageComposer}>
+                      Annuler
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={!libreMessage.trim() || selectedWithEmail.length === 0}
+                      onClick={() => setMessageMode("libre-confirm")}
+                    >
+                      Prévisualiser ({selectedWithEmail.length})
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {messageMode === "libre-confirm" && (
+                <>
+                  <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
+                    {selectedWithEmail.map((r) => (
+                      <div key={r.id} className="py-0.5">
+                        {r.figurants?.prenom} {r.figurants?.nom}
+                      </div>
+                    ))}
+                  </div>
+                  {sendResult && (
+                    <p className="text-xs text-text-muted">
+                      {sendResult.sent} envoyé{sendResult.sent > 1 ? "s" : ""}
+                      {sendResult.failed > 0 ? `, ${sendResult.failed} échec(s)` : ""}.
+                    </p>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={sendPending}
+                      onClick={() => setMessageMode("libre-compose")}
+                    >
+                      Retour
+                    </Button>
+                    <Button type="button" disabled={sendPending} onClick={confirmSendLibre}>
+                      {sendPending ? "Envoi..." : `Confirmer et envoyer (${selectedWithEmail.length})`}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {viewMode === "liste" && (
+      <div className="overflow-x-auto rounded-2xl border border-border bg-ink-raised">
+        <table className="w-full table-fixed text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-text-muted">
+              <th className="w-10 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={selected.size === filteredRows.length && filteredRows.length > 0}
+                  onChange={toggleAll}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+              </th>
+              <th className="w-14 px-4 py-3"></th>
+              <th className="w-48 px-6 py-3 font-medium">Figurant</th>
+              <th className="w-24 px-6 py-3 font-medium">Heure</th>
+              <th className="w-32 px-6 py-3 font-medium">Fonction</th>
+              <th className="w-36 px-6 py-3 font-medium">Cachet</th>
+              <th className="w-44 px-6 py-3 font-medium">Statut</th>
+              <th className="w-40 px-6 py-3 font-medium">Suivi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((group) => (
+              <Fragment key={group.label ?? "__all__"}>
+                {group.label !== null && (
+                  <tr key={`group-${group.label}`} className="bg-ink-raised-2/60">
+                    <td colSpan={8} className="px-6 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+                      <div className="flex items-center gap-3">
+                        <span>
+                          {group.subgroups ? group.label : `${group.label} (${group.rows.length})`}
+                          <span className="normal-case text-text-muted/70">{repondusSuffix(group.rows)}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleGroup(group.rows)}
+                          className="normal-case text-coral hover:underline"
+                        >
+                          {group.rows.every((r) => selected.has(r.id)) ? "Désélectionner" : "Sélectionner le groupe"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {group.subgroups
+                  ? group.subgroups.map((sub) => (
+                      <Fragment key={sub.label}>
+                        <tr className="bg-ink-raised-2/25">
+                          <td colSpan={8} className="px-8 py-1.5 text-xs font-medium text-text-muted">
+                            <div className="flex items-center gap-3">
+                              <span>
+                                {sub.label} ({sub.rows.length})
+                                <span className="text-text-muted/70">{repondusSuffix(sub.rows)}</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleGroup(sub.rows)}
+                                className="text-coral hover:underline"
+                              >
+                                {sub.rows.every((r) => selected.has(r.id)) ? "Désélectionner" : "Sélectionner le groupe"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {sub.rows.map(renderRow)}
+                      </Fragment>
+                    ))
+                  : group.rows.map(renderRow)}
+              </Fragment>
+            ))}
+            {filteredRows.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-6 py-10 text-center text-text-muted">
+                  Aucun booking pour ce filtre.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      )}
+
+      {viewMode === "trombi" && (
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <div key={group.label ?? "__all__"} className="flex flex-col gap-3">
+              {group.label !== null && (
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                    {group.label} ({group.rows.length})
+                    <span className="normal-case text-text-muted/70">{repondusSuffix(group.rows)}</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.rows)}
+                    className="text-xs text-coral hover:underline"
+                  >
+                    {group.rows.every((r) => selected.has(r.id)) ? "Désélectionner" : "Sélectionner le groupe"}
+                  </button>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {[...group.rows]
+                  .sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""))
+                  .map(renderTrombiCard)}
+              </div>
+            </div>
+          ))}
+          {filteredRows.length === 0 && (
+            <p className="py-10 text-center text-text-muted">Aucun booking pour ce filtre.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
