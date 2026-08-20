@@ -206,6 +206,11 @@ export function PostulerForm({
       </Button>
 
       <p className="text-center text-xs text-text-muted">
+        Candidater est gratuit — aucune somme d&apos;argent ni aucun document de paie ne vous sera jamais demandé
+        sur Booking Extras.
+      </p>
+
+      <p className="text-center text-xs text-text-muted">
         Les informations de ce formulaire (dont vos photos) sont destinées à l&apos;équipe de casting Booking Extras
         pour étudier votre candidature et vous recontacter si votre profil correspond à un tournage. Elles sont
         conservées 2 ans maximum sans nouveau contact, puis supprimées. Vous pouvez à tout moment demander à les

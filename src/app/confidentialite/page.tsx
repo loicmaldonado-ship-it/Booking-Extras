@@ -45,6 +45,18 @@ export default function ConfidentialitePage() {
       </Card>
 
       <Card className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-text-muted">Bon à savoir</h2>
+        <p className="text-sm">
+          Booking Extras ne gère pas les données liées à la paie — aucun document servant à la paie (RIB, pièce
+          d&apos;identité pour la paie...) ne vous sera jamais demandé ici.
+        </p>
+        <p className="text-sm">
+          L&apos;inscription et la candidature sur Booking Extras sont entièrement gratuites. Aucune somme
+          d&apos;argent ne vous sera jamais demandée.
+        </p>
+      </Card>
+
+      <Card className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-text-muted">Combien de temps sont-elles conservées ?</h2>
         <p className="text-sm">
           2 ans maximum après notre dernier contact si vous n&apos;êtes pas retenu·e. Sans limite tant que vous
