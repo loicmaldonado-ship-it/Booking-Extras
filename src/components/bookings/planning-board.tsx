@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/field";
 import { createBookingFromDrop, removeBooking } from "@/lib/bookings/actions";
 import { setCurrentProjet } from "@/lib/projet-context";
+import { formatDateShort } from "@/lib/format-date";
 
 type Figurant = { id: string; prenom: string; nom: string; portraitUrl: string | null };
 type BookingCard = {
@@ -175,11 +176,7 @@ export function PlanningBoard({
               }`}
             >
               <h3 className="text-sm font-semibold">
-                {new Date(date + "T00:00:00").toLocaleDateString("fr-FR", {
-                  weekday: "short",
-                  day: "numeric",
-                  month: "short",
-                })}
+                {new Date(date + "T00:00:00").toLocaleDateString("fr-FR", { weekday: "short" })} {formatDateShort(date)}
               </h3>
               <div className="flex flex-col gap-2">
                 {(bookingsByDate.get(date) ?? []).map((b) => (

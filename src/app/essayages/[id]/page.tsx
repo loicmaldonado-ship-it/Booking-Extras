@@ -5,6 +5,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { deleteEssayage } from "@/lib/essayages/actions";
+import { formatDateShort } from "@/lib/format-date";
 
 export default async function EssayageDetailPage({
   params,
@@ -35,7 +36,7 @@ export default async function EssayageDetailPage({
           </h1>
           <p className="mt-1 text-text-muted">
             {essayage.projets?.nom}
-            {essayage.date ? ` · ${essayage.date}` : ""}
+            {essayage.date ? ` · ${formatDateShort(essayage.date)}` : ""}
             {essayage.heure ? ` · ${essayage.heure}` : ""}
           </p>
         </div>

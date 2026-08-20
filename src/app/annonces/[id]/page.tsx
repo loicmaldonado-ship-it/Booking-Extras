@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
+import { CopyAnnonceText } from "@/components/annonces/copy-annonce-text";
 import { ToggleStatutButton } from "@/components/annonces/toggle-statut-button";
 import { QuestionsManager } from "@/components/annonces/questions-manager";
 import { DatesManager } from "@/components/annonces/dates-manager";
@@ -13,6 +14,8 @@ import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { deleteAnnonce } from "@/lib/annonces/actions";
 import { getAnnonceQuestions, getQuestionTemplates } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
+import { formatDateShort } from "@/lib/format-date";
+import { projetNomPublic } from "@/lib/projets/types";
 
 export default async function AnnonceDetailPage({
   params,
@@ -24,7 +27,7 @@ export default async function AnnonceDetailPage({
 
   const { data: annonce } = await supabase
     .from("annonces")
-    .select("*, projets(nom, confidentiel)")
+    .select("*, projets(nom, confidentiel, nom_code)")
     .eq("id", id)
     .single<AnnonceAvecProjet>();
 
@@ -48,6 +51,16 @@ export default async function AnnonceDetailPage({
 
   const boundDeleteAnnonce = deleteAnnonce.bind(null, id);
 
+  const shareLines = [
+    annonce.titre,
+    [projetNomPublic(annonce.projets), annonce.lieu, annonce.date_recherchee ? formatDateShort(annonce.date_recherchee) : null]
+      .filter(Boolean)
+      .join(" · "),
+  ];
+  if (annonce.description) shareLines.push("", annonce.description);
+  shareLines.push("", `Merci de suivre ce lien pour postuler : ${publicUrl}`);
+  const shareText = shareLines.join("\n");
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/annonces" label="Annonces" />
@@ -62,7 +75,7 @@ export default async function AnnonceDetailPage({
           </div>
           <p className="mt-1 text-text-muted">
             {annonce.projets?.nom}
-            {annonce.date_recherchee ? ` · ${annonce.date_recherchee}` : ""}
+            {annonce.date_recherchee ? ` · ${formatDateShort(annonce.date_recherchee)}` : ""}
             {annonce.lieu ? ` · ${annonce.lieu}` : ""}
           </p>
         </div>
@@ -81,6 +94,7 @@ export default async function AnnonceDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Lien public à diffuser</h2>
         <CopyLink url={publicUrl} />
+        <CopyAnnonceText text={shareText} />
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm text-text-muted">
             <span>

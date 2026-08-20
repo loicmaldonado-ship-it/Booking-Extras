@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/field";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { Megaphone } from "lucide-react";
+import { formatDateShort } from "@/lib/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -123,7 +124,9 @@ export default async function AnnoncesPage({
                 <td className="px-6 py-3 text-text-muted">
                   {a.projets?.nom ?? "—"}
                 </td>
-                <td className="px-6 py-3 text-text-muted">{a.date_recherchee ?? "—"}</td>
+                <td className="px-6 py-3 text-text-muted">
+                  {a.date_recherchee ? formatDateShort(a.date_recherchee) : "—"}
+                </td>
                 <td className="px-6 py-3 text-text-muted">{a.lieu ?? "—"}</td>
                 <td className="px-6 py-3">
                   <Badge tone={a.statut === "ouverte" ? "turquoise" : "default"}>

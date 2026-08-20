@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/field";
 import { PROJET_TYPES, type Projet } from "@/lib/projets/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { Clapperboard } from "lucide-react";
+import { formatDateShort } from "@/lib/format-date";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export default async function ProjetsPage({
                 <td className="px-6 py-3 text-text-muted">{p.realisateur ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
                   {p.date_debut
-                    ? `${p.date_debut}${p.date_fin ? ` → ${p.date_fin}` : ""}`
+                    ? `${formatDateShort(p.date_debut)}${p.date_fin ? ` → ${formatDateShort(p.date_fin)}` : ""}`
                     : "—"}
                 </td>
                 <td className="px-6 py-3 text-text-muted">{p.lieu ?? "—"}</td>

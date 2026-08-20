@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
+import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM } from "@/lib/figurants/types";
+import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { clearFigurantSessionCookie, getCurrentFigurant } from "./session";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -57,11 +59,11 @@ export async function sendAccesCompteActiveEmail(figurant: { id: string; prenom:
   const { link, error: linkError } = await createMagicLinkToken(figurant.id);
   if (linkError || !link) return { error: linkError };
 
-  const subject = "Booking Extras — votre profil est retenu";
+  const subject = "Booking Extras — votre espace personnel est prêt";
   const body = [
     `Bonjour ${figurant.prenom},`,
     "",
-    "Votre profil a été retenu, mais n'est pas encore booké sur une date précise.",
+    "Vous avez été ajouté·e à une date de tournage.",
     "",
     "Merci d'accéder à votre espace personnel : vous y retrouverez vos dates et les échanges de messages avec nous.",
     "",
@@ -277,6 +279,11 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
     }
     return { error: error.message };
   }
+
+  await Promise.all([
+    upsertFigurantLienByLabel(supabase, session.id, LIEN_BANDE_DEMO, str(formData, "lien_bande_demo")),
+    upsertFigurantLienByLabel(supabase, session.id, LIEN_INSTAGRAM, str(formData, "lien_instagram")),
+  ]);
 
   revalidatePath("/compte");
   return { success: true as const };

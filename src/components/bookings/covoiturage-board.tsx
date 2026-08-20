@@ -22,7 +22,15 @@ export type CovoiturageRow = {
 const fieldClass =
   "w-full rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60";
 
-export function CovoiturageBoard({ rows, date }: { rows: CovoiturageRow[]; date: string }) {
+export function CovoiturageBoard({
+  rows,
+  date,
+  projetId,
+}: {
+  rows: CovoiturageRow[];
+  date: string;
+  projetId?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [viewMode, setViewMode] = useState<"trombi" | "liste">("trombi");
@@ -133,14 +141,14 @@ export function CovoiturageBoard({ rows, date }: { rows: CovoiturageRow[]; date:
     if (target.kind === "sms") {
       openHref(target.href);
       startTransition(async () => {
-        await recordCovoiturageMessage(r.figurant_id, body!);
+        await recordCovoiturageMessage(r.figurant_id, body!, null, undefined, projetId);
       });
       setSentIds((prev) => new Set([...prev, r.id]));
       return;
     }
     setSendError(null);
     startTransition(async () => {
-      const result = await recordCovoiturageMessage(r.figurant_id, body!, r.figurants!.email, subject);
+      const result = await recordCovoiturageMessage(r.figurant_id, body!, r.figurants!.email, subject, projetId);
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
       else setSentIds((prev) => new Set([...prev, r.id]));
     });

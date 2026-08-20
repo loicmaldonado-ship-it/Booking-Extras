@@ -148,7 +148,7 @@ export default async function FigurantDetailPage({
           </div>
           <div>
             <span className="text-text-muted">Date de naissance : </span>
-            {figurant.date_naissance ?? "—"}
+            {figurant.date_naissance ? formatDateShort(figurant.date_naissance) : "—"}
           </div>
           <div>
             <span className="text-text-muted">Commune de naissance : </span>

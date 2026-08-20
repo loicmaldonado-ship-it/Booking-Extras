@@ -21,6 +21,7 @@ function buildAnnoncePayload(fd: FormData) {
     statut: (str(fd, "statut") ?? "ouverte") as AnnonceStatut,
     description: str(fd, "description"),
     ouverte_mineurs: fd.get("ouverte_mineurs") === "on",
+    bande_demo_obligatoire: fd.get("bande_demo_obligatoire") === "on",
     limite_candidatures: limiteRaw ? Number(limiteRaw) : null,
   };
 }

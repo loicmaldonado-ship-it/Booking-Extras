@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
+import { getProjetEmailCredentials } from "@/lib/projets/email";
 import type { FigurantMessageCategorie } from "./types";
 
 // Si un email est fourni, le message part réellement (Gmail SMTP, boîte
@@ -14,6 +15,7 @@ export async function recordFigurantMessage(params: {
   bookingId?: string | null;
   email?: string | null;
   subject?: string;
+  projetId?: string | null;
 }) {
   const supabase = createAdminClient();
   await supabase.from("figurant_messages").insert({
@@ -31,7 +33,8 @@ export async function recordFigurantMessage(params: {
   });
 
   if (params.email) {
-    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps);
+    const credentials = await getProjetEmailCredentials(supabase, params.projetId);
+    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials);
     if (result.error) return { error: result.error };
   }
   return {};

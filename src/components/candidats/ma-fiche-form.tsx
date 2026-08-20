@@ -8,7 +8,15 @@ import { Field, Input } from "@/components/ui/field";
 import { updateMaFiche } from "@/lib/candidats/actions";
 import type { Figurant } from "@/lib/figurants/types";
 
-export function MaFicheForm({ figurant }: { figurant: Figurant }) {
+export function MaFicheForm({
+  figurant,
+  lienBandeDemo,
+  lienInstagram,
+}: {
+  figurant: Figurant;
+  lienBandeDemo: string | null;
+  lienInstagram: string | null;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -79,6 +87,26 @@ export function MaFicheForm({ figurant }: { figurant: Figurant }) {
             <span className="text-text-muted">Veste / Pantalon : </span>
             {figurant.veste ?? "—"} / {figurant.pantalon ?? "—"}
           </div>
+          <div>
+            <span className="text-text-muted">Bande démo : </span>
+            {lienBandeDemo ? (
+              <a href={lienBandeDemo} target="_blank" rel="noreferrer" className="text-coral hover:underline">
+                Voir le lien
+              </a>
+            ) : (
+              "—"
+            )}
+          </div>
+          <div>
+            <span className="text-text-muted">Instagram : </span>
+            {lienInstagram ? (
+              <a href={lienInstagram} target="_blank" rel="noreferrer" className="text-coral hover:underline">
+                Voir le lien
+              </a>
+            ) : (
+              "—"
+            )}
+          </div>
         </div>
         <p className="text-xs text-text-muted">
           Une autre info à corriger ? Répondez-nous directement dans la messagerie ci-dessous.
@@ -119,6 +147,12 @@ export function MaFicheForm({ figurant }: { figurant: Figurant }) {
           </Field>
           <Field label="Pantalon">
             <Input name="pantalon" defaultValue={figurant.pantalon ?? ""} />
+          </Field>
+          <Field label="Lien bande démo">
+            <Input type="url" name="lien_bande_demo" placeholder="https://..." defaultValue={lienBandeDemo ?? ""} />
+          </Field>
+          <Field label="Lien Instagram">
+            <Input type="url" name="lien_instagram" placeholder="https://instagram.com/..." defaultValue={lienInstagram ?? ""} />
           </Field>
         </div>
         <div className="flex justify-end gap-2">

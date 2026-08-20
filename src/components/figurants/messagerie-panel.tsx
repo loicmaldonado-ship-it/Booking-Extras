@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { sendStaffMessageToFigurant, notifyFigurantByEmail } from "@/lib/figurants/messages-actions";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessage, type FigurantMessageCategorie } from "@/lib/candidats/types";
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
+import { formatDateTime } from "@/lib/format-date";
 
 export function MessageriePanel({
   figurantId,

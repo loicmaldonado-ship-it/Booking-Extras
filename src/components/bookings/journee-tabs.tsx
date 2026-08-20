@@ -118,7 +118,7 @@ export function JourneeTabs({
         <EssayagesPanel figurants={essayageFigurants} essayages={essayages} projetId={projetId} />
       )}
 
-      {tab === "covoiturage" && <CovoiturageBoard rows={covoiturageRows} date={date} />}
+      {tab === "covoiturage" && <CovoiturageBoard rows={covoiturageRows} date={date} projetId={projetId} />}
 
       {tab === "documents" && (
         <Card className="flex flex-col gap-3">

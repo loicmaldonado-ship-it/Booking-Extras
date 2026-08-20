@@ -4,11 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { activerAccesCompte } from "@/lib/candidats/actions";
-import type { Cachet, CandidatureStatut } from "./types";
+import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
+import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
+import type { Cachet } from "./types";
 
-export async function recordCandidatureMessage(figurantId: string, corps: string, email?: string | null, subject?: string) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email, subject });
+export async function recordCandidatureMessage(
+  figurantId: string,
+  corps: string,
+  email?: string | null,
+  subject?: string,
+  projetId?: string | null
+) {
+  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email, subject, projetId });
 }
 
 function str(fd: FormData, key: string): string | null {
@@ -29,6 +36,7 @@ export async function postulerAnnonce(
   const ville = str(formData, "ville");
   const dateNaissance = str(formData, "date_naissance");
   const message = str(formData, "message");
+  const lienBandeDemo = str(formData, "lien_bande_demo");
 
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
@@ -49,7 +57,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, statut, ouverte_mineurs, limite_candidatures")
+    .select("id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
     .eq("public_token", publicToken)
     .single();
 
@@ -61,6 +69,9 @@ export async function postulerAnnonce(
   }
   if (age < 16 && !annonce.ouverte_mineurs) {
     return { error: "Cette annonce n'est pas ouverte aux candidats de moins de 16 ans." };
+  }
+  if (annonce.bande_demo_obligatoire && !lienBandeDemo) {
+    return { error: "Le lien de la bande démo est obligatoire pour cette annonce." };
   }
   if (annonce.limite_candidatures !== null) {
     const { count } = await supabase
@@ -121,6 +132,13 @@ export async function postulerAnnonce(
       return { error: figurantError.message };
     }
     figurantId = newFigurant.id;
+  }
+
+  // On n'écrase le lien existant que si un nouveau a été fourni — sinon un
+  // candidat qui repostule sans le ressaisir (formulaire pas pré-rempli, pas
+  // connecté) ne doit pas effacer celui déjà enregistré sur sa fiche.
+  if (lienBandeDemo) {
+    await upsertFigurantLienByLabel(supabase, figurantId!, LIEN_BANDE_DEMO, lienBandeDemo);
   }
 
   const { data: candidature, error: candidatureError } = await supabase
@@ -191,102 +209,75 @@ async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
   }
 }
 
+// Ne touche jamais onglet_id — c'est OngletPicker (setCandidatureOnglet) qui
+// s'en charge, séparément, pour ne pas écraser le rangement à chaque
+// sauvegarde de fonction/cachet.
 export async function updateCandidature(id: string, formData: FormData) {
-  const statut = str(formData, "statut") as CandidatureStatut | null;
   const fonction_assignee = str(formData, "fonction_assignee");
   const cachet_assigne = str(formData, "cachet_assigne") as Cachet | null;
 
-  if (!statut) return;
-
   const supabase = createAdminClient();
-
-  const { data: candidature, error } = await supabase
-    .from("candidatures")
-    .update({ statut, fonction_assignee, cachet_assigne })
-    .eq("id", id)
-    .select("id, figurant_id, annonce_id")
-    .single();
-
-  if (error || !candidature) {
-    revalidatePath("/candidatures");
-    return;
-  }
-
-  if (statut === "retenu") {
-    await creerBookingDepuisCandidature(
-      candidature.id,
-      candidature.figurant_id,
-      candidature.annonce_id,
-      fonction_assignee,
-      cachet_assigne
-    );
-    await activerAccesCompte(candidature.figurant_id);
-  }
+  await supabase.from("candidatures").update({ fonction_assignee, cachet_assigne }).eq("id", id);
 
   revalidatePath("/candidatures");
 }
 
-export async function updateCandidatureStatutInline(id: string, statut: CandidatureStatut) {
+// Rangement pur — ne crée jamais de booking ni n'active l'accès au compte.
+// Le seul déclencheur de ces deux effets est le transfert réel vers une
+// journée (voir createBookingFromDrop).
+export async function setCandidatureOnglet(id: string, ongletId: string | null) {
   const supabase = createAdminClient();
-
-  const { data: candidature, error } = await supabase
-    .from("candidatures")
-    .update({ statut })
-    .eq("id", id)
-    .select("id, figurant_id, annonce_id, fonction_assignee, cachet_assigne")
-    .single();
-
-  if (error || !candidature) {
-    revalidatePath("/candidatures");
-    return { error: error?.message };
-  }
-
-  if (statut === "retenu") {
-    await creerBookingDepuisCandidature(
-      candidature.id,
-      candidature.figurant_id,
-      candidature.annonce_id,
-      candidature.fonction_assignee,
-      candidature.cachet_assigne
-    );
-    await activerAccesCompte(candidature.figurant_id);
-  }
-
+  const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   revalidatePath("/candidatures");
-  return { success: true };
+  if (error) return { error: error.message };
+  return { success: true as const };
 }
 
-async function creerBookingDepuisCandidature(
-  candidatureId: string,
-  figurantId: string,
-  annonceId: string,
-  fonction: string | null,
-  cachet: Cachet | null
-) {
+export async function setCandidaturesOngletBulk(ids: string[], ongletId: string | null) {
+  if (ids.length === 0) return { success: true as const };
   const supabase = createAdminClient();
+  const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
+  revalidatePath("/candidatures");
+  if (error) return { error: error.message };
+  return { success: true as const };
+}
 
-  const { data: existingBooking } = await supabase
-    .from("bookings")
+export async function createCandidatureOnglet(nom: string) {
+  const trimmed = nom.trim();
+  if (!trimmed) return { error: "Nom d'onglet requis." };
+
+  const supabase = createAdminClient();
+  const { data: existant } = await supabase
+    .from("candidature_onglets")
     .select("id")
-    .eq("candidature_id", candidatureId)
+    .ilike("nom", trimmed)
+    .maybeSingle();
+  if (existant) return { onglet: existant };
+
+  const { data: maxOrdre } = await supabase
+    .from("candidature_onglets")
+    .select("ordre")
+    .order("ordre", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (existingBooking) return;
-
-  const { data: annonce } = await supabase
-    .from("annonces")
-    .select("projet_id, date_recherchee")
-    .eq("id", annonceId)
+  const { data: onglet, error } = await supabase
+    .from("candidature_onglets")
+    .insert({ nom: trimmed, couleur: "default", fixe: false, ordre: (maxOrdre?.ordre ?? 0) + 1 })
+    .select("id, nom, couleur, fixe, ordre")
     .single();
 
-  if (!annonce) return;
+  if (error) return { error: error.message };
+  revalidatePath("/candidatures");
+  return { onglet };
+}
 
-  await supabase.from("bookings").insert({
-    figurant_id: figurantId,
-    projet_id: annonce.projet_id,
-    candidature_id: candidatureId,
-    date: annonce.date_recherchee ?? new Date().toISOString().slice(0, 10),
-    fonction,
-    cachet,
-  });
+export async function deleteCandidatureOnglet(id: string) {
+  const supabase = createAdminClient();
+  const { data: onglet } = await supabase.from("candidature_onglets").select("fixe").eq("id", id).single();
+  if (onglet?.fixe) return { error: "Cet onglet ne peut pas être supprimé." };
+
+  await supabase.from("candidature_onglets").delete().eq("id", id);
+  revalidatePath("/candidatures");
+  return { success: true as const };
 }

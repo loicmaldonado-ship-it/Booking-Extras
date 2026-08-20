@@ -5,6 +5,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import type { Projet } from "@/lib/projets/types";
 import { deleteProjet } from "@/lib/projets/actions";
+import { formatDateShort } from "@/lib/format-date";
 
 export default async function ProjetDetailPage({
   params,
@@ -64,8 +65,8 @@ export default async function ProjetDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Tournage</h2>
         <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
-          <div><span className="text-text-muted">Début : </span>{projet.date_debut ?? "—"}</div>
-          <div><span className="text-text-muted">Fin : </span>{projet.date_fin ?? "—"}</div>
+          <div><span className="text-text-muted">Début : </span>{projet.date_debut ? formatDateShort(projet.date_debut) : "—"}</div>
+          <div><span className="text-text-muted">Fin : </span>{projet.date_fin ? formatDateShort(projet.date_fin) : "—"}</div>
           <div><span className="text-text-muted">Lieu : </span>{projet.lieu ?? "—"}</div>
         </div>
       </Card>

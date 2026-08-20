@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { markMessageBienRecu, sendFigurantReply } from "@/lib/candidats/actions";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessage } from "@/lib/candidats/types";
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
+import { formatDateTime } from "@/lib/format-date";
 
 export function MessageThread({ messages }: { messages: FigurantMessage[] }) {
   const router = useRouter();

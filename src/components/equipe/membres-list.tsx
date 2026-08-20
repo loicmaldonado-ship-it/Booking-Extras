@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { revokeAccess } from "@/lib/equipe/actions";
+import { formatDateShort } from "@/lib/format-date";
 
 export type Membre = {
   id: string;
@@ -40,9 +41,7 @@ export function MembresList({ membres }: { membres: Membre[] }) {
             <tr key={m.id} className="border-b border-border last:border-0">
               <td className="px-6 py-3 font-medium">{m.profiles?.nom || m.profiles?.email || "—"}</td>
               <td className="px-6 py-3 text-text-muted">{m.projets?.nom ?? "—"}</td>
-              <td className="px-6 py-3 text-text-muted">
-                {new Date(m.created_at).toLocaleDateString("fr-FR")}
-              </td>
+              <td className="px-6 py-3 text-text-muted">{formatDateShort(m.created_at)}</td>
               <td className="px-6 py-3 text-right">
                 <Button type="button" variant="ghost" disabled={pending} onClick={() => revoke(m.id)}>
                   Révoquer

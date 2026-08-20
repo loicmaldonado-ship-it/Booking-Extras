@@ -107,6 +107,7 @@ export default async function EssayageJourneePage({
       <Card>
         <EssayageJourneeTable
           rows={rows}
+          projetId={projet_id}
           projetNom={projet?.nom ?? ""}
           signature={projet?.signature ?? null}
           journeeDate={date}

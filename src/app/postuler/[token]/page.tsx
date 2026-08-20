@@ -6,6 +6,8 @@ import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
 import { getCurrentFigurant } from "@/lib/candidats/session";
+import { formatDateShort } from "@/lib/format-date";
+import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 
 export default async function PostulerPage({
   params,
@@ -49,13 +51,22 @@ export default async function PostulerPage({
     telephone: string | null;
     ville: string | null;
     date_naissance: string | null;
+    lien_bande_demo: string | null;
   } | undefined;
   if (session) {
-    const { data: figurantComplet } = await supabase
-      .from("figurants")
-      .select("prenom, nom, email, telephone, ville, date_naissance")
-      .eq("id", session.id)
-      .single();
+    const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
+      supabase
+        .from("figurants")
+        .select("prenom, nom, email, telephone, ville, date_naissance")
+        .eq("id", session.id)
+        .single(),
+      supabase
+        .from("figurant_liens")
+        .select("url")
+        .eq("figurant_id", session.id)
+        .eq("label", LIEN_BANDE_DEMO)
+        .maybeSingle(),
+    ]);
     if (figurantComplet?.email) {
       prefill = {
         prenom: figurantComplet.prenom,
@@ -64,6 +75,7 @@ export default async function PostulerPage({
         telephone: figurantComplet.telephone,
         ville: figurantComplet.ville,
         date_naissance: figurantComplet.date_naissance,
+        lien_bande_demo: lienBandeDemo?.url ?? null,
       };
     }
   }
@@ -83,7 +95,7 @@ export default async function PostulerPage({
         </div>
         <p className="mt-1 text-text-muted">
           {projetNomPublic(annonce.projets)}
-          {annonce.date_recherchee ? ` · ${annonce.date_recherchee}` : ""}
+          {annonce.date_recherchee ? ` · ${formatDateShort(annonce.date_recherchee)}` : ""}
           {annonce.lieu ? ` · ${annonce.lieu}` : ""}
         </p>
       </div>
@@ -104,6 +116,7 @@ export default async function PostulerPage({
           questions={await getAnnonceQuestions(annonce.id)}
           dates={await getAnnonceDates(annonce.id)}
           prefill={prefill}
+          bandeDemoObligatoire={annonce.bande_demo_obligatoire}
         />
       ) : (
         <Card>

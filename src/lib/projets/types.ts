@@ -20,6 +20,8 @@ export type Projet = {
   besoins_figuration: string | null;
   synopsis: string | null;
   signature: string | null;
+  gmail_smtp_user: string | null;
+  gmail_smtp_app_password: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { activerAccesCompte } from "@/lib/candidats/actions";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
 
@@ -56,6 +57,10 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   if (error) {
     return { error: friendlyError(error.message) };
   }
+
+  await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
+  await activerAccesCompte(payload.figurant_id);
+  revalidatePath("/figurants");
 
   revalidatePath("/bookings");
   redirect(`/bookings/${data.id}`);
@@ -119,8 +124,15 @@ export async function createBookingFromDrop(
 
   if (error) return { error: error.message };
 
+  // Transfert vers une journée = le figurant devient "confirmé" (visible
+  // dans Base Profils) et son accès à l'espace personnel s'active, avec
+  // l'email dédié envoyé automatiquement.
+  await supabase.from("figurants").update({ confirme: true }).eq("id", figurantId);
+  await activerAccesCompte(figurantId);
+
   revalidatePath("/bookings/planning");
   revalidatePath("/candidatures");
+  revalidatePath("/figurants");
   return { success: true };
 }
 
@@ -214,21 +226,35 @@ export async function recordConvocationMessage(
   figurantId: string,
   corps: string,
   email?: string | null,
-  subject?: string
+  subject?: string,
+  projetId?: string | null
 ) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "convocation", bookingId, email, subject });
+  return recordFigurantMessage({ figurantId, corps, categorie: "convocation", bookingId, email, subject, projetId });
 }
 
-export async function recordBookingMessage(figurantId: string, corps: string, email?: string | null, subject?: string) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "booking", email, subject });
+export async function recordBookingMessage(
+  figurantId: string,
+  corps: string,
+  email?: string | null,
+  subject?: string,
+  projetId?: string | null
+) {
+  return recordFigurantMessage({ figurantId, corps, categorie: "booking", email, subject, projetId });
 }
 
-export async function recordCovoiturageMessage(figurantId: string, corps: string, email?: string | null, subject?: string) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "covoiturage", email, subject });
+export async function recordCovoiturageMessage(
+  figurantId: string,
+  corps: string,
+  email?: string | null,
+  subject?: string,
+  projetId?: string | null
+) {
+  return recordFigurantMessage({ figurantId, corps, categorie: "covoiturage", email, subject, projetId });
 }
 
 export async function sendBulkConvocations(
-  rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[]
+  rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
+  projetId?: string | null
 ) {
   let sent = 0;
   let failed = 0;
@@ -240,6 +266,7 @@ export async function sendBulkConvocations(
       bookingId: r.bookingId,
       email: r.email,
       subject: r.subject,
+      projetId,
     });
     if (result.error) {
       failed += 1;

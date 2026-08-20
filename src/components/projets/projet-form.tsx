@@ -134,6 +134,54 @@ export function ProjetForm({
         </Field>
       </Card>
 
+      <Card className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Envoi des emails</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Optionnel — si renseigné, tous les messages envoyés depuis ce projet (convocations, candidatures,
+            essayages...) partent de cette adresse au lieu de l&apos;adresse Gmail par défaut de Booking Extras.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Adresse Gmail">
+            <Input
+              type="email"
+              name="gmail_smtp_user"
+              placeholder="casting.projet@gmail.com"
+              defaultValue={projet?.gmail_smtp_user ?? ""}
+            />
+          </Field>
+          <Field label="Mot de passe d'application">
+            <Input
+              type="password"
+              name="gmail_smtp_app_password"
+              placeholder="16 caractères, sans espaces"
+              defaultValue={projet?.gmail_smtp_app_password ?? ""}
+            />
+          </Field>
+        </div>
+        <div className="rounded-xl border border-border bg-ink px-4 py-3 text-sm text-text-muted">
+          <p className="font-medium text-text">Procédure rapide (sur le compte Gmail du projet) :</p>
+          <ol className="mt-2 list-decimal space-y-1 pl-4">
+            <li>Active la validation en 2 étapes si ce n&apos;est pas déjà fait.</li>
+            <li>
+              Va sur{" "}
+              <a
+                href="https://myaccount.google.com/apppasswords"
+                target="_blank"
+                rel="noreferrer"
+                className="text-coral hover:underline"
+              >
+                myaccount.google.com/apppasswords
+              </a>
+              .
+            </li>
+            <li>Crée un mot de passe d&apos;application (nom au choix, ex. &laquo; Booking Extras &raquo;).</li>
+            <li>Colle l&apos;adresse Gmail et le mot de passe généré (16 caractères) ci-dessus.</li>
+          </ol>
+        </div>
+      </Card>
+
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>
           {pending ? "Enregistrement..." : projet ? "Enregistrer" : "Créer le projet"}

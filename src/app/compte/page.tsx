@@ -11,7 +11,7 @@ import { MaFicheForm } from "@/components/candidats/ma-fiche-form";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
-import type { Figurant } from "@/lib/figurants/types";
+import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export default async function CompteCandidatPage() {
   }
 
   const supabase = createAdminClient();
-  const [{ data: figurant }, { data: messages }, { data: candidaturesExistantes }] = await Promise.all([
+  const [{ data: figurant }, { data: messages }, { data: candidaturesExistantes }, { data: liens }] = await Promise.all([
     supabase.from("figurants").select("*").eq("id", session.id).single<Figurant>(),
     supabase
       .from("figurant_messages")
@@ -41,7 +41,11 @@ export default async function CompteCandidatPage() {
       .order("created_at", { ascending: true })
       .returns<FigurantMessage[]>(),
     supabase.from("candidatures").select("annonce_id").eq("figurant_id", session.id),
+    supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
   ]);
+
+  const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
+  const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
   const annonceIdsDejaPostulees = new Set((candidaturesExistantes ?? []).map((c) => c.annonce_id));
 
@@ -72,7 +76,7 @@ export default async function CompteCandidatPage() {
 
       <PushSubscribe />
 
-      <MaFicheForm figurant={figurant} />
+      <MaFicheForm figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
 
       {annonces.length > 0 && (
         <Card className="flex flex-col gap-3">

@@ -21,6 +21,7 @@ import { buildConvocationMailto, substituteTokens, type ConvocationSettings } fr
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import { projetNomPublic } from "@/lib/projets/types";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
+import { formatDateTime as formatMessageDateTime } from "@/lib/format-date";
 import type { Genre } from "@/lib/figurants/types";
 import type { MessageTemplate } from "@/lib/templates/types";
 
@@ -32,10 +33,6 @@ export type StaffMessageRow = {
   created_at: string;
   repondu: boolean;
 };
-
-function formatMessageDateTime(iso: string) {
-  return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
 
 // Mail (Mac) n'a pas d'URL publique pour ouvrir une recherche pré-remplie
 // (contrairement à Gmail) — on copie donc le texte pour un collage manuel
@@ -507,7 +504,8 @@ export function BookingsTable({
         selectedWithEmail.map((r) => {
           const { subject, body } = convocationFor(r);
           return { bookingId: r.id, figurantId: r.figurant_id!, email: r.figurants!.email!, corps: body, subject };
-        })
+        }),
+        projetId
       );
       setSendPending(false);
       setSendResult(result);
@@ -530,7 +528,7 @@ export function BookingsTable({
         const tokens = rowTokens(r, journeeLieu);
         const subject = substituteTokens(libreSubject, tokens);
         const body = substituteTokens(libreMessage, tokens);
-        const result = await recordBookingMessage(r.figurant_id!, body, r.figurants!.email, subject);
+        const result = await recordBookingMessage(r.figurant_id!, body, r.figurants!.email, subject, projetId);
         if (result?.error) failed += 1;
         else sent += 1;
       }

@@ -86,6 +86,15 @@ export function AnnonceForm({
           />
           Ouverte aux moins de 16 ans
         </label>
+        <label className="flex w-fit items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="bande_demo_obligatoire"
+            defaultChecked={annonce?.bande_demo_obligatoire ?? false}
+            className="h-4 w-4 rounded border-border accent-coral"
+          />
+          Lien de bande démo obligatoire pour postuler
+        </label>
       </Card>
 
       <div className="flex gap-3">

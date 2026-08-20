@@ -6,8 +6,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import type { EssayageStatut } from "./types";
 
-export async function recordEssayageMessage(figurantId: string, corps: string, email?: string | null, subject?: string) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "essayage", email, subject });
+export async function recordEssayageMessage(
+  figurantId: string,
+  corps: string,
+  email?: string | null,
+  subject?: string,
+  projetId?: string | null
+) {
+  return recordFigurantMessage({ figurantId, corps, categorie: "essayage", email, subject, projetId });
 }
 
 function str(fd: FormData, key: string): string | null {

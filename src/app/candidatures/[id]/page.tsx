@@ -8,12 +8,12 @@ import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
-import type { Cachet, CandidatureStatut } from "@/lib/candidatures/types";
-import type { Figurant } from "@/lib/figurants/types";
+import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
+import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
 
 type CandidatureDetail = {
   id: string;
-  statut: CandidatureStatut;
+  onglet_id: string | null;
   fonction_assignee: string | null;
   cachet_assigne: Cachet | null;
   message: string | null;
@@ -38,7 +38,7 @@ export default async function CandidatureDetailPage({
   const { data: candidature } = await supabase
     .from("candidatures")
     .select(
-      "id, statut, fonction_assignee, cachet_assigne, message, created_at, figurants(*), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(*), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code))"
     )
     .eq("id", id)
     .single<CandidatureDetail>();
@@ -46,8 +46,14 @@ export default async function CandidatureDetailPage({
   if (!candidature || !candidature.figurants) notFound();
 
   const f = candidature.figurants;
+  const { data: onglets } = await supabase
+    .from("candidature_onglets")
+    .select("id, nom, couleur, fixe, ordre")
+    .order("ordre")
+    .returns<CandidatureOnglet[]>();
+  const ongletActuel = (onglets ?? []).find((o) => o.id === candidature.onglet_id);
 
-  const [{ data: photosRaw }, { data: reponsesRaw }, { data: disposRaw }] = await Promise.all([
+  const [{ data: photosRaw }, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
     getPhotosByFigurantId([f.id]).then((map) => ({ data: map.get(f.id) ?? [] })),
     supabase
       .from("candidature_reponses")
@@ -59,7 +65,11 @@ export default async function CandidatureDetailPage({
       .select("disponible, annonce_dates(date)")
       .eq("candidature_id", id)
       .returns<{ disponible: boolean; annonce_dates: { date: string } | null }[]>(),
+    supabase.from("figurant_liens").select("label, url").eq("figurant_id", f.id),
   ]);
+
+  const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
+  const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
   const photos = photosRaw ?? [];
   const portrait = pickPortrait(photos);
@@ -83,16 +93,17 @@ export default async function CandidatureDetailPage({
             </p>
           </div>
         </div>
-        <Badge tone={candidature.statut === "retenu" ? "turquoise" : candidature.statut === "refuse" ? "danger" : "default"}>
-          {candidature.statut}
+        <Badge tone={ongletActuel?.couleur === "danger" ? "danger" : ongletActuel?.couleur === "coral" ? "coral" : "default"}>
+          {ongletActuel?.nom ?? "À trier"}
         </Badge>
       </div>
 
       <Card className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Statut de la candidature</h2>
+        <h2 className="text-lg font-semibold">Rangement de la candidature</h2>
         <CandidatureRow
           id={candidature.id}
-          statut={candidature.statut}
+          ongletId={candidature.onglet_id}
+          onglets={onglets ?? []}
           fonctionAssignee={candidature.fonction_assignee}
           cachetAssigne={candidature.cachet_assigne}
         />
@@ -156,6 +167,26 @@ export default async function CandidatureDetailPage({
           <div>
             <span className="text-text-muted">Âge : </span>
             {age !== null ? `${age} ans` : "—"}
+          </div>
+          <div>
+            <span className="text-text-muted">Bande démo : </span>
+            {lienBandeDemo ? (
+              <a href={lienBandeDemo} target="_blank" rel="noreferrer" className="text-coral hover:underline">
+                Voir le lien
+              </a>
+            ) : (
+              "—"
+            )}
+          </div>
+          <div>
+            <span className="text-text-muted">Instagram : </span>
+            {lienInstagram ? (
+              <a href={lienInstagram} target="_blank" rel="noreferrer" className="text-coral hover:underline">
+                Voir le lien
+              </a>
+            ) : (
+              "—"
+            )}
           </div>
         </div>
       </Card>

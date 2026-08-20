@@ -1,26 +1,26 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { StatusSelect } from "@/components/ui/status-select";
 import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
+import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
-import { updateCandidatureStatutInline, recordCandidatureMessage } from "@/lib/candidatures/actions";
-import { CANDIDATURE_STATUTS, type Cachet, type CandidatureStatut } from "@/lib/candidatures/types";
+import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
+import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort } from "@/lib/format-date";
 import type { MessageTemplate } from "@/lib/templates/types";
 
 export type Row = {
   id: string;
-  statut: CandidatureStatut;
+  onglet_id: string | null;
   fonction_assignee: string | null;
   cachet_assigne: Cachet | null;
   figurants: { id: string; prenom: string; nom: string; ville: string | null; email: string | null; compte_myrole: boolean } | null;
@@ -57,14 +57,17 @@ export function CandidaturesTable({
   templates,
   projets,
   summaries = {},
+  onglets,
 }: {
   rows: Row[];
   templates: MessageTemplate[];
   projets: { id: string; nom: string }[];
   summaries?: Record<string, CandidatureSummary>;
+  onglets: CandidatureOnglet[];
 }) {
   const router = useRouter();
-  const [statutPending, startStatutTransition] = useTransition();
+  const [, startStatutTransition] = useTransition();
+  const [bulkOngletPending, startBulkOngletTransition] = useTransition();
   const [isTrombi, setIsTrombi] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
@@ -104,7 +107,13 @@ export function CandidaturesTable({
     if (!r.figurants?.email || !message.trim() || !r.figurants.id) return;
     setSendError(null);
     startStatutTransition(async () => {
-      const result = await recordCandidatureMessage(r.figurants!.id, message, r.figurants!.email, subject);
+      const result = await recordCandidatureMessage(
+        r.figurants!.id,
+        message,
+        r.figurants!.email,
+        subject,
+        r.annonces?.projet_id
+      );
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
     });
     setOpenRowId(null);
@@ -123,7 +132,13 @@ export function CandidaturesTable({
     const subj = substituteTokens(bulkSubject, tokens);
     setSendError(null);
     startStatutTransition(async () => {
-      const result = await recordCandidatureMessage(r.figurants!.id, body, r.figurants!.email, subj);
+      const result = await recordCandidatureMessage(
+        r.figurants!.id,
+        body,
+        r.figurants!.email,
+        subj,
+        r.annonces?.projet_id
+      );
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
     });
     setSentBulk((prev) => new Set([...prev, r.id]));
@@ -134,9 +149,11 @@ export function CandidaturesTable({
     for (const r of targets) sendBulkTo(r);
   }
 
-  function setStatutInline(id: string, statut: CandidatureStatut) {
-    startStatutTransition(async () => {
-      await updateCandidatureStatutInline(id, statut);
+  function bulkSetOnglet(ongletId: string | null) {
+    const ids = Array.from(selected);
+    startBulkOngletTransition(async () => {
+      await setCandidaturesOngletBulk(ids, ongletId);
+      setSelected(new Set());
       router.refresh();
     });
   }
@@ -178,6 +195,33 @@ export function CandidaturesTable({
           </button>
         )}
       </div>
+
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
+          <span className="text-sm font-medium">
+            Changer le statut de {selected.size} profil{selected.size > 1 ? "s" : ""} :
+          </span>
+          <button
+            type="button"
+            disabled={bulkOngletPending}
+            onClick={() => bulkSetOnglet(null)}
+            className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-text-muted transition-colors hover:text-text"
+          >
+            À trier
+          </button>
+          {onglets.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              disabled={bulkOngletPending}
+              onClick={() => bulkSetOnglet(o.id)}
+              className={cn("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", TONE_CLASSES[o.couleur])}
+            >
+              {o.nom}
+            </button>
+          ))}
+        </div>
+      )}
 
       {selected.size > 0 && (
         <div className="flex flex-col gap-3">
@@ -357,19 +401,7 @@ export function CandidaturesTable({
                 </div>
                 <div className="text-xs text-text-muted">{r.annonces?.projets?.nom}</div>
               </Link>
-              <StatusSelect
-                tone={r.statut === "retenu" ? "turquoise" : r.statut === "refuse" ? "danger" : "default"}
-                value={r.statut}
-                disabled={statutPending}
-                onChange={(e) => setStatutInline(r.id, e.target.value as CandidatureStatut)}
-                className="w-full"
-              >
-                {CANDIDATURE_STATUTS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </StatusSelect>
+              <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}
           {rows.length === 0 && (
@@ -393,7 +425,7 @@ export function CandidaturesTable({
                 <th className="px-6 py-3 font-medium">Ville</th>
                 <th className="px-6 py-3 font-medium">Myrole</th>
                 <th className="px-6 py-3 font-medium">Annonce / Projet</th>
-                <th className="px-6 py-3 font-medium">Statut & fonction</th>
+                <th className="px-6 py-3 font-medium">Onglet & fonction</th>
                 <th className="px-6 py-3 font-medium">Message</th>
               </tr>
             </thead>
@@ -405,7 +437,7 @@ export function CandidaturesTable({
                       <input
                         type="checkbox"
                         checked={selected.has(r.id)}
-                        disabled={!r.figurants?.email}
+                        disabled={!r.figurants?.id}
                         onChange={() => toggle(r.id)}
                         className="h-4 w-4 rounded border-border accent-coral"
                       />
@@ -427,7 +459,8 @@ export function CandidaturesTable({
                     <td className="px-6 py-3">
                       <CandidatureRow
                         id={r.id}
-                        statut={r.statut}
+                        ongletId={r.onglet_id}
+                        onglets={onglets}
                         fonctionAssignee={r.fonction_assignee}
                         cachetAssigne={r.cachet_assigne}
                       />

@@ -2,8 +2,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Select, Input } from "@/components/ui/field";
 import Link from "next/link";
+import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row } from "@/components/candidatures/candidatures-table";
-import { CANDIDATURE_STATUTS } from "@/lib/candidatures/types";
+import { ONGLET_OUT_BE, type CandidatureOnglet } from "@/lib/candidatures/types";
 import { GENRES } from "@/lib/figurants/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = {
   annonce_id?: string;
-  statut?: string;
+  onglet_id?: string;
   myrole?: string;
   genre?: string;
   age_min?: string;
@@ -30,6 +31,7 @@ type SearchParams = {
 type CandidatureRaw = Omit<Row, "portraitUrl">;
 type CandidatureWithFilters = CandidatureRaw & {
   message: string | null;
+  onglet_id: string | null;
   figurants: (CandidatureRaw["figurants"] & { genre: string | null; date_naissance: string | null }) | null;
 };
 
@@ -106,31 +108,35 @@ export default async function CandidaturesPage({
 
   const annonce = (annonces ?? []).find((a) => a.id === params.annonce_id);
 
-  let query = supabase
+  const query = supabase
     .from("candidatures")
     .select(
-      "id, statut, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
     .order("created_at", { ascending: false });
 
-  if (params.statut) query = query.eq("statut", params.statut);
-
   const annonceQuestions = await getAnnonceQuestions(params.annonce_id);
 
-  const [{ data: candidaturesRaw, error }, { data: bookedCandidatures }, { data: templates }, { data: reponsesMatch }] =
-    await Promise.all([
-      query.returns<CandidatureWithFilters[]>(),
-      supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
-      supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
-      params.question_id && params.question_reponse
-        ? supabase
-            .from("candidature_reponses")
-            .select("candidature_id")
-            .eq("annonce_question_id", params.question_id)
-            .eq("reponse", params.question_reponse === "oui")
-        : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
-    ]);
+  const [
+    { data: candidaturesRaw, error },
+    { data: bookedCandidatures },
+    { data: templates },
+    { data: reponsesMatch },
+    { data: onglets },
+  ] = await Promise.all([
+    query.returns<CandidatureWithFilters[]>(),
+    supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
+    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    params.question_id && params.question_reponse
+      ? supabase
+          .from("candidature_reponses")
+          .select("candidature_id")
+          .eq("annonce_question_id", params.question_id)
+          .eq("reponse", params.question_reponse === "oui")
+      : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
+    supabase.from("candidature_onglets").select("id, nom, couleur, fixe, ordre").order("ordre").returns<CandidatureOnglet[]>(),
+  ]);
 
   const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
 
@@ -157,6 +163,24 @@ export default async function CandidaturesPage({
   if (reponsesMatch) {
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
+  }
+
+  // Compte par onglet pour la barre d'onglets — calculé sur le même
+  // périmètre que les filtres actifs (myrole/genre/âge/question), mais
+  // avant le découpage par onglet lui-même, pour que chaque pastille
+  // annonce le nombre qu'on obtiendra en cliquant dessus.
+  const tabCounts: Record<string, number> = {
+    tous: candidatures.length,
+    a_trier: candidatures.filter((c) => c.onglet_id === null).length,
+  };
+  for (const o of onglets ?? []) {
+    tabCounts[o.id] = candidatures.filter((c) => c.onglet_id === o.id).length;
+  }
+
+  if (params.onglet_id === "a_trier") {
+    candidatures = candidatures.filter((c) => c.onglet_id === null);
+  } else if (params.onglet_id) {
+    candidatures = candidatures.filter((c) => c.onglet_id === params.onglet_id);
   }
 
   const portraitByFigurant = await getPhotosByFigurantId(
@@ -208,6 +232,31 @@ export default async function CandidaturesPage({
 
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];
 
+  function tabHref(ongletParam?: string) {
+    const sp = new URLSearchParams();
+    sp.set("annonce_id", params.annonce_id!);
+    if (params.myrole) sp.set("myrole", params.myrole);
+    if (params.genre) sp.set("genre", params.genre);
+    if (params.age_min) sp.set("age_min", params.age_min);
+    if (params.age_max) sp.set("age_max", params.age_max);
+    if (params.question_id) sp.set("question_id", params.question_id);
+    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
+    if (ongletParam) sp.set("onglet_id", ongletParam);
+    return `/candidatures?${sp.toString()}`;
+  }
+
+  const tabs = [
+    { key: "tous", label: "Tous", href: tabHref(), count: tabCounts.tous, danger: false },
+    { key: "a_trier", label: "À trier", href: tabHref("a_trier"), count: tabCounts.a_trier, danger: false },
+    ...(onglets ?? []).map((o) => ({
+      key: o.id,
+      label: o.nom,
+      href: tabHref(o.id),
+      count: tabCounts[o.id] ?? 0,
+      danger: o.nom === ONGLET_OUT_BE,
+    })),
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -226,17 +275,32 @@ export default async function CandidaturesPage({
         </p>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        {tabs.map((tab) => {
+          const active = tab.key === "tous" ? !params.onglet_id : params.onglet_id === tab.key;
+          return (
+            <Link
+              key={tab.key}
+              href={tab.href}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                active
+                  ? tab.danger
+                    ? "border-danger bg-danger/15 text-danger"
+                    : "border-coral bg-coral/15 text-coral"
+                  : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {tab.label} ({tab.count})
+            </Link>
+          );
+        })}
+      </div>
+
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
           <input type="hidden" name="annonce_id" value={params.annonce_id} />
-          <Select name="statut" defaultValue={params.statut ?? ""}>
-            <option value="">Statut (tous)</option>
-            {CANDIDATURE_STATUTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </Select>
+          {params.onglet_id && <input type="hidden" name="onglet_id" value={params.onglet_id} />}
           <Select name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Myrole (tous)</option>
             <option value="oui">Avec compte Myrole</option>
@@ -304,7 +368,13 @@ export default async function CandidaturesPage({
         </div>
       )}
 
-      <CandidaturesTable rows={rows} templates={templates ?? []} projets={projetOption} summaries={summaries} />
+      <CandidaturesTable
+        rows={rows}
+        templates={templates ?? []}
+        projets={projetOption}
+        summaries={summaries}
+        onglets={onglets ?? []}
+      />
     </div>
   );
 }

@@ -65,6 +65,7 @@ export function PostulerForm({
   questions,
   dates,
   prefill,
+  bandeDemoObligatoire = false,
 }: {
   publicToken: string;
   questions: AnnonceQuestion[];
@@ -76,7 +77,9 @@ export function PostulerForm({
     telephone: string | null;
     ville: string | null;
     date_naissance: string | null;
+    lien_bande_demo?: string | null;
   };
+  bandeDemoObligatoire?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     postulerAnnonce.bind(null, publicToken),
@@ -132,6 +135,15 @@ export function PostulerForm({
             name="message"
             required
             placeholder="Disponibilités, motivation, précisions..."
+          />
+        </Field>
+        <Field label={`Lien bande démo${bandeDemoObligatoire ? "" : " (optionnel)"}`} required={bandeDemoObligatoire}>
+          <Input
+            type="url"
+            name="lien_bande_demo"
+            required={bandeDemoObligatoire}
+            placeholder="https://..."
+            defaultValue={prefill?.lien_bande_demo ?? undefined}
           />
         </Field>
         <div>

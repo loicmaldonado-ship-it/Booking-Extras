@@ -65,7 +65,7 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("figurants")
-    .insert(payload)
+    .insert({ ...payload, confirme: true })
     .select("id")
     .single();
 

@@ -10,6 +10,7 @@ export type Annonce = {
   description: string | null;
   public_token: string;
   ouverte_mineurs: boolean;
+  bande_demo_obligatoire: boolean;
   limite_candidatures: number | null;
   created_at: string;
   updated_at: string;

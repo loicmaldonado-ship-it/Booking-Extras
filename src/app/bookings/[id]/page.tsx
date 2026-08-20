@@ -7,6 +7,7 @@ import { deleteBooking } from "@/lib/bookings/actions";
 import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons";
 import { BackLink } from "@/components/ui/back-link";
 import { statutLabel, statutTone } from "@/lib/bookings/types";
+import { formatDateShort } from "@/lib/format-date";
 
 export default async function BookingDetailPage({
   params,
@@ -41,7 +42,7 @@ export default async function BookingDetailPage({
             {booking.figurants?.prenom} {booking.figurants?.nom}
           </h1>
           <p className="mt-1 text-text-muted">
-            {booking.projets?.nom} · {booking.date}
+            {booking.projets?.nom} · {formatDateShort(booking.date)}
             {booking.heure_convocation ? ` · ${booking.heure_convocation}` : ""}
           </p>
         </div>

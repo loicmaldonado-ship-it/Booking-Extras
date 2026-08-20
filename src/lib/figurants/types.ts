@@ -36,6 +36,7 @@ export type Figurant = {
   couleur_cheveux: string | null;
   compte_myrole: boolean;
   acces_compte: boolean;
+  confirme: boolean;
   tags: string[];
   notes_internes: string | null;
   created_at: string;
@@ -59,6 +60,11 @@ export type FigurantLien = {
   url: string;
   created_at: string;
 };
+
+// Labels fixes utilisés pour les liens gérés depuis l'espace personnel du
+// candidat (figurant_liens) — un seul lien par label et par figurant.
+export const LIEN_BANDE_DEMO = "Bande démo";
+export const LIEN_INSTAGRAM = "Instagram";
 
 export const CIVILITES: Civilite[] = ["Mme", "M.", "Autre"];
 export const PRONOMS: Pronom[] = ["Elle", "Il", "Iel"];

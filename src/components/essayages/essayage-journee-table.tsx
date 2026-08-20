@@ -39,6 +39,7 @@ export type EssayageRow = {
 
 export function EssayageJourneeTable({
   rows,
+  projetId,
   projetNom,
   signature,
   journeeDate,
@@ -46,6 +47,7 @@ export function EssayageJourneeTable({
   creneaux = [],
 }: {
   rows: EssayageRow[];
+  projetId?: string;
   projetNom: string;
   signature: string | null;
   journeeDate: string;
@@ -96,7 +98,7 @@ export function EssayageJourneeTable({
     });
     setSendError(null);
     startTransition(async () => {
-      const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject);
+      const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
     });
   }
@@ -116,7 +118,7 @@ export function EssayageJourneeTable({
     });
     setSendError(null);
     startTransition(async () => {
-      const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject);
+      const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
     });
   }

@@ -11,7 +11,11 @@ export function buildFigurantsQuery(
   supabase: ReturnType<typeof createAdminClient>,
   params: FigurantFilters
 ) {
-  let query = supabase.from("figurants").select("*").order("nom", { ascending: true });
+  let query = supabase
+    .from("figurants")
+    .select("*")
+    .eq("confirme", true)
+    .order("nom", { ascending: true });
 
   if (params.q) {
     query = query.or(

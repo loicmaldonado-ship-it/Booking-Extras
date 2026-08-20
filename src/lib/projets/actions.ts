@@ -30,13 +30,26 @@ function buildProjetPayload(fd: FormData) {
     besoins_figuration: str(fd, "besoins_figuration"),
     synopsis: str(fd, "synopsis"),
     signature: str(fd, "signature"),
+    gmail_smtp_user: str(fd, "gmail_smtp_user"),
+    gmail_smtp_app_password: str(fd, "gmail_smtp_app_password"),
   };
+}
+
+function validateProjetPayload(payload: ReturnType<typeof buildProjetPayload>) {
+  if (!payload.nom) {
+    return "Le nom du projet est obligatoire.";
+  }
+  if (!!payload.gmail_smtp_user !== !!payload.gmail_smtp_app_password) {
+    return "Renseigne l'adresse Gmail ET le mot de passe d'application, ou laisse les deux champs vides.";
+  }
+  return null;
 }
 
 export async function createProjet(_prevState: unknown, formData: FormData) {
   const payload = buildProjetPayload(formData);
-  if (!payload.nom) {
-    return { error: "Le nom du projet est obligatoire." };
+  const validationError = validateProjetPayload(payload);
+  if (validationError) {
+    return { error: validationError };
   }
 
   const supabase = createAdminClient();
@@ -60,8 +73,9 @@ export async function updateProjet(
   formData: FormData
 ) {
   const payload = buildProjetPayload(formData);
-  if (!payload.nom) {
-    return { error: "Le nom du projet est obligatoire." };
+  const validationError = validateProjetPayload(payload);
+  if (validationError) {
+    return { error: validationError };
   }
 
   const supabase = createAdminClient();
