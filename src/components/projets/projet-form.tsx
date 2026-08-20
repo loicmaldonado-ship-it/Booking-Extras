@@ -155,11 +155,17 @@ export function ProjetForm({
             <Input
               type="password"
               name="gmail_smtp_app_password"
-              placeholder="16 caractères, sans espaces"
-              defaultValue={projet?.gmail_smtp_app_password ?? ""}
+              placeholder={projet?.gmail_smtp_app_password ? "•••••••••••••••• (déjà enregistré)" : "16 caractères, sans espaces"}
             />
           </Field>
         </div>
+        {projet?.gmail_smtp_app_password && (
+          <p className="text-xs text-text-muted">
+            Un mot de passe est déjà enregistré (chiffré) pour ce projet — laisse ce champ vide pour le conserver, ou
+            ressaisis-le pour le remplacer. Si tu changes l&apos;adresse Gmail, ressaisis aussi le mot de passe
+            correspondant.
+          </p>
+        )}
         <div className="rounded-xl border border-border bg-ink px-4 py-3 text-sm text-text-muted">
           <p className="font-medium text-text">Procédure rapide (sur le compte Gmail du projet) :</p>
           <ol className="mt-2 list-decimal space-y-1 pl-4">

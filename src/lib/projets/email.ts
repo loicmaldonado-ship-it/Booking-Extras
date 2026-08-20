@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { decryptSecret } from "@/lib/crypto/secrets";
 
 // Résout l'éventuel compte Gmail dédié d'un projet — si les deux champs ne
 // sont pas remplis, on retombe sur la boîte partagée par défaut (voir
@@ -17,5 +18,5 @@ export async function getProjetEmailCredentials(
     .maybeSingle();
 
   if (!data?.gmail_smtp_user || !data?.gmail_smtp_app_password) return null;
-  return { user: data.gmail_smtp_user, pass: data.gmail_smtp_app_password };
+  return { user: data.gmail_smtp_user, pass: decryptSecret(data.gmail_smtp_app_password) };
 }

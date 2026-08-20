@@ -2,11 +2,13 @@
 
 import { useActionState, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
 import { formatDateShort } from "@/lib/format-date";
+import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import type { AnnonceQuestion } from "@/lib/annonces/questions";
 import type { AnnonceDate } from "@/lib/annonces/dates";
 
@@ -202,6 +204,16 @@ export function PostulerForm({
       <Button type="submit" disabled={pending}>
         {pending ? "Envoi..." : "Postuler"}
       </Button>
+
+      <p className="text-center text-xs text-text-muted">
+        Les informations de ce formulaire (dont vos photos) sont destinées à l&apos;équipe de casting Booking Extras
+        pour étudier votre candidature et vous recontacter si votre profil correspond à un tournage. Elles sont
+        conservées 2 ans maximum sans nouveau contact, puis supprimées. Vous pouvez à tout moment demander à les
+        consulter, les corriger ou les supprimer en écrivant à {CONTACT_RGPD_EMAIL}.{" "}
+        <Link href="/confidentialite" target="_blank" className="text-coral hover:underline">
+          En savoir plus →
+        </Link>
+      </p>
     </form>
   );
 }

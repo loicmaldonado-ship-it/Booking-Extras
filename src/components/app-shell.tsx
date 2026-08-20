@@ -43,6 +43,7 @@ const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIc
 // management) stays behind auth.
 const PUBLIC_PREFIXES = [
   "/postuler",
+  "/confidentialite",
   "/login",
   "/auth/invite",
   "/disponibilites",

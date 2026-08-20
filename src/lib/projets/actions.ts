@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { encryptSecret } from "@/lib/crypto/secrets";
 import type { Convention, ProjetType } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -31,15 +32,11 @@ function buildProjetPayload(fd: FormData) {
     synopsis: str(fd, "synopsis"),
     signature: str(fd, "signature"),
     gmail_smtp_user: str(fd, "gmail_smtp_user"),
-    gmail_smtp_app_password: str(fd, "gmail_smtp_app_password"),
   };
 }
 
-function validateProjetPayload(payload: ReturnType<typeof buildProjetPayload>) {
-  if (!payload.nom) {
-    return "Le nom du projet est obligatoire.";
-  }
-  if (!!payload.gmail_smtp_user !== !!payload.gmail_smtp_app_password) {
+function validateGmailFields(gmailUser: string | null, gmailAppPasswordEncrypted: string | null) {
+  if (!!gmailUser !== !!gmailAppPasswordEncrypted) {
     return "Renseigne l'adresse Gmail ET le mot de passe d'application, ou laisse les deux champs vides.";
   }
   return null;
@@ -47,15 +44,22 @@ function validateProjetPayload(payload: ReturnType<typeof buildProjetPayload>) {
 
 export async function createProjet(_prevState: unknown, formData: FormData) {
   const payload = buildProjetPayload(formData);
-  const validationError = validateProjetPayload(payload);
-  if (validationError) {
-    return { error: validationError };
+  if (!payload.nom) {
+    return { error: "Le nom du projet est obligatoire." };
+  }
+
+  const gmailAppPasswordInput = str(formData, "gmail_smtp_app_password");
+  const gmailAppPasswordEncrypted =
+    payload.gmail_smtp_user && gmailAppPasswordInput ? encryptSecret(gmailAppPasswordInput) : null;
+  const gmailError = validateGmailFields(payload.gmail_smtp_user, gmailAppPasswordEncrypted);
+  if (gmailError) {
+    return { error: gmailError };
   }
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("projets")
-    .insert(payload)
+    .insert({ ...payload, gmail_smtp_app_password: gmailAppPasswordEncrypted })
     .select("id")
     .single();
 
@@ -73,13 +77,41 @@ export async function updateProjet(
   formData: FormData
 ) {
   const payload = buildProjetPayload(formData);
-  const validationError = validateProjetPayload(payload);
-  if (validationError) {
-    return { error: validationError };
+  if (!payload.nom) {
+    return { error: "Le nom du projet est obligatoire." };
   }
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("projets").update(payload).eq("id", id);
+  const gmailAppPasswordInput = str(formData, "gmail_smtp_app_password");
+
+  // Le champ mot de passe n'affiche jamais la valeur enregistrée (elle est
+  // chiffrée) : le laisser vide signifie "ne pas y toucher", sauf si
+  // l'adresse Gmail elle-même a été effacée, auquel cas on supprime toute
+  // la config (email + mot de passe) plutôt que de garder un mot de passe
+  // orphelin.
+  let gmailAppPasswordEncrypted: string | null;
+  if (!payload.gmail_smtp_user) {
+    gmailAppPasswordEncrypted = null;
+  } else if (gmailAppPasswordInput) {
+    gmailAppPasswordEncrypted = encryptSecret(gmailAppPasswordInput);
+  } else {
+    const { data: existing } = await supabase
+      .from("projets")
+      .select("gmail_smtp_app_password")
+      .eq("id", id)
+      .maybeSingle();
+    gmailAppPasswordEncrypted = existing?.gmail_smtp_app_password ?? null;
+  }
+
+  const gmailError = validateGmailFields(payload.gmail_smtp_user, gmailAppPasswordEncrypted);
+  if (gmailError) {
+    return { error: gmailError };
+  }
+
+  const { error } = await supabase
+    .from("projets")
+    .update({ ...payload, gmail_smtp_app_password: gmailAppPasswordEncrypted })
+    .eq("id", id);
 
   if (error) {
     return { error: error.message };
