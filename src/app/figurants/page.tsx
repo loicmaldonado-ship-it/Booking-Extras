@@ -8,6 +8,7 @@ import type { Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { Users } from "lucide-react";
 
@@ -43,6 +44,24 @@ export default async function FigurantsPage({
     Object.entries(filters).filter(([, v]) => v) as [string, string][]
   ).toString();
 
+  const { data: tousLesFigurants } = await supabase
+    .from("figurants")
+    .select("id, prenom, nom, telephone, email, created_at")
+    .not("telephone", "is", null)
+    .order("created_at", { ascending: true })
+    .returns<{ id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string }[]>();
+
+  const groupesParCle = new Map<string, DoublonGroupe>();
+  for (const f of tousLesFigurants ?? []) {
+    const telephoneNormalise = (f.telephone ?? "").replace(/\s+/g, "");
+    if (!telephoneNormalise) continue;
+    const cle = `${f.nom.trim().toLowerCase()}::${telephoneNormalise}`;
+    const groupe = groupesParCle.get(cle) ?? { key: cle, nom: f.nom, telephone: telephoneNormalise, profils: [] };
+    groupe.profils.push({ id: f.id, prenom: f.prenom, email: f.email, created_at: f.created_at });
+    groupesParCle.set(cle, groupe);
+  }
+  const doublons: DoublonGroupe[] = Array.from(groupesParCle.values()).filter((g) => g.profils.length > 1);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -54,6 +73,8 @@ export default async function FigurantsPage({
         </div>
         <ButtonLink href="/figurants/nouveau">+ Nouveau figurant</ButtonLink>
       </div>
+
+      <DoublonsPanel groupes={doublons} />
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Vue :</span>

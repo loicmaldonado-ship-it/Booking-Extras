@@ -64,10 +64,19 @@ export function PostulerForm({
   publicToken,
   questions,
   dates,
+  prefill,
 }: {
   publicToken: string;
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
+  prefill?: {
+    prenom: string;
+    nom: string;
+    email: string;
+    telephone: string | null;
+    ville: string | null;
+    date_naissance: string | null;
+  };
 }) {
   const [state, formAction, pending] = useActionState(
     postulerAnnonce.bind(null, publicToken),
@@ -92,25 +101,30 @@ export function PostulerForm({
           {state.error}
         </div>
       )}
+      {prefill && (
+        <div className="rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm text-turquoise">
+          Vos infos sont pré-remplies depuis votre espace. Vérifiez-les et modifiez-les si besoin.
+        </div>
+      )}
       <Card className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Prénom" required>
-            <Input name="prenom" required />
+            <Input name="prenom" required defaultValue={prefill?.prenom} />
           </Field>
           <Field label="Nom" required>
-            <Input name="nom" required />
+            <Input name="nom" required defaultValue={prefill?.nom} />
           </Field>
           <Field label="Email" required>
-            <Input type="email" name="email" required />
+            <Input type="email" name="email" required defaultValue={prefill?.email} />
           </Field>
           <Field label="Téléphone" required>
-            <Input type="tel" name="telephone" required />
+            <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
           </Field>
           <Field label="Ville" required>
-            <Input name="ville" required />
+            <Input name="ville" required defaultValue={prefill?.ville ?? undefined} />
           </Field>
           <Field label="Date de naissance" required>
-            <Input type="date" name="date_naissance" required />
+            <Input type="date" name="date_naissance" required defaultValue={prefill?.date_naissance ?? undefined} />
           </Field>
         </div>
         <Field label="Message" required>

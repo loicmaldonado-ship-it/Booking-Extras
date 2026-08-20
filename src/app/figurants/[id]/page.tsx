@@ -10,6 +10,7 @@ import { PhotoDropzones } from "@/components/figurants/photo-dropzones";
 import { BackLink } from "@/components/ui/back-link";
 import { MessageriePanel } from "@/components/figurants/messagerie-panel";
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
+import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
@@ -129,6 +130,7 @@ export default async function FigurantDetailPage({
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Contact</h2>
+        <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} />
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-text-muted">Email : </span>

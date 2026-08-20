@@ -70,6 +70,9 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
     .single();
 
   if (error) {
+    if (error.code === "23505") {
+      return { error: "Un profil existe déjà avec cet email." };
+    }
     return { error: error.message };
   }
 
@@ -93,6 +96,9 @@ export async function updateFigurant(
   const { error } = await supabase.from("figurants").update(payload).eq("id", id);
 
   if (error) {
+    if (error.code === "23505") {
+      return { error: "Un profil existe déjà avec cet email." };
+    }
     return { error: error.message };
   }
 
@@ -108,6 +114,28 @@ export async function deleteFigurant(id: string) {
   await supabase.from("figurants").delete().eq("id", id);
   revalidatePath("/figurants");
   redirect("/figurants");
+}
+
+// Suppression depuis le panneau "doublons potentiels" — bloquée si le
+// profil a la moindre candidature/booking/essayage associé, pour ne jamais
+// effacer un historique réel par erreur.
+export async function supprimerFigurantDoublon(figurantId: string) {
+  const supabase = createAdminClient();
+  const [{ count: candidaturesCount }, { count: bookingsCount }, { count: essayagesCount }] = await Promise.all([
+    supabase.from("candidatures").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
+    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
+    supabase.from("essayages").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
+  ]);
+
+  if ((candidaturesCount ?? 0) > 0 || (bookingsCount ?? 0) > 0 || (essayagesCount ?? 0) > 0) {
+    return {
+      error: "Ce profil a des candidatures, bookings ou essayages associés — suppression bloquée par sécurité.",
+    };
+  }
+
+  await supabase.from("figurants").delete().eq("id", figurantId);
+  revalidatePath("/figurants");
+  return { success: true as const };
 }
 
 // Une photo à la fois : un lot de plusieurs photos de téléphone dans une

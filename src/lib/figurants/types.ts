@@ -35,6 +35,7 @@ export type Figurant = {
   couleur_yeux: string | null;
   couleur_cheveux: string | null;
   compte_myrole: boolean;
+  acces_compte: boolean;
   tags: string[];
   notes_internes: string | null;
   created_at: string;

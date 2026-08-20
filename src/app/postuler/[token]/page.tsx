@@ -5,6 +5,7 @@ import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getCurrentFigurant } from "@/lib/candidats/session";
 
 export default async function PostulerPage({
   params,
@@ -36,6 +37,35 @@ export default async function PostulerPage({
       .select("id", { count: "exact", head: true })
       .eq("annonce_id", annonce.id);
     complet = (count ?? 0) >= annonce.limite_candidatures;
+  }
+
+  // Si le candidat est connecté (via son espace /compte), on pré-remplit
+  // ses infos de contact — pas besoin de tout retaper à chaque candidature.
+  const session = await getCurrentFigurant();
+  let prefill: {
+    prenom: string;
+    nom: string;
+    email: string;
+    telephone: string | null;
+    ville: string | null;
+    date_naissance: string | null;
+  } | undefined;
+  if (session) {
+    const { data: figurantComplet } = await supabase
+      .from("figurants")
+      .select("prenom, nom, email, telephone, ville, date_naissance")
+      .eq("id", session.id)
+      .single();
+    if (figurantComplet?.email) {
+      prefill = {
+        prenom: figurantComplet.prenom,
+        nom: figurantComplet.nom,
+        email: figurantComplet.email,
+        telephone: figurantComplet.telephone,
+        ville: figurantComplet.ville,
+        date_naissance: figurantComplet.date_naissance,
+      };
+    }
   }
 
   return (
@@ -73,6 +103,7 @@ export default async function PostulerPage({
           publicToken={annonce.public_token}
           questions={await getAnnonceQuestions(annonce.id)}
           dates={await getAnnonceDates(annonce.id)}
+          prefill={prefill}
         />
       ) : (
         <Card>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { activerAccesCompte } from "@/lib/candidats/actions";
 import type { Cachet, CandidatureStatut } from "./types";
 
 export async function recordCandidatureMessage(figurantId: string, corps: string, email?: string | null, subject?: string) {
@@ -95,6 +96,17 @@ export async function postulerAnnonce(
 
   let figurantId = existingFigurant?.id as string | undefined;
 
+  // Même sans email identique, on considère que c'est la même personne si
+  // le nom et le téléphone correspondent déjà à une fiche existante (1
+  // email = 1 fiche, mais une personne ne doit pas se retrouver dupliquée
+  // juste parce qu'elle a postulé avec une autre adresse).
+  if (!figurantId) {
+    const telephoneNormalise = telephone.replace(/\s+/g, "");
+    const { data: memeNom } = await supabase.from("figurants").select("id, telephone").ilike("nom", nom);
+    const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
+    if (doublon) figurantId = doublon.id;
+  }
+
   if (!figurantId) {
     const { data: newFigurant, error: figurantError } = await supabase
       .from("figurants")
@@ -103,6 +115,9 @@ export async function postulerAnnonce(
       .single();
 
     if (figurantError) {
+      if (figurantError.code === "23505") {
+        return { error: "Un profil existe déjà avec cet email. Contactez le casting si besoin." };
+      }
       return { error: figurantError.message };
     }
     figurantId = newFigurant.id;
@@ -205,6 +220,7 @@ export async function updateCandidature(id: string, formData: FormData) {
       fonction_assignee,
       cachet_assigne
     );
+    await activerAccesCompte(candidature.figurant_id);
   }
 
   revalidatePath("/candidatures");
@@ -233,6 +249,7 @@ export async function updateCandidatureStatutInline(id: string, statut: Candidat
       candidature.fonction_assignee,
       candidature.cachet_assigne
     );
+    await activerAccesCompte(candidature.figurant_id);
   }
 
   revalidatePath("/candidatures");

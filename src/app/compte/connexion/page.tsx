@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useActionState, useEffect } from "react";
+import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,27 +20,13 @@ function ExpiredLinkNotice() {
 function ConnexionForm() {
   const [state, formAction, pending] = useActionState(requestMagicLink, undefined);
 
-  useEffect(() => {
-    if (state?.mailtoUrl) {
-      window.location.href = state.mailtoUrl;
-    }
-  }, [state?.mailtoUrl]);
-
   if (state?.sentTo) {
     return (
       <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-turquoise">Lien prêt à être envoyé</h2>
+        <h2 className="text-lg font-semibold text-turquoise">Email envoyé</h2>
         <p className="text-sm text-text-muted">
-          Votre messagerie a dû s&apos;ouvrir avec un message pré-rempli contenant votre lien de connexion.
-          Envoyez-le vous-même à <strong>{state.sentTo}</strong>, puis ouvrez le lien reçu dans cet email
-          (valable 30 minutes).
-        </p>
-        <p className="text-xs text-text-muted">
-          Rien ne s&apos;est ouvert ?{" "}
-          <a href={state.mailtoUrl} className="text-coral hover:underline">
-            Cliquez ici
-          </a>
-          .
+          Un lien de connexion vient d&apos;être envoyé à <strong>{state.sentTo}</strong> (valable 30
+          minutes). Ouvrez-le depuis votre messagerie pour accéder à votre espace.
         </p>
       </Card>
     );
