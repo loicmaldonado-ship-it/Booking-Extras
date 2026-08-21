@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
@@ -99,9 +100,14 @@ export default async function CandidatureDetailPage({
             </p>
           </div>
         </div>
-        <Badge tone={ongletActuel?.couleur === "danger" ? "danger" : ongletActuel?.couleur === "coral" ? "coral" : "default"}>
-          {ongletActuel?.nom ?? "À trier"}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone={ongletActuel?.couleur === "danger" ? "danger" : ongletActuel?.couleur === "coral" ? "coral" : "default"}>
+            {ongletActuel?.nom ?? "À trier"}
+          </Badge>
+          <ButtonLink href={`/bookings/nouveau?figurant_id=${f.id}&projet_id=${candidature.annonces?.projet_id ?? ""}`}>
+            + Ajouter à un booking
+          </ButtonLink>
+        </div>
       </div>
 
       <DuplicateWarning figurantId={f.id} figurantNom={`${f.prenom} ${f.nom}`} duplicates={duplicates} />

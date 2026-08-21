@@ -99,11 +99,11 @@ export default async function AnnonceDetailPage({
         <CopyAnnonceText text={shareText} />
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm text-text-muted">
-            <span>
+            <Link href={`/candidatures?annonce_id=${id}`} className="text-coral hover:underline">
               {candidatureCount ?? 0}
               {annonce.limite_candidatures !== null ? `/${annonce.limite_candidatures}` : ""} candidature
-              {(candidatureCount ?? 0) > 1 ? "s" : ""} reçue{(candidatureCount ?? 0) > 1 ? "s" : ""}
-            </span>
+              {(candidatureCount ?? 0) > 1 ? "s" : ""} reçue{(candidatureCount ?? 0) > 1 ? "s" : ""} →
+            </Link>
             {annonce.limite_candidatures !== null && (candidatureCount ?? 0) >= annonce.limite_candidatures && (
               <Badge tone="danger">Complet</Badge>
             )}

@@ -114,6 +114,7 @@ export default async function FigurantDetailPage({
           </p>
         </div>
         <div className="flex gap-3">
+          <ButtonLink href={`/bookings/nouveau?figurant_id=${id}`}>+ Ajouter à un booking</ButtonLink>
           <ButtonLink href={`/figurants/${id}/fiche`} variant="secondary">
             Fiche mensuration
           </ButtonLink>
