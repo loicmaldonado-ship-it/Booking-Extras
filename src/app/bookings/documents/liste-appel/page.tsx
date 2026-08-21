@@ -4,9 +4,10 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
+import { SortChips } from "@/components/documents/sort-chips";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields } from "@/lib/documents/fields";
-import { sortBookingsFlat, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
+import { sortBookingsFlat, parseDocSort } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -21,7 +22,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 export default async function ListeAppelPage({
   searchParams,
 }: {
-  searchParams: Promise<{ projet_id?: string; date?: string; fields?: string | string[]; sort?: string }>;
+  searchParams: Promise<{ projet_id?: string; date?: string; fields?: string | string[]; sort?: string | string[] }>;
 }) {
   const { projet_id, date, fields, sort } = await searchParams;
   await requireProjetAccess(projet_id);
@@ -53,11 +54,16 @@ export default async function ListeAppelPage({
         </div>
       </div>
 
+      <SortChips
+        baseParams={{ projet_id, date, fields }}
+        current={docSort}
+      />
+
       <FieldsToggle
         projetId={projet_id}
         date={date}
         selected={selectedFields}
-        groupBy={{ options: DOC_SORT_OPTIONS, value: docSort, paramName: "sort" }}
+        extraHidden={{ sort: docSort }}
       />
 
       {chunk(bookings, ROWS_PER_PAGE).map((page, pageIndex, allPages) => (

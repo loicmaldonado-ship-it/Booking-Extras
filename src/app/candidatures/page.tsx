@@ -4,11 +4,13 @@ import { Select, Input } from "@/components/ui/field";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row } from "@/components/candidatures/candidatures-table";
+import { SortChips } from "@/components/documents/sort-chips";
 import { ONGLET_OUT_BE, type CandidatureOnglet } from "@/lib/candidatures/types";
 import { GENRES } from "@/lib/figurants/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
+import { groupByDimensions, parseDocSort, ageBracket, type Dimension } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
@@ -26,7 +28,19 @@ type SearchParams = {
   age_max?: string;
   question_id?: string;
   question_reponse?: string;
+  sort?: string | string[];
 };
+
+function candidatureDimLabel(c: CandidatureWithFilters, dim: Dimension): string {
+  if (dim === "fonction") return c.fonction_assignee ?? "Sans fonction";
+  if (dim === "cachet") return c.cachet_assigne ?? "Sans cachet";
+  if (dim === "sexe") return c.figurants?.genre ?? "Non renseigné";
+  return ageBracket(c.figurants?.date_naissance ?? null);
+}
+
+function candidatureNameOf(c: CandidatureWithFilters) {
+  return `${c.figurants?.prenom ?? ""} ${c.figurants?.nom ?? ""}`;
+}
 
 type CandidatureRaw = Omit<Row, "portraitUrl">;
 type CandidatureWithFilters = CandidatureRaw & {
@@ -183,6 +197,10 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.onglet_id === params.onglet_id);
   }
 
+  const docSort = parseDocSort(params.sort);
+  const sortGroups = groupByDimensions(candidatures, docSort, candidatureDimLabel, candidatureNameOf);
+  if (sortGroups) candidatures = sortGroups.flatMap((g) => g.items);
+
   const portraitByFigurant = await getPhotosByFigurantId(
     candidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
   );
@@ -242,6 +260,7 @@ export default async function CandidaturesPage({
     if (params.question_id) sp.set("question_id", params.question_id);
     if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
     if (ongletParam) sp.set("onglet_id", ongletParam);
+    for (const dim of docSort) sp.append("sort", dim);
     return `/candidatures?${sp.toString()}`;
   }
 
@@ -297,10 +316,27 @@ export default async function CandidaturesPage({
         })}
       </div>
 
+      <SortChips
+        baseParams={{
+          annonce_id: params.annonce_id,
+          onglet_id: params.onglet_id,
+          myrole: params.myrole,
+          genre: params.genre,
+          age_min: params.age_min,
+          age_max: params.age_max,
+          question_id: params.question_id,
+          question_reponse: params.question_reponse,
+        }}
+        current={docSort}
+      />
+
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
           <input type="hidden" name="annonce_id" value={params.annonce_id} />
           {params.onglet_id && <input type="hidden" name="onglet_id" value={params.onglet_id} />}
+          {docSort.map((dim) => (
+            <input key={dim} type="hidden" name="sort" value={dim} />
+          ))}
           <Select name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Myrole (tous)</option>
             <option value="oui">Avec compte Myrole</option>

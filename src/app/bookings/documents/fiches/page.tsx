@@ -9,11 +9,12 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
+import { SortChips } from "@/components/documents/sort-chips";
 import { MensurationSheet } from "@/components/documents/mensuration-sheet";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields, parseIds, formatHeureConvocation, type DocumentField } from "@/lib/documents/fields";
-import { sortBookingsFlat, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
+import { sortBookingsFlat, parseDocSort } from "@/lib/documents/sort";
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -29,7 +30,7 @@ export default async function FichesPage({
     date?: string;
     fields?: string | string[];
     booking_ids?: string;
-    sort?: string;
+    sort?: string | string[];
   }>;
 }) {
   const { projet_id, date, fields, booking_ids, sort } = await searchParams;
@@ -82,11 +83,16 @@ export default async function FichesPage({
         </div>
       </div>
 
+      <SortChips
+        baseParams={{ projet_id, date, fields, booking_ids }}
+        current={docSort}
+      />
+
       <FieldsToggle
         projetId={projet_id}
         date={date}
         selected={selectedFields}
-        groupBy={{ options: DOC_SORT_OPTIONS, value: docSort, paramName: "sort" }}
+        extraHidden={{ booking_ids, sort: docSort }}
       />
 
       {bookings.length === 0 && (

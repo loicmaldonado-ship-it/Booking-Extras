@@ -1,21 +1,18 @@
 import { DOCUMENT_FIELDS, type DocumentField } from "@/lib/documents/fields";
 
-type GroupByOption = { key: string; label: string };
-
 export function FieldsToggle({
   projetId,
   date,
   selected,
-  groupBy,
   excludeFields,
+  extraHidden,
 }: {
   projetId: string;
   date: string;
   selected: Set<DocumentField>;
-  groupBy?: { options: GroupByOption[]; value: string; paramName?: string };
   excludeFields?: DocumentField[];
+  extraHidden?: Record<string, string | string[] | undefined>;
 }) {
-  const groupParam = groupBy?.paramName ?? "groupby";
   const visibleFields = excludeFields
     ? DOCUMENT_FIELDS.filter((f) => !excludeFields.includes(f.key))
     : DOCUMENT_FIELDS;
@@ -26,23 +23,11 @@ export function FieldsToggle({
     >
       <input type="hidden" name="projet_id" value={projetId} />
       <input type="hidden" name="date" value={date} />
-      {groupBy && (
-        <>
-          <span className="text-text-muted">Regrouper par :</span>
-          {groupBy.options.map((o) => (
-            <label key={o.key} className="flex items-center gap-1.5">
-              <input
-                type="radio"
-                name={groupParam}
-                value={o.key}
-                defaultChecked={groupBy.value === o.key}
-                className="h-4 w-4 accent-coral"
-              />
-              {o.label}
-            </label>
-          ))}
-        </>
-      )}
+      {Object.entries(extraHidden ?? {}).flatMap(([key, value]) => {
+        if (value === undefined) return [];
+        const values = Array.isArray(value) ? value : [value];
+        return values.map((v, i) => <input key={`${key}-${i}`} type="hidden" name={key} value={v} />);
+      })}
       <span className="text-text-muted">Champs à afficher :</span>
       {visibleFields.map((f) => (
         <label key={f.key} className="flex items-center gap-1.5">

@@ -6,10 +6,11 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
+import { SortChips } from "@/components/documents/sort-chips";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields, parseIds, formatHeureConvocation } from "@/lib/documents/fields";
-import { groupForDoc, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
+import { groupForDoc, parseDocSort } from "@/lib/documents/sort";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 // Ordre d'affichage voulu sur les trombis : silhouettes, puis doublures, puis figurants en dernier.
@@ -105,7 +106,7 @@ export default async function TrombisPage({
     date?: string;
     fields?: string | string[];
     booking_ids?: string;
-    sort?: string;
+    sort?: string | string[];
   }>;
 }) {
   const { projet_id, date, fields, booking_ids, sort } = await searchParams;
@@ -145,12 +146,17 @@ export default async function TrombisPage({
         </div>
       </div>
 
+      <SortChips
+        baseParams={{ projet_id, date, fields, booking_ids }}
+        current={docSort}
+      />
+
       <FieldsToggle
         projetId={projet_id}
         date={date}
         selected={selectedFields}
-        groupBy={{ options: DOC_SORT_OPTIONS, value: docSort, paramName: "sort" }}
         excludeFields={["telephone", "email"]}
+        extraHidden={{ booking_ids, sort: docSort }}
       />
 
       {pages.length === 0 && (
