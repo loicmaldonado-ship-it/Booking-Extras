@@ -11,6 +11,8 @@ import { computeAge } from "@/lib/documents/fields";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
+import { DuplicateWarning } from "@/components/figurants/duplicate-warning";
 
 type CandidatureDetail = {
   id: string;
@@ -70,6 +72,8 @@ export default async function CandidatureDetailPage({
     supabase.from("figurant_liens").select("label, url").eq("figurant_id", f.id),
   ]);
 
+  const duplicates = await findPossibleDuplicates(f.id);
+
   const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
@@ -99,6 +103,8 @@ export default async function CandidatureDetailPage({
           {ongletActuel?.nom ?? "À trier"}
         </Badge>
       </div>
+
+      <DuplicateWarning figurantId={f.id} figurantNom={`${f.prenom} ${f.nom}`} duplicates={duplicates} />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Rangement de la candidature</h2>

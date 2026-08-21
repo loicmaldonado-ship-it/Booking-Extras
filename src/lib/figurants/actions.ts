@@ -218,3 +218,53 @@ export async function deleteLien(lienId: string, figurantId: string) {
   await supabase.from("figurant_liens").delete().eq("id", lienId);
   revalidatePath(`/figurants/${figurantId}`);
 }
+
+// Fusionne deux fiches détectées comme doublons possibles (même personne
+// candidatée sous un pseudo/coordonnées différentes) : tout l'historique de
+// mergeId est réattaché à keepId, puis mergeId est supprimé. Ne fusionne
+// jamais deux candidatures de la même annonce (contrainte figurant_id +
+// annonce_id) : dans ce cas le doublon est supprimé plutôt que réattaché.
+export async function mergeFigurants(keepId: string, mergeId: string) {
+  if (keepId === mergeId) return { error: "Impossible de fusionner un profil avec lui-même." };
+
+  const supabase = createAdminClient();
+
+  const [{ data: keep }, { data: merge }] = await Promise.all([
+    supabase.from("figurants").select("confirme, acces_compte").eq("id", keepId).single(),
+    supabase.from("figurants").select("confirme, acces_compte").eq("id", mergeId).single(),
+  ]);
+  if (!keep || !merge) return { error: "Profil introuvable." };
+
+  const { data: keepCandidatures } = await supabase.from("candidatures").select("annonce_id").eq("figurant_id", keepId);
+  const keepAnnonceIds = new Set((keepCandidatures ?? []).map((c) => c.annonce_id));
+
+  const { data: mergeCandidatures } = await supabase.from("candidatures").select("id, annonce_id").eq("figurant_id", mergeId);
+  for (const c of mergeCandidatures ?? []) {
+    if (keepAnnonceIds.has(c.annonce_id)) {
+      await supabase.from("candidatures").delete().eq("id", c.id);
+    } else {
+      await supabase.from("candidatures").update({ figurant_id: keepId }).eq("id", c.id);
+    }
+  }
+
+  const otherTables = ["bookings", "essayages", "figurant_messages", "figurant_photos", "figurant_liens"];
+  for (const table of otherTables) {
+    await supabase.from(table).update({ figurant_id: keepId }).eq("figurant_id", mergeId);
+  }
+
+  // Ne jamais faire perdre confirme/acces_compte à la fiche conservée si
+  // l'autre les avait déjà.
+  const patch: { confirme?: boolean; acces_compte?: boolean } = {};
+  if (merge.confirme && !keep.confirme) patch.confirme = true;
+  if (merge.acces_compte && !keep.acces_compte) patch.acces_compte = true;
+  if (Object.keys(patch).length > 0) {
+    await supabase.from("figurants").update(patch).eq("id", keepId);
+  }
+
+  await supabase.from("figurants").delete().eq("id", mergeId);
+
+  revalidatePath("/figurants");
+  revalidatePath("/candidatures");
+  revalidatePath(`/figurants/${keepId}`);
+  return { success: true as const };
+}
