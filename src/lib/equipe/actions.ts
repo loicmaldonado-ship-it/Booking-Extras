@@ -12,12 +12,13 @@ async function requireChef() {
   return profile;
 }
 
-async function findOrInviteProfile(email: string) {
+async function findOrInviteProfile(email: string, projetNom: string) {
   const admin = createAdminClient();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo: `${siteUrl}/auth/invite`,
+    data: { projet_nom: projetNom },
   });
   if (!inviteError && invited.user) {
     return { id: invited.user.id, error: null as string | null };
@@ -42,12 +43,14 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
     return { error: "Email et projet sont obligatoires." };
   }
 
-  const { id: profileId, error } = await findOrInviteProfile(email);
+  const admin = createAdminClient();
+  const { data: projet } = await admin.from("projets").select("nom").eq("id", projetId).single();
+
+  const { id: profileId, error } = await findOrInviteProfile(email, projet?.nom ?? "");
   if (!profileId) {
     return { error };
   }
 
-  const admin = createAdminClient();
   const { error: membreError } = await admin
     .from("projet_membres")
     .upsert({ projet_id: projetId, profile_id: profileId }, { onConflict: "projet_id,profile_id" });
