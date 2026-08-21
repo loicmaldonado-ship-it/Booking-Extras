@@ -188,6 +188,35 @@ export function ProjetForm({
         </div>
       </Card>
 
+      <Card className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Tarif covoiturage</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Utilisé pour calculer l&apos;indemnité chauffeur dans le récap et les emails de covoiturage.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Forfait de base (€)">
+            <Input
+              type="number"
+              step="0.5"
+              min={0}
+              name="covoiturage_tarif_base"
+              defaultValue={projet?.covoiturage_tarif_base ?? 15}
+            />
+          </Field>
+          <Field label="Par passager transporté (€)">
+            <Input
+              type="number"
+              step="0.5"
+              min={0}
+              name="covoiturage_tarif_passager"
+              defaultValue={projet?.covoiturage_tarif_passager ?? 5}
+            />
+          </Field>
+        </div>
+      </Card>
+
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>
           {pending ? "Enregistrement..." : projet ? "Enregistrer" : "Créer le projet"}

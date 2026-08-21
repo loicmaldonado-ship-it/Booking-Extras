@@ -22,6 +22,8 @@ export type Projet = {
   signature: string | null;
   gmail_smtp_user: string | null;
   gmail_smtp_app_password: string | null;
+  covoiturage_tarif_base: number;
+  covoiturage_tarif_passager: number;
   created_at: string;
   updated_at: string;
 };

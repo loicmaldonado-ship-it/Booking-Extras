@@ -5,6 +5,7 @@ import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { montantCovoiturage } from "@/lib/bookings/covoiturage-messages";
 
 type Row = {
   figurant_id: string;
@@ -29,7 +30,11 @@ export default async function CovoiturageDocPage({
 
   const supabase = createAdminClient();
   const [{ data: projet }, { data: rowsRaw }] = await Promise.all([
-    supabase.from("projets").select("nom").eq("id", projet_id).single(),
+    supabase
+      .from("projets")
+      .select("nom, covoiturage_tarif_base, covoiturage_tarif_passager")
+      .eq("id", projet_id)
+      .single(),
     supabase
       .from("bookings")
       .select(
@@ -41,6 +46,8 @@ export default async function CovoiturageDocPage({
   ]);
 
   const rows = rowsRaw ?? [];
+  const tarifBase = projet?.covoiturage_tarif_base ?? 15;
+  const tarifPassager = projet?.covoiturage_tarif_passager ?? 5;
   const conducteurs = rows.filter((r) => r.covoiturage_role === "conducteur");
   const sansCovoiturage = rows.filter((r) => !r.covoiturage_role);
   const nomOf = (r: Row | undefined) => (r?.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—");
@@ -87,6 +94,10 @@ export default async function CovoiturageDocPage({
                     : passagers
                         .map((p) => `${nomOf(p)}${p.figurants?.telephone ? ` (${p.figurants.telephone})` : ""}`)
                         .join(", ")}
+                </p>
+                <p className="mt-1 text-sm font-medium">
+                  Indemnité chauffeur : {montantCovoiturage(passagers.length, tarifBase, tarifPassager)}€ (
+                  {tarifBase}€ + {tarifPassager}€ × {passagers.length})
                 </p>
               </div>
             );

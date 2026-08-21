@@ -50,7 +50,11 @@ export default async function JourneeDashboardPage({
 
   const supabase = createAdminClient();
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }] = await Promise.all([
-    supabase.from("projets").select("nom, confidentiel, lieu").eq("id", projet_id).single(),
+    supabase
+      .from("projets")
+      .select("nom, confidentiel, lieu, covoiturage_tarif_base, covoiturage_tarif_passager")
+      .eq("id", projet_id)
+      .single(),
     supabase
       .from("bookings")
       .select(
@@ -208,6 +212,8 @@ export default async function JourneeDashboardPage({
         totalRequis={currentJournee?.total_requis ?? null}
         journeeLieu={currentJournee?.lieu ?? null}
         projetLieu={projet?.lieu ?? null}
+        covoiturageTarifBase={projet?.covoiturage_tarif_base ?? 15}
+        covoiturageTarifPassager={projet?.covoiturage_tarif_passager ?? 5}
         initialReplies={initialReplies}
         messagesByFigurant={messagesByFigurant}
         convocationSettings={{

@@ -12,6 +12,13 @@ function str(fd: FormData, key: string): string | null {
   return v.trim();
 }
 
+function num(fd: FormData, key: string, fallback: number): number {
+  const v = str(fd, key);
+  if (v === null) return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function buildProjetPayload(fd: FormData) {
   return {
     nom: str(fd, "nom") ?? "",
@@ -32,6 +39,8 @@ function buildProjetPayload(fd: FormData) {
     synopsis: str(fd, "synopsis"),
     signature: str(fd, "signature"),
     gmail_smtp_user: str(fd, "gmail_smtp_user"),
+    covoiturage_tarif_base: num(fd, "covoiturage_tarif_base", 15),
+    covoiturage_tarif_passager: num(fd, "covoiturage_tarif_passager", 5),
   };
 }
 

@@ -14,7 +14,7 @@ export default async function EquipePage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-3xl font-semibold">Équipe</h1>
         <Card>
-          <p className="text-sm text-text-muted">Cette page est réservée à la cheffe de casting.</p>
+          <p className="text-sm text-text-muted">Cette page est réservée au·à la chef·fe de casting.</p>
         </Card>
       </div>
     );

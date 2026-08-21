@@ -3,7 +3,7 @@ import type { Figurant } from "@/lib/figurants/types";
 import type { FigurantPhotoWithUrl, FutureBooking } from "@/lib/documents/data";
 import { formatDateShort } from "@/lib/format-date";
 
-type FieldRow = [string, string | null];
+export type FieldRow = [string, string | null];
 
 function mensurationRows(f: Figurant): FieldRow[] {
   return [
@@ -28,14 +28,14 @@ export function MensurationSheet({
   figurant,
   photos,
   header,
-  extraRow,
+  extraRows,
   futureBookings,
   numeroCostume,
 }: {
   figurant: Figurant;
   photos: FigurantPhotoWithUrl[];
   header?: React.ReactNode;
-  extraRow?: [string, string];
+  extraRows?: FieldRow[];
   futureBookings?: FutureBooking[];
   numeroCostume?: string | null;
 }) {
@@ -74,12 +74,12 @@ export function MensurationSheet({
                 <td className="py-1 pl-2 pr-1">{value ?? ""}</td>
               </tr>
             ))}
-            {extraRow && (
-              <tr className="border-t border-gray-300">
-                <td className="border-r border-gray-300 py-1 pl-2 pr-1 font-medium text-gray-600">{extraRow[0]}</td>
-                <td className="py-1 pl-2 pr-1">{extraRow[1]}</td>
+            {extraRows?.map(([label, value]) => (
+              <tr key={label} className="border-t border-gray-300 first:border-t-2">
+                <td className="border-r border-gray-300 py-1 pl-2 pr-1 font-medium text-gray-600">{label}</td>
+                <td className="py-1 pl-2 pr-1">{value ?? ""}</td>
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
 

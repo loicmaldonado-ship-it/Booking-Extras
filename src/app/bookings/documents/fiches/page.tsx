@@ -17,7 +17,9 @@ import { sortBookingsFlat, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/document
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
-const DEFAULT_FIELDS: DocumentField[] = ["fonction", "telephone", "email", "ville"];
+// Muette par défaut : ni téléphone ni email tant qu'on ne les ajoute pas
+// explicitement (voir FieldsToggle) — le cachet, lui, est toujours affiché.
+const DEFAULT_FIELDS: DocumentField[] = ["fonction", "ville"];
 
 export default async function FichesPage({
   searchParams,
@@ -127,9 +129,9 @@ export default async function FichesPage({
                     )}
                   </>
                 }
-                extraRow={[
-                  "Convocation",
-                  b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—",
+                extraRows={[
+                  ["Cachet", b.cachet ?? "—"],
+                  ["Convocation", b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—"],
                 ]}
                 futureBookings={(futureBookingsByFigurant.get(f.id) ?? []).filter((fb) => fb.id !== b.id)}
                 numeroCostume={numeroCostumeByFigurant.get(f.id) ?? null}

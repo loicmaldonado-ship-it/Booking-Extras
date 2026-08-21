@@ -43,6 +43,8 @@ export function JourneeTabs({
   messagesByFigurant,
   journeePartage,
   publicOrigin,
+  covoiturageTarifBase,
+  covoiturageTarifPassager,
 }: {
   bookings: Row[];
   templates: MessageTemplate[];
@@ -61,6 +63,8 @@ export function JourneeTabs({
   messagesByFigurant: Record<string, StaffMessageRow[]>;
   journeePartage: { token: string; showContacts: boolean } | null;
   publicOrigin: string;
+  covoiturageTarifBase?: number;
+  covoiturageTarifPassager?: number;
 }) {
   const [tab, setTab] = useState<Tab>("bookings");
   const query = `?projet_id=${projetId}&date=${date}`;
@@ -118,7 +122,15 @@ export function JourneeTabs({
         <EssayagesPanel figurants={essayageFigurants} essayages={essayages} projetId={projetId} />
       )}
 
-      {tab === "covoiturage" && <CovoiturageBoard rows={covoiturageRows} date={date} projetId={projetId} />}
+      {tab === "covoiturage" && (
+        <CovoiturageBoard
+          rows={covoiturageRows}
+          date={date}
+          projetId={projetId}
+          tarifBase={covoiturageTarifBase}
+          tarifPassager={covoiturageTarifPassager}
+        />
+      )}
 
       {tab === "documents" && (
         <Card className="flex flex-col gap-3">

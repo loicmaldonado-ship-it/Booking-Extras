@@ -7,7 +7,7 @@ import { getCurrentProfile } from "@/lib/auth/session";
 async function requireChef() {
   const profile = await getCurrentProfile();
   if (!profile || profile.role !== "chef") {
-    throw new Error("Réservé à la cheffe.");
+    throw new Error("Réservé au·à la chef·fe.");
   }
   return profile;
 }

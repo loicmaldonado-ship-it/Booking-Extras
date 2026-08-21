@@ -118,9 +118,9 @@ export default async function PartageFichesPage({
                     )}
                   </>
                 }
-                extraRow={[
-                  "Convocation",
-                  b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—",
+                extraRows={[
+                  ["Cachet", b.cachet ?? "—"],
+                  ["Convocation", b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—"],
                 ]}
                 futureBookings={(futureBookingsByFigurant.get(f.id) ?? []).filter((fb) => fb.id !== b.id)}
               />

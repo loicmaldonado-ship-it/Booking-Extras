@@ -150,6 +150,7 @@ export default async function TrombisPage({
         date={date}
         selected={selectedFields}
         groupBy={{ options: DOC_SORT_OPTIONS, value: docSort, paramName: "sort" }}
+        excludeFields={["telephone", "email"]}
       />
 
       {pages.length === 0 && (
@@ -217,12 +218,6 @@ export default async function TrombisPage({
                         {selectedFields.has("age") && age !== null && <span>{age} ans</span>}
                         {selectedFields.has("ville") && item.booking.figurant.ville && (
                           <span>{item.booking.figurant.ville}</span>
-                        )}
-                        {selectedFields.has("telephone") && item.booking.figurant.telephone && (
-                          <span>{item.booking.figurant.telephone}</span>
-                        )}
-                        {selectedFields.has("email") && item.booking.figurant.email && (
-                          <span>{item.booking.figurant.email}</span>
                         )}
                       </div>
                     </div>

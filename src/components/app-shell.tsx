@@ -161,7 +161,7 @@ export function AppShell({
             <CommandPalette />
             <div className="hidden text-right text-xs sm:block">
               <div className="truncate font-medium text-text">{profile.email}</div>
-              <div className="text-text-muted">{profile.role === "chef" ? "Cheffe" : "Assistant·e"}</div>
+              <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
             <form action={signOut}>
               <button
