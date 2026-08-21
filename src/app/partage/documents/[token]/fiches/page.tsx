@@ -86,7 +86,7 @@ export default async function PartageFichesPage({
 
       {bookings.map((b) => {
         const f = b.figurant;
-        const photos = pickFichePhotos(photosByFigurant.get(f.id));
+        const photos = pickFichePhotos(photosByFigurant.get(f.id), projet.id);
         const age = computeAge(f.date_naissance);
         const coordonnees = [
           selectedFields.has("telephone") ? f.telephone : null,

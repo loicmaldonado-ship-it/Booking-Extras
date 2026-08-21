@@ -288,3 +288,39 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
   revalidatePath("/compte");
   return { success: true as const };
 }
+
+export async function addIndisponibiliteSelf(_prevState: unknown, formData: FormData) {
+  const session = await getCurrentFigurant();
+  if (!session) return { error: "Non connecté." };
+
+  const date = str(formData, "date");
+  if (!date) return { error: "Merci de choisir une date." };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("figurant_indisponibilites")
+    .upsert(
+      { figurant_id: session.id, date, motif: str(formData, "motif") },
+      { onConflict: "figurant_id,date" }
+    );
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/compte");
+  return { success: true as const };
+}
+
+export async function removeIndisponibiliteSelf(date: string) {
+  const session = await getCurrentFigurant();
+  if (!session) return { error: "Non connecté." };
+
+  const supabase = createAdminClient();
+  await supabase
+    .from("figurant_indisponibilites")
+    .delete()
+    .eq("figurant_id", session.id)
+    .eq("date", date);
+
+  revalidatePath("/compte");
+  return { success: true as const };
+}

@@ -91,13 +91,27 @@ export async function getFutureBookingsByFigurant(figurantIds: string[], fromDat
   return map;
 }
 
-export function pickPortrait(photos: FigurantPhotoWithUrl[] | undefined) {
-  return photos?.find((p) => p.type === "portrait") ?? null;
+// Sur les documents d'un projet précis (trombis, fiches, bordereaux...), la
+// photo en tenue prise pendant l'essayage de CE projet remplace le portrait
+// générique — le portrait reste utilisé partout ailleurs (Base Profils,
+// autres projets).
+export function pickPortrait(photos: FigurantPhotoWithUrl[] | undefined, projetId?: string) {
+  if (!photos) return null;
+  if (projetId) {
+    const tenue = photos.find((p) => p.type === "tenue" && p.projet_id === projetId);
+    if (tenue) return tenue;
+  }
+  return photos.find((p) => p.type === "portrait") ?? null;
 }
 
-export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined) {
+export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined, projetId?: string) {
   if (!photos) return [];
+  // Les photos "en tenue" d'un autre projet ne concernent pas ce document.
+  const relevant = photos.filter((p) => p.type !== "tenue" || p.projet_id === projetId);
+  const tenue = projetId ? relevant.filter((p) => p.type === "tenue") : [];
   const order: FigurantPhoto["type"][] = ["portrait", "pied", "autre", "selfie"];
-  const sorted = [...photos].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
-  return sorted.slice(0, 3);
+  const others = relevant
+    .filter((p) => p.type !== "tenue")
+    .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
+  return [...tenue, ...others].slice(0, 3);
 }

@@ -84,6 +84,7 @@ export type Row = {
   portraitUrl: string | null;
   essaiOk?: boolean;
   numeroCostume?: string | null;
+  indispoMotif?: string | null;
 };
 
 function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
@@ -684,6 +685,11 @@ export function BookingsTable({
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
             {r.numeroCostume && <Badge tone="coral">Costume {r.numeroCostume}</Badge>}
+            {r.indispoMotif !== undefined && (
+              <Badge tone="danger" title={r.indispoMotif ? `Indisponible déclaré·e : ${r.indispoMotif}` : "Indisponible déclaré·e"}>
+                ⚠ Indispo
+              </Badge>
+            )}
           </Link>
           <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
           {renderContactLinks(r)}
@@ -813,6 +819,11 @@ export function BookingsTable({
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
           {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
+          {r.indispoMotif !== undefined && (
+            <Badge tone="danger" title={r.indispoMotif ? `Indisponible déclaré·e : ${r.indispoMotif}` : "Indisponible déclaré·e"}>
+              ⚠ Indispo
+            </Badge>
+          )}
         </Link>
         {renderContactLinks(r)}
         <input

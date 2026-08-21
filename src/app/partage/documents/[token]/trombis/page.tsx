@@ -180,7 +180,7 @@ export default async function PartageTrombisPage({
                 lastHeure = item.heureLabel;
                 lastCachet = item.cachetLabel;
                 lastFonction = item.fonctionLabel;
-                const portrait = pickPortrait(photosByFigurant.get(item.booking.figurant.id));
+                const portrait = pickPortrait(photosByFigurant.get(item.booking.figurant.id), projet.id);
                 const age = computeAge(item.booking.figurant.date_naissance);
 
                 return (

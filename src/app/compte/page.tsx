@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { MessageThread } from "@/components/candidats/message-thread";
 import { PushSubscribe } from "@/components/candidats/push-subscribe";
 import { MaFicheForm } from "@/components/candidats/ma-fiche-form";
+import { IndisponibilitesPanel } from "@/components/candidats/indisponibilites-panel";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
@@ -44,6 +45,11 @@ export default async function CompteCandidatPage() {
     supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
   ]);
 
+  const { data: indisponibilites } = await supabase
+    .from("figurant_indisponibilites")
+    .select("date, motif")
+    .eq("figurant_id", session.id);
+
   const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
@@ -77,6 +83,8 @@ export default async function CompteCandidatPage() {
       <PushSubscribe />
 
       <MaFicheForm figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
+
+      <IndisponibilitesPanel indisponibilites={indisponibilites ?? []} />
 
       {annonces.length > 0 && (
         <Card className="flex flex-col gap-3">

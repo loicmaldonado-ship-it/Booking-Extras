@@ -6,6 +6,32 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import type { EssayageStatut } from "./types";
 
+// Photo "en tenue" prise pendant l'essayage — rattachée à ce projet
+// précisément, elle remplacera le portrait générique sur les trombis et
+// fiches mensu de ce projet (voir pickPortrait/pickFichePhotos).
+export async function uploadTenuePhoto(figurantId: string, projetId: string, formData: FormData) {
+  const file = formData.get("photo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Aucune photo sélectionnée." };
+
+  const supabase = createAdminClient();
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${figurantId}/tenue-${crypto.randomUUID()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("figurant-photos")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (uploadError) return { error: uploadError.message };
+
+  const { error: insertError } = await supabase
+    .from("figurant_photos")
+    .insert({ figurant_id: figurantId, type: "tenue", storage_path: path, projet_id: projetId });
+  if (insertError) return { error: insertError.message };
+
+  revalidatePath("/essayages/journee");
+  revalidatePath("/bookings/documents");
+  return { success: true as const };
+}
+
 export async function recordEssayageMessage(
   figurantId: string,
   corps: string,

@@ -15,6 +15,7 @@ import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 
 export const dynamic = "force-dynamic";
 
@@ -113,16 +114,18 @@ export default async function JourneeDashboardPage({
           .in("figurant_id", figurantIds)
       : { data: [] as { figurant_id: string; numero_costume: string }[] };
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
+  const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
 
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id))?.url ?? null,
+    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
+    indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id))?.url ?? null,
+    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
   }));
 
   const essayageFigurants: BookedFigurant[] = rawBookings

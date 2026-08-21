@@ -188,7 +188,7 @@ export default async function TrombisPage({
                   item.headerLabel !== lastHeader || (showFonction && item.fonctionLabel !== lastFonction);
                 lastHeader = item.headerLabel;
                 lastFonction = item.fonctionLabel;
-                const portrait = pickPortrait(photosByFigurant.get(item.booking.figurant.id));
+                const portrait = pickPortrait(photosByFigurant.get(item.booking.figurant.id), projet_id);
                 const age = computeAge(item.booking.figurant.date_naissance);
 
                 return (

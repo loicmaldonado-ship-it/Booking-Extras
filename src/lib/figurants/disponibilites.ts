@@ -25,6 +25,26 @@ export async function addIndisponibilite(token: string, date: string) {
   return {};
 }
 
+// Pour signaler un conflit quand on booke quelqu'un un jour où il/elle a
+// déclaré être indisponible — clé "figurantId|date" pour un lookup direct.
+export async function getIndisponibilitesForFigurants(
+  figurantIds: string[]
+): Promise<Map<string, string | null>> {
+  const map = new Map<string, string | null>();
+  if (figurantIds.length === 0) return map;
+
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("figurant_indisponibilites")
+    .select("figurant_id, date, motif")
+    .in("figurant_id", figurantIds);
+
+  for (const row of data ?? []) {
+    map.set(`${row.figurant_id}|${row.date}`, row.motif);
+  }
+  return map;
+}
+
 export async function removeIndisponibilite(token: string, date: string) {
   const figurantId = await getFigurantIdByToken(token);
   if (!figurantId) return { error: "Lien invalide." };

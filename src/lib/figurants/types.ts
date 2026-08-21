@@ -1,7 +1,7 @@
 export type Civilite = "Mme" | "M." | "Autre";
 export type Pronom = "Elle" | "Il" | "Iel";
 export type Genre = "Femme" | "Homme" | "Non-binaire";
-export type PhotoType = "portrait" | "pied" | "autre" | "selfie";
+export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue";
 
 export type Figurant = {
   id: string;
@@ -49,6 +49,7 @@ export type FigurantPhoto = {
   type: PhotoType;
   storage_path: string;
   prise_le: string | null;
+  projet_id: string | null;
   created_at: string;
   url?: string;
 };

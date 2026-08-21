@@ -100,7 +100,7 @@ export default async function SuiviEssayagesPage({
       {sorted.map((e) => {
         const f = e.figurants;
         if (!f) return null;
-        const photos = pickFichePhotos(photosByFigurant.get(f.id));
+        const photos = pickFichePhotos(photosByFigurant.get(f.id), projet_id);
         const heure = effectiveHeure(e);
 
         return (

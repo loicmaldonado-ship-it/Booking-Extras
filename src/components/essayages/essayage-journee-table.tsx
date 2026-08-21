@@ -12,6 +12,7 @@ import {
   updateEssayageReponseRecue,
   removeEssayageFromJournee,
   recordEssayageMessage,
+  uploadTenuePhoto,
 } from "@/lib/essayages/actions";
 import { ESSAYAGE_STATUTS, type EssayageStatut } from "@/lib/essayages/types";
 import { buildEssayagePropositionMailto, buildEssayageConfirmationMailto } from "@/lib/essayages/messages";
@@ -81,6 +82,18 @@ export function EssayageJourneeTable({
   function remove(id: string) {
     startTransition(async () => {
       await removeEssayageFromJournee(id);
+      router.refresh();
+    });
+  }
+
+  function uploadTenue(r: EssayageRow, file: File) {
+    if (!projetId) return;
+    const formData = new FormData();
+    formData.set("photo", file);
+    setSendError(null);
+    startTransition(async () => {
+      const result = await uploadTenuePhoto(r.figurant_id, projetId, formData);
+      if (result?.error) setSendError(`Échec de l'envoi de la photo : ${result.error}`);
       router.refresh();
     });
   }
@@ -171,6 +184,22 @@ export function EssayageJourneeTable({
                 {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
               </div>
             </Link>
+            {projetId && (
+              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text">
+                📷 Photo en tenue
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={pending}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadTenue(r, file);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
             <StatusSelect
               tone={STATUT_TONE[r.statut]}
               value={r.statut}

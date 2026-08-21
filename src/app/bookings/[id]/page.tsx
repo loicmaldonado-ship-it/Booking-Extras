@@ -9,6 +9,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { statutLabel, statutTone } from "@/lib/bookings/types";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 
 export default async function BookingDetailPage({
   params,
@@ -30,6 +31,12 @@ export default async function BookingDetailPage({
   await requireProjetAccess(booking.projet_id);
 
   const boundDelete = deleteBooking.bind(null, id);
+
+  const indispoMap = booking.figurants?.id
+    ? await getIndisponibilitesForFigurants([booking.figurants.id])
+    : new Map<string, string | null>();
+  const indispoMotif = booking.figurants?.id ? indispoMap.get(`${booking.figurants.id}|${booking.date}`) : undefined;
+  const enConflit = indispoMotif !== undefined;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -62,6 +69,13 @@ export default async function BookingDetailPage({
           </form>
         </div>
       </div>
+
+      {enConflit && (
+        <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">
+          ⚠ {booking.figurants?.prenom} a déclaré être indisponible le {formatDateShort(booking.date)}
+          {indispoMotif ? ` (${indispoMotif})` : ""}.
+        </div>
+      )}
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Statut</h2>

@@ -95,7 +95,7 @@ export default async function FichesPage({
 
       {bookings.map((b) => {
         const f = b.figurant;
-        const photos = pickFichePhotos(photosByFigurant.get(f.id));
+        const photos = pickFichePhotos(photosByFigurant.get(f.id), projet_id);
         const age = computeAge(f.date_naissance);
         const coordonnees = [
           selectedFields.has("telephone") ? f.telephone : null,
