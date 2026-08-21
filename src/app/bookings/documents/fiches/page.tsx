@@ -15,6 +15,7 @@ import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields, parseIds, formatHeureConvocation, type DocumentField } from "@/lib/documents/fields";
 import { sortBookingsFlat, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 const DEFAULT_FIELDS: DocumentField[] = ["fonction", "telephone", "email", "ville"];
 
@@ -30,6 +31,7 @@ export default async function FichesPage({
   }>;
 }) {
   const { projet_id, date, fields, booking_ids, sort } = await searchParams;
+  await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;

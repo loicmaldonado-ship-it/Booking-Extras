@@ -3,6 +3,7 @@ import { BookingForm } from "@/components/bookings/booking-form";
 import { BackLink } from "@/components/ui/back-link";
 import { createBooking } from "@/lib/bookings/actions";
 import type { BaremeCachet } from "@/lib/bareme/types";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
 
 export default async function NouveauBookingPage({
   searchParams,
@@ -10,11 +11,18 @@ export default async function NouveauBookingPage({
   searchParams: Promise<{ figurant_id?: string; projet_id?: string; date?: string }>;
 }) {
   const params = await searchParams;
+  if (params.projet_id) await requireProjetAccess(params.projet_id);
+
   const supabase = createAdminClient();
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+
+  let projetsQuery = supabase.from("projets").select("id, nom, convention").order("nom");
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
   const [{ data: figurants }, { data: projets }, { data: bareme }] = await Promise.all([
     supabase.from("figurants").select("id, prenom, nom").order("nom"),
-    supabase.from("projets").select("id, nom, convention").order("nom"),
+    projetsQuery,
     supabase.from("bareme_cachets").select("*").returns<BaremeCachet[]>(),
   ]);
 

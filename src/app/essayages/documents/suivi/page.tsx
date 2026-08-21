@@ -8,6 +8,7 @@ import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { MensurationSheet } from "@/components/documents/mensuration-sheet";
 import { formatDateShort } from "@/lib/format-date";
 import type { Figurant } from "@/lib/figurants/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 type Row = {
   id: string;
@@ -33,6 +34,7 @@ export default async function SuiviEssayagesPage({
   if (!projet_id) {
     return <p className="text-text-muted">Choisis un projet.</p>;
   }
+  await requireProjetAccess(projet_id);
 
   const supabase = createAdminClient();
   const [{ data: projet }, { data: essayagesRaw }] = await Promise.all([

@@ -8,6 +8,7 @@ import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields } from "@/lib/documents/fields";
 import { sortBookingsFlat, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 const ROWS_PER_PAGE = 28;
 
@@ -23,6 +24,7 @@ export default async function ListeAppelPage({
   searchParams: Promise<{ projet_id?: string; date?: string; fields?: string | string[]; sort?: string }>;
 }) {
   const { projet_id, date, fields, sort } = await searchParams;
+  await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;

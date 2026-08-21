@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AnnonceForm } from "@/components/annonces/annonce-form";
 import { BackLink } from "@/components/ui/back-link";
 import { createAnnonce } from "@/lib/annonces/actions";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
 
 export default async function NouvelleAnnoncePage({
   searchParams,
@@ -9,8 +10,15 @@ export default async function NouvelleAnnoncePage({
   searchParams: Promise<{ projet_id?: string }>;
 }) {
   const { projet_id } = await searchParams;
+  if (projet_id) await requireProjetAccess(projet_id);
+
   const supabase = createAdminClient();
-  const { data: projets } = await supabase.from("projets").select("id, nom").order("nom");
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+
+  let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
+  const { data: projets } = await projetsQuery;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

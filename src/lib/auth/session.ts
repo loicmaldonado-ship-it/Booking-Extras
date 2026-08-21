@@ -1,4 +1,5 @@
 import "server-only";
+import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -41,6 +42,20 @@ export async function getAccessibleProjetIds(profile: CurrentProfile): Promise<s
   const admin = createAdminClient();
   const { data } = await admin.from("projet_membres").select("projet_id").eq("profile_id", profile.id);
   return (data ?? []).map((r) => r.projet_id);
+}
+
+// À appeler dans chaque page de détail/édition d'une ressource rattachée à
+// un projet (booking, annonce, candidature, essayage...), une fois son
+// projet_id connu — sans ça, un·e assistant·e non connecté à ce projet
+// pouvait ouvrir la page en devinant/collant l'URL, même si les listes
+// elles-mêmes sont bien filtrées. 404 plutôt qu'un message d'erreur, pour ne
+// pas confirmer que la ressource existe.
+export async function requireProjetAccess(projetId: string | null | undefined): Promise<void> {
+  const profile = await getCurrentProfile();
+  if (!profile) notFound();
+  if (!projetId) return;
+  const accessibleIds = await getAccessibleProjetIds(profile);
+  if (accessibleIds !== null && !accessibleIds.includes(projetId)) notFound();
 }
 
 // Safe to spread into a Supabase `.in("id", ...)` filter even when the list

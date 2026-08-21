@@ -4,6 +4,7 @@ import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatDateShort } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 type Row = {
   figurant_id: string;
@@ -20,6 +21,7 @@ export default async function CovoiturageDocPage({
   searchParams: Promise<{ projet_id?: string; date?: string }>;
 }) {
   const { projet_id, date } = await searchParams;
+  await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;

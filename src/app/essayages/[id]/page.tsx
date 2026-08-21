@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { deleteEssayage } from "@/lib/essayages/actions";
 import { formatDateShort } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export default async function EssayageDetailPage({
   params,
@@ -22,6 +23,7 @@ export default async function EssayageDetailPage({
     .single();
 
   if (!essayage) notFound();
+  await requireProjetAccess(essayage.projet_id);
 
   const boundDelete = deleteEssayage.bind(null, id);
 

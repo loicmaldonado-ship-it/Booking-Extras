@@ -11,6 +11,7 @@ import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields, parseIds, formatHeureConvocation } from "@/lib/documents/fields";
 import { groupForDoc, parseDocSort, DOC_SORT_OPTIONS } from "@/lib/documents/sort";
 import { formatDateLong } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 // Ordre d'affichage voulu sur les trombis : silhouettes, puis doublures, puis figurants en dernier.
 const TROMBI_CACHET_ORDER = [
   "Silhouette",
@@ -108,6 +109,7 @@ export default async function TrombisPage({
   }>;
 }) {
   const { projet_id, date, fields, booking_ids, sort } = await searchParams;
+  await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;

@@ -16,6 +16,7 @@ import { getAnnonceQuestions, getQuestionTemplates } from "@/lib/annonces/questi
 import { getAnnonceDates } from "@/lib/annonces/dates";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export default async function AnnonceDetailPage({
   params,
@@ -32,6 +33,7 @@ export default async function AnnonceDetailPage({
     .single<AnnonceAvecProjet>();
 
   if (!annonce) notFound();
+  await requireProjetAccess(annonce.projet_id);
 
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");

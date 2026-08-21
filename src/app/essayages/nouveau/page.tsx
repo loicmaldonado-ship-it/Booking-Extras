@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { EssayageForm } from "@/components/essayages/essayage-form";
 import { BackLink } from "@/components/ui/back-link";
 import { createEssayage } from "@/lib/essayages/actions";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 
 export default async function NouvelEssayagePage({
   searchParams,
@@ -10,10 +11,15 @@ export default async function NouvelEssayagePage({
 }) {
   const params = await searchParams;
   const supabase = createAdminClient();
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+
+  let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
   const [{ data: figurants }, { data: projets }] = await Promise.all([
     supabase.from("figurants").select("id, prenom, nom").order("nom"),
-    supabase.from("projets").select("id, nom").order("nom"),
+    projetsQuery,
   ]);
 
   return (

@@ -8,6 +8,7 @@ import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons
 import { BackLink } from "@/components/ui/back-link";
 import { statutLabel, statutTone } from "@/lib/bookings/types";
 import { formatDateShort } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export default async function BookingDetailPage({
   params,
@@ -26,6 +27,7 @@ export default async function BookingDetailPage({
     .single();
 
   if (!booking) notFound();
+  await requireProjetAccess(booking.projet_id);
 
   const boundDelete = deleteBooking.bind(null, id);
 

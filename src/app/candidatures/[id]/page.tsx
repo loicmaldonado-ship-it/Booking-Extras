@@ -10,6 +10,7 @@ import { formatDateShort } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 type CandidatureDetail = {
   id: string;
@@ -44,6 +45,7 @@ export default async function CandidatureDetailPage({
     .single<CandidatureDetail>();
 
   if (!candidature || !candidature.figurants) notFound();
+  await requireProjetAccess(candidature.annonces?.projet_id);
 
   const f = candidature.figurants;
   const { data: onglets } = await supabase

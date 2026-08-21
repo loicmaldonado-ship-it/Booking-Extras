@@ -14,6 +14,7 @@ import { getSiteOrigin } from "@/lib/partage/data";
 import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import type { MessageTemplate } from "@/lib/templates/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,7 @@ export default async function JourneeDashboardPage({
       </div>
     );
   }
+  await requireProjetAccess(projet_id);
 
   const supabase = createAdminClient();
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }] = await Promise.all([

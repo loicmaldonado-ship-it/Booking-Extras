@@ -6,6 +6,7 @@ import { BackLink } from "@/components/ui/back-link";
 import type { Projet } from "@/lib/projets/types";
 import { deleteProjet } from "@/lib/projets/actions";
 import { formatDateShort } from "@/lib/format-date";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export default async function ProjetDetailPage({
   params,
@@ -13,6 +14,7 @@ export default async function ProjetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireProjetAccess(id);
   const supabase = createAdminClient();
 
   const { data: projet } = await supabase

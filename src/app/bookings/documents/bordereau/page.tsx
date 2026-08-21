@@ -8,6 +8,7 @@ import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatHeureConvocation } from "@/lib/documents/fields";
 import { formatDateLong } from "@/lib/format-date";
 import type { BaremeCachet, BaremeMajoration } from "@/lib/bareme/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 const ROWS_PER_PAGE = 16;
 
@@ -38,6 +39,7 @@ export default async function BordereauPage({
   searchParams: Promise<{ projet_id?: string; date?: string; colonnes?: string | string[] }>;
 }) {
   const { projet_id, date, colonnes } = await searchParams;
+  await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;

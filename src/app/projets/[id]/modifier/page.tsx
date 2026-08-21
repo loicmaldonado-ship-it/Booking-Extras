@@ -4,6 +4,7 @@ import { ProjetForm } from "@/components/projets/projet-form";
 import { BackLink } from "@/components/ui/back-link";
 import { updateProjet } from "@/lib/projets/actions";
 import type { Projet } from "@/lib/projets/types";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export default async function ModifierProjetPage({
   params,
@@ -11,6 +12,7 @@ export default async function ModifierProjetPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireProjetAccess(id);
   const supabase = createAdminClient();
 
   const { data: projet } = await supabase

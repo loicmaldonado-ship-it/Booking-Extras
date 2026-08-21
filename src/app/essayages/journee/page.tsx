@@ -9,6 +9,7 @@ import { EssayagePlanningBoard, type PlanningRow } from "@/components/essayages/
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
+import { requireProjetAccess } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function EssayageJourneePage({
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;
   }
+  await requireProjetAccess(projet_id);
 
   const supabase = createAdminClient();
 
