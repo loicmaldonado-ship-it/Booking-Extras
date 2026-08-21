@@ -151,6 +151,9 @@ export function JourneeTabs({
             <ButtonLink href={`/bookings/documents/covoiturage${query}`} variant="secondary">
               Résumé covoiturage
             </ButtonLink>
+            <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
+              Tableau silhouette
+            </ButtonLink>
           </div>
           <ExportMyroleButtons projetId={projetId} date={date} />
           <PartageJourneeButton

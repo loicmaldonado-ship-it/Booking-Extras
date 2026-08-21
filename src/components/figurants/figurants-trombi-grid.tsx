@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { Button } from "@/components/ui/button";
 
 type FigurantCard = {
   id: string;
@@ -22,6 +23,7 @@ export function FigurantsTrombiGrid({
   projets: { id: string; nom: string }[];
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = figurants.length > 0 && selected.size === figurants.length;
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -32,8 +34,26 @@ export function FigurantsTrombiGrid({
     });
   }
 
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(figurants.map((f) => f.id)));
+  }
+
   return (
     <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="button" variant="secondary" onClick={toggleAll} disabled={figurants.length === 0}>
+          {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+        </Button>
+        {selected.size > 0 && (
+          <Link
+            href={`/figurants/fiches?ids=${Array.from(selected).join(",")}`}
+            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:border-coral/60 hover:text-coral"
+          >
+            Fiches de renseignements ({selected.size})
+          </Link>
+        )}
+      </div>
+
       {selected.size > 0 && (
         <AddToJourneeBar
           figurantIds={Array.from(selected)}
