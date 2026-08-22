@@ -10,7 +10,7 @@ import { GENRES } from "@/lib/figurants/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
-import { groupByDimensions, parseDocSort, ageBracket, type Dimension } from "@/lib/documents/sort";
+import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
@@ -31,11 +31,16 @@ type SearchParams = {
   sort?: string | string[];
 };
 
+// Les candidatures n'ont pas d'heure de convocation (ça n'existe qu'une fois
+// bookées) — la puce "Heure de convocation" est donc exclue ci-dessous.
+const CANDIDATURE_SORT_DIMENSIONS = SORT_DIMENSIONS.filter((d) => d.key !== "heure");
+
 function candidatureDimLabel(c: CandidatureWithFilters, dim: Dimension): string {
   if (dim === "fonction") return c.fonction_assignee ?? "Sans fonction";
   if (dim === "cachet") return c.cachet_assigne ?? "Sans cachet";
   if (dim === "sexe") return c.figurants?.genre ?? "Non renseigné";
-  return ageBracket(c.figurants?.date_naissance ?? null);
+  if (dim === "age") return ageBracket(c.figurants?.date_naissance ?? null);
+  return "";
 }
 
 function candidatureNameOf(c: CandidatureWithFilters) {
@@ -328,6 +333,7 @@ export default async function CandidaturesPage({
           question_reponse: params.question_reponse,
         }}
         current={docSort}
+        dimensions={CANDIDATURE_SORT_DIMENSIONS}
       />
 
       <Card>

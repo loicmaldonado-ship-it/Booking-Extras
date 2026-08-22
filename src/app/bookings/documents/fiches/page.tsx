@@ -92,6 +92,7 @@ export default async function FichesPage({
         projetId={projet_id}
         date={date}
         selected={selectedFields}
+        excludeFields={["sexe"]}
         extraHidden={{ booking_ids, sort: docSort }}
       />
 

@@ -138,7 +138,7 @@ export default async function PartageTrombisPage({
         projetId={projet.id}
         date={date}
         selected={selectedFields}
-        excludeFields={["telephone", "email"]}
+        excludeFields={["telephone", "email", "sexe"]}
       />
 
       {pages.length === 0 && (

@@ -63,6 +63,7 @@ export default async function ListeAppelPage({
         projetId={projet_id}
         date={date}
         selected={selectedFields}
+        excludeFields={["sexe"]}
         extraHidden={{ sort: docSort }}
       />
 

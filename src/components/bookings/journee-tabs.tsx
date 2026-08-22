@@ -142,6 +142,9 @@ export function JourneeTabs({
             <ButtonLink href={`/bookings/documents/trombis${query}`} variant="secondary">
               Trombis
             </ButtonLink>
+            <ButtonLink href={`/bookings/documents/trombis-hmc${query}`} variant="secondary">
+              Trombi HMC
+            </ButtonLink>
             <ButtonLink href={`/bookings/documents/fiches${query}`} variant="secondary">
               Fiches mensuration
             </ButtonLink>

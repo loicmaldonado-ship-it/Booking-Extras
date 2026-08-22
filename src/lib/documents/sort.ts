@@ -1,10 +1,10 @@
-import { computeAge } from "./fields";
+import { computeAge, formatHeureConvocation } from "./fields";
 import type { ConfirmedBooking } from "./data";
 
 // Tri additif : chaque critère cliqué s'ajoute à la liste, dans l'ordre de
 // clic — le premier critère groupe en premier, le second affine chaque
 // groupe, etc. Liste vide = ordre par défaut de la page (heure, date...).
-export type Dimension = "fonction" | "cachet" | "sexe" | "age";
+export type Dimension = "fonction" | "cachet" | "sexe" | "age" | "heure";
 export type DocSort = Dimension[];
 
 export const SORT_DIMENSIONS: { key: Dimension; label: string }[] = [
@@ -12,6 +12,7 @@ export const SORT_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "cachet", label: "Cachet" },
   { key: "sexe", label: "Genre" },
   { key: "age", label: "Âge" },
+  { key: "heure", label: "Heure de convocation" },
 ];
 
 const VALID_DIMENSIONS = new Set(SORT_DIMENSIONS.map((d) => d.key));
@@ -68,6 +69,7 @@ function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {
   if (dim === "fonction") return b.fonction ?? "Sans fonction";
   if (dim === "cachet") return b.cachet ?? "Sans cachet";
   if (dim === "sexe") return b.figurant.genre ?? "Non renseigné";
+  if (dim === "heure") return b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "Heure non renseignée";
   return ageBracket(b.figurant.date_naissance);
 }
 

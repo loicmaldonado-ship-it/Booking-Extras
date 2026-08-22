@@ -4,17 +4,20 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
-import { SortChips } from "@/components/documents/sort-chips";
 import { TrombiGrid } from "@/components/documents/trombi-grid";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { BackToJournee } from "@/components/documents/back-to-journee";
-import { parseFields, parseIds } from "@/lib/documents/fields";
-import { parseDocSort } from "@/lib/documents/sort";
+import { parseFields, parseIds, type DocumentField } from "@/lib/documents/fields";
 import { buildTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
-const PHOTOS_PER_PAGE = 24;
+// Trombi de préparation HMC (habillage/maquillage/coiffure) : triage fixe
+// par heure de convocation puis cachet puis fonction (pas de tri manuel —
+// c'est l'ordre de passage attendu par l'équipe HMC), avec 3 cases à cocher
+// par profil pour pointer le passage de chacun.
+const DEFAULT_FIELDS: DocumentField[] = ["fonction", "sexe", "age"];
+const PHOTOS_PER_PAGE = 18;
 
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
@@ -22,7 +25,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-export default async function TrombisPage({
+export default async function TrombisHmcPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -30,19 +33,17 @@ export default async function TrombisPage({
     date?: string;
     fields?: string | string[];
     booking_ids?: string;
-    sort?: string | string[];
   }>;
 }) {
-  const { projet_id, date, fields, booking_ids, sort } = await searchParams;
+  const { projet_id, date, fields, booking_ids } = await searchParams;
   await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
     return <p className="text-text-muted">Choisis un projet et une date.</p>;
   }
 
-  const selectedFields = parseFields(fields);
+  const selectedFields = fields === undefined ? new Set(DEFAULT_FIELDS) : parseFields(fields);
   const selectedIds = parseIds(booking_ids);
-  const docSort = parseDocSort(sort);
 
   const supabase = createAdminClient();
   const [{ data: projet }, allBookings] = await Promise.all([
@@ -53,7 +54,7 @@ export default async function TrombisPage({
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
-  const items: TrombiItem[] = buildTrombiItems(bookings, docSort, selectedFields.has("fonction"));
+  const items: TrombiItem[] = buildTrombiItems(bookings, [], true);
   const pages = chunk(items, PHOTOS_PER_PAGE);
 
   return (
@@ -61,24 +62,19 @@ export default async function TrombisPage({
       <BackToJournee projetId={projet_id} date={date} />
 
       <div className="print-hide flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Trombis</h1>
+        <h1 className="text-2xl font-semibold">Trombi HMC</h1>
         <div className="flex gap-3">
-          <DownloadPdfButton filename={`trombis-${date}.pdf`} orientation="landscape" />
+          <DownloadPdfButton filename={`trombi-hmc-${date}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>
       </div>
-
-      <SortChips
-        baseParams={{ projet_id, date, fields, booking_ids }}
-        current={docSort}
-      />
 
       <FieldsToggle
         projetId={projet_id}
         date={date}
         selected={selectedFields}
         excludeFields={["telephone", "email"]}
-        extraHidden={{ booking_ids, sort: docSort }}
+        extraHidden={{ booking_ids }}
       />
 
       {pages.length === 0 && (
@@ -107,7 +103,13 @@ export default async function TrombisPage({
             realisateur={projet?.realisateur}
           />
 
-          <TrombiGrid items={page} selectedFields={selectedFields} photosByFigurant={photosByFigurant} projetId={projet_id} />
+          <TrombiGrid
+            items={page}
+            selectedFields={selectedFields}
+            photosByFigurant={photosByFigurant}
+            projetId={projet_id}
+            showHmc
+          />
         </PrintSheet>
       ))}
     </div>

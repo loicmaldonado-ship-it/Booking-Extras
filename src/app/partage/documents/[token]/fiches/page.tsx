@@ -75,7 +75,7 @@ export default async function PartageFichesPage({
         projetId={projet.id}
         date={date}
         selected={selectedFields}
-        excludeFields={showContacts ? undefined : ["telephone", "email"]}
+        excludeFields={showContacts ? ["sexe"] : ["telephone", "email", "sexe"]}
       />
 
       {bookings.length === 0 && (

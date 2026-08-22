@@ -88,12 +88,8 @@ export default async function SilhouettesPage({
                 <th className="py-2 pr-3">Cachet</th>
                 <th className="py-2 pr-3">Ville</th>
                 <th className="py-2 pr-3">Téléphone</th>
+                <th className="py-2 pr-3">Email</th>
                 <th className="py-2 pr-3">Âge</th>
-                <th className="py-2 pr-3">Taille</th>
-                <th className="py-2 pr-3">Poids</th>
-                <th className="py-2 pr-3">Veste</th>
-                <th className="py-2 pr-3">Pantalon</th>
-                <th className="py-2 pr-3">Pointure</th>
               </tr>
             </thead>
             <tbody>
@@ -113,12 +109,8 @@ export default async function SilhouettesPage({
                     <td className="py-1.5 pr-3">{cachet ?? "—"}</td>
                     <td className="py-1.5 pr-3">{f.ville ?? "—"}</td>
                     <td className="py-1.5 pr-3">{f.telephone ?? "—"}</td>
+                    <td className="py-1.5 pr-3">{f.email ?? "—"}</td>
                     <td className="py-1.5 pr-3">{age ?? "—"}</td>
-                    <td className="py-1.5 pr-3">{f.taille_cm ? `${f.taille_cm} cm` : "—"}</td>
-                    <td className="py-1.5 pr-3">{f.poids_kg ? `${f.poids_kg} kg` : "—"}</td>
-                    <td className="py-1.5 pr-3">{f.veste ?? "—"}</td>
-                    <td className="py-1.5 pr-3">{f.pantalon ?? "—"}</td>
-                    <td className="py-1.5 pr-3">{f.pointure ?? "—"}</td>
                   </tr>
                 );
               })}

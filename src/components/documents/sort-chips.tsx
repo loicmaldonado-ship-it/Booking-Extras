@@ -9,10 +9,12 @@ export function SortChips({
   baseParams,
   current,
   sortParam = "sort",
+  dimensions = SORT_DIMENSIONS,
 }: {
   baseParams: Record<string, string | string[] | undefined>;
   current: DocSort;
   sortParam?: string;
+  dimensions?: { key: Dimension; label: string }[];
 }) {
   function hrefFor(dims: Dimension[]) {
     const sp = new URLSearchParams();
@@ -31,7 +33,7 @@ export function SortChips({
   return (
     <div className="print-hide flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-ink-raised px-4 py-3 text-sm">
       <span className="text-text-muted">Trier par :</span>
-      {SORT_DIMENSIONS.map((d) => {
+      {dimensions.map((d) => {
         const idx = current.indexOf(d.key);
         const active = idx !== -1;
         const nextDims = active ? current.filter((x) => x !== d.key) : [...current, d.key];
