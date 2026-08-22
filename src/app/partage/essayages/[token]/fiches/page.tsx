@@ -38,6 +38,9 @@ export default async function PartageEssayagesFichesPage({
     .from("essayages")
     .select("figurant_id, numero_costume")
     .eq("projet_id", projet.id)
+    // Même règle que le planning : pas de fiche pour une personne dont
+    // l'essayage n'est encore qu'une proposition.
+    .in("statut", ["confirmé", "fait"])
     .returns<EssayageRow[]>();
 
   const numeroCostumeByFigurant = new Map<string, string | null>();

@@ -48,6 +48,9 @@ export default async function PartageEssayagesPage({
     .from("essayages")
     .select("id, numero, date, heure, lieu, statut, notes, numero_costume, creneau_id, figurants(id, prenom, nom)")
     .eq("projet_id", projet.id)
+    // Le lien de partage ne montre que ce qui est acté — les propositions pas
+    // encore confirmées restent internes.
+    .in("statut", ["confirmé", "fait"])
     .order("date", { ascending: true, nullsFirst: false })
     .returns<Row[]>();
 
