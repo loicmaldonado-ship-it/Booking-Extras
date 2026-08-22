@@ -120,12 +120,35 @@ export default async function JourneeDashboardPage({
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
   const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
 
+  // Raccord = cette personne a d'autres journées sur ce même projet — on le
+  // signale (badge R) et on peut dérouler toutes ses dates avec leur statut.
+  const { data: allProjetBookingsRaw } =
+    figurantIds.length > 0
+      ? await supabase
+          .from("bookings")
+          .select("figurant_id, date, statut")
+          .eq("projet_id", projet_id)
+          .in("figurant_id", figurantIds)
+          .order("date", { ascending: true })
+      : { data: [] as { figurant_id: string; date: string; statut: string }[] };
+  const otherDatesByFigurant = new Map<string, { date: string; statut: string }[]>();
+  const raccordFigurantIds = new Set<string>();
+  for (const b of allProjetBookingsRaw ?? []) {
+    if (b.date === date) continue;
+    const list = otherDatesByFigurant.get(b.figurant_id) ?? [];
+    list.push({ date: b.date, statut: b.statut });
+    otherDatesByFigurant.set(b.figurant_id, list);
+    if (b.date < date) raccordFigurantIds.add(b.figurant_id);
+  }
+
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
     portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
     indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),
+    raccord: raccordFigurantIds.has(b.figurant_id),
+    autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,

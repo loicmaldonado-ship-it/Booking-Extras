@@ -85,7 +85,49 @@ export type Row = {
   essaiOk?: boolean;
   numeroCostume?: string | null;
   indispoMotif?: string | null;
+  raccord?: boolean;
+  autresDates?: { date: string; statut: string }[];
 };
+
+// Petit badge "R" pour repérer en un coup d'œil un jour de suite (raccord) —
+// la personne a déjà une journée antérieure sur ce même projet. Cliquable
+// pour dérouler toutes ses dates sur ce projet avec leur statut.
+function RaccordBadge({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggle();
+      }}
+      title="Raccord — cliquer pour voir toutes ses dates sur ce projet"
+      className={cn(
+        "inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold leading-none",
+        expanded ? "bg-ink text-coral ring-1 ring-coral" : "bg-coral text-ink"
+      )}
+    >
+      R
+    </button>
+  );
+}
+
+function RaccordDatesList({ dates }: { dates: { date: string; statut: string }[] }) {
+  if (dates.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-coral/30 bg-coral/5 px-2 py-1.5 text-[11px]">
+      <span className="font-medium text-text-muted">Autres dates sur ce projet :</span>
+      {[...dates]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((d) => (
+          <span key={d.date} className="flex items-center justify-between gap-2">
+            <span>{d.date}</span>
+            <span className="text-text-muted">{d.statut}</span>
+          </span>
+        ))}
+    </div>
+  );
+}
 
 function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
   if (r.covoiturage_role === "conducteur") {
@@ -138,24 +180,23 @@ type RowChanges = Partial<{
   reponse_recue: boolean;
   notes: string | null;
 }>;
-type GroupBy =
-  | "none"
-  | "fonction"
-  | "cachet"
-  | "fonction+cachet"
-  | "statut"
-  | "statut+fonction"
-  | "fonction+age"
-  | "sexe"
-  | "age"
-  | "heure";
 type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure";
 
-type NestedGroup = {
-  label: string | null;
-  rows: Row[];
-  subgroups: { label: string; rows: Row[] }[] | null;
-};
+const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
+  { key: "fonction", label: "Fonction" },
+  { key: "cachet", label: "Cachet" },
+  { key: "statut", label: "Statut" },
+  { key: "sexe", label: "Genre" },
+  { key: "age", label: "Âge" },
+  { key: "heure", label: "Heure" },
+];
+
+// Dimensions transposables telles quelles vers le tri additif des documents
+// (trombis/fiches) — "statut" n'existe pas là-bas, ces docs ne montrant que
+// des bookings confirmés.
+const DOCUMENT_SORT_DIMENSIONS = new Set<Dimension>(["fonction", "cachet", "sexe", "age", "heure"]);
+
+type Group = { label: string | null; rows: Row[] };
 
 function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "statut") return STATUTS.find((s) => s.value === r.statut)?.label ?? r.statut;
@@ -174,10 +215,13 @@ function repondusSuffix(rowsList: Row[]) {
   return ` — ${repondus}/${concernes.length} répondu${repondus > 1 ? "s" : ""}`;
 }
 
-function groupRows(rows: Row[], dimension: Dimension) {
+// Tri/regroupement additif : chaque dimension cliquée s'ajoute à la liste,
+// dans l'ordre de clic — la première groupe en premier, la suivante affine
+// chaque groupe. Liste vide = pas de groupement (ordre par défaut).
+function groupRows(rows: Row[], dims: Dimension[]): Group[] {
   const map = new Map<string, Row[]>();
   for (const r of rows) {
-    const key = dimensionLabel(r, dimension);
+    const key = dims.map((d) => dimensionLabel(r, d)).join(" · ");
     const list = map.get(key) ?? [];
     list.push(r);
     map.set(key, list);
@@ -217,7 +261,7 @@ export function BookingsTable({
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [activeFonction, setActiveFonction] = useState<string | null>(null);
   const [activeCachet, setActiveCachet] = useState<string | null>(null);
-  const [groupBy, setGroupBy] = useState<GroupBy>("fonction+cachet");
+  const [groupDims, setGroupDims] = useState<Dimension[]>(["fonction", "cachet"]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [onlyNonRepondus, setOnlyNonRepondus] = useState(false);
@@ -241,6 +285,16 @@ export function BookingsTable({
   const [repliesError, setRepliesError] = useState<string | null>(null);
   const [lastCheckInfo, setLastCheckInfo] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
+  const [expandedRaccord, setExpandedRaccord] = useState<Set<string>>(new Set());
+
+  function toggleRaccordExpanded(id: string) {
+    setExpandedRaccord((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function toggleMessagesExpanded(id: string) {
     setExpandedMessages((prev) => {
@@ -286,40 +340,10 @@ export function BookingsTable({
       (!onlyNonRepondus || (r.convocation_envoyee && !r.reponse_recue))
   );
 
-  const groups = useMemo((): NestedGroup[] => {
-    if (groupBy === "none") return [{ label: null, rows: filteredRows, subgroups: null }];
-
-    if (groupBy === "statut+fonction") {
-      return groupRows(filteredRows, "statut").map((primary) => ({
-        label: `${primary.label} (${primary.rows.length})`,
-        rows: primary.rows,
-        subgroups: groupRows(primary.rows, "fonction"),
-      }));
-    }
-
-    if (groupBy === "fonction+age") {
-      return groupRows(filteredRows, "fonction").map((primary) => ({
-        label: `${primary.label} (${primary.rows.length})`,
-        rows: primary.rows,
-        subgroups: groupRows(primary.rows, "age"),
-      }));
-    }
-
-    if (groupBy === "fonction+cachet") {
-      const map = new Map<string, Row[]>();
-      for (const r of filteredRows) {
-        const key = `${r.fonction ?? "Sans fonction"} · ${r.cachet ?? "Sans cachet"}`;
-        const list = map.get(key) ?? [];
-        list.push(r);
-        map.set(key, list);
-      }
-      return Array.from(map.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([label, rows]) => ({ label, rows, subgroups: null }));
-    }
-
-    return groupRows(filteredRows, groupBy).map((g) => ({ ...g, subgroups: null }));
-  }, [groupBy, filteredRows]);
+  const groups = useMemo((): Group[] => {
+    if (groupDims.length === 0) return [{ label: null, rows: filteredRows }];
+    return groupRows(filteredRows, groupDims);
+  }, [groupDims, filteredRows]);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -331,7 +355,10 @@ export function BookingsTable({
   }
 
   function documentHref(path: "trombis" | "fiches") {
-    const params = new URLSearchParams({ projet_id: projetId ?? "", date: date ?? "", sort: groupBy });
+    const params = new URLSearchParams({ projet_id: projetId ?? "", date: date ?? "" });
+    for (const dim of groupDims) {
+      if (DOCUMENT_SORT_DIMENSIONS.has(dim)) params.append("sort", dim);
+    }
     if (selected.size > 0) params.set("booking_ids", Array.from(selected).join(","));
     return `/bookings/documents/${path}?${params.toString()}`;
   }
@@ -683,6 +710,7 @@ export function BookingsTable({
         <td className="px-6 py-4 align-middle">
           <Link href={`/bookings/${r.id}`} className="flex items-center gap-2 truncate font-medium hover:text-coral">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+            {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
             {r.numeroCostume && <Badge tone="coral">Costume {r.numeroCostume}</Badge>}
             {r.indispoMotif !== undefined && (
@@ -693,6 +721,7 @@ export function BookingsTable({
           </Link>
           <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
           {renderContactLinks(r)}
+          {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
         <td className="px-6 py-4 align-middle">
           <input
@@ -814,6 +843,11 @@ export function BookingsTable({
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
             {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+            {r.raccord && (
+              <span className="absolute right-1 top-1 z-10">
+                <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />
+              </span>
+            )}
           </div>
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
@@ -825,6 +859,7 @@ export function BookingsTable({
             </Badge>
           )}
         </Link>
+        {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         {renderContactLinks(r)}
         <input
           list="fonctions-suggestions"
@@ -1020,32 +1055,37 @@ export function BookingsTable({
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Grouper par :</span>
-        {[
-          { value: "none" as const, label: "Aucun" },
-          { value: "heure" as const, label: "Heure de convocation" },
-          { value: "fonction" as const, label: "Fonction" },
-          { value: "cachet" as const, label: "Cachet" },
-          { value: "fonction+cachet" as const, label: "Fonction + Cachet" },
-          { value: "statut" as const, label: "Statut" },
-          { value: "statut+fonction" as const, label: "Statut + Fonction" },
-          { value: "fonction+age" as const, label: "Fonction + Âge" },
-          { value: "sexe" as const, label: "Genre" },
-          { value: "age" as const, label: "Âge" },
-        ].map((g) => (
+        {GROUP_DIMENSIONS.map((g) => {
+          const idx = groupDims.indexOf(g.key);
+          const active = idx !== -1;
+          return (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() =>
+                setGroupDims((prev) => (active ? prev.filter((d) => d !== g.key) : [...prev, g.key]))
+              }
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                active
+                  ? "border-yellow bg-yellow/15 text-yellow"
+                  : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {active ? `${idx + 1}. ` : ""}
+              {g.label}
+            </button>
+          );
+        })}
+        {groupDims.length > 0 && (
           <button
-            key={g.value}
             type="button"
-            onClick={() => setGroupBy(g.value)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-              groupBy === g.value
-                ? "border-yellow bg-yellow/15 text-yellow"
-                : "border-border text-text-muted hover:text-text"
-            )}
+            onClick={() => setGroupDims([])}
+            className="text-xs text-text-muted hover:text-text hover:underline"
           >
-            {g.label}
+            Réinitialiser
           </button>
-        ))}
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -1403,7 +1443,7 @@ export function BookingsTable({
                     <td colSpan={8} className="px-6 py-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
                       <div className="flex items-center gap-3">
                         <span>
-                          {group.subgroups ? group.label : `${group.label} (${group.rows.length})`}
+                          {group.label} ({group.rows.length})
                           <span className="normal-case text-text-muted/70">{repondusSuffix(group.rows)}</span>
                         </span>
                         <button
@@ -1417,30 +1457,7 @@ export function BookingsTable({
                     </td>
                   </tr>
                 )}
-                {group.subgroups
-                  ? group.subgroups.map((sub) => (
-                      <Fragment key={sub.label}>
-                        <tr className="bg-ink-raised-2/25">
-                          <td colSpan={8} className="px-8 py-1.5 text-xs font-medium text-text-muted">
-                            <div className="flex items-center gap-3">
-                              <span>
-                                {sub.label} ({sub.rows.length})
-                                <span className="text-text-muted/70">{repondusSuffix(sub.rows)}</span>
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => toggleGroup(sub.rows)}
-                                className="text-coral hover:underline"
-                              >
-                                {sub.rows.every((r) => selected.has(r.id)) ? "Désélectionner" : "Sélectionner le groupe"}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {sub.rows.map(renderRow)}
-                      </Fragment>
-                    ))
-                  : group.rows.map(renderRow)}
+                {group.rows.map(renderRow)}
               </Fragment>
             ))}
             {filteredRows.length === 0 && (

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { SESSION_STARTED_AT_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-timeout";
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -47,6 +48,33 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user) {
+    const startedAtRaw = request.cookies.get(SESSION_STARTED_AT_COOKIE)?.value;
+    const startedAt = startedAtRaw ? Number(startedAtRaw) : null;
+    const sessionAgeMs = startedAt ? Date.now() - startedAt : 0;
+
+    if (startedAt && sessionAgeMs > SESSION_MAX_AGE_SECONDS * 1000) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "";
+      const signedOutResponse = NextResponse.redirect(url);
+      signedOutResponse.cookies.delete(SESSION_STARTED_AT_COOKIE);
+      return signedOutResponse;
+    }
+
+    // Pas de cookie (session déjà ouverte avant ce déploiement, ou perdu) —
+    // on redémarre le compte à zéro plutôt que de déconnecter à froid.
+    if (!startedAt) {
+      response.cookies.set(SESSION_STARTED_AT_COOKIE, Date.now().toString(), {
+        path: "/",
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: SESSION_MAX_AGE_SECONDS,
+      });
+    }
+  }
 
   if (!user && !isPublic(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();

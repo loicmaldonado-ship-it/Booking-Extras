@@ -19,31 +19,45 @@ export function AddToJourneeBar({
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
-  const [date, setDate] = useState("");
+  const [dateInput, setDateInput] = useState("");
+  const [dates, setDates] = useState<string[]>([]);
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: number; deja: number } | null>(null);
 
+  function addDate() {
+    if (!dateInput || dates.includes(dateInput)) return;
+    setDates((prev) => [...prev, dateInput].sort());
+    setDateInput("");
+  }
+
+  function removeDate(d: string) {
+    setDates((prev) => prev.filter((x) => x !== d));
+  }
+
   function submit() {
-    if (!projetId || !date || figurantIds.length === 0) return;
+    if (!projetId || dates.length === 0 || figurantIds.length === 0) return;
     setResult(null);
     startTransition(async () => {
       let ok = 0;
       let deja = 0;
-      for (const figurantId of figurantIds) {
-        const res = await createBookingFromDrop(
-          figurantId,
-          projetId,
-          date,
-          candidatureIdByFigurant?.[figurantId],
-          fonction,
-          cachet
-        );
-        if (res?.error) deja += 1;
-        else ok += 1;
+      for (const d of dates) {
+        for (const figurantId of figurantIds) {
+          const res = await createBookingFromDrop(
+            figurantId,
+            projetId,
+            d,
+            candidatureIdByFigurant?.[figurantId],
+            fonction,
+            cachet
+          );
+          if (res?.error) deja += 1;
+          else ok += 1;
+        }
       }
       setResult({ ok, deja });
+      setDates([]);
       router.refresh();
       onDone?.();
     });
@@ -73,14 +87,42 @@ export function AddToJourneeBar({
         </select>
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          disabled={pending}
-          className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
-        />
+        <label className="text-xs text-text-muted">
+          Date{dates.length > 0 ? `s (${dates.length})` : ""}
+        </label>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dateInput}
+            onChange={(e) => setDateInput(e.target.value)}
+            disabled={pending}
+            className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
+          />
+          <Button type="button" variant="ghost" disabled={pending || !dateInput} onClick={addDate}>
+            + Ajouter une date
+          </Button>
+        </div>
+        {dates.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {dates.map((d) => (
+              <span
+                key={d}
+                className="flex items-center gap-1 rounded-full border border-border bg-ink px-2 py-0.5 text-xs"
+              >
+                {d}
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => removeDate(d)}
+                  className="text-text-muted hover:text-danger"
+                  title="Retirer cette date"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-text-muted">Fonction (optionnel)</label>
@@ -109,13 +151,17 @@ export function AddToJourneeBar({
           ))}
         </select>
       </div>
-      <Button type="button" disabled={pending || !projetId || !date} onClick={submit}>
-        {pending ? "Ajout..." : "Ajouter à la journée"}
+      <Button type="button" disabled={pending || !projetId || dates.length === 0} onClick={submit}>
+        {pending
+          ? "Ajout..."
+          : dates.length > 1
+            ? `Ajouter aux ${dates.length} dates`
+            : "Ajouter à la journée"}
       </Button>
       {result && (
         <span className="text-xs text-text-muted">
           {result.ok} ajouté{result.ok > 1 ? "s" : ""}
-          {result.deja > 0 ? ` · ${result.deja} déjà booké${result.deja > 1 ? "s" : ""} ce jour` : ""}
+          {result.deja > 0 ? ` · ${result.deja} déjà booké${result.deja > 1 ? "s" : ""}` : ""}
         </span>
       )}
     </div>
