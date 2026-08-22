@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 import { type Row, type StaffMessageRow } from "@/components/bookings/bookings-table";
 import { type EssayageRow, type BookedFigurant } from "@/components/bookings/essayages-panel";
 import { type CovoiturageRow } from "@/components/bookings/covoiturage-board";
@@ -220,6 +221,24 @@ export default async function JourneeDashboardPage({
           figurants={allFigurants ?? []}
           alreadyBookedIds={figurantIds}
         />
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {journees.map((j) => (
+          <Link
+            key={j.id}
+            href={`/bookings/documents?projet_id=${projet_id}&date=${j.date}`}
+            className={cn(
+              "flex shrink-0 flex-col items-center rounded-xl border px-3 py-1.5 text-center transition-colors",
+              j.date === date
+                ? "border-coral bg-coral/15 text-coral"
+                : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+            )}
+          >
+            <span className="text-[10px] font-medium uppercase tracking-wide">J{j.numero}</span>
+            <span className="text-xs font-semibold">{formatDateShort(j.date)}</span>
+          </Link>
+        ))}
       </div>
 
       <JourneeTabs
