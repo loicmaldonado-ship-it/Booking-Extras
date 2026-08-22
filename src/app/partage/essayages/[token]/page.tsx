@@ -26,6 +26,11 @@ function heureLabel(h: string) {
   return h.slice(0, 5);
 }
 
+function effectiveHeure(e: Row, creneauById: Map<string, { heure_debut: string; heure_fin: string }>) {
+  if (e.creneau_id && creneauById.has(e.creneau_id)) return creneauById.get(e.creneau_id)!.heure_debut;
+  return e.heure;
+}
+
 export default async function PartageEssayagesPage({
   params,
 }: {
@@ -74,7 +79,12 @@ export default async function PartageEssayagesPage({
     list.push(e);
     byDate.set(key, list);
   }
-  const groups = Array.from(byDate.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  const groups = Array.from(byDate.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, rows]): [string, Row[]] => [
+      date,
+      [...rows].sort((a, b) => (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "")),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,28 +94,31 @@ export default async function PartageEssayagesPage({
         </span>
       </div>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{projetNomPublic(projet)}</h1>
-          <p className="mt-1 text-text-muted">Planning des essayages par jour — lecture seule.</p>
-        </div>
-        <ButtonLink href={`/partage/essayages/${token}/fiches`} variant="secondary">
-          Fiches de mensuration
-        </ButtonLink>
+      <div>
+        <h1 className="text-2xl font-semibold">{projetNomPublic(projet)}</h1>
+        <p className="mt-1 text-text-muted">Planning des essayages par jour — lecture seule.</p>
       </div>
 
       <div className="flex flex-col gap-4">
         {groups.map(([date, rows]) => (
           <Card key={date} className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-text-muted">
-              {date === "Date à confirmer" ? date : formatDateShort(date)}
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-text-muted">
+                {date === "Date à confirmer" ? date : formatDateShort(date)}
+              </h2>
+              {date !== "Date à confirmer" && (
+                <ButtonLink href={`/partage/essayages/${token}/fiches?date=${date}`} variant="secondary">
+                  Télécharger les fiches
+                </ButtonLink>
+              )}
+            </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-text-muted">
                   <th className="py-2 pr-4 font-medium">Photo</th>
                   <th className="py-2 pr-4 font-medium">Figurant</th>
                   <th className="py-2 pr-4 font-medium">Fonction</th>
+                  <th className="py-2 pr-4 font-medium">Cachet</th>
                   <th className="py-2 pr-4 font-medium">Costume</th>
                   <th className="py-2 pr-4 font-medium">Heure</th>
                   <th className="py-2 pr-4 font-medium">Lieu</th>
@@ -116,7 +129,9 @@ export default async function PartageEssayagesPage({
               <tbody>
                 {rows.map((e) => {
                   const portrait = e.figurants ? pickPortrait(photosByFigurant.get(e.figurants.id), projet.id) : null;
-                  const fonction = e.figurants ? cachetFonctionByFigurant.get(e.figurants.id)?.fonction : null;
+                  const cf = e.figurants ? cachetFonctionByFigurant.get(e.figurants.id) : null;
+                  const fonction = cf?.fonction;
+                  const cachet = cf?.cachet;
                   return (
                     <tr key={e.id} className="border-b border-border last:border-0">
                       <td className="py-2 pr-4">
@@ -130,6 +145,7 @@ export default async function PartageEssayagesPage({
                         #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
                       </td>
                       <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
+                      <td className="py-2 pr-4 text-text-muted">{cachet ?? "—"}</td>
                       <td className="py-2 pr-4">
                         {e.numero_costume ? <Badge tone="coral">{e.numero_costume}</Badge> : <span className="text-text-muted">—</span>}
                       </td>
