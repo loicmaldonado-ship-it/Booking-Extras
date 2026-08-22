@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations } from "@/lib/bookings/actions";
+import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
 import { toggleMessageRepondu } from "@/lib/figurants/messages-actions";
@@ -274,6 +275,7 @@ export function BookingsTable({
   const [bulkHeure, setBulkHeure] = useState("08:00");
   const [viewMode, setViewMode] = useState<"liste" | "trombi">("trombi");
   const [essayageOpen, setEssayageOpen] = useState(false);
+  const [addDatesOpen, setAddDatesOpen] = useState(false);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
   const [essayageResult, setEssayageResult] = useState<string | null>(null);
@@ -1252,9 +1254,26 @@ export function BookingsTable({
               Envoyer à un essayage
             </Button>
           )}
+          {projetId && (
+            <Button type="button" variant="secondary" disabled={pending} onClick={() => setAddDatesOpen((v) => !v)}>
+              + Ajouter des dates
+            </Button>
+          )}
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             Masquer la sélection
           </Button>
+          {addDatesOpen && projetId && (
+            <div className="w-full border-t border-turquoise/40 pt-3">
+              <AddToJourneeBar
+                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
+                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+                onDone={() => {
+                  setAddDatesOpen(false);
+                  setSelected(new Set());
+                }}
+              />
+            </div>
+          )}
           {essayageOpen && projetId && (
             <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
               <input

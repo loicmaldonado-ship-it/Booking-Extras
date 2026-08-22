@@ -11,11 +11,13 @@ import { BackLink } from "@/components/ui/back-link";
 import { MessageriePanel } from "@/components/figurants/messagerie-panel";
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
 import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
+import { AddDatesPanel } from "@/components/figurants/add-dates-panel";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
 import { deleteFigurant, deleteLien } from "@/lib/figurants/actions";
 import { formatDateShort } from "@/lib/format-date";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 
 type FigurantBookingRow = {
   id: string;
@@ -87,6 +89,12 @@ export default async function FigurantDetailPage({
   const protocol = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
   const disponibiliteUrl = `${protocol}://${host}/disponibilites/${figurant.token_disponibilite}`;
 
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
+  const { data: projets } = await projetsQuery;
+
   const photos = await Promise.all(
     (photosRaw ?? []).map(async (p) => {
       const { data } = await supabase.storage
@@ -138,8 +146,9 @@ export default async function FigurantDetailPage({
             {figurant.genre ? ` · ${figurant.genre}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex max-w-xl flex-wrap items-start justify-end gap-3">
           <ButtonLink href={`/bookings/nouveau?figurant_id=${id}`}>+ Ajouter à un booking</ButtonLink>
+          <AddDatesPanel figurantId={id} projets={projets ?? []} />
           <ButtonLink href={`/figurants/${id}/fiche`} variant="secondary">
             Fiche mensuration
           </ButtonLink>
