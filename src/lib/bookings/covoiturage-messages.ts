@@ -57,39 +57,6 @@ export function buildChauffeurMessage(params: {
   ].join("\n");
 }
 
-// Récap CCI envoyé en une fois au chauffeur + tous les passagers (adresses
-// masquées entre elles, en copie cachée) — distinct des messages individuels
-// ci-dessus, pour un envoi groupé rapide.
-export function buildCovoiturageRecapMessage(params: {
-  chauffeurPrenom: string;
-  chauffeurNom: string;
-  chauffeurTelephone: string | null;
-  lieu: string | null;
-  date: string;
-  heure: string | null;
-  passagers: Contact[];
-  tarifBase: number;
-  tarifPassager: number;
-}) {
-  const { chauffeurPrenom, chauffeurNom, chauffeurTelephone, lieu, date, heure, passagers, tarifBase, tarifPassager } =
-    params;
-  const nomsPassagers = passagers.map((p) => `${p.prenom} ${p.nom}`).join(", ");
-
-  return [
-    "Bonjour,",
-    "",
-    `Voici le récapitulatif du covoiturage du ${date}${heure ? ` (RDV ${heure})` : ""} :`,
-    "",
-    `Chauffeur : ${chauffeurPrenom} ${chauffeurNom}${chauffeurTelephone ? ` (${chauffeurTelephone})` : ""}`,
-    `Départ : ${lieu ?? "à confirmer"}`,
-    `Passagers : ${nomsPassagers || "aucun"}`,
-    "",
-    `Indemnité chauffeur : ${montantLabel(passagers.length, tarifBase, tarifPassager)}.`,
-    "",
-    "Merci et bonne route !",
-  ].join("\n");
-}
-
 export function buildPassagerMessage(params: {
   prenom: string;
   lieu: string | null;

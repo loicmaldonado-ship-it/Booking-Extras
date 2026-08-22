@@ -4,11 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { bulkUpdateBookings, recordCovoiturageMessage, sendCovoiturageGroupEmail } from "@/lib/bookings/actions";
+import { bulkUpdateBookings, recordCovoiturageMessage } from "@/lib/bookings/actions";
 import {
   buildChauffeurMessage,
   buildPassagerMessage,
-  buildCovoiturageRecapMessage,
   montantCovoiturage,
   contactHref,
   openHref,
@@ -48,7 +47,6 @@ export function CovoiturageBoard({
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
-  const [recapSentIds, setRecapSentIds] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
 
   const conducteurs = useMemo(
@@ -165,44 +163,6 @@ export function CovoiturageBoard({
       const result = await recordCovoiturageMessage(r.figurant_id, body!, r.figurants!.email, subject, projetId);
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
       else setSentIds((prev) => new Set([...prev, r.id]));
-    });
-  }
-
-  function sendRecapGroupe(c: CovoiturageRow) {
-    if (!c.figurants) return;
-    const passagers = rows.filter((p) => p.covoiturage_conducteur_id === c.figurant_id);
-    const body = buildCovoiturageRecapMessage({
-      chauffeurPrenom: c.figurants.prenom,
-      chauffeurNom: c.figurants.nom,
-      chauffeurTelephone: c.figurants.telephone,
-      lieu: c.covoiturage_lieu_depart,
-      date,
-      heure: null,
-      passagers: passagers.map((p) => ({
-        prenom: p.figurants?.prenom ?? "",
-        nom: p.figurants?.nom ?? "",
-        telephone: p.figurants?.telephone ?? null,
-        email: p.figurants?.email ?? null,
-      })),
-      tarifBase,
-      tarifPassager,
-    });
-    const emails = [c.figurants.email, ...passagers.map((p) => p.figurants?.email)].filter(
-      (e): e is string => !!e
-    );
-    const figurantIds = [c.figurant_id, ...passagers.map((p) => p.figurant_id)];
-
-    setSendError(null);
-    startTransition(async () => {
-      const result = await sendCovoiturageGroupEmail(
-        figurantIds,
-        emails,
-        `Covoiturage – ${date}`,
-        body,
-        projetId
-      );
-      if (result?.error) setSendError(`Échec de l'envoi du récap groupe : ${result.error}`);
-      else setRecapSentIds((prev) => new Set([...prev, c.figurant_id]));
     });
   }
 
@@ -403,18 +363,10 @@ export function CovoiturageBoard({
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-2 border-t border-border pt-2">
+                  <div className="border-t border-border pt-2">
                     <span className="text-[11px] text-text-muted">
                       Indemnité : {montantCovoiturage(passagers.length, tarifBase, tarifPassager)}€
                     </span>
-                    <button
-                      type="button"
-                      disabled={pending || (!c.figurants?.email && !passagers.some((p) => p.figurants?.email))}
-                      onClick={() => sendRecapGroupe(c)}
-                      className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-30"
-                    >
-                      {recapSentIds.has(c.figurant_id) ? "Récap envoyé" : "Envoyer récap groupe (CCI)"}
-                    </button>
                   </div>
                 </div>
               );

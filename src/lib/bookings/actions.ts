@@ -5,9 +5,6 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { activerAccesCompte } from "@/lib/candidats/actions";
-import { sendEmail } from "@/lib/email/send";
-import { getProjetEmailCredentials } from "@/lib/projets/email";
-import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
 
@@ -253,32 +250,6 @@ export async function recordCovoiturageMessage(
   projetId?: string | null
 ) {
   return recordFigurantMessage({ figurantId, corps, categorie: "covoiturage", email, subject, projetId });
-}
-
-// Un seul email envoyé en copie cachée (CCI) à tout le groupe covoiturage
-// (chauffeur + passagers) — personne ne voit les adresses des autres,
-// contrairement aux messages individuels de recordCovoiturageMessage.
-export async function sendCovoiturageGroupEmail(
-  figurantIdsToLog: string[],
-  emails: string[],
-  subject: string,
-  corps: string,
-  projetId?: string | null
-) {
-  const validEmails = Array.from(new Set(emails.filter(Boolean)));
-  if (validEmails.length === 0) return { error: "Aucune adresse email dans ce groupe." };
-
-  const supabase = createAdminClient();
-  const credentials = await getProjetEmailCredentials(supabase, projetId);
-  const result = await sendEmail(CONTACT_RGPD_EMAIL, subject, corps, credentials, validEmails);
-  if (result.error) return { error: result.error };
-
-  for (const figurantId of figurantIdsToLog) {
-    await recordFigurantMessage({ figurantId, corps, categorie: "covoiturage", projetId });
-  }
-
-  revalidatePath("/bookings/documents");
-  return { success: true as const };
 }
 
 export async function sendBulkConvocations(

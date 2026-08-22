@@ -22,9 +22,10 @@ type FigurantBookingRow = {
   date: string;
   heure_convocation: string | null;
   fonction: string | null;
+  cachet: string | null;
   statut: string;
   projet_id: string;
-  projets: { nom: string; confidentiel: boolean } | null;
+  projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
 };
 
 export default async function FigurantDetailPage({
@@ -57,7 +58,7 @@ export default async function FigurantDetailPage({
 
   const { data: bookings } = await supabase
     .from("bookings")
-    .select("id, date, heure_convocation, fonction, statut, projet_id, projets(nom, confidentiel)")
+    .select("id, date, heure_convocation, fonction, cachet, statut, projet_id, projets(nom, confidentiel, nom_code)")
     .eq("figurant_id", id)
     .order("date", { ascending: true })
     .returns<FigurantBookingRow[]>();
@@ -96,6 +97,30 @@ export default async function FigurantDetailPage({
   );
 
   const boundDeleteFigurant = deleteFigurant.bind(null, id);
+
+  // Rattache chaque message au projet de son booking (quand il en a un), et
+  // prépare un résumé des dates confirmées par projet — affichés ensemble
+  // dans la messagerie interne pour donner le contexte sans quitter la page.
+  const bookingById = new Map((bookings ?? []).map((b) => [b.id, b]));
+  const messagesEnriched = (messages ?? []).map((m) => {
+    const booking = m.booking_id ? bookingById.get(m.booking_id) : undefined;
+    return {
+      ...m,
+      projetId: booking?.projet_id ?? null,
+      projetLabel: booking ? (booking.projets?.nom_code || booking.projets?.nom || null) : null,
+    };
+  });
+
+  const confirmedByProjet = new Map<string, { label: string; lignes: string[] }>();
+  for (const b of bookings ?? []) {
+    if (b.statut !== "confirmé") continue;
+    const label = b.projets?.nom_code || b.projets?.nom || "Projet";
+    const entry = confirmedByProjet.get(b.projet_id) ?? { label, lignes: [] };
+    entry.lignes.push(
+      `${label} - ${formatDateShort(b.date)} Confirmé - ${b.fonction ?? "Fonction non renseignée"} - Cachet ${b.cachet ?? "non renseigné"}`
+    );
+    confirmedByProjet.set(b.projet_id, entry);
+  }
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -198,7 +223,8 @@ export default async function FigurantDetailPage({
           figurantId={id}
           figurantEmail={figurant.email}
           figurantPrenom={figurant.prenom}
-          messages={messages ?? []}
+          messages={messagesEnriched}
+          confirmedByProjet={Array.from(confirmedByProjet.entries()).map(([projetId, v]) => ({ projetId, ...v }))}
         />
       </Card>
 

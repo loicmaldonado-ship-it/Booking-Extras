@@ -127,26 +127,26 @@ export function MaFicheForm({
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={figurant.telephone ?? ""} />
           </Field>
-          <Field label="Ville">
-            <Input name="ville" defaultValue={figurant.ville ?? ""} />
+          <Field label="Ville" required>
+            <Input name="ville" defaultValue={figurant.ville ?? ""} required />
           </Field>
-          <Field label="Adresse">
-            <Input name="adresse" defaultValue={figurant.adresse ?? ""} />
+          <Field label="Adresse" required>
+            <Input name="adresse" defaultValue={figurant.adresse ?? ""} required />
           </Field>
-          <Field label="Taille (cm)">
-            <Input type="number" name="taille_cm" defaultValue={figurant.taille_cm ?? ""} />
+          <Field label="Taille (cm)" required>
+            <Input type="number" name="taille_cm" defaultValue={figurant.taille_cm ?? ""} required />
           </Field>
-          <Field label="Poids (kg)">
-            <Input type="number" name="poids_kg" defaultValue={figurant.poids_kg ?? ""} />
+          <Field label="Poids (kg)" required>
+            <Input type="number" name="poids_kg" defaultValue={figurant.poids_kg ?? ""} required />
           </Field>
-          <Field label="Pointure">
-            <Input type="number" step="0.5" name="pointure" defaultValue={figurant.pointure ?? ""} />
+          <Field label="Pointure" required>
+            <Input type="number" step="0.5" name="pointure" defaultValue={figurant.pointure ?? ""} required />
           </Field>
-          <Field label="Veste">
-            <Input name="veste" defaultValue={figurant.veste ?? ""} />
+          <Field label="Veste" required>
+            <Input name="veste" defaultValue={figurant.veste ?? ""} required />
           </Field>
-          <Field label="Pantalon">
-            <Input name="pantalon" defaultValue={figurant.pantalon ?? ""} />
+          <Field label="Pantalon" required>
+            <Input name="pantalon" defaultValue={figurant.pantalon ?? ""} required />
           </Field>
           <Field label="Lien bande démo">
             <Input type="url" name="lien_bande_demo" placeholder="https://..." defaultValue={lienBandeDemo ?? ""} />

@@ -94,11 +94,16 @@ export function FigurantForm({
           <Field label="Date de naissance">
             <Input type="date" name="date_naissance" defaultValue={figurant?.date_naissance ?? ""} />
           </Field>
-          <Field label="Ville de résidence">
-            <Input name="ville" defaultValue={figurant?.ville ?? ""} />
+          <Field label="Ville de résidence" required>
+            <Input name="ville" defaultValue={figurant?.ville ?? ""} required />
           </Field>
-          <Field label="Adresse complète">
-            <Input name="adresse" placeholder="N°, rue, code postal, ville" defaultValue={figurant?.adresse ?? ""} />
+          <Field label="Adresse complète" required>
+            <Input
+              name="adresse"
+              placeholder="N°, rue, code postal, ville"
+              defaultValue={figurant?.adresse ?? ""}
+              required
+            />
           </Field>
         </div>
       </Card>
@@ -125,17 +130,17 @@ export function FigurantForm({
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Mensurations</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Field label="Hauteur (cm)">
-            <Input type="number" name="taille_cm" defaultValue={figurant?.taille_cm ?? ""} />
+          <Field label="Hauteur (cm)" required>
+            <Input type="number" name="taille_cm" defaultValue={figurant?.taille_cm ?? ""} required />
           </Field>
-          <Field label="Poids (kg)">
-            <Input type="number" name="poids_kg" defaultValue={figurant?.poids_kg ?? ""} />
+          <Field label="Poids (kg)" required>
+            <Input type="number" name="poids_kg" defaultValue={figurant?.poids_kg ?? ""} required />
           </Field>
-          <Field label="Veste">
-            <Input name="veste" placeholder="Ex. 48/50" defaultValue={figurant?.veste ?? ""} />
+          <Field label="Veste" required>
+            <Input name="veste" placeholder="Ex. 48/50" defaultValue={figurant?.veste ?? ""} required />
           </Field>
-          <Field label="Pantalon">
-            <Input name="pantalon" placeholder="Ex. 42" defaultValue={figurant?.pantalon ?? ""} />
+          <Field label="Pantalon" required>
+            <Input name="pantalon" placeholder="Ex. 42" defaultValue={figurant?.pantalon ?? ""} required />
           </Field>
           <Field label="Tour de tête (cm)">
             <Input type="number" name="tour_tete_cm" defaultValue={figurant?.tour_tete_cm ?? ""} />
@@ -158,8 +163,8 @@ export function FigurantForm({
           <Field label="Jambes int. (cm)">
             <Input type="number" name="jambes_int_cm" defaultValue={figurant?.jambes_int_cm ?? ""} />
           </Field>
-          <Field label="Pointure">
-            <Input type="number" step="0.5" name="pointure" defaultValue={figurant?.pointure ?? ""} />
+          <Field label="Pointure" required>
+            <Input type="number" step="0.5" name="pointure" defaultValue={figurant?.pointure ?? ""} required />
           </Field>
           <Field label="Gant">
             <Input name="gant" defaultValue={figurant?.gant ?? ""} />

@@ -28,20 +28,13 @@ export async function sendEmail(
   to: string,
   subject: string,
   text: string,
-  credentials?: { user: string; pass: string } | null,
-  bcc?: string[]
+  credentials?: { user: string; pass: string } | null
 ): Promise<{ error?: string }> {
   const resolved = getTransporter(credentials?.user, credentials?.pass);
   if (!resolved) return { error: "Envoi automatique non configuré." };
 
   try {
-    await resolved.transporter.sendMail({
-      from: resolved.user,
-      to,
-      subject,
-      text,
-      ...(bcc && bcc.length > 0 ? { bcc } : {}),
-    });
+    await resolved.transporter.sendMail({ from: resolved.user, to, subject, text });
     return {};
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Erreur d'envoi." };
