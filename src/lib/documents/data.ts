@@ -125,6 +125,31 @@ export async function getCachetFonctionByFigurant(projetId: string, figurantIds:
   return map;
 }
 
+// Dates de tournage d'une personne sur CE projet précis (contrairement à
+// getFutureBookingsByFigurant, pas de fuite vers d'autres projets — utile
+// pour les liens de partage scopés à un seul projet).
+export async function getProjetBookingDatesByFigurant(projetId: string, figurantIds: string[]) {
+  const supabase = createAdminClient();
+  const map = new Map<string, FutureBooking[]>();
+  if (figurantIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, figurant_id, date, projets(nom)")
+    .eq("projet_id", projetId)
+    .in("figurant_id", figurantIds)
+    .neq("statut", "annulé")
+    .order("date", { ascending: true })
+    .returns<{ id: string; figurant_id: string; date: string; projets: { nom: string } | null }[]>();
+
+  for (const b of data ?? []) {
+    const list = map.get(b.figurant_id) ?? [];
+    list.push({ id: b.id, date: b.date, projetNom: b.projets?.nom ?? "" });
+    map.set(b.figurant_id, list);
+  }
+  return map;
+}
+
 export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined, projetId?: string) {
   if (!photos) return [];
   // Les photos "en tenue" d'un autre projet ne concernent pas ce document.

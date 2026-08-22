@@ -1,11 +1,19 @@
+import { Fragment } from "react";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { resolvePartageToken } from "@/lib/partage/data";
-import { getPhotosByFigurantId, pickPortrait, getCachetFonctionByFigurant } from "@/lib/documents/data";
+import {
+  getPhotosByFigurantId,
+  pickPortrait,
+  getCachetFonctionByFigurant,
+  getProjetBookingDatesByFigurant,
+} from "@/lib/documents/data";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+
+const COLUMN_COUNT = 9;
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +37,14 @@ function heureLabel(h: string) {
 function effectiveHeure(e: Row, creneauById: Map<string, { heure_debut: string; heure_fin: string }>) {
   if (e.creneau_id && creneauById.has(e.creneau_id)) return creneauById.get(e.creneau_id)!.heure_debut;
   return e.heure;
+}
+
+function slotLabel(e: Row, creneauById: Map<string, { heure_debut: string; heure_fin: string }>) {
+  if (e.creneau_id && creneauById.has(e.creneau_id)) {
+    const c = creneauById.get(e.creneau_id)!;
+    return `${heureLabel(c.heure_debut)}–${heureLabel(c.heure_fin)}`;
+  }
+  return e.heure ? heureLabel(e.heure) : "Heure non renseignée";
 }
 
 export default async function PartageEssayagesPage({
@@ -63,12 +79,13 @@ export default async function PartageEssayagesPage({
 
   const creneauIds = essayages.map((e) => e.creneau_id).filter((id): id is string => !!id);
   const figurantIds = essayages.map((e) => e.figurants?.id).filter((id): id is string => !!id);
-  const [{ data: creneauxRaw }, photosByFigurant, cachetFonctionByFigurant] = await Promise.all([
+  const [{ data: creneauxRaw }, photosByFigurant, cachetFonctionByFigurant, bookingDatesByFigurant] = await Promise.all([
     creneauIds.length > 0
       ? supabase.from("essayage_creneaux").select("id, heure_debut, heure_fin").in("id", creneauIds)
       : Promise.resolve({ data: [] as { id: string; heure_debut: string; heure_fin: string }[] }),
     getPhotosByFigurantId(figurantIds),
     getCachetFonctionByFigurant(projet.id, figurantIds),
+    getProjetBookingDatesByFigurant(projet.id, figurantIds),
   ]);
   const creneauById = new Map((creneauxRaw ?? []).map((c) => [c.id, c]));
 
@@ -79,12 +96,25 @@ export default async function PartageEssayagesPage({
     list.push(e);
     byDate.set(key, list);
   }
+
+  type SlotItem = { row: Row; slotLabel: string; showSlotHeader: boolean; slotNumber: number };
   const groups = Array.from(byDate.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, rows]): [string, Row[]] => [
-      date,
-      [...rows].sort((a, b) => (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "")),
-    ]);
+    .map(([date, dateRows]): [string, SlotItem[]] => {
+      const sorted = [...dateRows].sort(
+        (a, b) => (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "")
+      );
+      let slotNumber = 0;
+      let lastLabel: string | null = null;
+      const items = sorted.map((row) => {
+        const label = slotLabel(row, creneauById);
+        const showSlotHeader = label !== lastLabel;
+        if (showSlotHeader) slotNumber += 1;
+        lastLabel = label;
+        return { row, slotLabel: label, showSlotHeader, slotNumber };
+      });
+      return [date, items];
+    });
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,7 +130,7 @@ export default async function PartageEssayagesPage({
       </div>
 
       <div className="flex flex-col gap-4">
-        {groups.map(([date, rows]) => (
+        {groups.map(([date, items]) => (
           <Card key={date} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-text-muted">
@@ -120,48 +150,58 @@ export default async function PartageEssayagesPage({
                   <th className="py-2 pr-4 font-medium">Fonction</th>
                   <th className="py-2 pr-4 font-medium">Cachet</th>
                   <th className="py-2 pr-4 font-medium">Costume</th>
-                  <th className="py-2 pr-4 font-medium">Heure</th>
+                  <th className="py-2 pr-4 font-medium">Dates de tournage</th>
                   <th className="py-2 pr-4 font-medium">Lieu</th>
                   <th className="py-2 pr-4 font-medium">Statut</th>
                   <th className="py-2 pr-4 font-medium">Notes</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((e) => {
+                {items.map(({ row: e, slotLabel: label, showSlotHeader, slotNumber }) => {
                   const portrait = e.figurants ? pickPortrait(photosByFigurant.get(e.figurants.id), projet.id) : null;
                   const cf = e.figurants ? cachetFonctionByFigurant.get(e.figurants.id) : null;
                   const fonction = cf?.fonction;
                   const cachet = cf?.cachet;
+                  const tournageDates = e.figurants ? bookingDatesByFigurant.get(e.figurants.id) ?? [] : [];
                   return (
-                    <tr key={e.id} className="border-b border-border last:border-0">
-                      <td className="py-2 pr-4">
-                        <div className="relative h-12 w-9 overflow-hidden rounded bg-ink-raised-2">
-                          {portrait?.url && (
-                            <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-4 font-medium">
-                        #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
-                      </td>
-                      <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
-                      <td className="py-2 pr-4 text-text-muted">{cachet ?? "—"}</td>
-                      <td className="py-2 pr-4">
-                        {e.numero_costume ? <Badge tone="coral">{e.numero_costume}</Badge> : <span className="text-text-muted">—</span>}
-                      </td>
-                      <td className="py-2 pr-4 text-text-muted">
-                        {e.creneau_id && creneauById.has(e.creneau_id)
-                          ? `${heureLabel(creneauById.get(e.creneau_id)!.heure_debut)}–${heureLabel(creneauById.get(e.creneau_id)!.heure_fin)}`
-                          : (e.heure ?? "—")}
-                      </td>
-                      <td className="py-2 pr-4 text-text-muted">{e.lieu ?? "—"}</td>
-                      <td className="py-2 pr-4">
-                        <Badge tone={e.statut === "fait" ? "turquoise" : e.statut === "confirmé" ? "coral" : "yellow"}>
-                          {e.statut}
-                        </Badge>
-                      </td>
-                      <td className="py-2 pr-4 text-text-muted">{e.notes ?? "—"}</td>
-                    </tr>
+                    <Fragment key={e.id}>
+                      {showSlotHeader && (
+                        <tr>
+                          <td colSpan={COLUMN_COUNT} className="pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-coral first:pt-0">
+                            Créneau {slotNumber} : {label}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="border-b border-border last:border-0">
+                        <td className="py-2 pr-4">
+                          <div className="relative h-12 w-9 overflow-hidden rounded bg-ink-raised-2">
+                            {portrait?.url && (
+                              <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2 pr-4 font-medium">
+                          #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
+                        </td>
+                        <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
+                        <td className="py-2 pr-4 text-text-muted">{cachet ?? "—"}</td>
+                        <td className="py-2 pr-4">
+                          {e.numero_costume ? <Badge tone="coral">{e.numero_costume}</Badge> : <span className="text-text-muted">—</span>}
+                        </td>
+                        <td className="py-2 pr-4 text-text-muted">
+                          {tournageDates.length > 0
+                            ? tournageDates.map((b) => formatDateShort(b.date)).join(", ")
+                            : "—"}
+                        </td>
+                        <td className="py-2 pr-4 text-text-muted">{e.lieu ?? "—"}</td>
+                        <td className="py-2 pr-4">
+                          <Badge tone={e.statut === "fait" ? "turquoise" : e.statut === "confirmé" ? "coral" : "yellow"}>
+                            {e.statut}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-4 text-text-muted">{e.notes ?? "—"}</td>
+                      </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>

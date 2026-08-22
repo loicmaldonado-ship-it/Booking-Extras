@@ -5,6 +5,7 @@ import {
   getPhotosByFigurantId,
   pickFichePhotos,
   getCachetFonctionByFigurant,
+  getProjetBookingDatesByFigurant,
 } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -95,9 +96,10 @@ export default async function PartageEssayagesFichesPage({
       : `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
   );
 
-  const [photosByFigurant, cachetFonctionByFigurant] = await Promise.all([
+  const [photosByFigurant, cachetFonctionByFigurant, bookingDatesByFigurant] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
     getCachetFonctionByFigurant(projet.id, figurantIds),
+    getProjetBookingDatesByFigurant(projet.id, figurantIds),
   ]);
 
   return (
@@ -151,6 +153,7 @@ export default async function PartageEssayagesFichesPage({
                 }
                 extraRows={[["Cachet", cachet ?? "—"]]}
                 numeroCostume={numeroCostumeByFigurant.get(f.id) ?? null}
+                futureBookings={bookingDatesByFigurant.get(f.id) ?? []}
               />
             </div>
           </PrintSheet>
