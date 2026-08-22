@@ -104,6 +104,27 @@ export function pickPortrait(photos: FigurantPhotoWithUrl[] | undefined, projetI
   return photos.find((p) => p.type === "portrait") ?? null;
 }
 
+// Cachet et fonction ne vivent que sur les bookings, pas sur les essayages
+// — pour les documents essayage (planning partagé, fiches), on reprend
+// ceux du booking le plus récent de la personne sur ce projet.
+export async function getCachetFonctionByFigurant(projetId: string, figurantIds: string[]) {
+  const supabase = createAdminClient();
+  const map = new Map<string, { cachet: string | null; fonction: string | null }>();
+  if (figurantIds.length === 0) return map;
+
+  const { data } = await supabase
+    .from("bookings")
+    .select("figurant_id, cachet, fonction, date")
+    .eq("projet_id", projetId)
+    .in("figurant_id", figurantIds)
+    .order("date", { ascending: false });
+
+  for (const b of data ?? []) {
+    if (!map.has(b.figurant_id)) map.set(b.figurant_id, { cachet: b.cachet, fonction: b.fonction });
+  }
+  return map;
+}
+
 export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined, projetId?: string) {
   if (!photos) return [];
   // Les photos "en tenue" d'un autre projet ne concernent pas ce document.

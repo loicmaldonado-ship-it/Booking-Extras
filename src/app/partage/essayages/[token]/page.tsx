@@ -1,6 +1,9 @@
+import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
 import { resolvePartageToken } from "@/lib/partage/data";
+import { getPhotosByFigurantId, pickPortrait, getCachetFonctionByFigurant } from "@/lib/documents/data";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -14,8 +17,9 @@ type Row = {
   lieu: string | null;
   statut: string;
   notes: string | null;
+  numero_costume: string | null;
   creneau_id: string | null;
-  figurants: { prenom: string; nom: string } | null;
+  figurants: { id: string; prenom: string; nom: string } | null;
 };
 
 function heureLabel(h: string) {
@@ -42,7 +46,7 @@ export default async function PartageEssayagesPage({
   const supabase = createAdminClient();
   const { data: essayagesRaw } = await supabase
     .from("essayages")
-    .select("id, numero, date, heure, lieu, statut, notes, creneau_id, figurants(prenom, nom)")
+    .select("id, numero, date, heure, lieu, statut, notes, numero_costume, creneau_id, figurants(id, prenom, nom)")
     .eq("projet_id", projet.id)
     .order("date", { ascending: true, nullsFirst: false })
     .returns<Row[]>();
@@ -50,10 +54,14 @@ export default async function PartageEssayagesPage({
   const essayages = essayagesRaw ?? [];
 
   const creneauIds = essayages.map((e) => e.creneau_id).filter((id): id is string => !!id);
-  const { data: creneauxRaw } =
+  const figurantIds = essayages.map((e) => e.figurants?.id).filter((id): id is string => !!id);
+  const [{ data: creneauxRaw }, photosByFigurant, cachetFonctionByFigurant] = await Promise.all([
     creneauIds.length > 0
-      ? await supabase.from("essayage_creneaux").select("id, heure_debut, heure_fin").in("id", creneauIds)
-      : { data: [] as { id: string; heure_debut: string; heure_fin: string }[] };
+      ? supabase.from("essayage_creneaux").select("id, heure_debut, heure_fin").in("id", creneauIds)
+      : Promise.resolve({ data: [] as { id: string; heure_debut: string; heure_fin: string }[] }),
+    getPhotosByFigurantId(figurantIds),
+    getCachetFonctionByFigurant(projet.id, figurantIds),
+  ]);
   const creneauById = new Map((creneauxRaw ?? []).map((c) => [c.id, c]));
 
   const byDate = new Map<string, Row[]>();
@@ -73,9 +81,14 @@ export default async function PartageEssayagesPage({
         </span>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-semibold">{projetNomPublic(projet)}</h1>
-        <p className="mt-1 text-text-muted">Planning des essayages par jour — lecture seule.</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">{projetNomPublic(projet)}</h1>
+          <p className="mt-1 text-text-muted">Planning des essayages par jour — lecture seule.</p>
+        </div>
+        <ButtonLink href={`/partage/essayages/${token}/fiches`} variant="secondary">
+          Fiches de mensuration
+        </ButtonLink>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -87,7 +100,10 @@ export default async function PartageEssayagesPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-text-muted">
+                  <th className="py-2 pr-4 font-medium">Photo</th>
                   <th className="py-2 pr-4 font-medium">Figurant</th>
+                  <th className="py-2 pr-4 font-medium">Fonction</th>
+                  <th className="py-2 pr-4 font-medium">Costume</th>
                   <th className="py-2 pr-4 font-medium">Heure</th>
                   <th className="py-2 pr-4 font-medium">Lieu</th>
                   <th className="py-2 pr-4 font-medium">Statut</th>
@@ -95,25 +111,40 @@ export default async function PartageEssayagesPage({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((e) => (
-                  <tr key={e.id} className="border-b border-border last:border-0">
-                    <td className="py-2 pr-4 font-medium">
-                      #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
-                    </td>
-                    <td className="py-2 pr-4 text-text-muted">
-                      {e.creneau_id && creneauById.has(e.creneau_id)
-                        ? `${heureLabel(creneauById.get(e.creneau_id)!.heure_debut)}–${heureLabel(creneauById.get(e.creneau_id)!.heure_fin)}`
-                        : (e.heure ?? "—")}
-                    </td>
-                    <td className="py-2 pr-4 text-text-muted">{e.lieu ?? "—"}</td>
-                    <td className="py-2 pr-4">
-                      <Badge tone={e.statut === "fait" ? "turquoise" : e.statut === "confirmé" ? "coral" : "yellow"}>
-                        {e.statut}
-                      </Badge>
-                    </td>
-                    <td className="py-2 pr-4 text-text-muted">{e.notes ?? "—"}</td>
-                  </tr>
-                ))}
+                {rows.map((e) => {
+                  const portrait = e.figurants ? pickPortrait(photosByFigurant.get(e.figurants.id), projet.id) : null;
+                  const fonction = e.figurants ? cachetFonctionByFigurant.get(e.figurants.id)?.fonction : null;
+                  return (
+                    <tr key={e.id} className="border-b border-border last:border-0">
+                      <td className="py-2 pr-4">
+                        <div className="relative h-12 w-9 overflow-hidden rounded bg-ink-raised-2">
+                          {portrait?.url && (
+                            <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2 pr-4 font-medium">
+                        #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
+                      </td>
+                      <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
+                      <td className="py-2 pr-4">
+                        {e.numero_costume ? <Badge tone="coral">{e.numero_costume}</Badge> : <span className="text-text-muted">—</span>}
+                      </td>
+                      <td className="py-2 pr-4 text-text-muted">
+                        {e.creneau_id && creneauById.has(e.creneau_id)
+                          ? `${heureLabel(creneauById.get(e.creneau_id)!.heure_debut)}–${heureLabel(creneauById.get(e.creneau_id)!.heure_fin)}`
+                          : (e.heure ?? "—")}
+                      </td>
+                      <td className="py-2 pr-4 text-text-muted">{e.lieu ?? "—"}</td>
+                      <td className="py-2 pr-4">
+                        <Badge tone={e.statut === "fait" ? "turquoise" : e.statut === "confirmé" ? "coral" : "yellow"}>
+                          {e.statut}
+                        </Badge>
+                      </td>
+                      <td className="py-2 pr-4 text-text-muted">{e.notes ?? "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </Card>
