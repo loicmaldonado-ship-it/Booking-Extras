@@ -75,9 +75,14 @@ export default async function BookingsPage({
             {projet.lieu ? ` · ${projet.lieu}` : ""}
           </p>
         </div>
-        <ButtonLink href="/bookings/planning" variant="secondary">
-          Planning
-        </ButtonLink>
+        <div className="flex gap-3">
+          <ButtonLink href={`/bookings/resume?projet_id=${currentProjetId}`} variant="secondary">
+            Résumé projet
+          </ButtonLink>
+          <ButtonLink href="/bookings/planning" variant="secondary">
+            Planning
+          </ButtonLink>
+        </div>
       </div>
 
       <Card className="flex flex-col gap-3">
