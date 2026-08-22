@@ -55,39 +55,39 @@ export function MaFicheForm({
         </div>
         {justSaved && <p className="text-xs text-turquoise">Vos infos ont bien été mises à jour.</p>}
         <div className="grid grid-cols-2 gap-2 text-sm">
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Email : </span>
             {figurant.email ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Téléphone : </span>
             {figurant.telephone ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Ville : </span>
             {figurant.ville ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Adresse : </span>
             {figurant.adresse ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Taille : </span>
             {figurant.taille_cm ? `${figurant.taille_cm} cm` : "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Poids : </span>
             {figurant.poids_kg ? `${figurant.poids_kg} kg` : "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Pointure : </span>
             {figurant.pointure ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Veste / Pantalon : </span>
             {figurant.veste ?? "—"} / {figurant.pantalon ?? "—"}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Bande démo : </span>
             {lienBandeDemo ? (
               <a href={lienBandeDemo} target="_blank" rel="noreferrer" className="text-coral hover:underline">
@@ -97,7 +97,7 @@ export function MaFicheForm({
               "—"
             )}
           </div>
-          <div>
+          <div className="min-w-0 break-words">
             <span className="text-text-muted">Instagram : </span>
             {lienInstagram ? (
               <a href={lienInstagram} target="_blank" rel="noreferrer" className="text-coral hover:underline">

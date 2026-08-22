@@ -106,7 +106,9 @@ export function pickPortrait(photos: FigurantPhotoWithUrl[] | undefined, projetI
 
 // Cachet et fonction ne vivent que sur les bookings, pas sur les essayages
 // — pour les documents essayage (planning partagé, fiches), on reprend
-// ceux du booking le plus récent de la personne sur ce projet.
+// ceux du booking le plus récent de la personne sur ce projet qui les
+// renseigne réellement (un booking plus récent mais pas encore rempli ne
+// doit pas masquer le cachet/fonction d'un booking antérieur).
 export async function getCachetFonctionByFigurant(projetId: string, figurantIds: string[]) {
   const supabase = createAdminClient();
   const map = new Map<string, { cachet: string | null; fonction: string | null }>();
@@ -120,7 +122,11 @@ export async function getCachetFonctionByFigurant(projetId: string, figurantIds:
     .order("date", { ascending: false });
 
   for (const b of data ?? []) {
-    if (!map.has(b.figurant_id)) map.set(b.figurant_id, { cachet: b.cachet, fonction: b.fonction });
+    const existing = map.get(b.figurant_id);
+    const hasData = b.cachet !== null || b.fonction !== null;
+    if (!existing || (hasData && existing.cachet === null && existing.fonction === null)) {
+      map.set(b.figurant_id, { cachet: b.cachet, fonction: b.fonction });
+    }
   }
   return map;
 }

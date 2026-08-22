@@ -10,42 +10,13 @@ import {
   getCachetFonctionByFigurant,
   getProjetBookingDatesByFigurant,
 } from "@/lib/documents/data";
+import { buildSlotItems, type PartageEssayageRow } from "@/lib/essayages/partage-planning";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
 const COLUMN_COUNT = 9;
 
 export const dynamic = "force-dynamic";
-
-type Row = {
-  id: string;
-  numero: number;
-  date: string | null;
-  heure: string | null;
-  lieu: string | null;
-  statut: string;
-  notes: string | null;
-  numero_costume: string | null;
-  creneau_id: string | null;
-  figurants: { id: string; prenom: string; nom: string } | null;
-};
-
-function heureLabel(h: string) {
-  return h.slice(0, 5);
-}
-
-function effectiveHeure(e: Row, creneauById: Map<string, { heure_debut: string; heure_fin: string }>) {
-  if (e.creneau_id && creneauById.has(e.creneau_id)) return creneauById.get(e.creneau_id)!.heure_debut;
-  return e.heure;
-}
-
-function slotLabel(e: Row, creneauById: Map<string, { heure_debut: string; heure_fin: string }>) {
-  if (e.creneau_id && creneauById.has(e.creneau_id)) {
-    const c = creneauById.get(e.creneau_id)!;
-    return `${heureLabel(c.heure_debut)}–${heureLabel(c.heure_fin)}`;
-  }
-  return e.heure ? heureLabel(e.heure) : "Heure non renseignée";
-}
 
 export default async function PartageEssayagesPage({
   params,
@@ -73,7 +44,7 @@ export default async function PartageEssayagesPage({
     // encore confirmées restent internes.
     .in("statut", ["confirmé", "fait"])
     .order("date", { ascending: true, nullsFirst: false })
-    .returns<Row[]>();
+    .returns<PartageEssayageRow[]>();
 
   const essayages = essayagesRaw ?? [];
 
@@ -89,7 +60,7 @@ export default async function PartageEssayagesPage({
   ]);
   const creneauById = new Map((creneauxRaw ?? []).map((c) => [c.id, c]));
 
-  const byDate = new Map<string, Row[]>();
+  const byDate = new Map<string, PartageEssayageRow[]>();
   for (const e of essayages) {
     const key = e.date ?? "Date à confirmer";
     const list = byDate.get(key) ?? [];
@@ -97,24 +68,9 @@ export default async function PartageEssayagesPage({
     byDate.set(key, list);
   }
 
-  type SlotItem = { row: Row; slotLabel: string; showSlotHeader: boolean; slotNumber: number };
   const groups = Array.from(byDate.entries())
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([date, dateRows]): [string, SlotItem[]] => {
-      const sorted = [...dateRows].sort(
-        (a, b) => (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "")
-      );
-      let slotNumber = 0;
-      let lastLabel: string | null = null;
-      const items = sorted.map((row) => {
-        const label = slotLabel(row, creneauById);
-        const showSlotHeader = label !== lastLabel;
-        if (showSlotHeader) slotNumber += 1;
-        lastLabel = label;
-        return { row, slotLabel: label, showSlotHeader, slotNumber };
-      });
-      return [date, items];
-    });
+    .map(([date, dateRows]) => [date, buildSlotItems(dateRows, creneauById)] as const);
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,9 +93,14 @@ export default async function PartageEssayagesPage({
                 {date === "Date à confirmer" ? date : formatDateShort(date)}
               </h2>
               {date !== "Date à confirmer" && (
-                <ButtonLink href={`/partage/essayages/${token}/fiches?date=${date}`} variant="secondary">
-                  Télécharger les fiches
-                </ButtonLink>
+                <div className="flex gap-2">
+                  <ButtonLink href={`/partage/essayages/${token}/planning?date=${date}`} variant="secondary">
+                    Télécharger le planning
+                  </ButtonLink>
+                  <ButtonLink href={`/partage/essayages/${token}/fiches?date=${date}`} variant="secondary">
+                    Télécharger les fiches
+                  </ButtonLink>
+                </div>
               )}
             </div>
             <table className="w-full text-sm">
