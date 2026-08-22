@@ -146,10 +146,15 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
 }
 
 function rowTokens(r: Row, journeeLieu?: string | null) {
+  // Raccord : la personne a d'autres dates sur ce même projet — le token
+  // {date} les liste toutes plutôt que juste celle de cette journée.
+  const autresDates = (r.autresDates ?? []).filter((d) => d.statut !== "annulé").map((d) => d.date);
+  const allDates = Array.from(new Set([r.date, ...autresDates])).sort();
+
   return {
     prenom: r.figurants?.prenom ?? "",
     projet: projetNomPublic(r.projets, "notre tournage"),
-    date: r.date,
+    date: allDates.join(", "),
     lieu: journeeLieu || r.projets?.lieu || "",
     cachet: r.cachet ?? "",
     fonction: r.fonction ?? "",
