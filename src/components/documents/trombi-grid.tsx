@@ -20,7 +20,7 @@ export function TrombiGrid({
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-2">
       {items.map((item, index) => {
-        const showHeader = index === 0 || item.headerLabel !== items[index - 1].headerLabel;
+        const showHeader = item.headerLabel !== null && (index === 0 || item.headerLabel !== items[index - 1].headerLabel);
         const portrait = pickPortrait(photosByFigurant.get(item.booking.figurant.id), projetId);
         const age = computeAge(item.booking.figurant.date_naissance);
         const aboveLines = [

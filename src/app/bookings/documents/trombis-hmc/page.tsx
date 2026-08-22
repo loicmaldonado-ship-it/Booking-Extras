@@ -8,7 +8,7 @@ import { TrombiGrid } from "@/components/documents/trombi-grid";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { parseFields, parseIds, type DocumentField } from "@/lib/documents/fields";
-import { buildTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
+import { buildFixedOrderTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -54,7 +54,7 @@ export default async function TrombisHmcPage({
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
-  const items: TrombiItem[] = buildTrombiItems(bookings, [], true);
+  const items: TrombiItem[] = buildFixedOrderTrombiItems(bookings);
   const pages = chunk(items, PHOTOS_PER_PAGE);
 
   return (

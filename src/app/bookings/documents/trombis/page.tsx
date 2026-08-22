@@ -53,7 +53,7 @@ export default async function TrombisPage({
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
-  const items: TrombiItem[] = buildTrombiItems(bookings, docSort, selectedFields.has("fonction"));
+  const items: TrombiItem[] = buildTrombiItems(bookings, docSort);
   const pages = chunk(items, PHOTOS_PER_PAGE);
 
   return (
