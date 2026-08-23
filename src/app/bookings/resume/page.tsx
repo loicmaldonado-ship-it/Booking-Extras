@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BackLink } from "@/components/ui/back-link";
+import { Badge } from "@/components/ui/card";
 import { getJournees } from "@/lib/bookings/journees";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { TROMBI_CACHET_ORDER } from "@/lib/documents/trombi";
@@ -69,6 +70,20 @@ export default async function ResumeProjetPage({
     return (a.fonction ?? "").localeCompare(b.fonction ?? "");
   });
 
+  const rowTotal = (rowKey: string) =>
+    dates.reduce((sum, d) => sum + (cellRows.get(`${rowKey}|${d.date}`)?.length ?? 0), 0);
+
+  // Décompte par cachet (toutes fonctions confondues) — vue d'ensemble
+  // rapide type "1 Silhouette, 12 Figurant..." en tête de page.
+  const cachetCounts = new Map<string, number>();
+  for (const b of bookings) {
+    const key = b.cachet ?? "Sans cachet";
+    cachetCounts.set(key, (cachetCounts.get(key) ?? 0) + 1);
+  }
+  const cachetSummary = Array.from(cachetCounts.entries()).sort(
+    ([a], [b]) => cachetOrder(a === "Sans cachet" ? null : a) - cachetOrder(b === "Sans cachet" ? null : b)
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/bookings" label="Retour" />
@@ -80,6 +95,16 @@ export default async function ResumeProjetPage({
         </p>
       </div>
 
+      {cachetSummary.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {cachetSummary.map(([cachet, count]) => (
+            <Badge key={cachet} tone="turquoise">
+              {count} {cachet}
+            </Badge>
+          ))}
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-2xl border border-border">
         <table className="border-collapse text-sm">
           <thead>
@@ -88,7 +113,7 @@ export default async function ResumeProjetPage({
                 Cachet / Fonction
               </th>
               {dates.map((d) => (
-                <th key={d.date} className="min-w-[4.5rem] border-l border-border bg-ink-raised px-2 py-3 text-center align-bottom">
+                <th key={d.date} className="min-w-[6rem] border-l border-border bg-ink-raised px-2 py-3 text-center align-bottom">
                   <Link
                     href={`/bookings/documents?projet_id=${projet_id}&date=${d.date}`}
                     className="flex flex-col items-center hover:text-coral"
@@ -107,24 +132,27 @@ export default async function ResumeProjetPage({
               <tr key={rowKey} className="border-t border-border">
                 <td className="sticky left-0 z-10 bg-ink px-4 py-2 align-top">
                   <div className="font-medium">{cachet ?? "Sans cachet"}</div>
-                  <div className="text-xs text-text-muted">{fonction ?? "Sans fonction"}</div>
+                  <div className="text-xs text-text-muted">
+                    {fonction ?? "Sans fonction"} · {rowTotal(rowKey)}
+                  </div>
                 </td>
                 {dates.map((d) => {
                   const cellBookings = cellRows.get(`${rowKey}|${d.date}`) ?? [];
                   return (
                     <td key={d.date} className="border-l border-border px-1.5 py-2 align-top">
-                      <div className="flex flex-wrap justify-center gap-1">
+                      <div className="flex flex-col items-center gap-1.5">
                         {cellBookings.map((b) => {
                           const portrait = pickPortrait(photosByFigurant.get(b.figurant_id), projet_id);
                           return (
-                            <div
-                              key={b.id}
-                              title={b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : ""}
-                              className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2"
-                            >
-                              {portrait?.url && (
-                                <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
-                              )}
+                            <div key={b.id} className="flex flex-col items-center gap-0.5">
+                              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
+                                {portrait?.url && (
+                                  <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                                )}
+                              </div>
+                              <span className="max-w-[5.5rem] text-center text-[10px] leading-tight text-text-muted">
+                                {b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "—"}
+                              </span>
                             </div>
                           );
                         })}
