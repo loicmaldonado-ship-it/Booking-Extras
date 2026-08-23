@@ -89,6 +89,9 @@ export default async function ResumeProjetPage({
   // la largeur explicitement via <colgroup>.
   const UNIT_PX = 40;
   const MAX_PER_ROW = 10;
+  // Plancher pour que la date + "X au total" de l'en-tête ne débordent
+  // jamais, même quand la journée n'a personne de booké.
+  const MIN_COL_PX = 96;
   function columnWidthPx(date: string) {
     let max = 0;
     for (const [rowKey] of rows) {
@@ -96,7 +99,7 @@ export default async function ResumeProjetPage({
       if (count > max) max = count;
     }
     const unitsPerRow = Math.max(1, Math.min(max, MAX_PER_ROW));
-    return unitsPerRow * UNIT_PX + 12;
+    return Math.max(unitsPerRow * UNIT_PX + 12, MIN_COL_PX);
   }
   const FIRST_COL_PX = 160;
   const totalTableWidthPx = FIRST_COL_PX + dates.reduce((sum, d) => sum + columnWidthPx(d.date), 0);
