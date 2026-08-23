@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkProjetAccess } from "@/lib/auth/session";
 
 function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -18,6 +19,11 @@ export async function addBesoin(journeeId: string, _prevState: unknown, formData
   if (!quantite || quantite <= 0) return { error: "Quantité invalide." };
 
   const supabase = createAdminClient();
+  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
+  if (journee) {
+    const accessError = await checkProjetAccess(journee.projet_id);
+    if (accessError) return { error: accessError };
+  }
   const { error } = await supabase
     .from("journee_besoins")
     .upsert({ journee_id: journeeId, fonction, quantite }, { onConflict: "journee_id,fonction" });
@@ -29,6 +35,18 @@ export async function addBesoin(journeeId: string, _prevState: unknown, formData
 
 export async function deleteBesoin(id: string) {
   const supabase = createAdminClient();
+  const { data: besoin } = await supabase.from("journee_besoins").select("journee_id").eq("id", id).maybeSingle();
+  if (besoin) {
+    const { data: journee } = await supabase
+      .from("journees")
+      .select("projet_id")
+      .eq("id", besoin.journee_id)
+      .maybeSingle();
+    if (journee) {
+      const accessError = await checkProjetAccess(journee.projet_id);
+      if (accessError) throw new Error(accessError);
+    }
+  }
   await supabase.from("journee_besoins").delete().eq("id", id);
   revalidatePath("/bookings/documents");
 }

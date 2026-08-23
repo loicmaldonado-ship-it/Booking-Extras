@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
+import { checkProjetAccess } from "@/lib/auth/session";
 import type { FigurantMessageCategorie } from "./types";
 
 // Si un email est fourni, le message part réellement (Gmail SMTP, boîte
@@ -17,6 +18,14 @@ export async function recordFigurantMessage(params: {
   subject?: string;
   projetId?: string | null;
 }) {
+  // projetId ne sert qu'à choisir la boîte Gmail d'envoi — sans cette
+  // vérification, n'importe quel appelant pourrait faire envoyer un message
+  // "depuis" la boîte d'un projet auquel il n'a pas accès.
+  if (params.projetId) {
+    const accessError = await checkProjetAccess(params.projetId);
+    if (accessError) return { error: accessError };
+  }
+
   const supabase = createAdminClient();
   await supabase.from("figurant_messages").insert({
     figurant_id: params.figurantId,

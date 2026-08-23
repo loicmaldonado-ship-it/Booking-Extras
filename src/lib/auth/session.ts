@@ -58,6 +58,34 @@ export async function requireProjetAccess(projetId: string | null | undefined): 
   if (accessibleIds !== null && !accessibleIds.includes(projetId)) notFound();
 }
 
+// Même vérification que requireProjetAccess, mais pour les Server Actions
+// (créer/modifier/supprimer) plutôt que pour le rendu d'une page — notFound()
+// n'a pas de sens hors page, donc on retourne un message d'erreur exploitable
+// par l'appelant (`if (err) return { error: err }`) au lieu de rediriger.
+// Sans projetId fourni, l'action n'est pas rattachée à un projet précis : pas
+// de vérification (comportement identique à requireProjetAccess).
+export async function checkProjetAccess(projetId: string | null | undefined): Promise<string | null> {
+  const profile = await getCurrentProfile();
+  if (!profile) return "Non autorisé.";
+  if (!projetId) return null;
+  const accessibleIds = await getAccessibleProjetIds(profile);
+  if (accessibleIds !== null && !accessibleIds.includes(projetId)) return "Accès non autorisé à ce projet.";
+  return null;
+}
+
+// Réservé à la personne cheffe — la seule à avoir un accès illimité à tous
+// les projets (voir getAccessibleProjetIds). À utiliser pour les actions
+// sensibles sans projet précis à vérifier (créer un projet, inviter/révoquer
+// un accès, RGPD...). Lève une erreur — pensé pour les actions qui
+// n'utilisent pas déjà le pattern `{ error }`.
+export async function requireChef(): Promise<CurrentProfile> {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "chef") {
+    throw new Error("Réservé au·à la chef·fe.");
+  }
+  return profile;
+}
+
 // Safe to spread into a Supabase `.in("id", ...)` filter even when the list
 // is empty — an empty `.in()` would otherwise match nothing predictably
 // across drivers, so this guarantees a no-match sentinel instead.

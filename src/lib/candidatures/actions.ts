@@ -6,7 +6,26 @@ import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
+import { checkProjetAccess } from "@/lib/auth/session";
 import type { Cachet } from "./types";
+
+// candidatures n'a pas de projet_id direct — il vit sur son annonce.
+async function checkCandidatureAccess(candidatureId: string): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: candidature } = await supabase
+    .from("candidatures")
+    .select("annonce_id")
+    .eq("id", candidatureId)
+    .maybeSingle();
+  if (!candidature) return null;
+  const { data: annonce } = await supabase
+    .from("annonces")
+    .select("projet_id")
+    .eq("id", candidature.annonce_id)
+    .maybeSingle();
+  if (!annonce) return null;
+  return checkProjetAccess(annonce.projet_id);
+}
 
 export async function recordCandidatureMessage(
   figurantId: string,
@@ -213,6 +232,9 @@ async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
 // s'en charge, séparément, pour ne pas écraser le rangement à chaque
 // sauvegarde de fonction/cachet.
 export async function updateCandidature(id: string, formData: FormData) {
+  const accessError = await checkCandidatureAccess(id);
+  if (accessError) throw new Error(accessError);
+
   const fonction_assignee = str(formData, "fonction_assignee");
   const cachet_assigne = str(formData, "cachet_assigne") as Cachet | null;
 
@@ -226,6 +248,9 @@ export async function updateCandidature(id: string, formData: FormData) {
 // Le seul déclencheur de ces deux effets est le transfert réel vers une
 // journée (voir createBookingFromDrop).
 export async function setCandidatureOnglet(id: string, ongletId: string | null) {
+  const accessError = await checkCandidatureAccess(id);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   revalidatePath("/candidatures");
@@ -236,6 +261,18 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
 export async function setCandidaturesOngletBulk(ids: string[], ongletId: string | null) {
   if (ids.length === 0) return { success: true as const };
   const supabase = createAdminClient();
+
+  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", ids);
+  const annonceIds = Array.from(new Set((candidatures ?? []).map((c) => c.annonce_id)));
+  if (annonceIds.length > 0) {
+    const { data: annonces } = await supabase.from("annonces").select("projet_id").in("id", annonceIds);
+    const projetIds = Array.from(new Set((annonces ?? []).map((a) => a.projet_id)));
+    for (const projetId of projetIds) {
+      const accessError = await checkProjetAccess(projetId);
+      if (accessError) return { error: accessError };
+    }
+  }
+
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };

@@ -2,12 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireChef } from "@/lib/auth/session";
 
 // Action manuelle, déclenchée un profil à la fois par la cheffe de casting
 // depuis /rgpd — aucune tâche planifiée n'appelle cette fonction. Les
 // mensurations/bookings passés sont conservés (comptabilité, historique de
 // tournage) ; seules les données directement identifiantes sont effacées.
 export async function anonymiserFigurant(id: string) {
+  await requireChef();
+
   const supabase = createAdminClient();
 
   const { data: photos } = await supabase

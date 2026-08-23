@@ -2,15 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile } from "@/lib/auth/session";
-
-async function requireChef() {
-  const profile = await getCurrentProfile();
-  if (!profile || profile.role !== "chef") {
-    throw new Error("Réservé au·à la chef·fe.");
-  }
-  return profile;
-}
+import { requireChef } from "@/lib/auth/session";
 
 async function findOrInviteProfile(email: string, projetNom: string) {
   const admin = createAdminClient();

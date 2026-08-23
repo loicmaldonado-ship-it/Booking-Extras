@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto/secrets";
+import { checkProjetAccess, requireChef } from "@/lib/auth/session";
 import type { Convention, ProjetType } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -52,6 +53,8 @@ function validateGmailFields(gmailUser: string | null, gmailAppPasswordEncrypted
 }
 
 export async function createProjet(_prevState: unknown, formData: FormData) {
+  await requireChef();
+
   const payload = buildProjetPayload(formData);
   if (!payload.nom) {
     return { error: "Le nom du projet est obligatoire." };
@@ -85,6 +88,9 @@ export async function updateProjet(
   _prevState: unknown,
   formData: FormData
 ) {
+  const accessError = await checkProjetAccess(id);
+  if (accessError) return { error: accessError };
+
   const payload = buildProjetPayload(formData);
   if (!payload.nom) {
     return { error: "Le nom du projet est obligatoire." };
@@ -132,6 +138,8 @@ export async function updateProjet(
 }
 
 export async function deleteProjet(id: string) {
+  await requireChef();
+
   const supabase = createAdminClient();
   await supabase.from("projets").delete().eq("id", id);
   revalidatePath("/projets");

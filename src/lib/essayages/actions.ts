@@ -4,12 +4,36 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { checkProjetAccess } from "@/lib/auth/session";
 import type { EssayageStatut } from "./types";
+
+// Deux petits helpers pour les fonctions qui ne reçoivent qu'un id
+// d'essayage/journée d'essayage plutôt que le projet directement.
+async function checkEssayageAccess(essayageId: string): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("essayages").select("projet_id").eq("id", essayageId).maybeSingle();
+  if (!data) return null;
+  return checkProjetAccess(data.projet_id);
+}
+
+async function checkEssayageJourneeAccess(essayageJourneeId: string): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("essayage_journees")
+    .select("projet_id")
+    .eq("id", essayageJourneeId)
+    .maybeSingle();
+  if (!data) return null;
+  return checkProjetAccess(data.projet_id);
+}
 
 // Photo "en tenue" prise pendant l'essayage — rattachée à ce projet
 // précisément, elle remplacera le portrait générique sur les trombis et
 // fiches mensu de ce projet (voir pickPortrait/pickFichePhotos).
 export async function uploadTenuePhoto(figurantId: string, projetId: string, formData: FormData) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) return { error: "Aucune photo sélectionnée." };
 
@@ -65,6 +89,8 @@ export async function createEssayage(_prevState: unknown, formData: FormData) {
   if (!payload.figurant_id || !payload.projet_id) {
     return { error: "Figurant et projet sont obligatoires." };
   }
+  const accessError = await checkProjetAccess(payload.projet_id);
+  if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -86,8 +112,15 @@ export async function updateEssayage(id: string, _prevState: unknown, formData: 
   if (!payload.figurant_id || !payload.projet_id) {
     return { error: "Figurant et projet sont obligatoires." };
   }
+  const accessError = await checkProjetAccess(payload.projet_id);
+  if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const existingAccessError = await checkProjetAccess(existing.projet_id);
+    if (existingAccessError) return { error: existingAccessError };
+  }
   const { error } = await supabase.from("essayages").update(payload).eq("id", id);
 
   if (error) {
@@ -101,12 +134,20 @@ export async function updateEssayage(id: string, _prevState: unknown, formData: 
 
 export async function deleteEssayage(id: string) {
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const accessError = await checkProjetAccess(existing.projet_id);
+    if (accessError) throw new Error(accessError);
+  }
   await supabase.from("essayages").delete().eq("id", id);
   revalidatePath("/essayages");
   redirect("/essayages");
 }
 
 export async function createEssayageJournee(projetId: string, formData: FormData) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) throw new Error(accessError);
+
   const date = str(formData, "date");
   const lieu = str(formData, "lieu");
   if (!date) return;
@@ -127,6 +168,9 @@ export async function addFigurantToEssayageJournee(
   date: string,
   lieu: string | null
 ) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
 
   const { data: existing } = await supabase
@@ -160,6 +204,8 @@ export async function sendFigurantsToEssayage(
   lieu: string | null
 ) {
   if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
 
@@ -234,22 +280,24 @@ export async function updateEssayageStatutInline(id: string, statut: EssayageSta
   const supabase = createAdminClient();
   const updates: { statut: EssayageStatut; numero_costume?: string } = { statut };
 
-  if (statut === "fait") {
-    const { data: essayage } = await supabase
-      .from("essayages")
-      .select("projet_id, numero_costume, figurant_id")
-      .eq("id", id)
-      .single();
+  const { data: essayage } = await supabase
+    .from("essayages")
+    .select("projet_id, numero_costume, figurant_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (essayage) {
+    const accessError = await checkProjetAccess(essayage.projet_id);
+    if (accessError) return { error: accessError };
+  }
 
-    if (essayage && !essayage.numero_costume) {
-      const { data: figurant } = await supabase
-        .from("figurants")
-        .select("genre")
-        .eq("id", essayage.figurant_id)
-        .single();
-      const numero = await nextNumeroCostume(supabase, essayage.projet_id, figurant?.genre ?? null);
-      if (numero) updates.numero_costume = numero;
-    }
+  if (statut === "fait" && essayage && !essayage.numero_costume) {
+    const { data: figurant } = await supabase
+      .from("figurants")
+      .select("genre")
+      .eq("id", essayage.figurant_id)
+      .single();
+    const numero = await nextNumeroCostume(supabase, essayage.projet_id, figurant?.genre ?? null);
+    if (numero) updates.numero_costume = numero;
   }
 
   await supabase.from("essayages").update(updates).eq("id", id);
@@ -259,18 +307,27 @@ export async function updateEssayageStatutInline(id: string, statut: EssayageSta
 }
 
 export async function updateEssayageReponseRecue(id: string, reponse_recue: boolean) {
+  const accessError = await checkEssayageAccess(id);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
   await supabase.from("essayages").update({ reponse_recue }).eq("id", id);
   revalidatePath("/essayages/journee");
 }
 
 export async function removeEssayageFromJournee(id: string) {
+  const accessError = await checkEssayageAccess(id);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
   await supabase.from("essayages").delete().eq("id", id);
   revalidatePath("/essayages/journee");
 }
 
 export async function addCreneau(essayageJourneeId: string, _prevState: unknown, formData: FormData) {
+  const accessError = await checkEssayageJourneeAccess(essayageJourneeId);
+  if (accessError) return { error: accessError };
+
   const heureDebut = str(formData, "heure_debut");
   const heureFin = str(formData, "heure_fin");
   const capacite = Number(str(formData, "capacite") ?? "1");
@@ -292,6 +349,9 @@ export async function addCreneau(essayageJourneeId: string, _prevState: unknown,
 }
 
 export async function generateCreneaux(essayageJourneeId: string, _prevState: unknown, formData: FormData) {
+  const accessError = await checkEssayageJourneeAccess(essayageJourneeId);
+  if (accessError) return { error: accessError };
+
   const heureDebut = str(formData, "heure_debut");
   const heureFin = str(formData, "heure_fin");
   const dureeMinutes = Number(str(formData, "duree_minutes") ?? "60");
@@ -347,12 +407,24 @@ export async function generateCreneaux(essayageJourneeId: string, _prevState: un
 
 export async function removeCreneau(creneauId: string) {
   const supabase = createAdminClient();
+  const { data: creneau } = await supabase
+    .from("essayage_creneaux")
+    .select("essayage_journee_id")
+    .eq("id", creneauId)
+    .maybeSingle();
+  if (creneau) {
+    const accessError = await checkEssayageJourneeAccess(creneau.essayage_journee_id);
+    if (accessError) throw new Error(accessError);
+  }
   await supabase.from("essayages").update({ creneau_id: null }).eq("creneau_id", creneauId);
   await supabase.from("essayage_creneaux").delete().eq("id", creneauId);
   revalidatePath("/essayages/journee");
 }
 
 export async function assignFigurantToCreneau(essayageId: string, creneauId: string | null) {
+  const accessError = await checkEssayageAccess(essayageId);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
   await supabase.from("essayages").update({ creneau_id: creneauId }).eq("id", essayageId);
   revalidatePath("/essayages/journee");

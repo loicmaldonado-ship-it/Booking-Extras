@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkAnnonceAccess } from "./access";
 
 export type QuestionTemplate = { id: string; label: string };
 export type AnnonceQuestion = { id: string; annonce_id: string; label: string; ordre: number };
@@ -23,6 +24,9 @@ export async function getAnnonceQuestions(annonceId: string): Promise<AnnonceQue
 }
 
 export async function addAnnonceQuestion(annonceId: string, _prevState: unknown, formData: FormData) {
+  const accessError = await checkAnnonceAccess(annonceId);
+  if (accessError) return { error: accessError };
+
   const label = String(formData.get("label") ?? "").trim();
   if (!label) return { error: "Question requise." };
 
@@ -47,6 +51,9 @@ export async function addAnnonceQuestion(annonceId: string, _prevState: unknown,
 }
 
 export async function removeAnnonceQuestion(id: string, annonceId: string) {
+  const accessError = await checkAnnonceAccess(annonceId);
+  if (accessError) throw new Error(accessError);
+
   const supabase = createAdminClient();
   await supabase.from("annonce_questions").delete().eq("id", id);
   revalidatePath(`/annonces/${annonceId}`);

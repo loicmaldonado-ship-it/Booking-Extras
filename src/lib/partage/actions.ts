@@ -3,11 +3,20 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkProjetAccess } from "@/lib/auth/session";
 
 export type PartageType = "documents" | "essayages";
 
 function genToken() {
   return randomUUID().replace(/-/g, "");
+}
+
+// Ces liens sont publics (aucune auth requise pour les consulter) — sans
+// cette vérification, un·e assistant·e non rattaché·e à un projet pourrait
+// en générer un lien de partage quand même et en divulguer le contenu.
+async function requireAccessOrThrow(projetId: string) {
+  const error = await checkProjetAccess(projetId);
+  if (error) throw new Error(error);
 }
 
 export async function getPartageToken(projetId: string, type: PartageType) {
@@ -22,6 +31,8 @@ export async function getPartageToken(projetId: string, type: PartageType) {
 }
 
 export async function createPartageLien(projetId: string, type: PartageType) {
+  await requireAccessOrThrow(projetId);
+
   const supabase = createAdminClient();
   const token = genToken();
   await supabase.from("partage_liens").upsert(
@@ -34,6 +45,8 @@ export async function createPartageLien(projetId: string, type: PartageType) {
 }
 
 export async function revokePartageLien(projetId: string, type: PartageType) {
+  await requireAccessOrThrow(projetId);
+
   const supabase = createAdminClient();
   await supabase.from("partage_liens").delete().eq("projet_id", projetId).eq("type", type);
   revalidatePath("/partage");
@@ -52,6 +65,8 @@ export async function getJourneePartageLien(projetId: string, date: string) {
 }
 
 export async function createJourneePartageLien(projetId: string, date: string, showContacts: boolean) {
+  await requireAccessOrThrow(projetId);
+
   const supabase = createAdminClient();
   const token = genToken();
   await supabase.from("partage_journee_liens").upsert(
@@ -63,6 +78,8 @@ export async function createJourneePartageLien(projetId: string, date: string, s
 }
 
 export async function revokeJourneePartageLien(projetId: string, date: string) {
+  await requireAccessOrThrow(projetId);
+
   const supabase = createAdminClient();
   await supabase.from("partage_journee_liens").delete().eq("projet_id", projetId).eq("date", date);
   revalidatePath("/bookings/documents");

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { activerAccesCompte } from "@/lib/candidats/actions";
+import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
 
@@ -47,6 +48,8 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   if (!payload.figurant_id || !payload.projet_id || !payload.date) {
     return { error: "Figurant, projet et date sont obligatoires." };
   }
+  const accessError = await checkProjetAccess(payload.projet_id);
+  if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
   await supabase
@@ -71,8 +74,15 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   if (!payload.figurant_id || !payload.projet_id || !payload.date) {
     return { error: "Figurant, projet et date sont obligatoires." };
   }
+  const accessError = await checkProjetAccess(payload.projet_id);
+  if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const existingAccessError = await checkProjetAccess(existing.projet_id);
+    if (existingAccessError) return { error: existingAccessError };
+  }
   const { error } = await supabase.from("bookings").update(payload).eq("id", id);
 
   if (error) {
@@ -86,6 +96,11 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
 
 export async function deleteBooking(id: string) {
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const accessError = await checkProjetAccess(existing.projet_id);
+    if (accessError) throw new Error(accessError);
+  }
   await supabase.from("bookings").delete().eq("id", id);
   revalidatePath("/bookings");
   redirect("/bookings");
@@ -99,6 +114,9 @@ export async function createBookingFromDrop(
   fonction?: string,
   cachet?: Cachet | ""
 ) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
   const supabase = createAdminClient();
 
   const { data: existing } = await supabase
@@ -137,6 +155,9 @@ export async function createBookingFromDrop(
 }
 
 export async function createJournee(projetId: string, formData: FormData) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) throw new Error(accessError);
+
   const date = str(formData, "date");
   if (!date) return;
 
@@ -153,6 +174,11 @@ export async function updateTotalJournee(journeeId: string, _prevState: unknown,
   if (raw && (!total || total <= 0)) return { error: "Total invalide." };
 
   const supabase = createAdminClient();
+  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
+  if (journee) {
+    const accessError = await checkProjetAccess(journee.projet_id);
+    if (accessError) return { error: accessError };
+  }
   const { error } = await supabase.from("journees").update({ total_requis: total }).eq("id", journeeId);
   if (error) return { error: error.message };
 
@@ -162,6 +188,11 @@ export async function updateTotalJournee(journeeId: string, _prevState: unknown,
 
 export async function updateConvocationSettings(journeeId: string, _prevState: unknown, formData: FormData) {
   const supabase = createAdminClient();
+  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
+  if (journee) {
+    const accessError = await checkProjetAccess(journee.projet_id);
+    if (accessError) return { error: accessError };
+  }
   const { error } = await supabase
     .from("journees")
     .update({
@@ -180,6 +211,11 @@ export async function updateConvocationSettings(journeeId: string, _prevState: u
 
 export async function removeBooking(id: string) {
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const accessError = await checkProjetAccess(existing.projet_id);
+    if (accessError) return { error: accessError };
+  }
   await supabase.from("bookings").delete().eq("id", id);
   revalidatePath("/bookings/planning");
   revalidatePath("/bookings");
@@ -202,6 +238,14 @@ export async function bulkUpdateBookings(
 ) {
   if (ids.length === 0) return {};
   const supabase = createAdminClient();
+
+  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", ids);
+  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
+  for (const projetId of projetIds) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
+  }
+
   const { error } = await supabase.from("bookings").update(changes).in("id", ids);
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
@@ -211,6 +255,11 @@ export async function bulkUpdateBookings(
 
 export async function markConvocationEnvoyee(id: string) {
   const supabase = createAdminClient();
+  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (existing) {
+    const accessError = await checkProjetAccess(existing.projet_id);
+    if (accessError) return { error: accessError };
+  }
   await supabase.from("bookings").update({ convocation_envoyee: true }).eq("id", id);
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");

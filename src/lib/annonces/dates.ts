@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkAnnonceAccess } from "./access";
 
 export type AnnonceDate = { id: string; annonce_id: string; date: string };
 
@@ -16,6 +17,9 @@ export async function getAnnonceDates(annonceId: string): Promise<AnnonceDate[]>
 }
 
 export async function addAnnonceDate(annonceId: string, _prevState: unknown, formData: FormData) {
+  const accessError = await checkAnnonceAccess(annonceId);
+  if (accessError) return { error: accessError };
+
   const date = String(formData.get("date") ?? "").trim();
   if (!date) return { error: "Date requise." };
 
@@ -30,6 +34,9 @@ export async function addAnnonceDate(annonceId: string, _prevState: unknown, for
 }
 
 export async function removeAnnonceDate(id: string, annonceId: string) {
+  const accessError = await checkAnnonceAccess(annonceId);
+  if (accessError) throw new Error(accessError);
+
   const supabase = createAdminClient();
   await supabase.from("annonce_dates").delete().eq("id", id);
   revalidatePath(`/annonces/${annonceId}`);
