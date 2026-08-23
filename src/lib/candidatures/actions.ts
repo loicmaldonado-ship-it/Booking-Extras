@@ -66,6 +66,7 @@ export async function postulerAnnonce(
   const tailleCm = num(formData, "taille_cm");
   const poidsKg = num(formData, "poids_kg");
   const pointure = num(formData, "pointure");
+  const temporaire = formData.get("temporaire") === "on";
 
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
@@ -89,7 +90,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
+    .select("id, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
     .eq("public_token", publicToken)
     .single();
 
@@ -163,6 +164,8 @@ export async function postulerAnnonce(
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,
+        temporaire,
+        temporaire_projet_id: temporaire ? annonce.projet_id : null,
       })
       .select("id")
       .single();

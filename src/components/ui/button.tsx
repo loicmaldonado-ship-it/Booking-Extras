@@ -10,6 +10,7 @@ const variants = {
   secondary: "bg-ink-raised-2 text-text border border-border hover:border-coral/60",
   ghost: "text-text-muted hover:text-text hover:bg-ink-raised",
   turquoise: "bg-turquoise text-ink hover:brightness-110",
+  danger: "bg-danger text-ink hover:brightness-110",
 };
 
 type Variant = keyof typeof variants;

@@ -28,7 +28,7 @@ export default async function BookingsPage({
   const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
 
   async function accessibleProjets() {
-    let q = supabase.from("projets").select("id, nom, confidentiel").order("nom");
+    let q = supabase.from("projets").select("id, nom, confidentiel").eq("archive", false).order("nom");
     if (accessibleIds !== null) q = q.in("id", idsOrNone(accessibleIds));
     const { data } = await q;
     return data ?? [];

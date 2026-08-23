@@ -4,7 +4,8 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import type { Projet } from "@/lib/projets/types";
-import { deleteProjet } from "@/lib/projets/actions";
+import { deleteProjet, countProjetTemporaires } from "@/lib/projets/actions";
+import { ArchiverProjetButton, DesarchiverProjetButton } from "@/components/projets/archiver-projet-button";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -26,6 +27,7 @@ export default async function ProjetDetailPage({
   if (!projet) notFound();
 
   const boundDeleteProjet = deleteProjet.bind(null, id);
+  const temporaireCount = projet.archive ? 0 : await countProjetTemporaires(id);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -36,6 +38,11 @@ export default async function ProjetDetailPage({
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold">{projet.nom}</h1>
             {projet.confidentiel && <Badge tone="coral">Confidentiel</Badge>}
+            {projet.archive && (
+              <Badge title={projet.archive_le ? `Archivé le ${formatDateShort(projet.archive_le)}` : undefined}>
+                Archivé
+              </Badge>
+            )}
           </div>
           <p className="mt-1 text-text-muted">
             {projet.type ?? "Type non renseigné"}
@@ -46,6 +53,11 @@ export default async function ProjetDetailPage({
           <ButtonLink href={`/projets/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>
+          {projet.archive ? (
+            <DesarchiverProjetButton projetId={id} />
+          ) : (
+            <ArchiverProjetButton projetId={id} temporaireCount={temporaireCount} />
+          )}
           <form action={boundDeleteProjet}>
             <Button type="submit" variant="ghost">
               Supprimer

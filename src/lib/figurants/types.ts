@@ -37,6 +37,8 @@ export type Figurant = {
   compte_myrole: boolean;
   acces_compte: boolean;
   confirme: boolean;
+  temporaire: boolean;
+  temporaire_projet_id: string | null;
   tags: string[];
   notes_internes: string | null;
   created_at: string;

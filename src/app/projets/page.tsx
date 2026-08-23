@@ -14,6 +14,7 @@ type SearchParams = {
   q?: string;
   type?: string;
   confidentiel?: string;
+  archive?: string;
 };
 
 export default async function ProjetsPage({
@@ -47,6 +48,11 @@ export default async function ProjetsPage({
   } else if (params.confidentiel === "non") {
     query = query.eq("confidentiel", false);
   }
+  if (params.archive === "oui") {
+    query = query.eq("archive", true);
+  } else if (params.archive !== "tous") {
+    query = query.eq("archive", false);
+  }
 
   const { data: projets, error } = await query.returns<Projet[]>();
 
@@ -77,6 +83,11 @@ export default async function ProjetsPage({
             <option value="">Confidentiel (tous)</option>
             <option value="oui">Confidentiel</option>
             <option value="non">Non confidentiel</option>
+          </Select>
+          <Select name="archive" defaultValue={params.archive ?? "non"}>
+            <option value="non">Actifs (non archivés)</option>
+            <option value="oui">Archivés</option>
+            <option value="tous">Archivés + actifs</option>
           </Select>
           <button
             type="submit"
@@ -131,7 +142,10 @@ export default async function ProjetsPage({
                 </td>
                 <td className="px-6 py-3 text-text-muted">{p.lieu ?? "—"}</td>
                 <td className="px-6 py-3">
-                  {p.confidentiel && <Badge tone="coral">Confidentiel</Badge>}
+                  <div className="flex gap-1.5">
+                    {p.confidentiel && <Badge tone="coral">Confidentiel</Badge>}
+                    {p.archive && <Badge>Archivé</Badge>}
+                  </div>
                 </td>
               </tr>
             ))}

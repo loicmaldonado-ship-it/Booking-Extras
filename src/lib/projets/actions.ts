@@ -158,3 +158,58 @@ export async function deleteProjet(id: string) {
   revalidatePath("/projets");
   redirect("/projets");
 }
+
+// Archiver un projet supprime définitivement les profils marqués
+// "temporaires" (rôles soi-même — éboueur, chauffeur... — qui ne font de la
+// figuration qu'une fois sur ce projet, cochés par le candidat lui-même à
+// la candidature). Irréversible : désarchiver ne les restaure pas.
+export async function archiverProjet(id: string) {
+  await requireChef();
+
+  const supabase = createAdminClient();
+
+  const { data: temporaires } = await supabase
+    .from("figurants")
+    .select("id")
+    .eq("temporaire_projet_id", id)
+    .eq("temporaire", true);
+
+  for (const figurant of temporaires ?? []) {
+    const { data: photos } = await supabase
+      .from("figurant_photos")
+      .select("storage_path")
+      .eq("figurant_id", figurant.id);
+    if (photos && photos.length > 0) {
+      await supabase.storage.from("figurant-photos").remove(photos.map((p) => p.storage_path));
+    }
+    await supabase.from("figurants").delete().eq("id", figurant.id);
+  }
+
+  await supabase.from("projets").update({ archive: true, archive_le: new Date().toISOString() }).eq("id", id);
+
+  revalidatePath("/projets");
+  revalidatePath(`/projets/${id}`);
+  revalidatePath("/figurants");
+  redirect(`/projets/${id}`);
+}
+
+export async function desarchiverProjet(id: string) {
+  await requireChef();
+
+  const supabase = createAdminClient();
+  await supabase.from("projets").update({ archive: false, archive_le: null }).eq("id", id);
+
+  revalidatePath("/projets");
+  revalidatePath(`/projets/${id}`);
+  redirect(`/projets/${id}`);
+}
+
+export async function countProjetTemporaires(id: string): Promise<number> {
+  const supabase = createAdminClient();
+  const { count } = await supabase
+    .from("figurants")
+    .select("id", { count: "exact", head: true })
+    .eq("temporaire_projet_id", id)
+    .eq("temporaire", true);
+  return count ?? 0;
+}

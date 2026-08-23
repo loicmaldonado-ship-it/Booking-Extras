@@ -149,6 +149,16 @@ export function PostulerForm({
             </Field>
           </div>
         </div>
+        <label className="flex items-start gap-2.5 rounded-xl border border-border bg-ink px-3 py-2.5 text-sm">
+          <input type="checkbox" name="temporaire" className="mt-0.5 h-4 w-4 rounded border-border accent-coral" />
+          <span>
+            Je ne fais de la figuration que pour ce tournage (un rôle « soi-même » — éboueur, chauffeur...), pas
+            de façon récurrente.
+            <span className="mt-0.5 block text-xs text-text-muted">
+              Ton profil sera automatiquement supprimé une fois ce projet terminé et archivé.
+            </span>
+          </span>
+        </label>
         <Field label="Message" required>
           <Textarea
             name="message"
