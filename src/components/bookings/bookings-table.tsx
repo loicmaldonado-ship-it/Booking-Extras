@@ -30,12 +30,13 @@ import { buildConvocationMailto, substituteTokens, type ConvocationSettings } fr
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import { projetNomPublic } from "@/lib/projets/types";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
-import { formatDateTime as formatMessageDateTime } from "@/lib/format-date";
+import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
 import type { Genre } from "@/lib/figurants/types";
 import type { MessageTemplate } from "@/lib/templates/types";
 
-export type StaffMessageRow = {
+export type MessageRow = {
   id: string;
+  sender: "staff" | "figurant";
   categorie: FigurantMessageCategorie;
   sujet: string | null;
   corps: string;
@@ -75,7 +76,9 @@ export type Row = {
   cachet: string | null;
   statut: BookingStatut;
   convocation_envoyee: boolean;
+  convocation_envoyee_le?: string | null;
   reponse_recue: boolean;
+  reponse_recue_le?: string | null;
   notes: string | null;
   covoiturage_role?: "conducteur" | "passager" | null;
   covoiturage_lieu_depart?: string | null;
@@ -223,6 +226,22 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   return bracket?.label ?? "Âge non renseigné";
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+// Convocations envoyées en général la veille du tournage — le délai qui
+// compte est en minutes/heures, pas en jours.
+function convocationDelai(r: Row, now: string): { text: string; muted?: boolean } | null {
+  if (r.reponse_recue && r.reponse_recue_le && r.convocation_envoyee_le) {
+    return { text: `Répondu en ${formatDelai(r.convocation_envoyee_le, r.reponse_recue_le)}` };
+  }
+  if (!r.reponse_recue && r.convocation_envoyee && r.convocation_envoyee_le) {
+    return { text: `Envoyée il y a ${formatDelai(r.convocation_envoyee_le, now)}`, muted: true };
+  }
+  return null;
+}
+
 function repondusSuffix(rowsList: Row[]) {
   const concernes = rowsList.filter((r) => r.convocation_envoyee);
   if (concernes.length === 0) return "";
@@ -269,7 +288,7 @@ export function BookingsTable({
   journeeLieu?: string | null;
   convocationSettings?: ConvocationSettings | null;
   initialReplies?: InboxReply[];
-  messagesByFigurant?: Record<string, StaffMessageRow[]>;
+  messagesByFigurant?: Record<string, MessageRow[]>;
   projetIndemnites?: ProjetIndemnite[];
 }) {
   const router = useRouter();
@@ -331,6 +350,8 @@ export function BookingsTable({
       router.refresh();
     });
   }
+
+  const now = nowIso();
 
   const fonctions = useMemo(
     () => Array.from(new Set(rows.map((r) => r.fonction).filter((f): f is string => !!f))).sort(),
@@ -707,37 +728,50 @@ export function BookingsTable({
     const msgs = messagesByFigurant[r.figurant_id ?? ""] ?? [];
     if (msgs.length === 0) return null;
     const expanded = expandedMessages.has(r.id);
+    const hasReponse = msgs.some((m) => m.sender === "figurant");
     return (
       <div className="flex flex-col gap-1">
         <button
           type="button"
           onClick={() => toggleMessagesExpanded(r.id)}
-          className="w-fit text-left text-[10px] font-medium text-coral hover:underline"
+          className={cn(
+            "w-fit text-left text-[10px] font-medium hover:underline",
+            hasReponse ? "text-turquoise" : "text-coral"
+          )}
         >
-          {expanded ? "Masquer les messages" : `${msgs.length} message${msgs.length > 1 ? "s" : ""} envoyé${msgs.length > 1 ? "s" : ""} ▾`}
+          {expanded
+            ? "Masquer les messages"
+            : `${msgs.length} message${msgs.length > 1 ? "s" : ""}${hasReponse ? " — a répondu" : ""} ▾`}
         </button>
         {expanded && (
-          <div className="flex flex-col gap-1 rounded-lg border border-border bg-ink p-1.5">
-            {msgs.map((m) => (
-              <label key={m.id} className="flex items-start gap-1.5 text-[10px]">
-                <input
-                  type="checkbox"
-                  checked={m.repondu}
-                  disabled={pending}
-                  onChange={(e) => toggleRepondu(m.id, e.target.checked)}
-                  className="mt-0.5 h-3 w-3 shrink-0 rounded border-border accent-yellow"
-                  title="A répondu à ce message"
-                />
-                <span className="flex-1">
-                  <span className="font-medium text-text-muted">
-                    {FIGURANT_MESSAGE_CATEGORIES.find((c) => c.value === m.categorie)?.label ?? m.categorie}
+          <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-ink p-1.5">
+            {msgs.map((m) =>
+              m.sender === "figurant" ? (
+                <div key={m.id} className="rounded-md border-l-2 border-turquoise bg-turquoise/10 px-1.5 py-1 text-[10px]">
+                  <div className="font-medium text-turquoise">Eux · {formatMessageDateTime(m.created_at)}</div>
+                  <p className="mt-0.5 whitespace-pre-wrap text-text">{m.corps}</p>
+                </div>
+              ) : (
+                <label key={m.id} className="flex items-start gap-1.5 text-[10px]">
+                  <input
+                    type="checkbox"
+                    checked={m.repondu}
+                    disabled={pending}
+                    onChange={(e) => toggleRepondu(m.id, e.target.checked)}
+                    className="mt-0.5 h-3 w-3 shrink-0 rounded border-border accent-yellow"
+                    title="A répondu à ce message"
+                  />
+                  <span className="flex-1">
+                    <span className="font-medium text-text-muted">
+                      {FIGURANT_MESSAGE_CATEGORIES.find((c) => c.value === m.categorie)?.label ?? m.categorie}
+                    </span>
+                    {" · "}
+                    {formatMessageDateTime(m.created_at)}
+                    {m.sujet && <> — « {m.sujet} »</>}
                   </span>
-                  {" · "}
-                  {formatMessageDateTime(m.created_at)}
-                  {m.sujet && <> — « {m.sujet} »</>}
-                </span>
-              </label>
-            ))}
+                </label>
+              )
+            )}
           </div>
         )}
       </div>
@@ -745,6 +779,7 @@ export function BookingsTable({
   }
 
   function renderRow(r: Row) {
+    const rowDelai = convocationDelai(r, now);
     return (
       <tr
         key={r.id}
@@ -792,6 +827,9 @@ export function BookingsTable({
             ))}
           </Link>
           <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
+          {rowDelai && (
+            <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
+          )}
           {renderContactLinks(r)}
           {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
@@ -894,6 +932,7 @@ export function BookingsTable({
   }
 
   function renderTrombiCard(r: Row) {
+    const cardDelai = convocationDelai(r, now);
     return (
       <div
         key={r.id}
@@ -928,6 +967,9 @@ export function BookingsTable({
             <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
               ✓ Répondu
             </Badge>
+          )}
+          {cardDelai && (
+            <div className={cn("text-[10px]", cardDelai.muted ? "text-yellow" : "text-turquoise")}>{cardDelai.text}</div>
           )}
           {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
           {r.indispoMotif !== undefined && (

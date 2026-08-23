@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { cn } from "@/lib/cn";
-import { type Row, type StaffMessageRow } from "@/components/bookings/bookings-table";
+import { type Row, type MessageRow } from "@/components/bookings/bookings-table";
 import { type EssayageRow, type BookedFigurant } from "@/components/bookings/essayages-panel";
 import { type CovoiturageRow } from "@/components/bookings/covoiturage-board";
 import { JourneeTabs } from "@/components/bookings/journee-tabs";
@@ -61,7 +61,7 @@ export default async function JourneeDashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, reponse_recue, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, email, telephone, genre, date_naissance), projets(nom, confidentiel, nom_code, lieu, signature)"
+        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, email, telephone, genre, date_naissance), projets(nom, confidentiel, nom_code, lieu, signature)"
       )
       .eq("projet_id", projet_id)
       .eq("date", date)
@@ -89,18 +89,18 @@ export default async function JourneeDashboardPage({
   const figurantIds = rawBookings.map((b) => b.figurant_id);
   const photosByFigurant = await getPhotosByFigurantId(figurantIds);
 
-  const { data: staffMessagesRaw } =
+  const { data: messagesRaw } =
     figurantIds.length > 0
       ? await supabase
           .from("figurant_messages")
-          .select("id, figurant_id, categorie, sujet, corps, created_at, repondu")
-          .eq("sender", "staff")
+          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu")
           .in("figurant_id", figurantIds)
+          .neq("categorie", "espace_perso")
           .order("created_at", { ascending: false })
-          .returns<(StaffMessageRow & { figurant_id: string })[]>()
-      : { data: [] as (StaffMessageRow & { figurant_id: string })[] };
-  const messagesByFigurant: Record<string, StaffMessageRow[]> = {};
-  for (const m of staffMessagesRaw ?? []) {
+          .returns<(MessageRow & { figurant_id: string })[]>()
+      : { data: [] as (MessageRow & { figurant_id: string })[] };
+  const messagesByFigurant: Record<string, MessageRow[]> = {};
+  for (const m of messagesRaw ?? []) {
     (messagesByFigurant[m.figurant_id] ??= []).push(m);
   }
 

@@ -130,7 +130,10 @@ export async function markMessageBienRecu(messageId: string) {
   if (error) return { error: error.message };
 
   if (message?.booking_id) {
-    await supabase.from("bookings").update({ reponse_recue: true }).eq("id", message.booking_id);
+    await supabase
+      .from("bookings")
+      .update({ reponse_recue: true, reponse_recue_le: new Date().toISOString() })
+      .eq("id", message.booking_id);
     revalidatePath("/bookings/documents");
   }
 

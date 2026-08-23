@@ -260,7 +260,12 @@ export async function bulkUpdateBookings(
     if (accessError) return { error: accessError };
   }
 
-  const { error } = await supabase.from("bookings").update(changes).in("id", ids);
+  const payload: typeof changes & { reponse_recue_le?: string | null } = { ...changes };
+  if (changes.reponse_recue !== undefined) {
+    payload.reponse_recue_le = changes.reponse_recue ? new Date().toISOString() : null;
+  }
+
+  const { error } = await supabase.from("bookings").update(payload).in("id", ids);
   if (error) return { error: friendlyError(error.message) };
 
   if (changes.statut === "confirmé") {
@@ -286,7 +291,10 @@ export async function markConvocationEnvoyee(id: string) {
     const accessError = await checkProjetAccess(existing.projet_id);
     if (accessError) return { error: accessError };
   }
-  await supabase.from("bookings").update({ convocation_envoyee: true }).eq("id", id);
+  await supabase
+    .from("bookings")
+    .update({ convocation_envoyee: true, convocation_envoyee_le: new Date().toISOString() })
+    .eq("id", id);
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath(`/bookings/${id}`);
@@ -305,7 +313,7 @@ export async function resetConvocationEnvoyee(ids: string[]) {
     if (accessError) return { error: accessError };
   }
 
-  await supabase.from("bookings").update({ convocation_envoyee: false }).in("id", ids);
+  await supabase.from("bookings").update({ convocation_envoyee: false, convocation_envoyee_le: null }).in("id", ids);
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   return { success: true as const };

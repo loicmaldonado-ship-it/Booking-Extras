@@ -20,3 +20,18 @@ export function formatDateTime(iso: string) {
   const time = new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   return `${formatDateShort(iso)} ${time}`;
 }
+
+// Les convocations partent en général la veille du tournage : l'unité utile
+// est la minute puis l'heure, pas le jour (sauf cas très en retard, en
+// dépannage).
+export function formatDelai(fromIso: string, toIso: string): string {
+  const ms = Math.max(0, new Date(toIso).getTime() - new Date(fromIso).getTime());
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return "à l'instant";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remMin = minutes % 60;
+  if (hours < 48) return remMin > 0 ? `${hours}h${String(remMin).padStart(2, "0")}` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days} j`;
+}

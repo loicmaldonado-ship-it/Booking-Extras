@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { BookingsTable, type Row, type StaffMessageRow } from "@/components/bookings/bookings-table";
+import { BookingsTable, type Row, type MessageRow } from "@/components/bookings/bookings-table";
 import { EssayagesPanel, type EssayageRow, type BookedFigurant } from "@/components/bookings/essayages-panel";
 import { CovoiturageBoard, type CovoiturageRow } from "@/components/bookings/covoiturage-board";
 import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons";
@@ -62,7 +62,7 @@ export function JourneeTabs({
   projetLieu: string | null;
   convocationSettings: ConvocationSettings;
   initialReplies: InboxReply[];
-  messagesByFigurant: Record<string, StaffMessageRow[]>;
+  messagesByFigurant: Record<string, MessageRow[]>;
   journeePartage: { token: string; showContacts: boolean } | null;
   publicOrigin: string;
   covoiturageTarifBase?: number;
