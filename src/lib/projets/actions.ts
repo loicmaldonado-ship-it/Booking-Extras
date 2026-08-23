@@ -79,6 +79,19 @@ export async function createProjet(_prevState: unknown, formData: FormData) {
     return { error: error.message };
   }
 
+  const indemnitesRaw = str(formData, "indemnites");
+  if (indemnitesRaw) {
+    try {
+      const items = JSON.parse(indemnitesRaw) as { label: string; montant: number }[];
+      const rows = items
+        .filter((it) => it.label?.trim() && Number.isFinite(it.montant))
+        .map((it) => ({ projet_id: data.id, label: it.label.trim(), montant: it.montant }));
+      if (rows.length > 0) await supabase.from("projet_indemnites").insert(rows);
+    } catch {
+      // JSON malformé (ne devrait pas arriver, le champ est généré côté client) — on ignore.
+    }
+  }
+
   revalidatePath("/projets");
   redirect(`/projets/${data.id}`);
 }

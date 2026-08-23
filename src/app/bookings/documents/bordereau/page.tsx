@@ -55,7 +55,8 @@ export default async function BordereauPage({
 
   const convention = projet?.convention ?? null;
   const figurantIds = bookings.map((b) => b.figurant.id);
-  const [{ data: cachetsBareme }, { data: majorationsBareme }, { data: essaisFaits }] = await Promise.all([
+  const bookingIds = bookings.map((b) => b.id);
+  const [{ data: cachetsBareme }, { data: majorationsBareme }, { data: essaisFaits }, { data: indemnitesRaw }] = await Promise.all([
     convention
       ? supabase.from("bareme_cachets").select("*").eq("convention", convention).returns<BaremeCachet[]>()
       : Promise.resolve({ data: [] as BaremeCachet[] }),
@@ -70,10 +71,25 @@ export default async function BordereauPage({
           .eq("statut", "fait")
           .in("figurant_id", figurantIds)
       : Promise.resolve({ data: [] as { figurant_id: string }[] }),
+    bookingIds.length > 0
+      ? supabase
+          .from("booking_indemnites")
+          .select("booking_id, projet_indemnites(label, montant)")
+          .in("booking_id", bookingIds)
+          .returns<{ booking_id: string; projet_indemnites: { label: string; montant: number } | null }[]>()
+      : Promise.resolve({ data: [] as { booking_id: string; projet_indemnites: { label: string; montant: number } | null }[] }),
   ]);
 
   const figurantsAvecEssai = new Set((essaisFaits ?? []).map((e) => e.figurant_id));
   const essayageIndemnite = (majorationsBareme ?? []).find((m) => m.type === "essayage");
+
+  const indemnitesByBooking = new Map<string, { label: string; montant: number }[]>();
+  for (const bi of indemnitesRaw ?? []) {
+    if (!bi.projet_indemnites) continue;
+    const list = indemnitesByBooking.get(bi.booking_id) ?? [];
+    list.push(bi.projet_indemnites);
+    indemnitesByBooking.set(bi.booking_id, list);
+  }
 
   function montantForCachet(cachet: string | null) {
     if (!cachet || !cachetsBareme) return null;
@@ -170,6 +186,11 @@ export default async function BordereauPage({
                         {figurantsAvecEssai.has(b.figurant.id) && essayageIndemnite?.valeur != null && (
                           <div>Essayage {essayageIndemnite.valeur.toFixed(2)} €</div>
                         )}
+                        {(indemnitesByBooking.get(b.id) ?? []).map((ind, i) => (
+                          <div key={i}>
+                            {ind.label} {ind.montant.toFixed(2)} €
+                          </div>
+                        ))}
                       </td>
                     )}
                     {selectedColumns.has("repas") && <td className="border border-black px-2 py-3"></td>}

@@ -17,6 +17,7 @@ import { getUnreviewedReplies } from "@/lib/email/inbox";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
+import type { ProjetIndemnite } from "@/lib/indemnites/types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,8 @@ export default async function JourneeDashboardPage({
   await requireProjetAccess(projet_id);
 
   const supabase = createAdminClient();
-  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }] = await Promise.all([
+  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }] =
+    await Promise.all([
     supabase
       .from("projets")
       .select("nom, confidentiel, lieu, covoiturage_tarif_base, covoiturage_tarif_passager")
@@ -67,6 +69,12 @@ export default async function JourneeDashboardPage({
       .returns<BookingRow[]>(),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
     supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    supabase
+      .from("projet_indemnites")
+      .select("*")
+      .eq("projet_id", projet_id)
+      .order("created_at")
+      .returns<ProjetIndemnite[]>(),
   ]);
 
   const journees = await getJournees(projet_id);
@@ -142,6 +150,23 @@ export default async function JourneeDashboardPage({
     if (b.date < date) raccordFigurantIds.add(b.figurant_id);
   }
 
+  const bookingIds = rawBookings.map((b) => b.id);
+  const { data: bookingIndemnitesRaw } =
+    bookingIds.length > 0
+      ? await supabase
+          .from("booking_indemnites")
+          .select("booking_id, projet_indemnites(id, label, montant)")
+          .in("booking_id", bookingIds)
+          .returns<{ booking_id: string; projet_indemnites: { id: string; label: string; montant: number } | null }[]>()
+      : { data: [] as { booking_id: string; projet_indemnites: { id: string; label: string; montant: number } | null }[] };
+  const indemnitesByBooking = new Map<string, { id: string; label: string; montant: number }[]>();
+  for (const bi of bookingIndemnitesRaw ?? []) {
+    if (!bi.projet_indemnites) continue;
+    const list = indemnitesByBooking.get(bi.booking_id) ?? [];
+    list.push(bi.projet_indemnites);
+    indemnitesByBooking.set(bi.booking_id, list);
+  }
+
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
     portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
@@ -150,6 +175,7 @@ export default async function JourneeDashboardPage({
     indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),
     raccord: raccordFigurantIds.has(b.figurant_id),
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
+    indemnites: indemnitesByBooking.get(b.id) ?? [],
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
@@ -266,6 +292,7 @@ export default async function JourneeDashboardPage({
         }}
         journeePartage={journeePartage}
         publicOrigin={publicOrigin}
+        projetIndemnites={projetIndemnites ?? []}
       />
     </div>
   );

@@ -43,6 +43,13 @@ function str(fd: FormData, key: string): string | null {
   return v.trim();
 }
 
+function num(fd: FormData, key: string): number | null {
+  const v = str(fd, key);
+  if (v === null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function postulerAnnonce(
   publicToken: string,
   _prevState: unknown,
@@ -56,6 +63,9 @@ export async function postulerAnnonce(
   const dateNaissance = str(formData, "date_naissance");
   const message = str(formData, "message");
   const lienBandeDemo = str(formData, "lien_bande_demo");
+  const tailleCm = num(formData, "taille_cm");
+  const poidsKg = num(formData, "poids_kg");
+  const pointure = num(formData, "pointure");
 
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
@@ -65,6 +75,9 @@ export async function postulerAnnonce(
   }
   if (!message) {
     return { error: "Le message est obligatoire." };
+  }
+  if (!tailleCm || !poidsKg || !pointure) {
+    return { error: "Les mensurations (taille, poids, pointure) sont obligatoires." };
   }
 
   const age = computeAge(dateNaissance);
@@ -140,7 +153,17 @@ export async function postulerAnnonce(
   if (!figurantId) {
     const { data: newFigurant, error: figurantError } = await supabase
       .from("figurants")
-      .insert({ prenom, nom, email, telephone, ville, date_naissance: dateNaissance })
+      .insert({
+        prenom,
+        nom,
+        email,
+        telephone,
+        ville,
+        date_naissance: dateNaissance,
+        taille_cm: tailleCm,
+        poids_kg: poidsKg,
+        pointure,
+      })
       .select("id")
       .single();
 
@@ -151,6 +174,13 @@ export async function postulerAnnonce(
       return { error: figurantError.message };
     }
     figurantId = newFigurant.id;
+  } else {
+    // Fiche existante : on rafraîchit les mensurations avec ce qui vient
+    // d'être saisi/confirmé sur cette candidature.
+    await supabase
+      .from("figurants")
+      .update({ taille_cm: tailleCm, poids_kg: poidsKg, pointure })
+      .eq("id", figurantId);
   }
 
   // On n'écrase le lien existant que si un nouveau a été fourni — sinon un

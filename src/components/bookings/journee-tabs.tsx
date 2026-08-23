@@ -15,6 +15,7 @@ import type { MessageTemplate } from "@/lib/templates/types";
 import type { JourneeBesoin } from "@/lib/bookings/besoins";
 import type { ConvocationSettings } from "@/lib/bookings/convocation";
 import type { InboxReply } from "@/lib/email/inbox";
+import type { ProjetIndemnite } from "@/lib/indemnites/types";
 
 const TABS = [
   { value: "bookings", label: "Bookings" },
@@ -45,6 +46,7 @@ export function JourneeTabs({
   publicOrigin,
   covoiturageTarifBase,
   covoiturageTarifPassager,
+  projetIndemnites,
 }: {
   bookings: Row[];
   templates: MessageTemplate[];
@@ -65,6 +67,7 @@ export function JourneeTabs({
   publicOrigin: string;
   covoiturageTarifBase?: number;
   covoiturageTarifPassager?: number;
+  projetIndemnites?: ProjetIndemnite[];
 }) {
   const [tab, setTab] = useState<Tab>("bookings");
   const query = `?projet_id=${projetId}&date=${date}`;
@@ -114,6 +117,7 @@ export function JourneeTabs({
             convocationSettings={convocationSettings}
             initialReplies={initialReplies}
             messagesByFigurant={messagesByFigurant}
+            projetIndemnites={projetIndemnites}
           />
         </div>
       )}

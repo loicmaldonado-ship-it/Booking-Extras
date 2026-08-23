@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations } from "@/lib/bookings/actions";
+import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
+import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
@@ -88,6 +90,7 @@ export type Row = {
   indispoMotif?: string | null;
   raccord?: boolean;
   autresDates?: { date: string; statut: string }[];
+  indemnites?: { id: string; label: string; montant: number }[];
 };
 
 // Petit badge "R" pour repérer en un coup d'œil un jour de suite (raccord) —
@@ -251,6 +254,7 @@ export function BookingsTable({
   convocationSettings = null,
   initialReplies = [],
   messagesByFigurant = {},
+  projetIndemnites = [],
 }: {
   rows: Row[];
   projetId?: string;
@@ -260,6 +264,7 @@ export function BookingsTable({
   convocationSettings?: ConvocationSettings | null;
   initialReplies?: InboxReply[];
   messagesByFigurant?: Record<string, StaffMessageRow[]>;
+  projetIndemnites?: ProjetIndemnite[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -426,6 +431,16 @@ export function BookingsTable({
       await bulkUpdateBookings(ids, { heure_convocation: bulkHeure });
       setSelected(new Set());
       setBulkHeure("");
+      router.refresh();
+    });
+  }
+
+  function applyBulkIndemnite(projetIndemniteId: string) {
+    if (!projetIndemniteId || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await applyIndemniteToBookings(ids, projetIndemniteId);
+      setSelected(new Set());
       router.refresh();
     });
   }
@@ -725,6 +740,11 @@ export function BookingsTable({
                 ⚠ Indispo
               </Badge>
             )}
+            {(r.indemnites ?? []).map((ind) => (
+              <Badge key={ind.id} tone="yellow" title={`${ind.montant.toFixed(2)} €`}>
+                {ind.label}
+              </Badge>
+            ))}
           </Link>
           <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
           {renderContactLinks(r)}
@@ -865,6 +885,11 @@ export function BookingsTable({
               ⚠ Indispo
             </Badge>
           )}
+          {(r.indemnites ?? []).map((ind) => (
+            <Badge key={ind.id} tone="yellow" title={`${ind.montant.toFixed(2)} €`}>
+              {ind.label}
+            </Badge>
+          ))}
         </Link>
         {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         {renderContactLinks(r)}
@@ -1243,6 +1268,26 @@ export function BookingsTable({
               Appliquer l&apos;heure
             </Button>
           </div>
+          {projetIndemnites.length > 0 && (
+            <select
+              onChange={(e) => {
+                applyBulkIndemnite(e.target.value);
+                e.target.value = "";
+              }}
+              disabled={pending}
+              defaultValue=""
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            >
+              <option value="" disabled>
+                {pending ? "Mise à jour..." : "Appliquer une indemnité..."}
+              </option>
+              {projetIndemnites.map((ind) => (
+                <option key={ind.id} value={ind.id}>
+                  {ind.label} ({ind.montant.toFixed(2)} €)
+                </option>
+              ))}
+            </select>
+          )}
           <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openConvocationConfirm}>
             Convocation
           </Button>

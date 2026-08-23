@@ -5,6 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { CONVENTIONS, PROJET_TYPES, type Projet } from "@/lib/projets/types";
+import { IndemnitesManager } from "./indemnites-manager";
+import { IndemniteListEditor } from "./indemnite-list-editor";
+import type { ProjetIndemnite } from "@/lib/indemnites/types";
 
 type Action = (
   prevState: unknown,
@@ -14,9 +17,13 @@ type Action = (
 export function ProjetForm({
   action,
   projet,
+  indemnites,
+  lastProjetIndemnites,
 }: {
   action: Action;
   projet?: Projet;
+  indemnites?: ProjetIndemnite[];
+  lastProjetIndemnites?: { label: string; montant: number }[];
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
 
@@ -215,6 +222,28 @@ export function ProjetForm({
             />
           </Field>
         </div>
+      </Card>
+
+      <Card className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Indemnités</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Tarifs additionnels (prime nuit, repas...) applicables aux bookings de ce projet — ils
+            ressortent automatiquement sur le bordereau d&apos;émargement une fois appliqués.
+          </p>
+        </div>
+        {projet ? (
+          <IndemnitesManager projetId={projet.id} indemnites={indemnites ?? []} />
+        ) : (
+          <>
+            {lastProjetIndemnites && lastProjetIndemnites.length > 0 && (
+              <p className="text-xs text-text-muted">
+                Reprises du dernier projet — retire celles dont tu n&apos;as pas besoin ici.
+              </p>
+            )}
+            <IndemniteListEditor initial={lastProjetIndemnites ?? []} />
+          </>
+        )}
       </Card>
 
       <div className="flex gap-3">

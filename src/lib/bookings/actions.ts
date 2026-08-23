@@ -22,6 +22,15 @@ function friendlyError(message: string) {
   return message;
 }
 
+// Le lien d'espace personnel ne doit partir qu'une fois le booking
+// réellement confirmé — sinon le figurant le reçoit avant même la
+// proposition et ne comprend pas de quoi il s'agit.
+async function syncAccesCompteSurConfirmation(figurantId: string, statut: BookingStatut | null | undefined) {
+  if (statut === "confirmé") {
+    await activerAccesCompte(figurantId);
+  }
+}
+
 function buildBookingPayload(fd: FormData) {
   return {
     figurant_id: str(fd, "figurant_id") ?? "",
@@ -62,7 +71,7 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   }
 
   await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
-  await activerAccesCompte(payload.figurant_id);
+  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.statut);
   revalidatePath("/figurants");
 
   revalidatePath("/bookings");
@@ -88,6 +97,8 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   if (error) {
     return { error: friendlyError(error.message) };
   }
+
+  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.statut);
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${id}`);
@@ -143,10 +154,9 @@ export async function createBookingFromDrop(
   if (error) return { error: error.message };
 
   // Transfert vers une journée = le figurant devient "confirmé" (visible
-  // dans Base Profils) et son accès à l'espace personnel s'active, avec
-  // l'email dédié envoyé automatiquement.
+  // dans Base Profils). L'accès à l'espace personnel, lui, ne s'active que
+  // lorsque le booking passe réellement au statut "confirmé".
   await supabase.from("figurants").update({ confirme: true }).eq("id", figurantId);
-  await activerAccesCompte(figurantId);
 
   revalidatePath("/bookings/planning");
   revalidatePath("/candidatures");
@@ -247,9 +257,18 @@ export async function bulkUpdateBookings(
   }
 
   const { error } = await supabase.from("bookings").update(changes).in("id", ids);
+  if (error) return { error: friendlyError(error.message) };
+
+  if (changes.statut === "confirmé") {
+    const { data: confirmes } = await supabase.from("bookings").select("figurant_id").in("id", ids);
+    const figurantIds = Array.from(new Set((confirmes ?? []).map((b) => b.figurant_id)));
+    for (const figurantId of figurantIds) {
+      await activerAccesCompte(figurantId);
+    }
+  }
+
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
-  if (error) return { error: friendlyError(error.message) };
   return {};
 }
 

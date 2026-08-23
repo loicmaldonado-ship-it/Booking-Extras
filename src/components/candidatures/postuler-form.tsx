@@ -80,6 +80,9 @@ export function PostulerForm({
     ville: string | null;
     date_naissance: string | null;
     lien_bande_demo?: string | null;
+    taille_cm?: number | null;
+    poids_kg?: number | null;
+    pointure?: number | null;
   };
   bandeDemoObligatoire?: boolean;
 }) {
@@ -131,6 +134,20 @@ export function PostulerForm({
           <Field label="Date de naissance" required>
             <Input type="date" name="date_naissance" required defaultValue={prefill?.date_naissance ?? undefined} />
           </Field>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-xs font-medium text-text-muted">Mensurations</span>
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Taille (cm)" required>
+              <Input type="number" name="taille_cm" required min={0} defaultValue={prefill?.taille_cm ?? undefined} />
+            </Field>
+            <Field label="Poids (kg)" required>
+              <Input type="number" name="poids_kg" required min={0} defaultValue={prefill?.poids_kg ?? undefined} />
+            </Field>
+            <Field label="Pointure" required>
+              <Input type="number" name="pointure" required min={0} defaultValue={prefill?.pointure ?? undefined} />
+            </Field>
+          </div>
         </div>
         <Field label="Message" required>
           <Textarea
