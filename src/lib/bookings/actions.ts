@@ -292,6 +292,25 @@ export async function markConvocationEnvoyee(id: string) {
   revalidatePath(`/bookings/${id}`);
 }
 
+// Permet de renvoyer une convocation déjà reçue — geste explicite du staff,
+// distinct d'un simple bouton "renvoyer" pour éviter les doublons accidentels.
+export async function resetConvocationEnvoyee(ids: string[]) {
+  if (ids.length === 0) return {};
+  const supabase = createAdminClient();
+
+  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", ids);
+  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
+  for (const projetId of projetIds) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
+  }
+
+  await supabase.from("bookings").update({ convocation_envoyee: false }).in("id", ids);
+  revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  return { success: true as const };
+}
+
 // Enregistre la convocation comme message interne lié à ce booking, pour que
 // le "BIEN REÇU" du candidat marque automatiquement reponse_recue et
 // déclenche la surbrillance jaune fluo dans Booking. Envoie aussi le vrai
@@ -327,13 +346,29 @@ export async function recordCovoiturageMessage(
   return recordFigurantMessage({ figurantId, corps, categorie: "covoiturage", email, subject, projetId });
 }
 
+// Une convocation déjà reçue ne repart jamais toute seule — il faut la
+// réinitialiser explicitement (resetConvocationEnvoyee) avant de pouvoir la
+// renvoyer. Re-vérifié ici côté serveur (pas seulement dans l'UI) au cas où
+// convocation_envoyee aurait changé entre-temps.
 export async function sendBulkConvocations(
   rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
   projetId?: string | null
 ) {
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase
+    .from("bookings")
+    .select("id, convocation_envoyee")
+    .in("id", rows.map((r) => r.bookingId));
+  const dejaEnvoyees = new Set((existing ?? []).filter((b) => b.convocation_envoyee).map((b) => b.id));
+
   let sent = 0;
   let failed = 0;
+  let skipped = 0;
   for (const r of rows) {
+    if (dejaEnvoyees.has(r.bookingId)) {
+      skipped += 1;
+      continue;
+    }
     const result = await recordFigurantMessage({
       figurantId: r.figurantId,
       corps: r.corps,
@@ -352,7 +387,7 @@ export async function sendBulkConvocations(
   }
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
-  return { sent, failed };
+  return { sent, failed, skipped };
 }
 
 // Envoi manuel du lien d'espace perso à toute une sélection (ex. au moment

@@ -9,7 +9,13 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
-import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations, sendEspacePersoLinkBulk } from "@/lib/bookings/actions";
+import {
+  bulkUpdateBookings,
+  recordBookingMessage,
+  sendBulkConvocations,
+  sendEspacePersoLinkBulk,
+  resetConvocationEnvoyee,
+} from "@/lib/bookings/actions";
 import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
@@ -292,7 +298,7 @@ export function BookingsTable({
   const [libreSubject, setLibreSubject] = useState(`Message – ${date ?? ""}`);
   const [libreMessage, setLibreMessage] = useState(DEFAULT_LIBRE_BODY);
   const [sendPending, setSendPending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [repliesPending, setRepliesPending] = useState(false);
   const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
@@ -524,6 +530,10 @@ export function BookingsTable({
   const selectedRows = rows.filter((r) => selected.has(r.id));
   const selectedWithEmail = selectedRows.filter((r) => r.figurants?.email && r.figurant_id);
   const selectedWithoutEmail = selectedRows.length - selectedWithEmail.length;
+  // La convocation ne repart pas toute seule à quelqu'un qui l'a déjà
+  // reçue — il faut d'abord réinitialiser explicitement son envoi.
+  const convocationAEnvoyer = selectedWithEmail.filter((r) => !r.convocation_envoyee);
+  const convocationDejaEnvoyee = selectedWithEmail.filter((r) => r.convocation_envoyee);
 
   function convocationFor(r: Row) {
     return buildConvocationMailto({
@@ -568,12 +578,12 @@ export function BookingsTable({
   }
 
   function confirmSendConvocation() {
-    if (selectedWithEmail.length === 0) return;
+    if (convocationAEnvoyer.length === 0) return;
     setSendPending(true);
     setSendResult(null);
     startTransition(async () => {
       const result = await sendBulkConvocations(
-        selectedWithEmail.map((r) => {
+        convocationAEnvoyer.map((r) => {
           const { subject, body } = convocationFor(r);
           return { bookingId: r.id, figurantId: r.figurant_id!, email: r.figurants!.email!, corps: body, subject };
         }),
@@ -585,6 +595,14 @@ export function BookingsTable({
         setSelected(new Set());
         setMessageMode("none");
       }
+      router.refresh();
+    });
+  }
+
+  function reinitialiserConvocation(ids: string[]) {
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      await resetConvocationEnvoyee(ids);
       router.refresh();
     });
   }
@@ -755,6 +773,11 @@ export function BookingsTable({
           <Link href={`/bookings/${r.id}`} className="flex items-center gap-2 truncate font-medium hover:text-coral">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
+            {r.reponse_recue && (
+              <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
+                ✓ Répondu
+              </Badge>
+            )}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
             {r.numeroCostume && <Badge tone="coral">Costume {r.numeroCostume}</Badge>}
             {r.indispoMotif !== undefined && (
@@ -901,6 +924,11 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
+          {r.reponse_recue && (
+            <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
+              ✓ Répondu
+            </Badge>
+          )}
           {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
           {r.indispoMotif !== undefined && (
             <Badge tone="danger" title={r.indispoMotif ? `Indisponible déclaré·e : ${r.indispoMotif}` : "Indisponible déclaré·e"}>
@@ -1409,8 +1437,8 @@ export function BookingsTable({
             <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
-                  Envoyer la convocation par email à {selectedWithEmail.length} personne
-                  {selectedWithEmail.length > 1 ? "s" : ""}
+                  Envoyer la convocation par email à {convocationAEnvoyer.length} personne
+                  {convocationAEnvoyer.length > 1 ? "s" : ""}
                   {selectedWithoutEmail > 0 && (
                     <span className="ml-2 text-xs text-danger">
                       ({selectedWithoutEmail} sans email, ignoré{selectedWithoutEmail > 1 ? "s" : ""})
@@ -1419,7 +1447,7 @@ export function BookingsTable({
                 </span>
               </div>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
-                {selectedWithEmail.map((r) => (
+                {convocationAEnvoyer.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-2 py-0.5">
                     <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
                     <span className="text-text-muted">
@@ -1427,10 +1455,42 @@ export function BookingsTable({
                     </span>
                   </div>
                 ))}
-                {selectedWithEmail.length === 0 && (
-                  <p className="text-text-muted">Personne avec un email dans la sélection.</p>
+                {convocationAEnvoyer.length === 0 && (
+                  <p className="text-text-muted">Personne à convoquer dans la sélection.</p>
                 )}
               </div>
+              {convocationDejaEnvoyee.length > 0 && (
+                <div className="flex flex-col gap-1.5 rounded-lg border border-yellow/40 bg-yellow/10 p-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-yellow">
+                      {convocationDejaEnvoyee.length} déjà convoqué{convocationDejaEnvoyee.length > 1 ? "s" : ""} — ne{" "}
+                      {convocationDejaEnvoyee.length > 1 ? "seront" : "sera"} pas renvoyé
+                      {convocationDejaEnvoyee.length > 1 ? "s" : ""}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => reinitialiserConvocation(convocationDejaEnvoyee.map((r) => r.id))}
+                      className="text-coral hover:underline disabled:opacity-60"
+                    >
+                      Réinitialiser leur envoi
+                    </button>
+                  </div>
+                  {convocationDejaEnvoyee.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 text-text-muted">
+                      <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => reinitialiserConvocation([r.id])}
+                        className="text-coral hover:underline disabled:opacity-60"
+                      >
+                        Réinitialiser
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               {sendResult && (
                 <p className="text-xs text-text-muted">
                   {sendResult.sent} envoyé{sendResult.sent > 1 ? "s" : ""}
@@ -1443,10 +1503,10 @@ export function BookingsTable({
                 </Button>
                 <Button
                   type="button"
-                  disabled={sendPending || selectedWithEmail.length === 0}
+                  disabled={sendPending || convocationAEnvoyer.length === 0}
                   onClick={confirmSendConvocation}
                 >
-                  {sendPending ? "Envoi..." : `Confirmer et envoyer (${selectedWithEmail.length})`}
+                  {sendPending ? "Envoi..." : `Confirmer et envoyer (${convocationAEnvoyer.length})`}
                 </Button>
               </div>
             </div>
