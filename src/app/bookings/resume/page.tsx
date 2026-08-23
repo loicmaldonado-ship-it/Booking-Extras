@@ -101,6 +101,9 @@ export default async function ResumeProjetPage({
   const FIRST_COL_PX = 160;
   const totalTableWidthPx = FIRST_COL_PX + dates.reduce((sum, d) => sum + columnWidthPx(d.date), 0);
 
+  const dateTotal = (date: string) =>
+    rows.reduce((sum, [rowKey]) => sum + (cellRows.get(`${rowKey}|${date}`)?.length ?? 0), 0);
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/bookings" label="Retour" />
@@ -145,6 +148,7 @@ export default async function ResumeProjetPage({
                       J{d.numero}
                     </span>
                     <span className="text-xs font-semibold">{formatDateShort(d.date)}</span>
+                    <span className="text-[10px] text-text-muted">{dateTotal(d.date)} au total</span>
                   </Link>
                 </th>
               ))}
