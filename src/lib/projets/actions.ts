@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { checkProjetAccess, requireChef } from "@/lib/auth/session";
+import { projetEstSupprimable } from "./types";
 import type { Convention, ProjetType } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -154,6 +155,11 @@ export async function deleteProjet(id: string) {
   await requireChef();
 
   const supabase = createAdminClient();
+  const { data: projet } = await supabase.from("projets").select("archive, archive_le").eq("id", id).maybeSingle();
+  if (!projet || !projetEstSupprimable(projet)) {
+    throw new Error("Ce projet doit être archivé depuis au moins 1 an avant de pouvoir être supprimé définitivement.");
+  }
+
   await supabase.from("projets").delete().eq("id", id);
   revalidatePath("/projets");
   redirect("/projets");

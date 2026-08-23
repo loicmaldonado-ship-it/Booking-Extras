@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
-import type { Projet } from "@/lib/projets/types";
-import { deleteProjet, countProjetTemporaires } from "@/lib/projets/actions";
-import { ArchiverProjetButton, DesarchiverProjetButton } from "@/components/projets/archiver-projet-button";
+import { projetSupprimableDepuis, projetEstSupprimable, type Projet } from "@/lib/projets/types";
+import { countProjetTemporaires } from "@/lib/projets/actions";
+import {
+  ArchiverProjetButton,
+  DesarchiverProjetButton,
+  SupprimerProjetButton,
+} from "@/components/projets/archiver-projet-button";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -26,8 +30,9 @@ export default async function ProjetDetailPage({
 
   if (!projet) notFound();
 
-  const boundDeleteProjet = deleteProjet.bind(null, id);
   const temporaireCount = projet.archive ? 0 : await countProjetTemporaires(id);
+  const supprimableDepuis = projetSupprimableDepuis(projet.archive_le);
+  const supprimable = projetEstSupprimable(projet);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -54,17 +59,21 @@ export default async function ProjetDetailPage({
             Modifier
           </ButtonLink>
           {projet.archive ? (
-            <DesarchiverProjetButton projetId={id} />
+            <>
+              <DesarchiverProjetButton projetId={id} />
+              {supprimable && <SupprimerProjetButton projetId={id} nom={projet.nom} />}
+            </>
           ) : (
             <ArchiverProjetButton projetId={id} temporaireCount={temporaireCount} />
           )}
-          <form action={boundDeleteProjet}>
-            <Button type="submit" variant="ghost">
-              Supprimer
-            </Button>
-          </form>
         </div>
       </div>
+
+      {projet.archive && !supprimable && supprimableDepuis && (
+        <p className="text-xs text-text-muted">
+          Suppression définitive possible à partir du {formatDateShort(supprimableDepuis.toISOString())}.
+        </p>
+      )}
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Identité du projet</h2>

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { activerAccesCompte } from "@/lib/candidats/actions";
+import { activerAccesCompte, sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
@@ -25,9 +25,13 @@ function friendlyError(message: string) {
 // Le lien d'espace personnel ne doit partir qu'une fois le booking
 // réellement confirmé — sinon le figurant le reçoit avant même la
 // proposition et ne comprend pas de quoi il s'agit.
-async function syncAccesCompteSurConfirmation(figurantId: string, statut: BookingStatut | null | undefined) {
+async function syncAccesCompteSurConfirmation(
+  figurantId: string,
+  projetId: string,
+  statut: BookingStatut | null | undefined
+) {
   if (statut === "confirmé") {
-    await activerAccesCompte(figurantId);
+    await activerAccesCompte(figurantId, projetId);
   }
 }
 
@@ -71,7 +75,7 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   }
 
   await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
-  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.statut);
+  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.projet_id, payload.statut);
   revalidatePath("/figurants");
 
   revalidatePath("/bookings");
@@ -98,7 +102,7 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
     return { error: friendlyError(error.message) };
   }
 
-  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.statut);
+  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.projet_id, payload.statut);
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${id}`);
@@ -260,10 +264,13 @@ export async function bulkUpdateBookings(
   if (error) return { error: friendlyError(error.message) };
 
   if (changes.statut === "confirmé") {
-    const { data: confirmes } = await supabase.from("bookings").select("figurant_id").in("id", ids);
-    const figurantIds = Array.from(new Set((confirmes ?? []).map((b) => b.figurant_id)));
-    for (const figurantId of figurantIds) {
-      await activerAccesCompte(figurantId);
+    const { data: confirmes } = await supabase.from("bookings").select("figurant_id, projet_id").in("id", ids);
+    const pairs = new Map<string, { figurantId: string; projetId: string }>();
+    for (const b of confirmes ?? []) {
+      pairs.set(`${b.figurant_id}|${b.projet_id}`, { figurantId: b.figurant_id, projetId: b.projet_id });
+    }
+    for (const { figurantId, projetId } of pairs.values()) {
+      await activerAccesCompte(figurantId, projetId);
     }
   }
 
@@ -345,5 +352,59 @@ export async function sendBulkConvocations(
   }
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
+  return { sent, failed };
+}
+
+// Envoi manuel du lien d'espace perso à toute une sélection (ex. au moment
+// des convocations, pour que chacun aille consulter sa fiche) — envoie
+// toujours, contrairement à activerAccesCompte qui ne repart qu'une fois
+// par projet ; enregistre l'événement pour éviter un renvoi automatique
+// redondant plus tard sur ce même projet.
+export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: string) {
+  if (figurantIds.length === 0) return { error: "Sélectionne au moins un profil." };
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  let sent = 0;
+  let failed = 0;
+
+  for (const figurantId of Array.from(new Set(figurantIds))) {
+    const { data: figurant } = await supabase
+      .from("figurants")
+      .select("id, prenom, email, acces_compte")
+      .eq("id", figurantId)
+      .maybeSingle();
+
+    if (!figurant?.email) {
+      failed += 1;
+      continue;
+    }
+
+    if (!figurant.acces_compte) {
+      await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+    }
+
+    const result = figurant.acces_compte
+      ? await sendMagicLinkEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email })
+      : await sendAccesCompteActiveEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email });
+
+    if (result.error) {
+      failed += 1;
+      continue;
+    }
+
+    await supabase.from("figurant_messages").insert({
+      figurant_id: figurantId,
+      projet_id: projetId,
+      sender: "staff",
+      corps: "Lien d'accès à l'espace personnel envoyé.",
+      categorie: "espace_perso",
+    });
+    sent += 1;
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/figurants");
   return { sent, failed };
 }

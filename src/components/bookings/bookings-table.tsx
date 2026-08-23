@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
-import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations } from "@/lib/bookings/actions";
+import { bulkUpdateBookings, recordBookingMessage, sendBulkConvocations, sendEspacePersoLinkBulk } from "@/lib/bookings/actions";
 import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
@@ -281,6 +281,8 @@ export function BookingsTable({
   const [viewMode, setViewMode] = useState<"liste" | "trombi">("trombi");
   const [essayageOpen, setEssayageOpen] = useState(false);
   const [addDatesOpen, setAddDatesOpen] = useState(false);
+  const [espacePersoOpen, setEspacePersoOpen] = useState(false);
+  const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
   const [essayageResult, setEssayageResult] = useState<string | null>(null);
@@ -448,6 +450,26 @@ export function BookingsTable({
   function hideSelection() {
     setHiddenIds((prev) => new Set([...prev, ...selected]));
     setSelected(new Set());
+  }
+
+  function sendEspacePerso() {
+    if (!projetId || selectedWithEmail.length === 0) return;
+    setEspacePersoResult(null);
+    startTransition(async () => {
+      const result = await sendEspacePersoLinkBulk(
+        selectedWithEmail.map((r) => r.figurant_id!),
+        projetId
+      );
+      if (result.error) {
+        setEspacePersoResult({ sent: 0, failed: selectedWithEmail.length });
+        return;
+      }
+      setEspacePersoResult({ sent: result.sent ?? 0, failed: result.failed ?? 0 });
+      if (!result.failed) {
+        setSelected(new Set());
+        setEspacePersoOpen(false);
+      }
+    });
   }
 
   function sendToEssayage() {
@@ -1304,6 +1326,19 @@ export function BookingsTable({
               + Ajouter des dates
             </Button>
           )}
+          {projetId && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => {
+                setEspacePersoResult(null);
+                setEspacePersoOpen((v) => !v);
+              }}
+            >
+              Lien espace perso
+            </Button>
+          )}
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             Masquer la sélection
           </Button>
@@ -1339,6 +1374,34 @@ export function BookingsTable({
                 {pending ? "Envoi..." : "Envoyer"}
               </Button>
               {essayageResult && <span className="text-xs text-text-muted">{essayageResult}</span>}
+            </div>
+          )}
+
+          {espacePersoOpen && projetId && (
+            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
+              <span className="text-sm">
+                Envoyer le lien d&apos;espace perso à {selectedWithEmail.length} personne
+                {selectedWithEmail.length > 1 ? "s" : ""}
+                {selectedWithoutEmail > 0 && (
+                  <span className="ml-2 text-xs text-danger">
+                    ({selectedWithoutEmail} sans email, ignoré{selectedWithoutEmail > 1 ? "s" : ""})
+                  </span>
+                )}
+              </span>
+              <Button
+                type="button"
+                variant="turquoise"
+                disabled={pending || selectedWithEmail.length === 0}
+                onClick={sendEspacePerso}
+              >
+                {pending ? "Envoi..." : "Envoyer"}
+              </Button>
+              {espacePersoResult && (
+                <span className="text-xs text-text-muted">
+                  {espacePersoResult.sent} envoyé{espacePersoResult.sent > 1 ? "s" : ""}
+                  {espacePersoResult.failed > 0 ? `, ${espacePersoResult.failed} échec(s)` : ""}.
+                </span>
+              )}
             </div>
           )}
 

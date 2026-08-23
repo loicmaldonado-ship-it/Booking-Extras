@@ -195,10 +195,14 @@ export async function sendFigurantReply(_prevState: unknown, formData: FormData)
   return { success: true };
 }
 
-// Débloque l'accès à /compte pour ce figurant (idempotent — ne renvoie pas
-// l'email si l'accès est déjà actif). Appelé automatiquement quand une
-// candidature passe à "retenu", ou manuellement depuis la fiche figurant.
-export async function activerAccesCompte(figurantId: string) {
+// Débloque l'accès à /compte pour ce figurant. Le mail "espace prêt" ne
+// repart qu'une fois PAR PROJET (tracé via figurant_messages, catégorie
+// espace_perso) — sinon un figurant déjà actif sur un tournage passé ne
+// serait jamais prévenu d'un nouveau booking confirmé sur un autre projet.
+// Sans projetId (bascule manuelle depuis la fiche figurant), on retombe sur
+// l'ancien comportement : idempotent une seule fois pour toute la vie du
+// profil.
+export async function activerAccesCompte(figurantId: string, projetId?: string | null) {
   const supabase = createAdminClient();
   const { data: figurant } = await supabase
     .from("figurants")
@@ -206,15 +210,43 @@ export async function activerAccesCompte(figurantId: string) {
     .eq("id", figurantId)
     .single();
 
-  if (!figurant || figurant.acces_compte) return { success: true as const };
+  if (!figurant) return { success: true as const };
 
-  await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+  const etaitDejaActif = figurant.acces_compte;
+  if (!etaitDejaActif) {
+    await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+  }
+
+  if (projetId) {
+    const { data: dejaEnvoye } = await supabase
+      .from("figurant_messages")
+      .select("id")
+      .eq("figurant_id", figurantId)
+      .eq("projet_id", projetId)
+      .eq("categorie", "espace_perso")
+      .maybeSingle();
+    if (dejaEnvoye) {
+      revalidatePath(`/figurants/${figurantId}`);
+      return { success: true as const };
+    }
+  } else if (etaitDejaActif) {
+    revalidatePath(`/figurants/${figurantId}`);
+    return { success: true as const };
+  }
 
   let emailError: string | undefined;
   if (figurant.email) {
     const result = await sendAccesCompteActiveEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email });
     emailError = result.error;
   }
+
+  await supabase.from("figurant_messages").insert({
+    figurant_id: figurantId,
+    projet_id: projetId ?? null,
+    sender: "staff",
+    corps: "Lien d'accès à l'espace personnel envoyé.",
+    categorie: "espace_perso",
+  });
 
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const, emailError };

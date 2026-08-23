@@ -30,6 +30,21 @@ export type Projet = {
   updated_at: string;
 };
 
+// On ne supprime jamais un projet à la légère — il passe d'abord par
+// "archivé" pour qu'on puisse y revenir si besoin. La suppression
+// définitive n'est proposée qu'au bout d'1 an d'archivage.
+export const DELAI_SUPPRESSION_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function projetSupprimableDepuis(archiveLe: string | null): Date | null {
+  if (!archiveLe) return null;
+  return new Date(new Date(archiveLe).getTime() + DELAI_SUPPRESSION_MS);
+}
+
+export function projetEstSupprimable(projet: { archive: boolean; archive_le: string | null }): boolean {
+  const supprimableDepuis = projetSupprimableDepuis(projet.archive_le);
+  return Boolean(projet.archive && supprimableDepuis && supprimableDepuis.getTime() <= Date.now());
+}
+
 export const PROJET_TYPES: ProjetType[] = ["Film", "Série", "Publicité", "Clip", "Autre"];
 export const CONVENTIONS: Convention[] = ["Cinéma", "Audiovisuelle"];
 

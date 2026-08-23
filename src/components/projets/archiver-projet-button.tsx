@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { archiverProjet, desarchiverProjet } from "@/lib/projets/actions";
+import { archiverProjet, desarchiverProjet, deleteProjet } from "@/lib/projets/actions";
 
 export function ArchiverProjetButton({
   projetId,
@@ -66,5 +66,40 @@ export function DesarchiverProjetButton({ projetId }: { projetId: string }) {
     >
       {pending ? "..." : "Désarchiver"}
     </Button>
+  );
+}
+
+export function SupprimerProjetButton({ projetId, nom }: { projetId: string; nom: string }) {
+  const [open, setOpen] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  if (!open) {
+    return (
+      <Button type="button" variant="ghost" onClick={() => setOpen(true)}>
+        Supprimer définitivement
+      </Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-2xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm">
+      <p>
+        <strong>{nom}</strong> et tout ce qui lui est rattaché (bookings, candidatures, essayages, annonces...)
+        seront <strong>définitivement supprimés</strong>. Cette action est irréversible.
+      </p>
+      <div className="flex gap-2">
+        <Button type="button" variant="ghost" disabled={pending} onClick={() => setOpen(false)}>
+          Annuler
+        </Button>
+        <Button
+          type="button"
+          variant="danger"
+          disabled={pending}
+          onClick={() => startTransition(() => deleteProjet(projetId))}
+        >
+          {pending ? "Suppression..." : "Confirmer la suppression"}
+        </Button>
+      </div>
+    </div>
   );
 }
