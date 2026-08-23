@@ -53,22 +53,21 @@ export default async function ResumeProjetPage({
   // les trous d'un coup d'œil autant que le remplissage.
   const dates = journees.map((j) => ({ date: j.date, numero: j.numero }));
 
-  const rowMeta = new Map<string, { cachet: string | null; fonction: string | null }>();
+  // Une ligne par cachet (pas par cachet+fonction) — la fonction, elle,
+  // s'affiche directement sur la carte de chaque personne dans les cases,
+  // pour garder le tableau compact même avec beaucoup de fonctions distinctes.
+  const rowMeta = new Map<string, string | null>();
   const cellRows = new Map<string, Row[]>();
   for (const b of bookings) {
-    const rowKey = `${b.cachet ?? ""}||${b.fonction ?? ""}`;
-    if (!rowMeta.has(rowKey)) rowMeta.set(rowKey, { cachet: b.cachet, fonction: b.fonction });
+    const rowKey = b.cachet ?? "";
+    if (!rowMeta.has(rowKey)) rowMeta.set(rowKey, b.cachet);
     const cellKey = `${rowKey}|${b.date}`;
     const list = cellRows.get(cellKey) ?? [];
     list.push(b);
     cellRows.set(cellKey, list);
   }
 
-  const rows = Array.from(rowMeta.entries()).sort(([, a], [, b]) => {
-    const diff = cachetOrder(a.cachet) - cachetOrder(b.cachet);
-    if (diff !== 0) return diff;
-    return (a.fonction ?? "").localeCompare(b.fonction ?? "");
-  });
+  const rows = Array.from(rowMeta.entries()).sort(([, a], [, b]) => cachetOrder(a) - cachetOrder(b));
 
   const rowTotal = (rowKey: string) =>
     dates.reduce((sum, d) => sum + (cellRows.get(`${rowKey}|${d.date}`)?.length ?? 0), 0);
@@ -84,6 +83,24 @@ export default async function ResumeProjetPage({
     ([a], [b]) => cachetOrder(a === "Sans cachet" ? null : a) - cachetOrder(b === "Sans cachet" ? null : b)
   );
 
+  // Largeur de colonne calculée à partir du remplissage réel : jusqu'à 10
+  // profils par ligne avant de passer à la ligne suivante — un flex-wrap
+  // seul ne pousse pas une colonne de table à s'élargir, il faut lui donner
+  // la largeur explicitement via <colgroup>.
+  const UNIT_PX = 40;
+  const MAX_PER_ROW = 10;
+  function columnWidthPx(date: string) {
+    let max = 0;
+    for (const [rowKey] of rows) {
+      const count = cellRows.get(`${rowKey}|${date}`)?.length ?? 0;
+      if (count > max) max = count;
+    }
+    const unitsPerRow = Math.max(1, Math.min(max, MAX_PER_ROW));
+    return unitsPerRow * UNIT_PX + 12;
+  }
+  const FIRST_COL_PX = 160;
+  const totalTableWidthPx = FIRST_COL_PX + dates.reduce((sum, d) => sum + columnWidthPx(d.date), 0);
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/bookings" label="Retour" />
@@ -91,7 +108,7 @@ export default async function ResumeProjetPage({
       <div>
         <h1 className="text-2xl font-semibold">Résumé — {projet?.nom}</h1>
         <p className="mt-1 text-text-muted">
-          Toutes les journées d&apos;un coup d&apos;œil, rangées par cachet et fonction.
+          Toutes les journées d&apos;un coup d&apos;œil, rangées par cachet — fonction affichée sur chaque profil.
         </p>
       </div>
 
@@ -106,14 +123,20 @@ export default async function ResumeProjetPage({
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-border">
-        <table className="border-collapse text-sm">
+        <table className="border-collapse text-sm" style={{ tableLayout: "fixed", width: totalTableWidthPx }}>
+          <colgroup>
+            <col style={{ width: FIRST_COL_PX }} />
+            {dates.map((d) => (
+              <col key={d.date} style={{ width: `${columnWidthPx(d.date)}px` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 min-w-[10rem] bg-ink-raised px-4 py-3 text-left align-bottom">
+              <th className="sticky left-0 z-10 bg-ink-raised px-4 py-3 text-left align-bottom">
                 Cachet / Fonction
               </th>
               {dates.map((d) => (
-                <th key={d.date} className="min-w-[6rem] border-l border-border bg-ink-raised px-2 py-3 text-center align-bottom">
+                <th key={d.date} className="border-l border-border bg-ink-raised px-2 py-3 text-center align-bottom">
                   <Link
                     href={`/bookings/documents?projet_id=${projet_id}&date=${d.date}`}
                     className="flex flex-col items-center hover:text-coral"
@@ -128,30 +151,40 @@ export default async function ResumeProjetPage({
             </tr>
           </thead>
           <tbody>
-            {rows.map(([rowKey, { cachet, fonction }]) => (
+            {rows.map(([rowKey, cachet]) => (
               <tr key={rowKey} className="border-t border-border">
                 <td className="sticky left-0 z-10 bg-ink px-4 py-2 align-top">
                   <div className="font-medium">{cachet ?? "Sans cachet"}</div>
-                  <div className="text-xs text-text-muted">
-                    {fonction ?? "Sans fonction"} · {rowTotal(rowKey)}
-                  </div>
+                  <div className="text-xs text-text-muted">{rowTotal(rowKey)}</div>
                 </td>
                 {dates.map((d) => {
                   const cellBookings = cellRows.get(`${rowKey}|${d.date}`) ?? [];
                   return (
                     <td key={d.date} className="border-l border-border px-1.5 py-2 align-top">
-                      <div className="flex flex-col items-center gap-1.5">
+                      {cellBookings.length > 0 && (
+                        <div className="mb-1 text-center text-[10px] font-semibold text-coral">
+                          {cellBookings.length}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap justify-center gap-1.5">
                         {cellBookings.map((b) => {
                           const portrait = pickPortrait(photosByFigurant.get(b.figurant_id), projet_id);
                           return (
-                            <div key={b.id} className="flex flex-col items-center gap-0.5">
-                              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
+                            <div
+                              key={b.id}
+                              title={b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : ""}
+                              className="flex w-9 shrink-0 flex-col items-center gap-0.5"
+                            >
+                              <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
                                 {portrait?.url && (
                                   <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
                                 )}
                               </div>
-                              <span className="max-w-[5.5rem] text-center text-[10px] leading-tight text-text-muted">
-                                {b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "—"}
+                              <span className="w-full truncate text-center text-[8px] leading-tight text-text-muted">
+                                {b.figurants?.prenom ?? "—"}
+                              </span>
+                              <span className="w-full truncate text-center text-[7px] leading-tight text-text-muted/60">
+                                {b.fonction ?? "—"}
                               </span>
                             </div>
                           );
