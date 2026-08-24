@@ -324,6 +324,62 @@ export async function removeEssayageFromJournee(id: string) {
   revalidatePath("/essayages/journee");
 }
 
+// Déplace des profils d'une journée d'essayage vers une autre (existante ou
+// nouvelle) — ex. "je suis le 24, je passe Nina et Paul le 25". Le créneau
+// (propre à l'ancienne journée) est réinitialisé ; statut et notes restent.
+export async function moveEssayagesToJournee(
+  ids: string[],
+  projetId: string,
+  targetDate: string,
+  targetLieu: string | null
+) {
+  if (ids.length === 0) return { error: "Sélectionne au moins un profil." };
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+
+  const { data: existingJournee } = await supabase
+    .from("essayage_journees")
+    .select("id")
+    .eq("projet_id", projetId)
+    .eq("date", targetDate)
+    .maybeSingle();
+
+  let journeeId = existingJournee?.id;
+  if (!journeeId) {
+    const { data: created, error: createError } = await supabase
+      .from("essayage_journees")
+      .insert({ projet_id: projetId, date: targetDate, lieu: targetLieu })
+      .select("id")
+      .single();
+    if (createError || !created) return { error: createError?.message ?? "Impossible de créer la journée cible." };
+    journeeId = created.id;
+  }
+
+  const { data: toMove } = await supabase.from("essayages").select("id, figurant_id").in("id", ids);
+  const { data: dejaPresents } = await supabase
+    .from("essayages")
+    .select("figurant_id")
+    .eq("essayage_journee_id", journeeId);
+  const dejaPresentIds = new Set((dejaPresents ?? []).map((e) => e.figurant_id));
+
+  const moveIds = (toMove ?? []).filter((e) => !dejaPresentIds.has(e.figurant_id)).map((e) => e.id);
+  const skipped = ids.length - moveIds.length;
+
+  if (moveIds.length > 0) {
+    const { error } = await supabase
+      .from("essayages")
+      .update({ date: targetDate, essayage_journee_id: journeeId, creneau_id: null })
+      .in("id", moveIds);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/essayages");
+  revalidatePath("/essayages/journee");
+  return { success: true as const, moved: moveIds.length, skipped };
+}
+
 export async function addCreneau(essayageJourneeId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkEssayageJourneeAccess(essayageJourneeId);
   if (accessError) return { error: accessError };

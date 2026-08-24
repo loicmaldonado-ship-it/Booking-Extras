@@ -13,11 +13,14 @@ import {
   removeEssayageFromJournee,
   recordEssayageMessage,
   uploadTenuePhoto,
+  moveEssayagesToJournee,
 } from "@/lib/essayages/actions";
 import { ESSAYAGE_STATUTS, type EssayageStatut } from "@/lib/essayages/types";
 import { buildEssayagePropositionMailto, buildEssayageConfirmationMailto } from "@/lib/essayages/messages";
+import { formatDateShort } from "@/lib/format-date";
 import type { Genre } from "@/lib/figurants/types";
 import type { Creneau } from "./creneaux-panel";
+import type { EssayageJournee } from "@/lib/essayages/journees";
 
 const STATUT_TONE: Record<EssayageStatut, "yellow" | "coral" | "turquoise"> = {
   "proposé": "yellow",
@@ -46,6 +49,7 @@ export function EssayageJourneeTable({
   journeeDate,
   journeeLieu,
   creneaux = [],
+  autresJournees = [],
 }: {
   rows: EssayageRow[];
   projetId?: string;
@@ -54,11 +58,43 @@ export function EssayageJourneeTable({
   journeeDate: string;
   journeeLieu: string | null;
   creneaux?: Creneau[];
+  autresJournees?: EssayageJournee[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [consigne, setConsigne] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveDate, setMoveDate] = useState("");
+  const [moveLieu, setMoveLieu] = useState("");
+  const [moveResult, setMoveResult] = useState<string | null>(null);
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function moveSelected() {
+    if (!projetId || !moveDate || selected.size === 0) return;
+    setMoveResult(null);
+    startTransition(async () => {
+      const result = await moveEssayagesToJournee(Array.from(selected), projetId, moveDate, moveLieu.trim() || null);
+      if (result.error) {
+        setMoveResult(result.error);
+        return;
+      }
+      setMoveResult(
+        `${result.moved ?? 0} déplacé${(result.moved ?? 0) > 1 ? "s" : ""}${result.skipped ? `, ${result.skipped} déjà présent(s) sur cette date` : ""}.`
+      );
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
 
   function heureFor(r: EssayageRow): string | null {
     const creneau = creneaux.find((c) => c.id === r.creneau_id);
@@ -145,6 +181,54 @@ export function EssayageJourneeTable({
       {sendError && (
         <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
       )}
+      {selected.size > 0 && projetId && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          <span className="text-sm">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setMoveResult(null);
+              setMoveOpen((v) => !v);
+            }}
+          >
+            Déplacer vers une autre date
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => setSelected(new Set())}>
+            Désélectionner
+          </Button>
+          {moveOpen && (
+            <div className="flex w-full flex-wrap items-center gap-2 border-t border-coral/40 pt-3">
+              <datalist id="autres-journees-essayage">
+                {autresJournees.map((j) => (
+                  <option key={j.id} value={j.date}>
+                    {formatDateShort(j.date)} — {j.total} profil{j.total > 1 ? "s" : ""}
+                  </option>
+                ))}
+              </datalist>
+              <input
+                type="date"
+                list="autres-journees-essayage"
+                value={moveDate}
+                onChange={(e) => setMoveDate(e.target.value)}
+                disabled={pending}
+                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              />
+              <input
+                value={moveLieu}
+                onChange={(e) => setMoveLieu(e.target.value)}
+                placeholder="Lieu (optionnel, si nouvelle date)"
+                disabled={pending}
+                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              />
+              <Button type="button" variant="turquoise" disabled={pending || !moveDate} onClick={moveSelected}>
+                {pending ? "Déplacement..." : "Déplacer"}
+              </Button>
+              {moveResult && <span className="text-xs text-text-muted">{moveResult}</span>}
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-text-muted">
           Consigne à ajouter aux messages de confirmation (optionnel)
@@ -163,6 +247,12 @@ export function EssayageJourneeTable({
             key={r.id}
             className="relative flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center"
           >
+            <input
+              type="checkbox"
+              checked={selected.has(r.id)}
+              onChange={() => toggleSelected(r.id)}
+              className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
+            />
             <button
               type="button"
               onClick={() => remove(r.id)}

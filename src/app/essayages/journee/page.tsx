@@ -7,6 +7,7 @@ import { QuickAddFigurantEssayage } from "@/components/essayages/quick-add-figur
 import { CreneauxPanel, type Creneau } from "@/components/essayages/creneaux-panel";
 import { EssayagePlanningBoard, type PlanningRow } from "@/components/essayages/essayage-planning-board";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getEssayageJournees } from "@/lib/essayages/journees";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -60,6 +61,7 @@ export default async function EssayageJourneePage({
 
   const figurantIds = (essayagesRaw ?? []).map((e) => e.figurant_id);
   const photosByFigurant = await getPhotosByFigurantId(figurantIds);
+  const autresJournees = (await getEssayageJournees(projet_id)).filter((j) => j.id !== journee.id);
   const rows: EssayageRow[] = (essayagesRaw ?? []).map((e) => ({
     ...e,
     portraitUrl: pickPortrait(photosByFigurant.get(e.figurant_id), projet_id)?.url ?? null,
@@ -115,6 +117,7 @@ export default async function EssayageJourneePage({
           journeeDate={date}
           journeeLieu={journee.lieu}
           creneaux={creneaux ?? []}
+          autresJournees={autresJournees}
         />
       </Card>
 
