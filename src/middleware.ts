@@ -10,6 +10,8 @@ const PUBLIC_PREFIXES = [
   "/disponibilites",
   "/partage/documents",
   "/partage/essayages",
+  "/partage/casting",
+  "/casting/upload",
   "/compte",
   "/manifest.ts",
   "/icon",
