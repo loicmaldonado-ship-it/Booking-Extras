@@ -201,7 +201,7 @@ type RowChanges = Partial<{
   reponse_recue: boolean;
   notes: string | null;
 }>;
-type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure";
+type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu";
 
 const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "fonction", label: "Fonction" },
@@ -210,6 +210,7 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "sexe", label: "Genre" },
   { key: "age", label: "Âge" },
   { key: "heure", label: "Heure" },
+  { key: "repondu", label: "Répondu" },
 ];
 
 // Dimensions transposables telles quelles vers le tri additif des documents
@@ -225,6 +226,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "cachet") return r.cachet ?? "Sans cachet";
   if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
   if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
+  if (dimension === "repondu") return r.reponse_recue ? "Répondu" : "Pas répondu";
   const bracket = AGE_BRACKETS.find((b) => b.key === ageBracketKey(r.figurants?.date_naissance ?? null));
   return bracket?.label ?? "Âge non renseigné";
 }
@@ -743,7 +745,8 @@ export function BookingsTable({
     const msgs = messagesByFigurant[r.figurant_id ?? ""] ?? [];
     if (msgs.length === 0) return null;
     const expanded = expandedMessages.has(r.id);
-    const hasReponse = msgs.some((m) => m.sender === "figurant");
+    // La couleur ne bouge que pour la convocation (reponse_recue) — les
+    // autres messages restent visibles mais neutres, pas de code couleur.
     return (
       <div className="flex flex-col gap-1">
         <button
@@ -751,12 +754,10 @@ export function BookingsTable({
           onClick={() => toggleMessagesExpanded(r.id)}
           className={cn(
             "w-fit text-left text-[10px] font-medium hover:underline",
-            hasReponse ? "text-turquoise" : "text-coral"
+            r.reponse_recue ? "text-turquoise" : "text-coral"
           )}
         >
-          {expanded
-            ? "Masquer les messages"
-            : `${msgs.length} message${msgs.length > 1 ? "s" : ""}${hasReponse ? " — a répondu" : ""} ▾`}
+          {expanded ? "Masquer les messages" : `${msgs.length} message${msgs.length > 1 ? "s" : ""} ▾`}
         </button>
         {expanded && (
           <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-ink p-1.5">
@@ -985,11 +986,26 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
-          {r.reponse_recue && (
-            <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
-              ✓ Répondu
-            </Badge>
-          )}
+          <label
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="A répondu à la convocation (BIEN REÇU)"
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              r.reponse_recue ? "bg-yellow/15 text-yellow" : "bg-ink-raised-2 text-text-muted"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={r.reponse_recue}
+              disabled={pending}
+              onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
+              className="h-3 w-3 rounded border-border accent-yellow"
+            />
+            {r.reponse_recue ? "✓ Répondu" : "Répondu"}
+          </label>
           {cardDelai && (
             <div className={cn("text-[10px]", cardDelai.muted ? "text-yellow" : "text-turquoise")}>{cardDelai.text}</div>
           )}
