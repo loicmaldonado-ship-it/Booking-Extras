@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Select, Input } from "@/components/ui/field";
+import { ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row } from "@/components/candidatures/candidatures-table";
@@ -8,6 +9,7 @@ import { SortChips } from "@/components/documents/sort-chips";
 import { ONGLET_OUT_BE, type CandidatureOnglet } from "@/lib/candidatures/types";
 import { GENRES } from "@/lib/figurants/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
@@ -315,11 +317,30 @@ export default async function CandidaturesPage({
             Changer d&apos;annonce
           </Link>
         </p>
-        <h1 className="text-3xl font-semibold">{annonce?.titre ?? "Annonce"}</h1>
-        <p className="mt-1 text-text-muted">
-          {projetNomPublic(annonce?.projets)}
-          {annonce?.lieu ? ` · ${annonce.lieu}` : ""} · {rows.length} candidature{rows.length > 1 ? "s" : ""}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-semibold">{annonce?.titre ?? "Annonce"}</h1>
+            <p className="mt-1 text-text-muted">
+              {projetNomPublic(annonce?.projets)}
+              {annonce?.lieu ? ` · ${annonce.lieu}` : ""} · {rows.length} candidature{rows.length > 1 ? "s" : ""}
+            </p>
+          </div>
+          {isOwner(profile) && (
+            <ButtonLink
+              href={`/candidatures/export?${new URLSearchParams(
+                Object.entries({
+                  annonce_id: params.annonce_id,
+                  myrole: params.myrole,
+                  genre: params.genre,
+                  vehicule: params.vehicule,
+                }).filter(([, v]) => v) as [string, string][]
+              ).toString()}`}
+              variant="secondary"
+            >
+              Exporter Excel
+            </ButtonLink>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

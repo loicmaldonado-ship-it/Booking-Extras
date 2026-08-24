@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "exceljs": "^4.4.0",
     "html2canvas-pro": "^2.3.8",
     "imapflow": "^1.7.1",
     "jspdf": "^4.2.1",

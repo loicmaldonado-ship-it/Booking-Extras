@@ -29,6 +29,7 @@ type Tab = (typeof TABS)[number]["value"];
 
 export function JourneeTabs({
   bookings,
+  canExport = false,
   templates,
   essayageFigurants,
   essayages,
@@ -51,6 +52,7 @@ export function JourneeTabs({
   baremeMajorations,
 }: {
   bookings: Row[];
+  canExport?: boolean;
   templates: MessageTemplate[];
   essayageFigurants: BookedFigurant[];
   essayages: EssayageRow[];
@@ -165,6 +167,11 @@ export function JourneeTabs({
             <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
               Tableau silhouette
             </ButtonLink>
+            {canExport && (
+              <ButtonLink href={`/bookings/export${query}`} variant="secondary">
+                Exporter Excel
+              </ButtonLink>
+            )}
           </div>
           <ExportMyroleButtons projetId={projetId} date={date} />
           <PartageJourneeButton

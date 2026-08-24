@@ -15,7 +15,8 @@ import { getSiteOrigin } from "@/lib/partage/data";
 import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import type { MessageTemplate } from "@/lib/templates/types";
-import { requireProjetAccess } from "@/lib/auth/session";
+import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
@@ -50,6 +51,7 @@ export default async function JourneeDashboardPage({
     );
   }
   await requireProjetAccess(projet_id);
+  const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }] =
@@ -299,6 +301,7 @@ export default async function JourneeDashboardPage({
 
       <JourneeTabs
         bookings={bookings}
+        canExport={isOwner(profile)}
         templates={templates ?? []}
         essayageFigurants={essayageFigurants}
         essayages={essayagesRaw ?? []}
