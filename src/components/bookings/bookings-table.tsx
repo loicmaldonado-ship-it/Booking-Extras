@@ -656,7 +656,7 @@ export function BookingsTable({
         const tokens = rowTokens(r, journeeLieu);
         const subject = substituteTokens(libreSubject, tokens);
         const body = substituteTokens(libreMessage, tokens);
-        const result = await recordBookingMessage(r.figurant_id!, body, r.figurants!.email, subject, projetId);
+        const result = await recordBookingMessage(r.figurant_id!, body, r.figurants!.email, subject, projetId, r.id);
         if (result?.error) failed += 1;
         else sent += 1;
       }

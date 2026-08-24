@@ -334,14 +334,18 @@ export async function recordConvocationMessage(
   return recordFigurantMessage({ figurantId, corps, categorie: "convocation", bookingId, email, subject, projetId });
 }
 
+// bookingId permet au clic "BIEN REÇU" du candidat de marquer directement
+// reponse_recue sur ce booking (comme pour la convocation) — sans ça, une
+// réponse à un message libre ne remontait nulle part côté booking.
 export async function recordBookingMessage(
   figurantId: string,
   corps: string,
   email?: string | null,
   subject?: string,
-  projetId?: string | null
+  projetId?: string | null,
+  bookingId?: string | null
 ) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "booking", email, subject, projetId });
+  return recordFigurantMessage({ figurantId, corps, categorie: "booking", email, subject, projetId, bookingId });
 }
 
 export async function recordCovoiturageMessage(
