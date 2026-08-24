@@ -6,9 +6,9 @@ import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getEssayageJournees } from "@/lib/essayages/journees";
-import { createEssayageJournee } from "@/lib/essayages/actions";
 import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { EssayageLieuProjetPanel } from "@/components/essayages/essayage-lieu-projet-panel";
+import { AjouterJourneesForm } from "@/components/essayages/ajouter-journees-form";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { formatDateLong } from "@/lib/format-date";
@@ -80,50 +80,39 @@ export default async function EssayagesPage({
 
       <EssayageLieuProjetPanel projetId={currentProjetId} lieu={essayageLieu.nom} adresse={essayageLieu.adresse} />
 
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Journées d&apos;essayage</h2>
-        <p className="text-sm text-text-muted">
-          Clique une journée pour y ajouter des profils et suivre leur essayage.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          {journees.map((j) => (
-            <Link
-              key={j.id}
-              href={`/essayages/journee?projet_id=${j.projet_id}&date=${j.date}`}
-              className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-3 text-center transition-colors hover:border-coral/60"
-            >
-              <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
-              <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
-              <Badge tone={j.fait > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
-              <div className="flex gap-1.5">
-                <Badge tone="yellow">{j.propose} proposé{j.propose > 1 ? "s" : ""}</Badge>
-                <Badge tone="turquoise">{j.fait} fait{j.fait > 1 ? "s" : ""}</Badge>
-              </div>
-            </Link>
-          ))}
+      {journees.length > 0 && (
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Journées d&apos;essayage</h2>
+          <p className="text-sm text-text-muted">
+            Clique une journée pour y ajouter des profils et suivre leur essayage.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {journees.map((j) => (
+              <Link
+                key={j.id}
+                href={`/essayages/journee?projet_id=${j.projet_id}&date=${j.date}`}
+                className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-3 text-center transition-colors hover:border-coral/60"
+              >
+                <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
+                <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
+                <Badge tone={j.fait > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
+                <div className="flex gap-1.5">
+                  <Badge tone="yellow">{j.propose} proposé{j.propose > 1 ? "s" : ""}</Badge>
+                  <Badge tone="turquoise">{j.fait} fait{j.fait > 1 ? "s" : ""}</Badge>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
-          <form
-            action={createEssayageJournee.bind(null, currentProjetId)}
-            className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-3 text-center"
-          >
-            <span className="text-sm font-medium text-text-muted">+ Ajouter planning</span>
-            <input
-              type="date"
-              name="date"
-              required
-              className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1.5 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-ink-raised-2 px-4 py-1.5 text-sm font-medium hover:border hover:border-coral/60"
-            >
-              Créer
-            </button>
-          </form>
-        </div>
-        {journees.length === 0 && (
-          <p className="text-sm text-text-muted">Aucune journée d&apos;essayage pour l&apos;instant sur ce projet.</p>
-        )}
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Ajouter des journées</h2>
+        <p className="text-sm text-text-muted">
+          Clique les jours voulus sur le calendrier (plusieurs à la fois, même sur des mois différents), puis
+          valide une seule fois.
+        </p>
+        <AjouterJourneesForm projetId={currentProjetId} existingDates={journees.map((j) => j.date)} />
       </Card>
 
       <PartageCard

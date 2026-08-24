@@ -5,7 +5,6 @@ export type EssayageJournee = {
   projet_id: string;
   date: string;
   lieu: string | null;
-  adresse: string | null;
   numero: number;
   total: number;
   propose: number;
@@ -18,7 +17,7 @@ export async function getEssayageJournees(projetId?: string): Promise<EssayageJo
 
   let journeesQuery = supabase
     .from("essayage_journees")
-    .select("id, projet_id, date, lieu, adresse")
+    .select("id, projet_id, date, lieu")
     .order("date", { ascending: true });
   if (projetId) journeesQuery = journeesQuery.eq("projet_id", projetId);
 
@@ -48,7 +47,6 @@ export async function getEssayageJournees(projetId?: string): Promise<EssayageJo
       projet_id: j.projet_id,
       date: j.date,
       lieu: j.lieu,
-      adresse: j.adresse,
       numero: i + 1,
       total: c.total,
       propose: c.propose,

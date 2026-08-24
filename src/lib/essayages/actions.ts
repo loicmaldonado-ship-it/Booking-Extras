@@ -144,18 +144,31 @@ export async function deleteEssayage(id: string) {
   redirect("/essayages");
 }
 
+// Accepte un ou plusieurs champs "date" (formData.getAll) pour créer
+// plusieurs journées en une fois — plus besoin de repasser par le
+// formulaire une date à la fois. Avec une seule date, on redirige
+// directement dessus comme avant ; avec plusieurs, on reste sur la liste
+// pour voir toutes les journées créées d'un coup.
 export async function createEssayageJournee(projetId: string, formData: FormData) {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) throw new Error(accessError);
 
-  const date = str(formData, "date");
-  if (!date) return;
+  const dates = Array.from(new Set(formData.getAll("date").map((d) => String(d).trim()).filter(Boolean)));
+  if (dates.length === 0) return;
 
   const supabase = createAdminClient();
-  await supabase.from("essayage_journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  await supabase
+    .from("essayage_journees")
+    .upsert(
+      dates.map((date) => ({ projet_id: projetId, date })),
+      { onConflict: "projet_id,date" }
+    );
 
   revalidatePath("/essayages");
-  redirect(`/essayages/journee?projet_id=${projetId}&date=${date}`);
+  if (dates.length === 1) {
+    redirect(`/essayages/journee?projet_id=${projetId}&date=${dates[0]}`);
+  }
+  redirect("/essayages");
 }
 
 // Recalibrer le lieu (nom + adresse) d'une journée déjà créée, sans
