@@ -2,6 +2,8 @@ import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { getConfirmedBookings, getPhotosByFigurantId, pickPortrait, type ConfirmedBooking } from "@/lib/documents/data";
+import { getDocumentTemplate } from "@/lib/documents/templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -117,6 +119,7 @@ export default async function PartageTrombisPage({
   const bookings = await getConfirmedBookings(projet.id, date);
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
   const pages = chunk(flattenByHeureEtCachet(bookings, showFonction), PHOTOS_PER_PAGE);
+  const documentTemplate = await getDocumentTemplate(createAdminClient(), projet.id);
 
   return (
     <div className="flex flex-col gap-4">
@@ -148,6 +151,8 @@ export default async function PartageTrombisPage({
             filmNom={projetNomPublic(projet)}
             dateLabel={formatDateLong(date)}
             realisateur={projet.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
           />
           <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
         </PrintSheet>
@@ -170,6 +175,8 @@ export default async function PartageTrombisPage({
               filmNom={projetNomPublic(projet)}
               dateLabel={formatDateLong(date)}
               realisateur={projet.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
             />
 
             <div className="flex flex-wrap gap-x-3 gap-y-2">

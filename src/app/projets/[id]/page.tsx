@@ -12,6 +12,8 @@ import {
 } from "@/components/projets/archiver-projet-button";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { getDocumentTemplate } from "@/lib/documents/templates";
+import { DocumentTemplatePanel } from "@/components/projets/document-template-panel";
 
 export default async function ProjetDetailPage({
   params,
@@ -33,6 +35,7 @@ export default async function ProjetDetailPage({
   const temporaireCount = projet.archive ? 0 : await countProjetTemporaires(id);
   const supprimableDepuis = projetSupprimableDepuis(projet.archive_le);
   const supprimable = projetEstSupprimable(projet);
+  const documentTemplate = await getDocumentTemplate(supabase, id);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -102,6 +105,12 @@ export default async function ProjetDetailPage({
           <div><span className="text-text-muted">Email : </span>{projet.contact_email ?? "—"}</div>
         </div>
       </Card>
+
+      <DocumentTemplatePanel
+        projetId={id}
+        logoUrl={documentTemplate.logoUrl}
+        accentColor={documentTemplate.accentColor}
+      />
 
       {(projet.besoins_figuration || projet.synopsis) && (
         <Card className="flex flex-col gap-3">

@@ -12,6 +12,7 @@ import { FieldsToggle } from "@/components/documents/fields-toggle";
 import { SortChips } from "@/components/documents/sort-chips";
 import { MensurationSheet } from "@/components/documents/mensuration-sheet";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { computeAge, parseFields, parseIds, formatHeureConvocation, type DocumentField } from "@/lib/documents/fields";
 import { sortBookingsFlat, parseDocSort } from "@/lib/documents/sort";
@@ -54,6 +55,7 @@ export default async function FichesPage({
     selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings,
     docSort
   );
+  const documentTemplate = await getDocumentTemplate(supabase, projet_id);
 
   const figurantIds = bookings.map((b) => b.figurant.id);
   const today = new Date().toISOString().slice(0, 10);
@@ -121,6 +123,8 @@ export default async function FichesPage({
                 filmNom={projet?.nom ?? ""}
                 dateLabel={formatDateLong(date)}
                 realisateur={projet?.realisateur}
+                logoUrl={documentTemplate.logoUrl}
+                accentColor={documentTemplate.accentColor}
               />
               <MensurationSheet
                 figurant={f}

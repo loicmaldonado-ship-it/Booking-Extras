@@ -11,6 +11,8 @@ import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
 import { MensurationSheet } from "@/components/documents/mensuration-sheet";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge, parseFields, formatHeureConvocation, type DocumentField } from "@/lib/documents/fields";
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { resolveDocumentsShareToken } from "@/lib/partage/data";
@@ -54,6 +56,7 @@ export default async function PartageFichesPage({
     getPhotosByFigurantId(figurantIds),
     getFutureBookingsByFigurant(figurantIds, today),
   ]);
+  const documentTemplate = await getDocumentTemplate(createAdminClient(), projet.id);
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,6 +106,8 @@ export default async function PartageFichesPage({
                 filmNom={projetNomPublic(projet)}
                 dateLabel={formatDateLong(date)}
                 realisateur={projet.realisateur}
+                logoUrl={documentTemplate.logoUrl}
+                accentColor={documentTemplate.accentColor}
               />
               <MensurationSheet
                 figurant={f}

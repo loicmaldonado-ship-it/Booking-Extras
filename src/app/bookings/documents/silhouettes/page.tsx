@@ -5,6 +5,7 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -53,6 +54,7 @@ export default async function SilhouettesPage({
   );
 
   const photosByFigurant = await getPhotosByFigurantId(rows.map((r) => r.figurant.id));
+  const documentTemplate = await getDocumentTemplate(supabase, projet_id);
   const backHref = date ? `/bookings/documents?projet_id=${projet_id}&date=${date}` : `/bookings?projet_id=${projet_id}`;
 
   return (
@@ -75,6 +77,8 @@ export default async function SilhouettesPage({
           filmNom={projet?.nom ?? ""}
           dateLabel={`${rows.length} silhouette${rows.length > 1 ? "s" : ""}`}
           realisateur={projet?.realisateur}
+          logoUrl={documentTemplate.logoUrl}
+          accentColor={documentTemplate.accentColor}
         />
 
         {rows.length === 0 ? (

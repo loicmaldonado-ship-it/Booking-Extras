@@ -6,6 +6,7 @@ import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FieldsToggle } from "@/components/documents/fields-toggle";
 import { TrombiGrid } from "@/components/documents/trombi-grid";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { parseFields, parseIds, type DocumentField } from "@/lib/documents/fields";
 import { buildFixedOrderTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
@@ -52,6 +53,7 @@ export default async function TrombisHmcPage({
   ]);
 
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
+  const documentTemplate = await getDocumentTemplate(supabase, projet_id);
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
   const items: TrombiItem[] = buildFixedOrderTrombiItems(bookings);
@@ -84,6 +86,8 @@ export default async function TrombisHmcPage({
             filmNom={projet?.nom ?? ""}
             dateLabel={formatDateLong(date)}
             realisateur={projet?.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
           />
           <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
         </PrintSheet>
@@ -101,6 +105,8 @@ export default async function TrombisHmcPage({
             filmNom={projet?.nom ?? ""}
             dateLabel={formatDateLong(date)}
             realisateur={projet?.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
           />
 
           <TrombiGrid

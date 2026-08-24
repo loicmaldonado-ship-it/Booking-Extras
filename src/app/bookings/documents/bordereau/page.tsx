@@ -4,6 +4,7 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatHeureConvocation } from "@/lib/documents/fields";
 import { formatDateLong } from "@/lib/format-date";
@@ -53,6 +54,7 @@ export default async function BordereauPage({
     getConfirmedBookings(projet_id, date),
   ]);
 
+  const documentTemplate = await getDocumentTemplate(supabase, projet_id);
   const convention = projet?.convention ?? null;
   const figurantIds = bookings.map((b) => b.figurant.id);
   const bookingIds = bookings.map((b) => b.id);
@@ -163,6 +165,8 @@ export default async function BordereauPage({
               allPages.length > 1 ? `${formatDateLong(date)} · Page ${pageIndex + 1}/${allPages.length}` : formatDateLong(date)
             }
             realisateur={projet?.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
           />
 
           <table className="w-full border-collapse border border-black text-xs">
@@ -237,6 +241,8 @@ export default async function BordereauPage({
             filmNom={projet?.nom ?? ""}
             dateLabel={formatDateLong(date)}
             realisateur={projet?.realisateur}
+            logoUrl={documentTemplate.logoUrl}
+            accentColor={documentTemplate.accentColor}
           />
           <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
         </PrintSheet>

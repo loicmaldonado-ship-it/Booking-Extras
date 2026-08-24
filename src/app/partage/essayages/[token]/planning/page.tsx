@@ -14,6 +14,7 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
+import { getDocumentTemplate } from "@/lib/documents/templates";
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -67,6 +68,7 @@ export default async function PartageEssayagesPlanningPage({
   const creneauById = new Map((creneauxRaw ?? []).map((c) => [c.id, c]));
 
   const items = buildSlotItems(essayages, creneauById);
+  const documentTemplate = await getDocumentTemplate(supabase, projet.id);
 
   return (
     <div className="flex flex-col gap-4">
@@ -90,6 +92,8 @@ export default async function PartageEssayagesPlanningPage({
           filmNom={projet.nom}
           dateLabel={formatDateLong(date)}
           realisateur={projet.realisateur}
+          logoUrl={documentTemplate.logoUrl}
+          accentColor={documentTemplate.accentColor}
         />
 
         {items.length === 0 ? (
