@@ -820,8 +820,10 @@ export function BookingsTable({
           </div>
         </td>
         <td className="px-6 py-4 align-middle">
-          <Link href={`/bookings/${r.id}`} className="flex items-center gap-2 truncate font-medium hover:text-coral">
-            {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          <Link href={`/bookings/${r.id}`} className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium hover:text-coral">
+            <span className="min-w-0 max-w-full truncate">
+              {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+            </span>
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
               <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
