@@ -82,6 +82,17 @@ export function CandidaturesTable({
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
 
+  // Galerie de tous les portraits affichés dans la vue trombinoscope, pour
+  // naviguer au clavier (← →) d'un profil à l'autre sans refermer l'aperçu.
+  const rowsWithPhoto = rows.filter((r) => r.portraitUrl);
+  const rowsGallery: GalleryPhoto[] = rowsWithPhoto.map((r) => ({
+    src: r.portraitUrl!,
+    alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
+  }));
+  function rowGalleryIndex(rowId: string) {
+    return rowsWithPhoto.findIndex((r) => r.id === rowId);
+  }
+
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -420,6 +431,8 @@ export function CandidaturesTable({
               {r.portraitUrl && (
                 <ZoomButton
                   src={r.portraitUrl}
+                  gallery={rowsGallery}
+                  index={rowGalleryIndex(r.id)}
                   className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
                 />
               )}

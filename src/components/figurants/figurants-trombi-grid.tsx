@@ -6,7 +6,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { Button } from "@/components/ui/button";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 
 type FigurantCard = {
   id: string;
@@ -25,6 +25,17 @@ export function FigurantsTrombiGrid({
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const allSelected = figurants.length > 0 && selected.size === figurants.length;
+
+  // Galerie de tous les portraits affichés, pour naviguer au clavier (← →)
+  // d'un profil à l'autre sans refermer l'aperçu.
+  const figurantsWithPhoto = figurants.filter((f) => f.portraitUrl);
+  const gallery: GalleryPhoto[] = figurantsWithPhoto.map((f) => ({
+    src: f.portraitUrl!,
+    alt: `${f.prenom} ${f.nom}`,
+  }));
+  function galleryIndex(figurantId: string) {
+    return figurantsWithPhoto.findIndex((f) => f.id === figurantId);
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -83,7 +94,9 @@ export function FigurantsTrombiGrid({
             <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 {f.portraitUrl && <Image src={f.portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                {f.portraitUrl && <ZoomButton src={f.portraitUrl} />}
+                {f.portraitUrl && (
+                  <ZoomButton src={f.portraitUrl} gallery={gallery} index={galleryIndex(f.id)} />
+                )}
               </div>
               <div className="text-sm font-medium">
                 {f.prenom} {f.nom}

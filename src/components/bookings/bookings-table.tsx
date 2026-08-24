@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ZoomableImage, ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomableImage, ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -393,6 +393,21 @@ export function BookingsTable({
     if (groupDims.length === 0) return [{ label: null, rows: filteredRows }];
     return groupRows(filteredRows, groupDims);
   }, [groupDims, filteredRows]);
+
+  // Galerie de tous les portraits actuellement affichés (même ordre que le
+  // trombinoscope), pour naviguer au clavier (← →) d'un profil à l'autre
+  // sans refermer l'aperçu.
+  const trombiOrderRows = groups.flatMap((g) =>
+    [...g.rows].sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""))
+  );
+  const rowsWithPhoto = trombiOrderRows.filter((r) => r.portraitUrl);
+  const rowsGallery: GalleryPhoto[] = rowsWithPhoto.map((r) => ({
+    src: r.portraitUrl!,
+    alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
+  }));
+  function rowGalleryIndex(rowId: string) {
+    return rowsWithPhoto.findIndex((r) => r.id === rowId);
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -816,7 +831,14 @@ export function BookingsTable({
         </td>
         <td className="px-4 py-4 align-middle">
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
-            {r.portraitUrl && <ZoomableImage src={r.portraitUrl} imgClassName="rounded-full object-cover" />}
+            {r.portraitUrl && (
+              <ZoomableImage
+                src={r.portraitUrl}
+                imgClassName="rounded-full object-cover"
+                gallery={rowsGallery}
+                index={rowGalleryIndex(r.id)}
+              />
+            )}
           </div>
         </td>
         <td className="px-6 py-4 align-middle">
@@ -976,7 +998,9 @@ export function BookingsTable({
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
             {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
-            {r.portraitUrl && <ZoomButton src={r.portraitUrl} />}
+            {r.portraitUrl && (
+              <ZoomButton src={r.portraitUrl} gallery={rowsGallery} index={rowGalleryIndex(r.id)} />
+            )}
             {r.raccord && (
               <span className="absolute right-1 top-1 z-10">
                 <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />

@@ -4,7 +4,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/card";
 import { getJournees } from "@/lib/bookings/journees";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
-import { ZoomableImage } from "@/components/ui/zoomable-image";
+import { ZoomableImage, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { TROMBI_CACHET_ORDER } from "@/lib/documents/trombi";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -107,6 +107,30 @@ export default async function ResumeProjetPage({
   const dateTotal = (date: string) =>
     rows.reduce((sum, [rowKey]) => sum + (cellRows.get(`${rowKey}|${date}`)?.length ?? 0), 0);
 
+  // Galerie de tous les portraits du tableau, dans le même ordre que
+  // l'affichage (ligne par ligne, colonne par colonne), pour naviguer au
+  // clavier (← →) sans refermer l'aperçu.
+  const galleryItems: { id: string; url: string; alt: string }[] = [];
+  for (const [rowKey] of rows) {
+    for (const d of dates) {
+      const cellBookings = cellRows.get(`${rowKey}|${d.date}`) ?? [];
+      for (const b of cellBookings) {
+        const portrait = pickPortrait(photosByFigurant.get(b.figurant_id), projet_id);
+        if (portrait?.url) {
+          galleryItems.push({
+            id: b.id,
+            url: portrait.url,
+            alt: b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "",
+          });
+        }
+      }
+    }
+  }
+  const gallery: GalleryPhoto[] = galleryItems.map((p) => ({ src: p.url, alt: p.alt }));
+  function galleryIndex(bookingId: string) {
+    return galleryItems.findIndex((p) => p.id === bookingId);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/bookings" label="Retour" />
@@ -184,7 +208,12 @@ export default async function ResumeProjetPage({
                             >
                               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
                                 {portrait?.url && (
-                                  <ZoomableImage src={portrait.url} imgClassName="rounded-full object-cover" />
+                                  <ZoomableImage
+                                    src={portrait.url}
+                                    imgClassName="rounded-full object-cover"
+                                    gallery={gallery}
+                                    index={galleryIndex(b.id)}
+                                  />
                                 )}
                               </div>
                               <span className="w-full truncate text-center text-[8px] leading-tight text-text-muted">
