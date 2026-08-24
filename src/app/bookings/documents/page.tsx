@@ -62,7 +62,7 @@ export default async function JourneeDashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, email, telephone, genre, date_naissance), projets(nom, confidentiel, nom_code, lieu, signature)"
+        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter), projets(nom, confidentiel, nom_code, lieu, signature)"
       )
       .eq("projet_id", projet_id)
       .eq("date", date)

@@ -95,6 +95,11 @@ export type Row = {
     telephone: string | null;
     genre: Genre | null;
     date_naissance: string | null;
+    compte_myrole?: boolean;
+    a_vehicule?: boolean | null;
+    vehicule_velo?: boolean;
+    vehicule_moto?: boolean;
+    vehicule_scooter?: boolean;
   } | null;
   projets: { nom: string; confidentiel: boolean; nom_code?: string | null; lieu: string | null; signature: string | null } | null;
   portraitUrl: string | null;
@@ -204,7 +209,7 @@ type RowChanges = Partial<{
   reponse_recue: boolean;
   notes: string | null;
 }>;
-type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu";
+type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu" | "vehicule" | "myrole";
 
 const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "fonction", label: "Fonction" },
@@ -214,6 +219,8 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "age", label: "Âge" },
   { key: "heure", label: "Heure" },
   { key: "repondu", label: "Répondu" },
+  { key: "vehicule", label: "Véhicule" },
+  { key: "myrole", label: "Myrole" },
 ];
 
 // Dimensions transposables telles quelles vers le tri additif des documents
@@ -230,6 +237,16 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
   if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
   if (dimension === "repondu") return r.reponse_recue ? "Répondu" : "Pas répondu";
+  if (dimension === "myrole") return r.figurants?.compte_myrole ? "Avec compte Myrole" : "Sans compte Myrole";
+  if (dimension === "vehicule") {
+    const f = r.figurants;
+    if (!f || f.a_vehicule === null || f.a_vehicule === undefined) return "Véhicule non renseigné";
+    if (!f.a_vehicule) return "Sans véhicule";
+    const types = [f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"].filter(
+      Boolean
+    );
+    return types.length > 0 ? types.join(" + ") : "Véhicule (type non précisé)";
+  }
   const bracket = AGE_BRACKETS.find((b) => b.key === ageBracketKey(r.figurants?.date_naissance ?? null));
   return bracket?.label ?? "Âge non renseigné";
 }
