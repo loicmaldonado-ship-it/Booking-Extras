@@ -221,7 +221,7 @@ export default async function JourneeDashboardPage({
 
   const confirmes = bookings.filter((b) => b.statut === "confirmé").length;
   const enAttente = bookings.filter((b) =>
-    ["proposé", "envoyé", "a_relancer", "doit_rappeler"].includes(b.statut)
+    ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide"].includes(b.statut)
   ).length;
 
   const [journeePartage, publicOrigin, initialReplies] = await Promise.all([

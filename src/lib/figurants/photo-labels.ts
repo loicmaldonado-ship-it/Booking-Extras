@@ -8,6 +8,7 @@ export const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
   selfie: "Selfie",
   tenue: "Tenue",
   vehicule: "Véhicule",
+  casting: "Casting",
 };
 
 // Galerie des photos d'UNE personne (pas de toute une liste) — les flèches

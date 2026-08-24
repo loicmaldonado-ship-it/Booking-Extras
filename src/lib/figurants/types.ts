@@ -1,7 +1,7 @@
 export type Civilite = "Mme" | "M." | "Autre";
 export type Pronom = "Elle" | "Il" | "Iel";
 export type Genre = "Femme" | "Homme" | "Non-binaire";
-export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue" | "vehicule";
+export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue" | "vehicule" | "casting";
 
 // Au-delà, une fiche devient difficile à parcourir et le stockage explose
 // sans réel bénéfice pour le casting — appliqué partout où un candidat ou

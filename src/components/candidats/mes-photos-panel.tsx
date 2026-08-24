@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<PhotoType, string> = {
   autre: "Autre",
   tenue: "Tenue",
   vehicule: "Véhicule",
+  casting: "Casting",
 };
 
 export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {

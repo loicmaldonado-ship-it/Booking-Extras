@@ -16,6 +16,7 @@ import {
   Calculator,
   ShieldCheck,
   UsersRound,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -32,6 +33,7 @@ const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIc
   { label: "Candidatures", href: "/candidatures", enabled: true, icon: FileText },
   { label: "Bookings", href: "/bookings", enabled: true, icon: BookOpen },
   { label: "Essayages", href: "/essayages", enabled: true, icon: Shirt },
+  { label: "Casting", href: "/casting", enabled: true, icon: Video },
   { label: "Partage", href: "/partage", enabled: true, icon: Share2 },
   { label: "Modèles", href: "/modeles", enabled: true, icon: Mail },
   { label: "Barème", href: "/bareme", enabled: true, icon: Calculator },
@@ -51,6 +53,8 @@ const PUBLIC_PREFIXES = [
   "/disponibilites",
   "/partage/documents",
   "/partage/essayages",
+  "/partage/casting",
+  "/casting/upload",
   "/compte",
 ];
 

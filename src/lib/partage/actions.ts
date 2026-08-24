@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 
-export type PartageType = "documents" | "essayages";
+export type PartageType = "documents" | "essayages" | "casting";
 
 function genToken() {
   return randomUUID().replace(/-/g, "");
