@@ -198,6 +198,7 @@ export default async function JourneeDashboardPage({
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
     portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
+    photos: photosByFigurant.get(b.figurant_id) ?? [],
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
     indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),

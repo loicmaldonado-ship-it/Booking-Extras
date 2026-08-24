@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
-import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { ZoomButton } from "@/components/ui/zoomable-image";
+import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { cn } from "@/lib/cn";
 import {
   updateEssayageStatutInline,
@@ -20,7 +21,7 @@ import {
 import { ESSAYAGE_STATUTS, type EssayageStatut } from "@/lib/essayages/types";
 import { buildEssayagePropositionMailto, buildEssayageConfirmationMailto } from "@/lib/essayages/messages";
 import { formatDateShort } from "@/lib/format-date";
-import type { Genre } from "@/lib/figurants/types";
+import type { Genre, PhotoType } from "@/lib/figurants/types";
 import type { Creneau } from "./creneaux-panel";
 import type { EssayageJournee } from "@/lib/essayages/journees";
 
@@ -43,6 +44,7 @@ export type EssayageRow = {
   adresse?: string | null;
   figurants: { prenom: string; nom: string; telephone: string | null; email: string | null; genre?: Genre | null } | null;
   portraitUrl: string | null;
+  photos?: { url: string | null; type: PhotoType }[];
 };
 
 export function EssayageJourneeTable({
@@ -68,17 +70,6 @@ export function EssayageJourneeTable({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-
-  // Galerie de tous les portraits de la journée, pour naviguer au clavier
-  // (← →) d'un profil à l'autre sans refermer l'aperçu.
-  const rowsWithPhoto = rows.filter((r) => r.portraitUrl);
-  const rowsGallery: GalleryPhoto[] = rowsWithPhoto.map((r) => ({
-    src: r.portraitUrl!,
-    alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
-  }));
-  function rowGalleryIndex(rowId: string) {
-    return rowsWithPhoto.findIndex((r) => r.id === rowId);
-  }
 
   const [consigne, setConsigne] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
@@ -302,9 +293,10 @@ export function EssayageJourneeTable({
             <Link href={`/figurants/${r.figurant_id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                {r.portraitUrl && (
-                  <ZoomButton src={r.portraitUrl} gallery={rowsGallery} index={rowGalleryIndex(r.id)} />
-                )}
+                {r.portraitUrl && (() => {
+                  const gallery = toGalleryPhotos(r.photos);
+                  return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;
+                })()}
               </div>
               <div className="text-sm font-medium">
                 {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}

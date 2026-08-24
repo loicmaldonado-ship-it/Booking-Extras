@@ -12,7 +12,9 @@ import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
-import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { ZoomButton } from "@/components/ui/zoomable-image";
+import type { PhotoType } from "@/lib/figurants/types";
+import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
@@ -31,6 +33,7 @@ export type Row = {
     projets: { nom: string; confidentiel: boolean; nom_code: string | null; lieu: string | null; signature: string | null } | null;
   } | null;
   portraitUrl: string | null;
+  photos?: { url: string | null; type: PhotoType }[];
 };
 
 export type CandidatureSummary = {
@@ -81,17 +84,6 @@ export function CandidaturesTable({
   const [sendError, setSendError] = useState<string | null>(null);
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
-
-  // Galerie de tous les portraits affichés dans la vue trombinoscope, pour
-  // naviguer au clavier (← →) d'un profil à l'autre sans refermer l'aperçu.
-  const rowsWithPhoto = rows.filter((r) => r.portraitUrl);
-  const rowsGallery: GalleryPhoto[] = rowsWithPhoto.map((r) => ({
-    src: r.portraitUrl!,
-    alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
-  }));
-  function rowGalleryIndex(rowId: string) {
-    return rowsWithPhoto.findIndex((r) => r.id === rowId);
-  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -243,12 +235,6 @@ export function CandidaturesTable({
 
           {showPreview && (() => {
             const previewRows = rows.filter((r) => selected.has(r.id));
-            const previewPhotos = previewRows.filter((r) => r.portraitUrl);
-            const previewGallery: GalleryPhoto[] = previewPhotos.map((r) => ({
-              src: r.portraitUrl!,
-              alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
-            }));
-            const previewGalleryIndex = (rowId: string) => previewPhotos.findIndex((r) => r.id === rowId);
 
             return (
               <Card className="flex flex-col gap-3">
@@ -262,16 +248,19 @@ export function CandidaturesTable({
                       className="flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center"
                     >
                       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                        {r.portraitUrl && (
-                          <>
-                            <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
-                            <ZoomButton
-                              src={r.portraitUrl}
-                              gallery={previewGallery}
-                              index={previewGalleryIndex(r.id)}
-                            />
-                          </>
-                        )}
+                        {r.portraitUrl && (() => {
+                          const gallery = toGalleryPhotos(r.photos);
+                          return (
+                            <>
+                              <Image src={r.portraitUrl!} alt="" fill className="object-cover" unoptimized />
+                              <ZoomButton
+                                src={r.portraitUrl!}
+                                gallery={gallery}
+                                index={galleryIndexOfUrl(gallery, r.portraitUrl)}
+                              />
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="text-sm font-medium">
                         {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
@@ -428,14 +417,17 @@ export function CandidaturesTable({
                 </div>
                 <div className="text-xs text-text-muted">{r.annonces?.projets?.nom}</div>
               </Link>
-              {r.portraitUrl && (
-                <ZoomButton
-                  src={r.portraitUrl}
-                  gallery={rowsGallery}
-                  index={rowGalleryIndex(r.id)}
-                  className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
-                />
-              )}
+              {r.portraitUrl && (() => {
+                const gallery = toGalleryPhotos(r.photos);
+                return (
+                  <ZoomButton
+                    src={r.portraitUrl!}
+                    gallery={gallery}
+                    index={galleryIndexOfUrl(gallery, r.portraitUrl)}
+                    className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                  />
+                );
+              })()}
               <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}

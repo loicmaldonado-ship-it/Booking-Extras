@@ -62,6 +62,7 @@ export default async function EssayageJourneePage({
   const rows: EssayageRow[] = (essayagesRaw ?? []).map((e) => ({
     ...e,
     portraitUrl: pickPortrait(photosByFigurant.get(e.figurant_id), projet_id)?.url ?? null,
+    photos: photosByFigurant.get(e.figurant_id) ?? [],
   }));
   const planningRows: PlanningRow[] = rows.map((r) => ({
     id: r.id,

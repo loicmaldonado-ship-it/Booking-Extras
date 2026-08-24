@@ -145,6 +145,7 @@ export default async function FigurantsPage({
             nom: f.nom,
             ville: f.ville,
             portraitUrl: pickPortrait(portraitByFigurant.get(f.id))?.url ?? null,
+            photos: portraitByFigurant.get(f.id) ?? [],
           }))}
           projets={projets ?? []}
         />

@@ -6,7 +6,9 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { Button } from "@/components/ui/button";
-import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { ZoomButton } from "@/components/ui/zoomable-image";
+import type { PhotoType } from "@/lib/figurants/types";
+import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 
 type FigurantCard = {
   id: string;
@@ -14,6 +16,7 @@ type FigurantCard = {
   nom: string;
   ville: string | null;
   portraitUrl: string | null;
+  photos?: { url: string | null; type: PhotoType }[];
 };
 
 export function FigurantsTrombiGrid({
@@ -25,17 +28,6 @@ export function FigurantsTrombiGrid({
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const allSelected = figurants.length > 0 && selected.size === figurants.length;
-
-  // Galerie de tous les portraits affichés, pour naviguer au clavier (← →)
-  // d'un profil à l'autre sans refermer l'aperçu.
-  const figurantsWithPhoto = figurants.filter((f) => f.portraitUrl);
-  const gallery: GalleryPhoto[] = figurantsWithPhoto.map((f) => ({
-    src: f.portraitUrl!,
-    alt: `${f.prenom} ${f.nom}`,
-  }));
-  function galleryIndex(figurantId: string) {
-    return figurantsWithPhoto.findIndex((f) => f.id === figurantId);
-  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -94,9 +86,10 @@ export function FigurantsTrombiGrid({
             <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 {f.portraitUrl && <Image src={f.portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                {f.portraitUrl && (
-                  <ZoomButton src={f.portraitUrl} gallery={gallery} index={galleryIndex(f.id)} />
-                )}
+                {f.portraitUrl && (() => {
+                  const gallery = toGalleryPhotos(f.photos);
+                  return <ZoomButton src={f.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, f.portraitUrl)} />;
+                })()}
               </div>
               <div className="text-sm font-medium">
                 {f.prenom} {f.nom}

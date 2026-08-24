@@ -272,6 +272,7 @@ export default async function CandidaturesPage({
   const rows: Row[] = candidatures.map((c) => ({
     ...c,
     portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
+    photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
   }));
 
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];

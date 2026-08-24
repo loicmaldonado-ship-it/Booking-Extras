@@ -4,7 +4,7 @@ import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ZoomableImage, ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { ZoomableImage, ZoomButton } from "@/components/ui/zoomable-image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,8 @@ import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import { projetNomPublic } from "@/lib/projets/types";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
 import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
-import type { Genre } from "@/lib/figurants/types";
+import type { Genre, PhotoType } from "@/lib/figurants/types";
+import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import type { MessageTemplate } from "@/lib/templates/types";
 
 export type MessageRow = {
@@ -97,6 +98,7 @@ export type Row = {
   } | null;
   projets: { nom: string; confidentiel: boolean; nom_code?: string | null; lieu: string | null; signature: string | null } | null;
   portraitUrl: string | null;
+  photos?: { url: string | null; type: PhotoType }[];
   essaiOk?: boolean;
   numeroCostume?: string | null;
   indispoMotif?: string | null;
@@ -394,20 +396,6 @@ export function BookingsTable({
     return groupRows(filteredRows, groupDims);
   }, [groupDims, filteredRows]);
 
-  // Galerie de tous les portraits actuellement affichés (même ordre que le
-  // trombinoscope), pour naviguer au clavier (← →) d'un profil à l'autre
-  // sans refermer l'aperçu.
-  const trombiOrderRows = groups.flatMap((g) =>
-    [...g.rows].sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""))
-  );
-  const rowsWithPhoto = trombiOrderRows.filter((r) => r.portraitUrl);
-  const rowsGallery: GalleryPhoto[] = rowsWithPhoto.map((r) => ({
-    src: r.portraitUrl!,
-    alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
-  }));
-  function rowGalleryIndex(rowId: string) {
-    return rowsWithPhoto.findIndex((r) => r.id === rowId);
-  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -831,14 +819,17 @@ export function BookingsTable({
         </td>
         <td className="px-4 py-4 align-middle">
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
-            {r.portraitUrl && (
-              <ZoomableImage
-                src={r.portraitUrl}
-                imgClassName="rounded-full object-cover"
-                gallery={rowsGallery}
-                index={rowGalleryIndex(r.id)}
-              />
-            )}
+            {r.portraitUrl && (() => {
+              const gallery = toGalleryPhotos(r.photos);
+              return (
+                <ZoomableImage
+                  src={r.portraitUrl}
+                  imgClassName="rounded-full object-cover"
+                  gallery={gallery}
+                  index={galleryIndexOfUrl(gallery, r.portraitUrl)}
+                />
+              );
+            })()}
           </div>
         </td>
         <td className="px-6 py-4 align-middle">
@@ -998,9 +989,10 @@ export function BookingsTable({
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
             {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
-            {r.portraitUrl && (
-              <ZoomButton src={r.portraitUrl} gallery={rowsGallery} index={rowGalleryIndex(r.id)} />
-            )}
+            {r.portraitUrl && (() => {
+              const gallery = toGalleryPhotos(r.photos);
+              return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;
+            })()}
             {r.raccord && (
               <span className="absolute right-1 top-1 z-10">
                 <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />
