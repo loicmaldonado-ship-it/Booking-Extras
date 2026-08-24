@@ -19,10 +19,10 @@ import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import type { BaremeMajoration } from "@/lib/bareme/types";
 
 const TABS = [
-  { value: "bookings", label: "Bookings" },
-  { value: "essayage", label: "Essayage" },
-  { value: "covoiturage", label: "Covoiturage" },
-  { value: "documents", label: "Documents" },
+  { value: "bookings", label: "📋 Bookings" },
+  { value: "essayage", label: "👗 Essayage" },
+  { value: "covoiturage", label: "🚗 Covoiturage" },
+  { value: "documents", label: "📄 Documents" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["value"];
@@ -147,29 +147,32 @@ export function JourneeTabs({
           <h2 className="text-sm font-semibold text-text-muted">Documents & export</h2>
           <div className="flex flex-wrap gap-3">
             <ButtonLink href={`/bookings/documents/liste-appel${query}`} variant="secondary">
-              Liste d&apos;appel
+              📞 Liste d&apos;appel
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/trombis${query}`} variant="secondary">
-              Trombis
+              🖼️ Trombis
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/trombis-hmc${query}`} variant="secondary">
-              Trombi HMC
+              💄 Trombi HMC
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/fiches${query}`} variant="secondary">
-              Fiches mensuration
+              📏 Fiches mensuration
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/bordereau${query}`} variant="secondary">
-              Bordereau d&apos;émargement
+              ✍️ Bordereau d&apos;émargement
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/covoiturage${query}`} variant="secondary">
-              Résumé covoiturage
+              🚗 Résumé covoiturage
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
-              Tableau silhouette
+              🕴️ Tableau silhouette
+            </ButtonLink>
+            <ButtonLink href={`/bookings/documents/vcards${query}`} variant="secondary">
+              📇 Vcards
             </ButtonLink>
             {canExport && (
               <ButtonLink href={`/bookings/export${query}`} variant="secondary">
-                Exporter Excel
+                📊 Exporter Excel
               </ButtonLink>
             )}
           </div>

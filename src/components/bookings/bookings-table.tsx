@@ -1205,8 +1205,8 @@ export function BookingsTable({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Vue :</span>
         {[
-          { value: "liste" as const, label: "Liste" },
-          { value: "trombi" as const, label: "Trombinoscope" },
+          { value: "liste" as const, label: "📋 Liste" },
+          { value: "trombi" as const, label: "🖼️ Trombinoscope" },
         ].map((v) => (
           <button
             key={v.value}
@@ -1231,13 +1231,13 @@ export function BookingsTable({
               href={documentHref("trombis")}
               className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
             >
-              Trombis
+              🖼️ Trombis
             </Link>
             <Link
               href={documentHref("fiches")}
               className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
             >
-              Fiches mensuration
+              📏 Fiches mensuration
             </Link>
           </div>
         )}
@@ -1250,7 +1250,7 @@ export function BookingsTable({
               !(projetId && date) && "ml-auto"
             )}
           >
-            {selected.size === filteredRows.length ? "Tout désélectionner" : "Tout sélectionner"}
+            {selected.size === filteredRows.length ? "⬜ Tout désélectionner" : "✅ Tout sélectionner"}
           </button>
         )}
       </div>
@@ -1474,24 +1474,24 @@ export function BookingsTable({
             </select>
           )}
           <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openConvocationConfirm}>
-            Convocation
+            📨 Convocation
           </Button>
           <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openLibreCompose}>
-            Message libre
+            💬 Message libre
           </Button>
           {projetId && (
             <Button type="button" variant="turquoise" disabled={pending} onClick={() => setEssayageOpen((v) => !v)}>
-              Envoyer à un essayage
+              👗 Envoyer à un essayage
             </Button>
           )}
           {projetId && (
             <Button type="button" variant="turquoise" disabled={pending} onClick={() => setCastingOpen((v) => !v)}>
-              Envoyer au casting
+              🎬 Envoyer au casting
             </Button>
           )}
           {projetId && (
             <Button type="button" variant="secondary" disabled={pending} onClick={() => setAddDatesOpen((v) => !v)}>
-              + Ajouter des dates
+              📅 Ajouter des dates
             </Button>
           )}
           {projetId && (
@@ -1504,11 +1504,11 @@ export function BookingsTable({
                 setEspacePersoOpen((v) => !v);
               }}
             >
-              Lien espace perso
+              🔗 Lien espace perso
             </Button>
           )}
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
-            Masquer la sélection
+            ✖️ Masquer la sélection
           </Button>
           {addDatesOpen && projetId && (
             <div className="w-full border-t border-turquoise/40 pt-3">
