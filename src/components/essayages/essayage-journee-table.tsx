@@ -14,6 +14,7 @@ import {
   recordEssayageMessage,
   uploadTenuePhoto,
   moveEssayagesToJournee,
+  updateEssayageLieu,
 } from "@/lib/essayages/actions";
 import { ESSAYAGE_STATUTS, type EssayageStatut } from "@/lib/essayages/types";
 import { buildEssayagePropositionMailto, buildEssayageConfirmationMailto } from "@/lib/essayages/messages";
@@ -37,6 +38,8 @@ export type EssayageRow = {
   creneau_id?: string | null;
   numero_costume?: string | null;
   figurant_id: string;
+  lieu?: string | null;
+  adresse?: string | null;
   figurants: { prenom: string; nom: string; telephone: string | null; email: string | null; genre?: Genre | null } | null;
   portraitUrl: string | null;
 };
@@ -48,6 +51,7 @@ export function EssayageJourneeTable({
   signature,
   journeeDate,
   journeeLieu,
+  journeeAdresse = null,
   creneaux = [],
   autresJournees = [],
 }: {
@@ -57,6 +61,7 @@ export function EssayageJourneeTable({
   signature: string | null;
   journeeDate: string;
   journeeLieu: string | null;
+  journeeAdresse?: string | null;
   creneaux?: Creneau[];
   autresJournees?: EssayageJournee[];
 }) {
@@ -69,6 +74,23 @@ export function EssayageJourneeTable({
   const [moveDate, setMoveDate] = useState("");
   const [moveLieu, setMoveLieu] = useState("");
   const [moveResult, setMoveResult] = useState<string | null>(null);
+  const [lieuEditingId, setLieuEditingId] = useState<string | null>(null);
+  const [lieuDraft, setLieuDraft] = useState("");
+  const [adresseDraft, setAdresseDraft] = useState("");
+
+  function openLieuEditor(r: EssayageRow) {
+    setLieuEditingId(r.id);
+    setLieuDraft(r.lieu ?? journeeLieu ?? "");
+    setAdresseDraft(r.adresse ?? journeeAdresse ?? "");
+  }
+
+  function saveLieu(id: string) {
+    startTransition(async () => {
+      await updateEssayageLieu(id, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      setLieuEditingId(null);
+      router.refresh();
+    });
+  }
 
   function toggleSelected(id: string) {
     setSelected((prev) => {
@@ -141,7 +163,8 @@ export function EssayageJourneeTable({
       figurantEmail: r.figurants.email,
       date: journeeDate,
       heure: heureFor(r),
-      lieu: journeeLieu,
+      lieu: r.lieu ?? journeeLieu,
+      adresse: r.adresse ?? journeeAdresse,
       projetNom,
       signature,
     });
@@ -159,7 +182,8 @@ export function EssayageJourneeTable({
       figurantEmail: r.figurants.email,
       date: journeeDate,
       heure: heureFor(r),
-      lieu: journeeLieu,
+      lieu: r.lieu ?? journeeLieu,
+      adresse: r.adresse ?? journeeAdresse,
       projetNom,
       signature,
       consigne,
@@ -274,6 +298,40 @@ export function EssayageJourneeTable({
                 {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
               </div>
             </Link>
+            <button
+              type="button"
+              onClick={() => (lieuEditingId === r.id ? setLieuEditingId(null) : openLieuEditor(r))}
+              className="w-full truncate text-[10px] text-text-muted hover:text-coral hover:underline"
+              title="Changer le lieu pour cette personne uniquement"
+            >
+              📍 {r.lieu ?? journeeLieu ?? "Lieu à définir"}
+            </button>
+            {lieuEditingId === r.id && (
+              <div className="flex w-full flex-col gap-1.5 rounded-lg border border-coral/40 bg-ink p-2">
+                <input
+                  value={lieuDraft}
+                  onChange={(e) => setLieuDraft(e.target.value)}
+                  placeholder="Nom du lieu"
+                  disabled={pending}
+                  className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1 text-xs outline-none focus:border-coral disabled:opacity-60"
+                />
+                <input
+                  value={adresseDraft}
+                  onChange={(e) => setAdresseDraft(e.target.value)}
+                  placeholder="Adresse"
+                  disabled={pending}
+                  className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1 text-xs outline-none focus:border-coral disabled:opacity-60"
+                />
+                <div className="flex justify-center gap-1.5">
+                  <Button type="button" variant="ghost" disabled={pending} onClick={() => setLieuEditingId(null)}>
+                    Annuler
+                  </Button>
+                  <Button type="button" variant="secondary" disabled={pending} onClick={() => saveLieu(r.id)}>
+                    {pending ? "..." : "Enregistrer"}
+                  </Button>
+                </div>
+              </div>
+            )}
             {projetId && (
               <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text">
                 📷 Photo en tenue

@@ -8,6 +8,7 @@ import { CreneauxPanel, type Creneau } from "@/components/essayages/creneaux-pan
 import { EssayagePlanningBoard, type PlanningRow } from "@/components/essayages/essayage-planning-board";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { getEssayageJournees } from "@/lib/essayages/journees";
+import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -28,14 +29,10 @@ export default async function EssayageJourneePage({
 
   const supabase = createAdminClient();
 
-  const [{ data: projet }, { data: journee }] = await Promise.all([
+  const [{ data: projet }, { data: journee }, essayageLieu] = await Promise.all([
     supabase.from("projets").select("nom, confidentiel, signature").eq("id", projet_id).single(),
-    supabase
-      .from("essayage_journees")
-      .select("id, lieu")
-      .eq("projet_id", projet_id)
-      .eq("date", date)
-      .single(),
+    supabase.from("essayage_journees").select("id").eq("projet_id", projet_id).eq("date", date).single(),
+    getEssayageLieuProjet(projet_id),
   ]);
 
   if (!journee) {
@@ -46,7 +43,7 @@ export default async function EssayageJourneePage({
     supabase
       .from("essayages")
       .select(
-        "id, statut, heure, notes, reponse_recue, creneau_id, numero_costume, figurant_id, figurants(prenom, nom, telephone, email, genre)"
+        "id, statut, heure, notes, reponse_recue, creneau_id, numero_costume, figurant_id, lieu, adresse, figurants(prenom, nom, telephone, email, genre)"
       )
       .eq("essayage_journee_id", journee.id)
       .returns<Omit<EssayageRow, "portraitUrl">[]>(),
@@ -85,7 +82,7 @@ export default async function EssayageJourneePage({
             {projet?.nom} — {formatDateLong(date)}
           </h1>
           <p className="mt-1 text-text-muted">
-            {journee.lieu ?? "Lieu non renseigné"} · {rows.length} profil{rows.length > 1 ? "s" : ""}
+            {essayageLieu.nom ?? "Lieu non calibré"} · {rows.length} profil{rows.length > 1 ? "s" : ""}
           </p>
           <div className="mt-2 flex gap-2">
             <Badge tone="yellow">{rows.filter((r) => r.statut === "proposé").length} proposé</Badge>
@@ -101,7 +98,8 @@ export default async function EssayageJourneePage({
             essayageJourneeId={journee.id}
             projetId={projet_id}
             date={date}
-            lieu={journee.lieu}
+            lieu={essayageLieu.nom}
+            adresse={essayageLieu.adresse}
             figurants={allFigurants ?? []}
             alreadyAddedIds={figurantIds}
           />
@@ -115,7 +113,8 @@ export default async function EssayageJourneePage({
           projetNom={projet?.nom ?? ""}
           signature={projet?.signature ?? null}
           journeeDate={date}
-          journeeLieu={journee.lieu}
+          journeeLieu={essayageLieu.nom}
+          journeeAdresse={essayageLieu.adresse}
           creneaux={creneaux ?? []}
           autresJournees={autresJournees}
         />

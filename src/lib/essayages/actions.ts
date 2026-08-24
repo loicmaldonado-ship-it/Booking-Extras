@@ -149,16 +149,48 @@ export async function createEssayageJournee(projetId: string, formData: FormData
   if (accessError) throw new Error(accessError);
 
   const date = str(formData, "date");
-  const lieu = str(formData, "lieu");
   if (!date) return;
 
   const supabase = createAdminClient();
-  await supabase
-    .from("essayage_journees")
-    .upsert({ projet_id: projetId, date, lieu }, { onConflict: "projet_id,date" });
+  await supabase.from("essayage_journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
 
   revalidatePath("/essayages");
   redirect(`/essayages/journee?projet_id=${projetId}&date=${date}`);
+}
+
+// Recalibrer le lieu (nom + adresse) d'une journée déjà créée, sans
+// toucher à sa date — utilisé depuis la première page des essayages.
+// Le lieu d'essayage se calibre une fois pour tout le projet — réutilisé
+// automatiquement sur toutes ses journées d'essayage (pas à reconfigurer
+// date par date). Table dédiée au module essayages, pas de colonne sur
+// projets.
+export async function updateEssayageLieuProjet(projetId: string, nom: string | null, adresse: string | null) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("essayage_lieux")
+    .upsert({ projet_id: projetId, nom, adresse, updated_at: new Date().toISOString() }, { onConflict: "projet_id" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/essayages");
+  revalidatePath("/essayages/journee");
+  return { success: true as const };
+}
+
+// Change le lieu pour une personne précise, indépendamment du reste de la
+// journée (ex. cette personne va essayer ailleurs pour X raison).
+export async function updateEssayageLieu(id: string, lieu: string | null, adresse: string | null) {
+  const accessError = await checkEssayageAccess(id);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("essayages").update({ lieu, adresse }).eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/essayages/journee");
+  return { success: true as const };
 }
 
 export async function addFigurantToEssayageJournee(
@@ -166,7 +198,8 @@ export async function addFigurantToEssayageJournee(
   figurantId: string,
   projetId: string,
   date: string,
-  lieu: string | null
+  lieu: string | null,
+  adresse?: string | null
 ) {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
@@ -188,6 +221,7 @@ export async function addFigurantToEssayageJournee(
     projet_id: projetId,
     date,
     lieu,
+    adresse: adresse ?? null,
     statut: "proposé",
     essayage_journee_id: essayageJourneeId,
   });

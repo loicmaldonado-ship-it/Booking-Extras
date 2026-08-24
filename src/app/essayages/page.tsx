@@ -7,6 +7,8 @@ import { getPartageToken } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getEssayageJournees } from "@/lib/essayages/journees";
 import { createEssayageJournee } from "@/lib/essayages/actions";
+import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
+import { EssayageLieuProjetPanel } from "@/components/essayages/essayage-lieu-projet-panel";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { formatDateLong } from "@/lib/format-date";
@@ -49,8 +51,9 @@ export default async function EssayagesPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/essayages" sectionLabel="Essayages" />;
   }
 
-  const journees = await getEssayageJournees(currentProjetId);
-  const [partageToken, origin] = await Promise.all([
+  const [journees, essayageLieu, partageToken, origin] = await Promise.all([
+    getEssayageJournees(currentProjetId),
+    getEssayageLieuProjet(currentProjetId),
     getPartageToken(currentProjetId, "essayages"),
     getSiteOrigin(),
   ]);
@@ -75,6 +78,8 @@ export default async function EssayagesPage({
         </div>
       </div>
 
+      <EssayageLieuProjetPanel projetId={currentProjetId} lieu={essayageLieu.nom} adresse={essayageLieu.adresse} />
+
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Journées d&apos;essayage</h2>
         <p className="text-sm text-text-muted">
@@ -89,7 +94,6 @@ export default async function EssayagesPage({
             >
               <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
               <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
-              {j.lieu && <span className="text-xs text-text-muted">{j.lieu}</span>}
               <Badge tone={j.fait > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
               <div className="flex gap-1.5">
                 <Badge tone="yellow">{j.propose} proposé{j.propose > 1 ? "s" : ""}</Badge>
@@ -107,12 +111,6 @@ export default async function EssayagesPage({
               type="date"
               name="date"
               required
-              className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1.5 text-sm"
-            />
-            <input
-              type="text"
-              name="lieu"
-              placeholder="Lieu"
               className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1.5 text-sm"
             />
             <button

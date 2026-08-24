@@ -22,14 +22,24 @@ type EssayageMessageParams = {
   date: string | null;
   heure: string | null;
   lieu: string | null;
+  adresse?: string | null;
   projetNom: string;
   signature: string | null;
   consigne?: string;
   numeroCostume?: string | null;
 };
 
+// "Eurocostume, 12 rue de la Paix" si les deux sont renseignés, sinon ce
+// qu'on a (juste le nom, ou juste l'adresse), sinon "lieu à confirmer".
+function lieuPhrase(lieu: string | null, adresse?: string | null) {
+  if (lieu && adresse) return `à ${lieu}, ${adresse}`;
+  if (lieu) return `à ${lieu}`;
+  if (adresse) return `à l'adresse suivante : ${adresse}`;
+  return "lieu à confirmer";
+}
+
 export function buildEssayagePropositionMailto(params: EssayageMessageParams) {
-  const { figurantPrenom, figurantEmail, date, heure, lieu, projetNom, signature } = params;
+  const { figurantPrenom, figurantEmail, date, heure, lieu, adresse, projetNom, signature } = params;
 
   const quand = date ? `le ${formatDateFr(date)}${heure ? ` à ${formatHeure(heure)}` : ""}` : "prochainement (date à définir)";
 
@@ -37,7 +47,7 @@ export function buildEssayagePropositionMailto(params: EssayageMessageParams) {
     `Bonjour ${figurantPrenom},`,
     "",
     `nous vous proposons un essayage costume pour '${projetNom}' ${quand}`,
-    lieu ? `à l'adresse suivante : ${lieu}` : "lieu à confirmer",
+    lieuPhrase(lieu, adresse),
     "",
     "Merci de nous confirmer votre disponibilité par retour de message.",
     "",
@@ -50,7 +60,8 @@ export function buildEssayagePropositionMailto(params: EssayageMessageParams) {
 }
 
 export function buildEssayageConfirmationMailto(params: EssayageMessageParams) {
-  const { figurantPrenom, figurantEmail, date, heure, lieu, projetNom, signature, consigne, numeroCostume } = params;
+  const { figurantPrenom, figurantEmail, date, heure, lieu, adresse, projetNom, signature, consigne, numeroCostume } =
+    params;
 
   const quand = date ? `le ${formatDateFr(date)}${heure ? ` à ${formatHeure(heure)}` : ""}` : "à une date à confirmer";
 
@@ -58,7 +69,7 @@ export function buildEssayageConfirmationMailto(params: EssayageMessageParams) {
     `Bonjour ${figurantPrenom},`,
     "",
     `votre essayage costume pour '${projetNom}' est confirmé ${quand}`,
-    lieu ? `à l'adresse suivante : ${lieu}` : "lieu à confirmer",
+    lieuPhrase(lieu, adresse),
     ...(numeroCostume ? ["", `Votre numéro de costume : ${numeroCostume}`] : []),
     ...(consigne?.trim() ? ["", consigne.trim()] : []),
     "",

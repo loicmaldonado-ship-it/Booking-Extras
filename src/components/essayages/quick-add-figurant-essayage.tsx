@@ -12,6 +12,7 @@ export function QuickAddFigurantEssayage({
   projetId,
   date,
   lieu,
+  adresse,
   figurants,
   alreadyAddedIds,
 }: {
@@ -19,6 +20,7 @@ export function QuickAddFigurantEssayage({
   projetId: string;
   date: string;
   lieu: string | null;
+  adresse?: string | null;
   figurants: FigurantOption[];
   alreadyAddedIds: string[];
 }) {
@@ -42,7 +44,7 @@ export function QuickAddFigurantEssayage({
   function add(figurantId: string) {
     setError(null);
     startTransition(async () => {
-      const result = await addFigurantToEssayageJournee(essayageJourneeId, figurantId, projetId, date, lieu);
+      const result = await addFigurantToEssayageJournee(essayageJourneeId, figurantId, projetId, date, lieu, adresse);
       if (result?.error) {
         setError(result.error);
         return;
