@@ -217,6 +217,22 @@ export default async function CandidatureDetailPage({
               "—"
             )}
           </div>
+          <div>
+            <span className="text-text-muted">Véhicule : </span>
+            {f.a_vehicule === null ? (
+              "Non renseigné"
+            ) : f.a_vehicule ? (
+              <>
+                <Badge tone="turquoise">Oui</Badge>{" "}
+                {[f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
+                  .filter(Boolean)
+                  .join(", ")}
+                {f.vehicule_marque ? ` (${f.vehicule_marque})` : ""}
+              </>
+            ) : (
+              <Badge>Non</Badge>
+            )}
+          </div>
         </div>
       </Card>
 

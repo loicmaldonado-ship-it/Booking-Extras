@@ -24,6 +24,7 @@ type SearchParams = {
   onglet_id?: string;
   myrole?: string;
   genre?: string;
+  vehicule?: string;
   age_min?: string;
   age_max?: string;
   question_id?: string;
@@ -51,7 +52,16 @@ type CandidatureRaw = Omit<Row, "portraitUrl">;
 type CandidatureWithFilters = CandidatureRaw & {
   message: string | null;
   onglet_id: string | null;
-  figurants: (CandidatureRaw["figurants"] & { genre: string | null; date_naissance: string | null }) | null;
+  figurants:
+    | (CandidatureRaw["figurants"] & {
+        genre: string | null;
+        date_naissance: string | null;
+        a_vehicule: boolean | null;
+        vehicule_velo: boolean;
+        vehicule_moto: boolean;
+        vehicule_scooter: boolean;
+      })
+    | null;
 };
 
 export default async function CandidaturesPage({
@@ -130,7 +140,7 @@ export default async function CandidaturesPage({
   const query = supabase
     .from("candidatures")
     .select(
-      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
     .order("created_at", { ascending: false });
@@ -167,6 +177,17 @@ export default async function CandidaturesPage({
   }
   if (params.genre) {
     candidatures = candidatures.filter((c) => c.figurants?.genre === params.genre);
+  }
+  if (params.vehicule === "oui") {
+    candidatures = candidatures.filter((c) => c.figurants?.a_vehicule);
+  } else if (params.vehicule === "non") {
+    candidatures = candidatures.filter((c) => c.figurants?.a_vehicule === false);
+  } else if (params.vehicule === "velo") {
+    candidatures = candidatures.filter((c) => c.figurants?.vehicule_velo);
+  } else if (params.vehicule === "moto") {
+    candidatures = candidatures.filter((c) => c.figurants?.vehicule_moto);
+  } else if (params.vehicule === "scooter") {
+    candidatures = candidatures.filter((c) => c.figurants?.vehicule_scooter);
   }
   const ageMin = params.age_min ? Number(params.age_min) : null;
   const ageMax = params.age_max ? Number(params.age_max) : null;
@@ -260,6 +281,7 @@ export default async function CandidaturesPage({
     sp.set("annonce_id", params.annonce_id!);
     if (params.myrole) sp.set("myrole", params.myrole);
     if (params.genre) sp.set("genre", params.genre);
+    if (params.vehicule) sp.set("vehicule", params.vehicule);
     if (params.age_min) sp.set("age_min", params.age_min);
     if (params.age_max) sp.set("age_max", params.age_max);
     if (params.question_id) sp.set("question_id", params.question_id);
@@ -327,6 +349,7 @@ export default async function CandidaturesPage({
           onglet_id: params.onglet_id,
           myrole: params.myrole,
           genre: params.genre,
+          vehicule: params.vehicule,
           age_min: params.age_min,
           age_max: params.age_max,
           question_id: params.question_id,
@@ -355,6 +378,14 @@ export default async function CandidaturesPage({
                 {g}
               </option>
             ))}
+          </Select>
+          <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
+            <option value="">Véhicule (tous)</option>
+            <option value="oui">A un véhicule</option>
+            <option value="non">Sans véhicule</option>
+            <option value="velo">Vélo</option>
+            <option value="moto">Moto</option>
+            <option value="scooter">Scooter</option>
           </Select>
           <div className="flex gap-2">
             <Input

@@ -5,6 +5,7 @@ export type FigurantFilters = {
   ville?: string;
   myrole?: string;
   tag?: string;
+  vehicule?: string;
 };
 
 export function buildFigurantsQuery(
@@ -32,6 +33,17 @@ export function buildFigurantsQuery(
   }
   if (params.tag) {
     query = query.contains("tags", [params.tag]);
+  }
+  if (params.vehicule === "oui") {
+    query = query.eq("a_vehicule", true);
+  } else if (params.vehicule === "non") {
+    query = query.eq("a_vehicule", false);
+  } else if (params.vehicule === "velo") {
+    query = query.eq("vehicule_velo", true);
+  } else if (params.vehicule === "moto") {
+    query = query.eq("vehicule_moto", true);
+  } else if (params.vehicule === "scooter") {
+    query = query.eq("vehicule_scooter", true);
   }
 
   return query;

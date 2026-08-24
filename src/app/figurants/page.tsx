@@ -108,6 +108,14 @@ export default async function FigurantsPage({
             <option value="non">Sans compte Myrole</option>
           </Select>
           <Input name="tag" placeholder="Tag" defaultValue={params.tag} />
+          <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
+            <option value="">Véhicule (tous)</option>
+            <option value="oui">A un véhicule</option>
+            <option value="non">Sans véhicule</option>
+            <option value="velo">Vélo</option>
+            <option value="moto">Moto</option>
+            <option value="scooter">Scooter</option>
+          </Select>
           <button
             type="submit"
             className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-1"

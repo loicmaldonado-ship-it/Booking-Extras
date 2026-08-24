@@ -82,6 +82,7 @@ export default async function AnnonceDetailPage({
           </p>
         </div>
         <div className="flex gap-3">
+          <ButtonLink href={`/candidatures?annonce_id=${id}`}>Voir les candidatures</ButtonLink>
           <ButtonLink href={`/annonces/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>

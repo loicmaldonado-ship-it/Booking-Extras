@@ -205,6 +205,26 @@ export default async function FigurantDetailPage({
             <span className="text-text-muted">Dernière connexion : </span>
             {figurant.last_seen_at ? formatDateTime(figurant.last_seen_at) : "Jamais connecté·e"}
           </div>
+          <div>
+            <span className="text-text-muted">Véhicule : </span>
+            {figurant.a_vehicule === null ? (
+              "Non renseigné"
+            ) : figurant.a_vehicule ? (
+              <>
+                <Badge tone="turquoise">Oui</Badge>{" "}
+                {[
+                  figurant.vehicule_velo && "Vélo",
+                  figurant.vehicule_moto && "Moto",
+                  figurant.vehicule_scooter && "Scooter",
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+                {figurant.vehicule_marque ? ` (${figurant.vehicule_marque})` : ""}
+              </>
+            ) : (
+              <Badge>Non</Badge>
+            )}
+          </div>
         </div>
         {figurant.logement_france && (
           <div className="text-sm">

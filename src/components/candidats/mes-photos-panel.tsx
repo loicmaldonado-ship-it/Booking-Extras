@@ -17,6 +17,7 @@ const TYPE_LABELS: Record<PhotoType, string> = {
   selfie: "Selfie (date du jour)",
   autre: "Autre",
   tenue: "Tenue",
+  vehicule: "Véhicule",
 };
 
 export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
@@ -101,6 +102,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
             <option value="portrait">Portrait</option>
             <option value="pied">Photo en pied</option>
             <option value="selfie">Selfie (date du jour)</option>
+            <option value="vehicule">Véhicule</option>
             <option value="autre">Autre</option>
           </select>
           <Button type="button" variant="ghost" disabled={busy} onClick={() => inputRef.current?.click()}>

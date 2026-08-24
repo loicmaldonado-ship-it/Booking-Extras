@@ -16,6 +16,7 @@ const SLOTS: { key: string; type: PhotoType; label: string }[] = [
   { key: "autre1", type: "autre", label: "Autre" },
   { key: "autre2", type: "autre", label: "Autre" },
   { key: "selfie", type: "selfie", label: "Selfie" },
+  { key: "vehicule", type: "vehicule", label: "Véhicule" },
 ];
 
 export function PhotoDropzones({ figurantId, photos }: { figurantId: string; photos: PhotoWithUrl[] }) {

@@ -115,6 +115,7 @@ export function PostulerForm({
     postulerAnnonce.bind(null, publicToken),
     undefined
   );
+  const [aVehicule, setAVehicule] = useState<boolean | null>(null);
 
   if (state?.success) {
     return (
@@ -184,6 +185,62 @@ export function PostulerForm({
             </span>
           </span>
         </label>
+        <div className="flex flex-col gap-2">
+          <span className="text-xs font-medium text-text-muted">As-tu un véhicule ? *</span>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="a_vehicule"
+                value="oui"
+                required
+                onChange={() => setAVehicule(true)}
+                className="accent-coral"
+              />
+              Oui
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="a_vehicule"
+                value="non"
+                required
+                onChange={() => setAVehicule(false)}
+                className="accent-coral"
+              />
+              Non
+            </label>
+          </div>
+          {aVehicule && (
+            <div className="flex flex-col gap-3 rounded-xl border border-border bg-ink px-3 py-3">
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" name="vehicule_velo" className="h-4 w-4 rounded border-border accent-coral" />
+                  Vélo
+                </label>
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" name="vehicule_moto" className="h-4 w-4 rounded border-border accent-coral" />
+                  Moto
+                </label>
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="checkbox"
+                    name="vehicule_scooter"
+                    className="h-4 w-4 rounded border-border accent-coral"
+                  />
+                  Scooter
+                </label>
+              </div>
+              <Field label="Marque du véhicule" required>
+                <Input name="vehicule_marque" required />
+              </Field>
+              <div className="w-24">
+                <PhotoSlot name="photo_vehicule" label="Photo du véhicule" />
+              </div>
+            </div>
+          )}
+        </div>
+
         <Field label="Message" required>
           <Textarea
             name="message"

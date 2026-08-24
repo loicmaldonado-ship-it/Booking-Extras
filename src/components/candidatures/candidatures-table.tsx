@@ -12,7 +12,7 @@ import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
@@ -230,15 +230,22 @@ export function CandidaturesTable({
             {showPreview ? "Masquer l'aperçu trombis" : "Prévisualiser en trombis"}
           </Button>
 
-          {showPreview && (
-            <Card className="flex flex-col gap-3">
-              <h3 className="text-sm font-semibold text-text-muted">
-                Aperçu — {selected.size} profil{selected.size > 1 ? "s" : ""} avant ajout à la journée
-              </h3>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                {rows
-                  .filter((r) => selected.has(r.id))
-                  .map((r) => (
+          {showPreview && (() => {
+            const previewRows = rows.filter((r) => selected.has(r.id));
+            const previewPhotos = previewRows.filter((r) => r.portraitUrl);
+            const previewGallery: GalleryPhoto[] = previewPhotos.map((r) => ({
+              src: r.portraitUrl!,
+              alt: r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "",
+            }));
+            const previewGalleryIndex = (rowId: string) => previewPhotos.findIndex((r) => r.id === rowId);
+
+            return (
+              <Card className="flex flex-col gap-3">
+                <h3 className="text-sm font-semibold text-text-muted">
+                  Aperçu — {selected.size} profil{selected.size > 1 ? "s" : ""} avant ajout à la journée
+                </h3>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {previewRows.map((r) => (
                     <div
                       key={r.id}
                       className="flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center"
@@ -247,7 +254,11 @@ export function CandidaturesTable({
                         {r.portraitUrl && (
                           <>
                             <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
-                            <ZoomButton src={r.portraitUrl} />
+                            <ZoomButton
+                              src={r.portraitUrl}
+                              gallery={previewGallery}
+                              index={previewGalleryIndex(r.id)}
+                            />
                           </>
                         )}
                       </div>
@@ -256,9 +267,10 @@ export function CandidaturesTable({
                       </div>
                     </div>
                   ))}
-              </div>
-            </Card>
-          )}
+                </div>
+              </Card>
+            );
+          })()}
 
           <AddToJourneeBar
             figurantIds={rows
@@ -358,12 +370,7 @@ export function CandidaturesTable({
                     href={`/candidatures/${r.id}`}
                     className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                   >
-                    {r.portraitUrl && (
-                      <>
-                        <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
-                        <ZoomButton src={r.portraitUrl} />
-                      </>
-                    )}
+                    {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
                   </Link>
                   <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-2 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     {(() => {
@@ -410,6 +417,12 @@ export function CandidaturesTable({
                 </div>
                 <div className="text-xs text-text-muted">{r.annonces?.projets?.nom}</div>
               </Link>
+              {r.portraitUrl && (
+                <ZoomButton
+                  src={r.portraitUrl}
+                  className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                />
+              )}
               <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}

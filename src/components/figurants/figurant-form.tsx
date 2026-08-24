@@ -22,6 +22,7 @@ export function FigurantForm({
   liens?: FigurantLien[];
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [aVehicule, setAVehicule] = useState<boolean | null>(figurant?.a_vehicule ?? null);
   const [lienRows, setLienRows] = useState(
     liens.length > 0 ? liens.map((l) => ({ label: l.label, url: l.url })) : [{ label: "", url: "" }]
   );
@@ -179,6 +180,84 @@ export function FigurantForm({
             <Input name="couleur_cheveux" defaultValue={figurant?.couleur_cheveux ?? ""} />
           </Field>
         </div>
+      </Card>
+
+      <Card className="flex flex-col gap-4">
+        <h2 className="text-lg font-semibold">Véhicule</h2>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-medium">A un véhicule ? *</span>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="a_vehicule"
+                value="oui"
+                required
+                defaultChecked={figurant?.a_vehicule === true}
+                onChange={() => setAVehicule(true)}
+                className="accent-coral"
+              />
+              Oui
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input
+                type="radio"
+                name="a_vehicule"
+                value="non"
+                required
+                defaultChecked={figurant?.a_vehicule === false}
+                onChange={() => setAVehicule(false)}
+                className="accent-coral"
+              />
+              Non
+            </label>
+          </div>
+        </div>
+        {aVehicule && (
+          <>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="vehicule_velo"
+                  defaultChecked={figurant?.vehicule_velo}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+                Vélo
+              </label>
+              <label className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="vehicule_moto"
+                  defaultChecked={figurant?.vehicule_moto}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+                Moto
+              </label>
+              <label className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="vehicule_scooter"
+                  defaultChecked={figurant?.vehicule_scooter}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+                Scooter
+              </label>
+            </div>
+            <Field label="Marque">
+              <Input name="vehicule_marque" defaultValue={figurant?.vehicule_marque ?? ""} />
+            </Field>
+            {figurant && (
+              <p className="text-xs text-text-muted">
+                Ajoute la photo du véhicule depuis{" "}
+                <a href={`/figurants/${figurant.id}`} className="text-coral hover:underline">
+                  la fiche du profil
+                </a>
+                .
+              </p>
+            )}
+          </>
+        )}
       </Card>
 
       {figurant && (

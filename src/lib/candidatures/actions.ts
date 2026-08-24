@@ -69,6 +69,11 @@ export async function postulerAnnonce(
   const poidsKg = num(formData, "poids_kg");
   const pointure = num(formData, "pointure");
   const temporaire = formData.get("temporaire") === "on";
+  const aVehiculeRaw = str(formData, "a_vehicule");
+  const vehiculeMarque = str(formData, "vehicule_marque");
+  const vehiculeVelo = formData.get("vehicule_velo") === "on";
+  const vehiculeMoto = formData.get("vehicule_moto") === "on";
+  const vehiculeScooter = formData.get("vehicule_scooter") === "on";
 
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
@@ -91,6 +96,18 @@ export async function postulerAnnonce(
     !(photoSelfie instanceof File && photoSelfie.size > 0)
   ) {
     return { error: "Les 3 photos (portrait, pied, selfie avec la date) sont obligatoires." };
+  }
+  if (aVehiculeRaw !== "oui" && aVehiculeRaw !== "non") {
+    return { error: "Merci d'indiquer si tu as un véhicule." };
+  }
+  const aVehicule = aVehiculeRaw === "oui";
+  if (aVehicule) {
+    if (!vehiculeVelo && !vehiculeMoto && !vehiculeScooter) {
+      return { error: "Merci de préciser le type de véhicule (vélo, moto ou scooter)." };
+    }
+    if (!vehiculeMarque) {
+      return { error: "La marque du véhicule est obligatoire." };
+    }
   }
 
   const age = computeAge(dateNaissance);
@@ -178,6 +195,11 @@ export async function postulerAnnonce(
         pointure,
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
+        a_vehicule: aVehicule,
+        vehicule_velo: vehiculeVelo,
+        vehicule_moto: vehiculeMoto,
+        vehicule_scooter: vehiculeScooter,
+        vehicule_marque: vehiculeMarque,
       })
       .select("id")
       .single();
@@ -190,11 +212,20 @@ export async function postulerAnnonce(
     }
     figurantId = newFigurant.id;
   } else {
-    // Fiche existante : on rafraîchit les mensurations avec ce qui vient
-    // d'être saisi/confirmé sur cette candidature.
+    // Fiche existante : on rafraîchit les mensurations et le véhicule avec
+    // ce qui vient d'être saisi/confirmé sur cette candidature.
     await supabase
       .from("figurants")
-      .update({ taille_cm: tailleCm, poids_kg: poidsKg, pointure })
+      .update({
+        taille_cm: tailleCm,
+        poids_kg: poidsKg,
+        pointure,
+        a_vehicule: aVehicule,
+        vehicule_velo: vehiculeVelo,
+        vehicule_moto: vehiculeMoto,
+        vehicule_scooter: vehiculeScooter,
+        vehicule_marque: vehiculeMarque,
+      })
       .eq("id", figurantId);
   }
 
@@ -252,13 +283,16 @@ async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
   const supabase = createAdminClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre"; priseLe?: string | null }[] = [];
+  const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre" | "vehicule"; priseLe?: string | null }[] =
+    [];
   const portrait = formData.get("photo_portrait");
   if (portrait instanceof File && portrait.size > 0) files.push({ file: portrait, type: "portrait" });
   const pied = formData.get("photo_pied");
   if (pied instanceof File && pied.size > 0) files.push({ file: pied, type: "pied" });
   const selfie = formData.get("photo_selfie");
   if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: today });
+  const vehicule = formData.get("photo_vehicule");
+  if (vehicule instanceof File && vehicule.size > 0) files.push({ file: vehicule, type: "vehicule" });
   for (const extra of formData.getAll("photo_extra")) {
     if (extra instanceof File && extra.size > 0) files.push({ file: extra, type: "autre" });
   }

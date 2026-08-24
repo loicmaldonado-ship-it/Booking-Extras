@@ -54,6 +54,18 @@ function buildFigurantPayload(fd: FormData) {
       .map((t) => t.trim())
       .filter(Boolean),
     notes_internes: str(fd, "notes_internes"),
+    ...buildVehiculePayload(fd),
+  };
+}
+
+function buildVehiculePayload(fd: FormData) {
+  const aVehicule = str(fd, "a_vehicule");
+  return {
+    a_vehicule: aVehicule === null ? null : aVehicule === "oui",
+    vehicule_velo: fd.get("vehicule_velo") === "on",
+    vehicule_moto: fd.get("vehicule_moto") === "on",
+    vehicule_scooter: fd.get("vehicule_scooter") === "on",
+    vehicule_marque: str(fd, "vehicule_marque"),
   };
 }
 
@@ -61,6 +73,9 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   const payload = buildFigurantPayload(formData);
   if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
     return { error: "Prénom, nom, email et téléphone sont obligatoires." };
+  }
+  if (payload.a_vehicule === null) {
+    return { error: "Merci d'indiquer si le figurant a un véhicule." };
   }
 
   const supabase = createAdminClient();
@@ -91,6 +106,9 @@ export async function updateFigurant(
   const payload = buildFigurantPayload(formData);
   if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
     return { error: "Prénom, nom, email et téléphone sont obligatoires." };
+  }
+  if (payload.a_vehicule === null) {
+    return { error: "Merci d'indiquer si le figurant a un véhicule." };
   }
 
   const supabase = createAdminClient();

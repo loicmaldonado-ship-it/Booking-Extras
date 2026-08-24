@@ -1,7 +1,7 @@
 export type Civilite = "Mme" | "M." | "Autre";
 export type Pronom = "Elle" | "Il" | "Iel";
 export type Genre = "Femme" | "Homme" | "Non-binaire";
-export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue";
+export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue" | "vehicule";
 
 // Au-delà, une fiche devient difficile à parcourir et le stockage explose
 // sans réel bénéfice pour le casting — appliqué partout où un candidat ou
@@ -46,6 +46,11 @@ export type Figurant = {
   temporaire_projet_id: string | null;
   tags: string[];
   notes_internes: string | null;
+  a_vehicule: boolean | null;
+  vehicule_velo: boolean;
+  vehicule_moto: boolean;
+  vehicule_scooter: boolean;
+  vehicule_marque: string | null;
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
