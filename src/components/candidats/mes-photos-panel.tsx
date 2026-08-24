@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { uploadMaPhoto, deleteMaPhoto } from "@/lib/candidats/actions";
 import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 
@@ -28,6 +28,11 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const atCap = photos.length >= MAX_PHOTOS_PAR_FIGURANT;
+  const photosWithUrl = photos.filter((p) => p.url);
+  const gallery: GalleryPhoto[] = photosWithUrl.map((p) => ({ src: p.url!, alt: TYPE_LABELS[p.type] }));
+  function galleryIndex(photoId: string) {
+    return photosWithUrl.findIndex((p) => p.id === photoId);
+  }
 
   function upload(file: File) {
     setError(null);
@@ -64,7 +69,9 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
           {photos.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
               {p.url && <Image src={p.url} alt={TYPE_LABELS[p.type]} fill className="object-cover" unoptimized />}
-              {p.url && <ZoomButton src={p.url} alt={TYPE_LABELS[p.type]} />}
+              {p.url && (
+                <ZoomButton src={p.url} alt={TYPE_LABELS[p.type]} gallery={gallery} index={galleryIndex(p.id)} />
+              )}
               <button
                 type="button"
                 onClick={() => remove(p.id)}

@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email/send";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
+import { createNotification } from "@/lib/notifications/create";
 import { clearFigurantSessionCookie, getCurrentFigurant } from "./session";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -195,6 +196,12 @@ export async function sendFigurantReply(_prevState: unknown, formData: FormData)
     .insert({ figurant_id: figurant.id, sender: "figurant", corps, bien_recu: true });
 
   if (error) return { error: error.message };
+
+  await createNotification("reponse", `${figurant.prenom} ${figurant.nom} a répondu à un message`, {
+    figurantId: figurant.id,
+    lien: `/figurants/${figurant.id}`,
+  });
+
   revalidatePath("/compte");
   return { success: true };
 }

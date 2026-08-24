@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/cn";
 import { signOut } from "@/lib/auth/actions";
 import { CommandPalette } from "@/components/command-palette";
+import { NotificationsBell } from "@/components/notifications-bell";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIcon }[] = [
@@ -158,6 +159,7 @@ export function AppShell({
 
         {profile && (
           <div className="flex items-center gap-3">
+            <NotificationsBell />
             <CommandPalette />
             <div className="hidden text-right text-xs sm:block">
               <div className="truncate font-medium text-text">{profile.email}</div>

@@ -16,7 +16,7 @@ import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
 import { deleteFigurant, deleteLien } from "@/lib/figurants/actions";
-import { formatDateShort } from "@/lib/format-date";
+import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 
 type FigurantBookingRow = {
@@ -200,6 +200,10 @@ export default async function FigurantDetailPage({
             ) : (
               <Badge>Non</Badge>
             )}
+          </div>
+          <div>
+            <span className="text-text-muted">Dernière connexion : </span>
+            {figurant.last_seen_at ? formatDateTime(figurant.last_seen_at) : "Jamais connecté·e"}
           </div>
         </div>
         {figurant.logement_france && (

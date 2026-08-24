@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { uploadFigurantPhoto, deletePhoto } from "@/lib/figurants/actions";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 
 type PhotoWithUrl = { id: string; type: PhotoType; url?: string };
@@ -38,6 +38,19 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
   // deletable — nothing should silently disappear from view.
   const shownIds = new Set(SLOTS.map((slot) => photoForSlot(slot.key, slot.type)?.id).filter(Boolean));
   const extraPhotos = photos.filter((p) => !shownIds.has(p.id));
+
+  // Ordre d'affichage (slots puis extras) pour que les flèches ← → du
+  // lightbox parcourent les photos dans le même ordre que la grille.
+  const orderedPhotos = [
+    ...SLOTS.map((slot) => photoForSlot(slot.key, slot.type)).filter(
+      (p): p is PhotoWithUrl => !!p && !!p.url
+    ),
+    ...extraPhotos.filter((p) => p.url),
+  ];
+  const gallery: GalleryPhoto[] = orderedPhotos.map((p) => ({ src: p.url!, alt: p.type }));
+  function galleryIndex(photoId: string) {
+    return orderedPhotos.findIndex((p) => p.id === photoId);
+  }
 
   function upload(key: string, type: PhotoType, file: File) {
     setError(null);
@@ -97,7 +110,9 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
                     <span>{isBusy ? "Envoi..." : "Glisser ou cliquer"}</span>
                   </div>
                 )}
-                {photo?.url && <ZoomButton src={photo.url} alt={slot.label} />}
+                {photo?.url && (
+                  <ZoomButton src={photo.url} alt={slot.label} gallery={gallery} index={galleryIndex(photo.id)} />
+                )}
                 {photo && (
                   <button
                     type="button"
@@ -143,7 +158,7 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
             {extraPhotos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
                 {p.url && <Image src={p.url} alt="" fill className="object-cover" unoptimized />}
-                {p.url && <ZoomButton src={p.url} />}
+                {p.url && <ZoomButton src={p.url} gallery={gallery} index={galleryIndex(p.id)} />}
                 <button
                   type="button"
                   onClick={() => remove(p.id)}

@@ -6,9 +6,9 @@ import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { projetNomPublic } from "@/lib/projets/types";
-import { formatDateShort } from "@/lib/format-date";
+import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
@@ -83,6 +83,12 @@ export default async function CandidatureDetailPage({
   const portrait = pickPortrait(photos);
   const age = computeAge(f.date_naissance);
 
+  const photosWithUrl = photos.filter((p) => p.url);
+  const gallery: GalleryPhoto[] = photosWithUrl.map((p) => ({ src: p.url!, alt: p.type }));
+  function galleryIndex(photoId: string) {
+    return photosWithUrl.findIndex((p) => p.id === photoId);
+  }
+
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/candidatures" label="Candidatures" />
@@ -93,7 +99,7 @@ export default async function CandidatureDetailPage({
             {portrait?.url && (
               <>
                 <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
-                <ZoomButton src={portrait.url} />
+                <ZoomButton src={portrait.url} gallery={gallery} index={galleryIndex(portrait.id)} />
               </>
             )}
           </div>
@@ -103,6 +109,9 @@ export default async function CandidatureDetailPage({
             </h1>
             <p className="mt-1 text-text-muted">
               {candidature.annonces?.titre} · {projetNomPublic(candidature.annonces?.projets)}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Dernière connexion : {f.last_seen_at ? formatDateTime(f.last_seen_at) : "Jamais connecté·e"}
             </p>
           </div>
         </div>
@@ -246,7 +255,7 @@ export default async function CandidatureDetailPage({
                 {p.url && (
                   <>
                     <Image src={p.url} alt={p.type} fill className="object-cover" unoptimized />
-                    <ZoomButton src={p.url} alt={p.type} />
+                    <ZoomButton src={p.url} alt={p.type} gallery={gallery} index={galleryIndex(p.id)} />
                   </>
                 )}
               </div>

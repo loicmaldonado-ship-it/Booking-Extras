@@ -7,6 +7,7 @@ import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
+import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { Cachet } from "./types";
 
@@ -101,7 +102,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
+    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
     .eq("public_token", publicToken)
     .single();
 
@@ -237,6 +238,11 @@ export async function postulerAnnonce(
   if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
 
   await uploadCandidaturePhotos(figurantId!, formData);
+
+  await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
+    figurantId,
+    lien: `/candidatures/${candidature.id}`,
+  });
 
   revalidatePath("/candidatures");
   return { success: true };
