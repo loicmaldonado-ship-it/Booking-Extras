@@ -55,12 +55,14 @@ export default async function PostulerPage({
     taille_cm: number | null;
     poids_kg: number | null;
     pointure: number | null;
+    veste: string | null;
+    pantalon: string | null;
   } | undefined;
   if (session) {
     const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
       supabase
         .from("figurants")
-        .select("prenom, nom, email, telephone, ville, date_naissance, taille_cm, poids_kg, pointure")
+        .select("prenom, nom, email, telephone, ville, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon")
         .eq("id", session.id)
         .single(),
       supabase
@@ -82,6 +84,8 @@ export default async function PostulerPage({
         taille_cm: figurantComplet.taille_cm,
         poids_kg: figurantComplet.poids_kg,
         pointure: figurantComplet.pointure,
+        veste: figurantComplet.veste,
+        pantalon: figurantComplet.pantalon,
       };
     }
   }

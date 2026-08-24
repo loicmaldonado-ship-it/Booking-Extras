@@ -68,6 +68,8 @@ export async function postulerAnnonce(
   const tailleCm = num(formData, "taille_cm");
   const poidsKg = num(formData, "poids_kg");
   const pointure = num(formData, "pointure");
+  const veste = str(formData, "veste");
+  const pantalon = str(formData, "pantalon");
   const temporaire = formData.get("temporaire") === "on";
   const aVehiculeRaw = str(formData, "a_vehicule");
   const vehiculeMarque = str(formData, "vehicule_marque");
@@ -86,6 +88,9 @@ export async function postulerAnnonce(
   }
   if (!tailleCm || !poidsKg || !pointure) {
     return { error: "Les mensurations (taille, poids, pointure) sont obligatoires." };
+  }
+  if (!veste || !pantalon) {
+    return { error: "Les tailles de veste et de pantalon sont obligatoires." };
   }
   const photoPortrait = formData.get("photo_portrait");
   const photoPied = formData.get("photo_pied");
@@ -193,6 +198,8 @@ export async function postulerAnnonce(
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,
+        veste,
+        pantalon,
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
         a_vehicule: aVehicule,
@@ -220,6 +227,8 @@ export async function postulerAnnonce(
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,
+        veste,
+        pantalon,
         a_vehicule: aVehicule,
         vehicule_velo: vehiculeVelo,
         vehicule_moto: vehiculeMoto,

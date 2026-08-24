@@ -108,6 +108,8 @@ export function PostulerForm({
     taille_cm?: number | null;
     poids_kg?: number | null;
     pointure?: number | null;
+    veste?: string | null;
+    pantalon?: string | null;
   };
   bandeDemoObligatoire?: boolean;
 }) {
@@ -172,6 +174,12 @@ export function PostulerForm({
             </Field>
             <Field label="Pointure" required>
               <Input type="number" name="pointure" required min={0} defaultValue={prefill?.pointure ?? undefined} />
+            </Field>
+            <Field label="Taille de veste" required>
+              <Input name="veste" placeholder="Ex. 48/50" required defaultValue={prefill?.veste ?? undefined} />
+            </Field>
+            <Field label="Taille de pantalon" required>
+              <Input name="pantalon" placeholder="Ex. 42" required defaultValue={prefill?.pantalon ?? undefined} />
             </Field>
           </div>
         </div>
