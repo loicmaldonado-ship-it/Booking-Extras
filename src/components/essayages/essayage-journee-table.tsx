@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
+import { ZoomButton } from "@/components/ui/zoomable-image";
 import { cn } from "@/lib/cn";
 import {
   updateEssayageStatutInline,
@@ -289,6 +290,7 @@ export function EssayageJourneeTable({
             <Link href={`/figurants/${r.figurant_id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                {r.portraitUrl && <ZoomButton src={r.portraitUrl} />}
               </div>
               <div className="text-sm font-medium">
                 {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}

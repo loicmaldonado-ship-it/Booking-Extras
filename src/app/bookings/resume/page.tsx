@@ -1,10 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BackLink } from "@/components/ui/back-link";
 import { Badge } from "@/components/ui/card";
 import { getJournees } from "@/lib/bookings/journees";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { ZoomableImage } from "@/components/ui/zoomable-image";
 import { TROMBI_CACHET_ORDER } from "@/lib/documents/trombi";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -184,7 +184,7 @@ export default async function ResumeProjetPage({
                             >
                               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
                                 {portrait?.url && (
-                                  <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                                  <ZoomableImage src={portrait.url} imgClassName="rounded-full object-cover" />
                                 )}
                               </div>
                               <span className="w-full truncate text-center text-[8px] leading-tight text-text-muted">

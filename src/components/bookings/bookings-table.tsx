@@ -4,6 +4,7 @@ import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { ZoomableImage, ZoomButton } from "@/components/ui/zoomable-image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -815,9 +816,7 @@ export function BookingsTable({
         </td>
         <td className="px-4 py-4 align-middle">
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
-            {r.portraitUrl && (
-              <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
-            )}
+            {r.portraitUrl && <ZoomableImage src={r.portraitUrl} imgClassName="rounded-full object-cover" />}
           </div>
         </td>
         <td className="px-6 py-4 align-middle">
@@ -977,6 +976,7 @@ export function BookingsTable({
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
             {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+            {r.portraitUrl && <ZoomButton src={r.portraitUrl} />}
             {r.raccord && (
               <span className="absolute right-1 top-1 z-10">
                 <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />

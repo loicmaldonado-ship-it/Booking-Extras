@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { uploadFigurantPhoto, deletePhoto } from "@/lib/figurants/actions";
-import type { PhotoType } from "@/lib/figurants/types";
+import { ZoomButton } from "@/components/ui/zoomable-image";
+import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 
 type PhotoWithUrl = { id: string; type: PhotoType; url?: string };
 
@@ -96,6 +97,7 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
                     <span>{isBusy ? "Envoi..." : "Glisser ou cliquer"}</span>
                   </div>
                 )}
+                {photo?.url && <ZoomButton src={photo.url} alt={slot.label} />}
                 {photo && (
                   <button
                     type="button"
@@ -130,6 +132,10 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
+      <span className="text-xs text-text-muted">
+        {photos.length}/{MAX_PHOTOS_PAR_FIGURANT} photos
+      </span>
+
       {extraPhotos.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className="text-xs text-text-muted">Photos supplémentaires</span>
@@ -137,6 +143,7 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
             {extraPhotos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
                 {p.url && <Image src={p.url} alt="" fill className="object-cover" unoptimized />}
+                {p.url && <ZoomButton src={p.url} />}
                 <button
                   type="button"
                   onClick={() => remove(p.id)}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { countFigurantPhotos, insertFigurantPhoto, MAX_PHOTOS_PAR_FIGURANT } from "./photos";
 import type { Civilite, Genre, PhotoType, Pronom } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -154,26 +155,14 @@ export async function uploadFigurantPhoto(figurantId: string, _prevState: unknow
   }
 
   const supabase = createAdminClient();
-  const ext = file.name.split(".").pop() || "jpg";
-  const path = `${figurantId}/${type}-${crypto.randomUUID()}.${ext}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("figurant-photos")
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (uploadError) {
-    return { error: uploadError.message };
+  const existing = await countFigurantPhotos(supabase, figurantId);
+  if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
+    return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos par profil.` };
   }
 
-  const prise_le = type === "selfie" ? str(formData, "prise_le") : null;
-
-  const { error: insertError } = await supabase
-    .from("figurant_photos")
-    .insert({ figurant_id: figurantId, type, storage_path: path, prise_le });
-
-  if (insertError) {
-    return { error: insertError.message };
-  }
+  const priseLe = type === "selfie" ? str(formData, "prise_le") : null;
+  const result = await insertFigurantPhoto(supabase, figurantId, type, file, { priseLe });
+  if (result.error) return { error: result.error };
 
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const };

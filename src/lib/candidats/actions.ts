@@ -6,8 +6,9 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
-import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM } from "@/lib/figurants/types";
+import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
+import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
 import { clearFigurantSessionCookie, getCurrentFigurant } from "./session";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -355,6 +356,52 @@ export async function removeIndisponibiliteSelf(date: string) {
     .delete()
     .eq("figurant_id", session.id)
     .eq("date", date);
+
+  revalidatePath("/compte");
+  return { success: true as const };
+}
+
+// Le candidat ne gère que ses PROPRES photos — l'id vient de sa session,
+// jamais d'un champ du formulaire.
+export async function uploadMaPhoto(_prevState: unknown, formData: FormData) {
+  const session = await getCurrentFigurant();
+  if (!session) return { error: "Non connecté." };
+
+  const file = formData.get("photo");
+  const type = (str(formData, "type") as PhotoType | null) ?? "autre";
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Choisis une photo." };
+  }
+
+  const supabase = createAdminClient();
+  const existing = await countFigurantPhotos(supabase, session.id);
+  if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
+    return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos.` };
+  }
+
+  const priseLe = type === "selfie" ? new Date().toISOString().slice(0, 10) : null;
+  const result = await insertFigurantPhoto(supabase, session.id, type, file, { priseLe });
+  if (result.error) return { error: result.error };
+
+  revalidatePath("/compte");
+  return { success: true as const };
+}
+
+export async function deleteMaPhoto(photoId: string) {
+  const session = await getCurrentFigurant();
+  if (!session) return { error: "Non connecté." };
+
+  const supabase = createAdminClient();
+  const { data: photo } = await supabase
+    .from("figurant_photos")
+    .select("storage_path")
+    .eq("id", photoId)
+    .eq("figurant_id", session.id)
+    .maybeSingle();
+  if (!photo) return { error: "Photo introuvable." };
+
+  await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
+  await supabase.from("figurant_photos").delete().eq("id", photoId);
 
   revalidatePath("/compte");
   return { success: true as const };

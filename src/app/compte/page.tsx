@@ -9,10 +9,11 @@ import { MessageThread } from "@/components/candidats/message-thread";
 import { PushSubscribe } from "@/components/candidats/push-subscribe";
 import { MaFicheForm } from "@/components/candidats/ma-fiche-form";
 import { IndisponibilitesPanel } from "@/components/candidats/indisponibilites-panel";
+import { MesPhotosPanel } from "@/components/candidats/mes-photos-panel";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
-import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
+import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant, type FigurantPhoto } from "@/lib/figurants/types";
 
 export const dynamic = "force-dynamic";
 
@@ -33,17 +34,26 @@ export default async function CompteCandidatPage() {
   }
 
   const supabase = createAdminClient();
-  const [{ data: figurant }, { data: messages }, { data: candidaturesExistantes }, { data: liens }] = await Promise.all([
-    supabase.from("figurants").select("*").eq("id", session.id).single<Figurant>(),
-    supabase
-      .from("figurant_messages")
-      .select("*")
-      .eq("figurant_id", session.id)
-      .order("created_at", { ascending: true })
-      .returns<FigurantMessage[]>(),
-    supabase.from("candidatures").select("annonce_id").eq("figurant_id", session.id),
-    supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
-  ]);
+  const [{ data: figurant }, { data: messages }, { data: candidaturesExistantes }, { data: liens }, { data: photosRaw }] =
+    await Promise.all([
+      supabase.from("figurants").select("*").eq("id", session.id).single<Figurant>(),
+      supabase
+        .from("figurant_messages")
+        .select("*")
+        .eq("figurant_id", session.id)
+        .order("created_at", { ascending: true })
+        .returns<FigurantMessage[]>(),
+      supabase.from("candidatures").select("annonce_id").eq("figurant_id", session.id),
+      supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
+      supabase.from("figurant_photos").select("*").eq("figurant_id", session.id).returns<FigurantPhoto[]>(),
+    ]);
+
+  const photos = await Promise.all(
+    (photosRaw ?? []).map(async (p) => {
+      const { data } = await supabase.storage.from("figurant-photos").createSignedUrl(p.storage_path, 60 * 60);
+      return { id: p.id, type: p.type, url: data?.signedUrl };
+    })
+  );
 
   const { data: indisponibilites } = await supabase
     .from("figurant_indisponibilites")
@@ -85,6 +95,8 @@ export default async function CompteCandidatPage() {
       <MaFicheForm figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
 
       <IndisponibilitesPanel indisponibilites={indisponibilites ?? []} />
+
+      <MesPhotosPanel photos={photos} />
 
       {annonces.length > 0 && (
         <Card className="flex flex-col gap-3">

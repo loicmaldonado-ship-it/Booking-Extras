@@ -6,6 +6,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { Button } from "@/components/ui/button";
+import { ZoomButton } from "@/components/ui/zoomable-image";
 
 type FigurantCard = {
   id: string;
@@ -82,6 +83,7 @@ export function FigurantsTrombiGrid({
             <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 {f.portraitUrl && <Image src={f.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                {f.portraitUrl && <ZoomButton src={f.portraitUrl} />}
               </div>
               <div className="text-sm font-medium">
                 {f.prenom} {f.nom}

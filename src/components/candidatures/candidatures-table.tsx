@@ -12,6 +12,7 @@ import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { ZoomButton } from "@/components/ui/zoomable-image";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
@@ -244,7 +245,10 @@ export function CandidaturesTable({
                     >
                       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                         {r.portraitUrl && (
-                          <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
+                          <>
+                            <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
+                            <ZoomButton src={r.portraitUrl} />
+                          </>
                         )}
                       </div>
                       <div className="text-sm font-medium">
@@ -354,7 +358,12 @@ export function CandidaturesTable({
                     href={`/candidatures/${r.id}`}
                     className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                   >
-                    {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                    {r.portraitUrl && (
+                      <>
+                        <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
+                        <ZoomButton src={r.portraitUrl} />
+                      </>
+                    )}
                   </Link>
                   <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-2 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     {(() => {

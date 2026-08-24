@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
+import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
+import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { Cachet } from "./types";
 
@@ -79,6 +80,16 @@ export async function postulerAnnonce(
   }
   if (!tailleCm || !poidsKg || !pointure) {
     return { error: "Les mensurations (taille, poids, pointure) sont obligatoires." };
+  }
+  const photoPortrait = formData.get("photo_portrait");
+  const photoPied = formData.get("photo_pied");
+  const photoSelfie = formData.get("photo_selfie");
+  if (
+    !(photoPortrait instanceof File && photoPortrait.size > 0) ||
+    !(photoPied instanceof File && photoPied.size > 0) ||
+    !(photoSelfie instanceof File && photoSelfie.size > 0)
+  ) {
+    return { error: "Les 3 photos (portrait, pied, selfie avec la date) sont obligatoires." };
   }
 
   const age = computeAge(dateNaissance);
@@ -233,31 +244,24 @@ export async function postulerAnnonce(
 
 async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
   const supabase = createAdminClient();
-  const { count: existingPhotos } = await supabase
-    .from("figurant_photos")
-    .select("id", { count: "exact", head: true })
-    .eq("figurant_id", figurantId);
+  const today = new Date().toISOString().slice(0, 10);
 
-  let hasPortrait = (existingPhotos ?? 0) > 0;
-  const slots = ["photo_1", "photo_2", "photo_3"];
+  const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre"; priseLe?: string | null }[] = [];
+  const portrait = formData.get("photo_portrait");
+  if (portrait instanceof File && portrait.size > 0) files.push({ file: portrait, type: "portrait" });
+  const pied = formData.get("photo_pied");
+  if (pied instanceof File && pied.size > 0) files.push({ file: pied, type: "pied" });
+  const selfie = formData.get("photo_selfie");
+  if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: today });
+  for (const extra of formData.getAll("photo_extra")) {
+    if (extra instanceof File && extra.size > 0) files.push({ file: extra, type: "autre" });
+  }
 
-  for (const slot of slots) {
-    const file = formData.get(slot);
-    if (!(file instanceof File) || file.size === 0) continue;
-
-    const type = hasPortrait ? "autre" : "portrait";
-    hasPortrait = true;
-
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${figurantId}/${type}-${crypto.randomUUID()}.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("figurant-photos")
-      .upload(path, file, { contentType: file.type, upsert: false });
-
-    if (uploadError) continue;
-
-    await supabase.from("figurant_photos").insert({ figurant_id: figurantId, type, storage_path: path });
+  let remaining = MAX_PHOTOS_PAR_FIGURANT - (await countFigurantPhotos(supabase, figurantId));
+  for (const { file, type, priseLe } of files) {
+    if (remaining <= 0) break;
+    const result = await insertFigurantPhoto(supabase, figurantId, type, file, { priseLe });
+    if (!result.error) remaining -= 1;
   }
 }
 

@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { ZoomButton } from "@/components/ui/zoomable-image";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
@@ -89,7 +90,12 @@ export default async function CandidatureDetailPage({
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ink-raised-2">
-            {portrait?.url && <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />}
+            {portrait?.url && (
+              <>
+                <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                <ZoomButton src={portrait.url} />
+              </>
+            )}
           </div>
           <div>
             <h1 className="text-3xl font-semibold">
@@ -237,7 +243,12 @@ export default async function CandidatureDetailPage({
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {photos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
-                {p.url && <Image src={p.url} alt={p.type} fill className="object-cover" unoptimized />}
+                {p.url && (
+                  <>
+                    <Image src={p.url} alt={p.type} fill className="object-cover" unoptimized />
+                    <ZoomButton src={p.url} alt={p.type} />
+                  </>
+                )}
               </div>
             ))}
           </div>

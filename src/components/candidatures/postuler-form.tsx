@@ -12,9 +12,29 @@ import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import type { AnnonceQuestion } from "@/lib/annonces/questions";
 import type { AnnonceDate } from "@/lib/annonces/dates";
 
-const PHOTO_SLOTS = ["photo_1", "photo_2", "photo_3"] as const;
+const REQUIRED_PHOTO_SLOTS = [
+  { name: "photo_portrait", label: "Portrait" },
+  { name: "photo_pied", label: "Photo en pied" },
+  {
+    name: "photo_selfie",
+    label: "Selfie avec la date du jour",
+    hint: "Écris la date d'aujourd'hui sur un papier et prends-toi en photo avec.",
+  },
+] as const;
 
-function PhotoSlot({ name, label }: { name: string; label: string }) {
+const MAX_EXTRA_PHOTOS = 4; // 3 obligatoires + 4 = 7 photos maximum
+
+function PhotoSlot({
+  name,
+  label,
+  hint,
+  required,
+}: {
+  name: string;
+  label: string;
+  hint?: string;
+  required?: boolean;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -50,6 +70,7 @@ function PhotoSlot({ name, label }: { name: string; label: string }) {
           type="file"
           name={name}
           accept="image/*"
+          required={required}
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
@@ -57,7 +78,11 @@ function PhotoSlot({ name, label }: { name: string; label: string }) {
           }}
         />
       </div>
-      <span className="text-center text-xs text-text-muted">{label}</span>
+      <span className="text-center text-xs text-text-muted">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      {hint && <span className="text-center text-[10px] text-text-muted">{hint}</span>}
     </div>
   );
 }
@@ -177,11 +202,20 @@ export function PostulerForm({
         </Field>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">
-            Photos (optionnel, mais ça aide beaucoup !)
+            Photos — 3 obligatoires, jusqu&apos;à 7 au total
           </span>
-          <div className="grid grid-cols-3 gap-3">
-            {PHOTO_SLOTS.map((name, i) => (
-              <PhotoSlot key={name} name={name} label={i === 0 ? "Portrait" : "Autre"} />
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {REQUIRED_PHOTO_SLOTS.map((slot) => (
+              <PhotoSlot
+                key={slot.name}
+                name={slot.name}
+                label={slot.label}
+                hint={"hint" in slot ? slot.hint : undefined}
+                required
+              />
+            ))}
+            {Array.from({ length: MAX_EXTRA_PHOTOS }).map((_, i) => (
+              <PhotoSlot key={`extra-${i}`} name="photo_extra" label="Autre (optionnel)" />
             ))}
           </div>
         </div>
