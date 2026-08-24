@@ -31,7 +31,7 @@ export function substitutePrenom(text: string, prenom: string) {
 
 export function substituteTokens(
   text: string,
-  tokens: Partial<Record<"prenom" | "projet" | "date" | "lieu" | "cachet" | "fonction" | "signature", string>>
+  tokens: Partial<Record<"prenom" | "projet" | "date" | "lieu" | "cachet" | "fonction" | "signature" | "role", string>>
 ) {
   let result = text;
   for (const [key, value] of Object.entries(tokens)) {

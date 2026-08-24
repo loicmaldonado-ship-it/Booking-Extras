@@ -1,16 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Card, Badge } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
-import { getCastingEntries, getCastingVideoUrl } from "@/lib/casting/data";
+import { getCastingRoles, getCastingEntries, getCastingVideoUrls } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
-import { CastingEntryCard } from "@/components/casting/casting-entry-card";
-import { AddToCastingPicker } from "@/components/casting/add-to-casting-picker";
+import { CastingRoleSection } from "@/components/casting/casting-role-section";
+import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
+import type { MessageTemplate } from "@/lib/templates/types";
 import { Video } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -45,47 +46,31 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  const [entries, partageToken, origin] = await Promise.all([
+  const [roles, entries, partageToken, origin, { data: allFigurants }, { data: templates }] = await Promise.all([
+    getCastingRoles(currentProjetId),
     getCastingEntries(currentProjetId),
     getPartageToken(currentProjetId, "casting"),
     getSiteOrigin(),
+    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
   ]);
 
   const figurantIds = entries.map((e) => e.figurant_id);
-  const [photosByFigurant, videoUrls] = await Promise.all([
+  const [photosByFigurant, ...videoUrlsList] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    Promise.all(entries.map((e) => getCastingVideoUrl(e.video_storage_path))),
+    ...entries.map((e) => getCastingVideoUrls(e.video_storage_paths)),
   ]);
-  const videoUrlByEntry = new Map(entries.map((e, i) => [e.id, videoUrls[i]]));
+  const portraitByFigurant = new Map(
+    figurantIds.map((id) => [id, pickPortrait(photosByFigurant.get(id), currentProjetId)?.url ?? null])
+  );
+  const videoUrlsByEntry = new Map(entries.map((e, i) => [e.id, videoUrlsList[i]]));
 
-  // Profils déjà bookés ou candidats sur ce projet, pas encore dans le
-  // casting — bassin pour "+ Ajouter au casting".
-  type PoolRow = { figurant_id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null };
-
-  const entryFigurantIds = new Set(entries.map((e) => e.figurant_id));
-  const [{ data: bookedFigurants }, { data: annonces }] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select("figurant_id, figurants!bookings_figurant_id_fkey(id, prenom, nom, email)")
-      .eq("projet_id", currentProjetId)
-      .returns<PoolRow[]>(),
-    supabase.from("annonces").select("id").eq("projet_id", currentProjetId),
-  ]);
-  const annonceIds = (annonces ?? []).map((a) => a.id);
-  const { data: candidatureFigurants } =
-    annonceIds.length > 0
-      ? await supabase
-          .from("candidatures")
-          .select("figurant_id, figurants(id, prenom, nom, email)")
-          .in("annonce_id", annonceIds)
-          .returns<PoolRow[]>()
-      : { data: [] as PoolRow[] };
-
-  const poolMap = new Map<string, { id: string; prenom: string; nom: string; email: string | null }>();
-  for (const b of [...(bookedFigurants ?? []), ...(candidatureFigurants ?? [])]) {
-    if (b.figurants && !entryFigurantIds.has(b.figurants.id)) poolMap.set(b.figurants.id, b.figurants);
+  const entriesByRole = new Map<string, typeof entries>();
+  for (const e of entries) {
+    const list = entriesByRole.get(e.role_id) ?? [];
+    list.push(e);
+    entriesByRole.set(e.role_id, list);
   }
-  const pool = Array.from(poolMap.values());
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,35 +87,41 @@ export default async function CastingPage({
             {projet.nom}
           </h1>
           <p className="mt-1 text-text-muted">
-            {entries.length} profil{entries.length > 1 ? "s" : ""} au casting
+            {roles.length} rôle{roles.length > 1 ? "s" : ""} · {entries.length} profil{entries.length > 1 ? "s" : ""}
           </p>
         </div>
       </div>
 
-      <AddToCastingPicker projetId={currentProjetId} pool={pool} />
+      <NewCastingRoleCard projetId={currentProjetId} />
 
-      <Card className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Profils demandés</h2>
-        {entries.length === 0 && (
-          <p className="text-sm text-text-muted">Aucun profil demandé pour l&apos;instant sur ce projet.</p>
-        )}
-        <div className="flex flex-wrap gap-3">
-          {entries.map((entry) => (
-            <CastingEntryCard
-              key={entry.id}
-              entry={entry}
-              portraitUrl={pickPortrait(photosByFigurant.get(entry.figurant_id), currentProjetId)?.url ?? null}
-              videoUrl={videoUrlByEntry.get(entry.id) ?? null}
-            />
-          ))}
-        </div>
-      </Card>
+      {roles.map((role) => (
+        <CastingRoleSection
+          key={role.id}
+          projetId={currentProjetId}
+          projetNom={projet.nom}
+          role={role}
+          entries={entriesByRole.get(role.id) ?? []}
+          portraitByFigurant={portraitByFigurant}
+          videoUrlsByEntry={videoUrlsByEntry}
+          allFigurants={allFigurants ?? []}
+          templates={templates ?? []}
+        />
+      ))}
+
+      {roles.length === 0 && (
+        <Card>
+          <p className="text-sm text-text-muted">
+            Aucun rôle pour l&apos;instant — crée-en un ci-dessus, ou envoie une sélection depuis Base Profils,
+            Bookings ou Candidatures (bouton « Envoyer au casting »).
+          </p>
+        </Card>
+      )}
 
       <PartageCard
         projetId={currentProjetId}
         type="casting"
         label={`Partage réal — Casting « ${projet.nom} »`}
-        description="Lien en lecture seule pour le réalisateur·ice : rôles avec vidéo, figurants en trombi seul."
+        description="Lien en lecture seule pour le réalisateur·ice, classé par rôle."
         token={partageToken}
         publicBaseUrl={`${origin}/partage/casting`}
       />

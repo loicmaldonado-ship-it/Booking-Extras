@@ -22,6 +22,7 @@ import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import { applyMajorationToBookings } from "@/lib/bareme/actions";
 import { formatMajorationValeur, type BaremeMajoration, type MajorationValeurType } from "@/lib/bareme/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
 import { toggleMessageRepondu } from "@/lib/figurants/messages-actions";
@@ -332,6 +333,7 @@ export function BookingsTable({
   const [bulkHeure, setBulkHeure] = useState("08:00");
   const [viewMode, setViewMode] = useState<"liste" | "trombi">("trombi");
   const [essayageOpen, setEssayageOpen] = useState(false);
+  const [castingOpen, setCastingOpen] = useState(false);
   const [addDatesOpen, setAddDatesOpen] = useState(false);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
   const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number } | null>(null);
@@ -1483,6 +1485,11 @@ export function BookingsTable({
             </Button>
           )}
           {projetId && (
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setCastingOpen((v) => !v)}>
+              Envoyer au casting
+            </Button>
+          )}
+          {projetId && (
             <Button type="button" variant="secondary" disabled={pending} onClick={() => setAddDatesOpen((v) => !v)}>
               + Ajouter des dates
             </Button>
@@ -1535,6 +1542,18 @@ export function BookingsTable({
                 {pending ? "Envoi..." : "Envoyer"}
               </Button>
               {essayageResult && <span className="text-xs text-text-muted">{essayageResult}</span>}
+            </div>
+          )}
+          {castingOpen && projetId && (
+            <div className="w-full border-t border-turquoise/40 pt-3">
+              <AddToCastingBar
+                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
+                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+                onDone={() => {
+                  setCastingOpen(false);
+                  setSelected(new Set());
+                }}
+              />
             </div>
           )}
 

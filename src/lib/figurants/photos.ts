@@ -20,7 +20,7 @@ export async function insertFigurantPhoto(
   figurantId: string,
   type: PhotoType,
   file: File,
-  extra?: { priseLe?: string | null; projetId?: string | null }
+  extra?: { priseLe?: string | null; projetId?: string | null; castingEntryId?: string | null; label?: string | null }
 ): Promise<{ error?: string }> {
   const ext = file.name.split(".").pop() || "jpg";
   const path = `${figurantId}/${type}-${crypto.randomUUID()}.${ext}`;
@@ -36,6 +36,8 @@ export async function insertFigurantPhoto(
     storage_path: path,
     prise_le: extra?.priseLe ?? null,
     projet_id: extra?.projetId ?? null,
+    casting_entry_id: extra?.castingEntryId ?? null,
+    label: extra?.label ?? null,
   });
   if (insertError) return { error: insertError.message };
 

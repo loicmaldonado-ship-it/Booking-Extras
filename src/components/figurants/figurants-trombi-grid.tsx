@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { Button } from "@/components/ui/button";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import type { PhotoType } from "@/lib/figurants/types";
@@ -64,6 +65,13 @@ export function FigurantsTrombiGrid({
 
       {selected.size > 0 && (
         <AddToJourneeBar
+          figurantIds={Array.from(selected)}
+          projets={projets}
+          onDone={() => setSelected(new Set())}
+        />
+      )}
+      {selected.size > 0 && (
+        <AddToCastingBar
           figurantIds={Array.from(selected)}
           projets={projets}
           onDone={() => setSelected(new Set())}

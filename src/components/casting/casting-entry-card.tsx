@@ -1,42 +1,29 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton } from "@/components/ui/zoomable-image";
-import { toggleCastingSilhouette, updateCastingRoleLabel, deleteCastingEntry } from "@/lib/casting/actions";
+import { deleteCastingEntry } from "@/lib/casting/actions";
 import type { CastingEntry } from "@/lib/casting/types";
 
 export function CastingEntryCard({
   entry,
   portraitUrl,
-  videoUrl,
+  videoUrls,
+  selected,
+  onToggleSelect,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
-  videoUrl: string | null;
+  videoUrls: string[];
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [roleLabel, setRoleLabel] = useState(entry.role_label ?? "");
-
-  function toggleSilhouette() {
-    startTransition(async () => {
-      await toggleCastingSilhouette(entry.id, !entry.silhouette);
-      router.refresh();
-    });
-  }
-
-  function saveRoleLabel() {
-    const trimmed = roleLabel.trim();
-    if (trimmed === (entry.role_label ?? "")) return;
-    startTransition(async () => {
-      await updateCastingRoleLabel(entry.id, trimmed || null);
-      router.refresh();
-    });
-  }
 
   function remove() {
     startTransition(async () => {
@@ -46,7 +33,15 @@ export function CastingEntryCard({
   }
 
   return (
-    <div className="flex w-52 flex-col gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center">
+    <div className="relative flex w-52 flex-col gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center">
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onChange={onToggleSelect}
+          className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
+        />
+      )}
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
         {portraitUrl && (
           <>
@@ -63,30 +58,15 @@ export function CastingEntryCard({
       ) : (
         <Badge tone="yellow">En attente</Badge>
       )}
-      {videoUrl && (
-        <a href={videoUrl} target="_blank" rel="noreferrer" className="text-xs text-coral hover:underline">
-          Voir la vidéo ↗
-        </a>
+      {videoUrls.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {videoUrls.map((url, i) => (
+            <a key={url} href={url} target="_blank" rel="noreferrer" className="text-xs text-coral hover:underline">
+              Voir la vidéo{videoUrls.length > 1 ? ` ${i + 1}` : ""} ↗
+            </a>
+          ))}
+        </div>
       )}
-      {!entry.silhouette && (
-        <input
-          type="text"
-          value={roleLabel}
-          disabled={pending}
-          placeholder="Nom du rôle"
-          onChange={(e) => setRoleLabel(e.target.value)}
-          onBlur={saveRoleLabel}
-          className="rounded-lg border border-border bg-ink px-2 py-1 text-center text-xs"
-        />
-      )}
-      <button
-        type="button"
-        disabled={pending}
-        onClick={toggleSilhouette}
-        className="rounded-full border border-border px-2 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
-      >
-        {entry.silhouette ? "Figurant (trombi seul)" : "Rôle (avec vidéo)"}
-      </button>
       <Button type="button" variant="ghost" disabled={pending} onClick={remove}>
         Retirer
       </Button>

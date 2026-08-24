@@ -12,6 +12,7 @@ import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
@@ -279,6 +280,13 @@ export function CandidaturesTable({
             candidatureIdByFigurant={Object.fromEntries(
               rows.filter((r) => selected.has(r.id) && r.figurants?.id).map((r) => [r.figurants!.id, r.id])
             )}
+            projets={projets}
+            onDone={() => setSelected(new Set())}
+          />
+          <AddToCastingBar
+            figurantIds={rows
+              .filter((r) => selected.has(r.id) && r.figurants?.id)
+              .map((r) => r.figurants!.id)}
             projets={projets}
             onDone={() => setSelected(new Set())}
           />
