@@ -2,6 +2,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { CastingUploadForm } from "@/components/casting/casting-upload-form";
 
+// Marge de sécurité pour les Server Actions de cette page (génération d'URL
+// signée, finalisation) — elles ne reçoivent plus de fichier volumineux
+// (upload direct vers Supabase Storage depuis le navigateur), donc ça ne
+// devrait jamais approcher cette limite, mais coûte rien à fixer large.
+export const maxDuration = 30;
+
 export default async function CastingUploadPage({
   params,
 }: {

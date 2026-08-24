@@ -1,71 +1,64 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { submitCastingUpload } from "@/lib/casting/upload-actions";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 
-function VideoSlot({ index }: { index: number }) {
+function FileSlot({
+  label,
+  accept,
+  required,
+  onSelect,
+}: {
+  label: string;
+  accept: string;
+  required?: boolean;
+  onSelect: (file: File | null) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ name: string; isImage: boolean; url: string | null } | null>(null);
 
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-text-muted">Vidéo {index + 1}</span>
+      <span className="text-xs font-medium text-text-muted">
+        {label}
+        {required ? " *" : ""}
+      </span>
       <div
         onClick={() => inputRef.current?.click()}
-        className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border bg-ink-raised-2 px-4 py-8 text-center transition-colors hover:border-coral/60"
+        className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed border-border bg-ink-raised-2 px-4 text-center transition-colors hover:border-coral/60"
       >
-        {fileName ? (
-          <span className="text-sm text-text">{fileName}</span>
+        {preview ? (
+          preview.isImage && preview.url ? (
+            <Image src={preview.url} alt="" fill className="object-cover" unoptimized />
+          ) : (
+            <span className="text-sm text-text">{preview.name}</span>
+          )
         ) : (
           <>
             <span className="text-lg">+</span>
-            <span className="text-xs text-text-muted">Choisir une vidéo</span>
+            <span className="text-xs text-text-muted">Choisir</span>
           </>
         )}
       </div>
       <input
         ref={inputRef}
         type="file"
-        name="video"
-        accept="video/*"
-        required={index === 0}
-        className="hidden"
-        onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-      />
-    </div>
-  );
-}
-
-function PhotoSlot({ label }: { label: string }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-
-  return (
-    <div
-      onClick={() => inputRef.current?.click()}
-      className="relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-border bg-ink-raised-2 transition-colors hover:border-coral/60"
-    >
-      {preview ? (
-        <Image src={preview} alt="" fill className="object-cover" unoptimized />
-      ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-xs text-text-muted">
-          <span className="text-lg">+</span>
-          <span>{label}</span>
-        </div>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        name={`photo__${label}`}
-        accept="image/*"
+        accept={accept}
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          setPreview(file ? URL.createObjectURL(file) : null);
+          const file = e.target.files?.[0] ?? null;
+          onSelect(file);
+          if (!file) {
+            setPreview(null);
+            return;
+          }
+          const isImage = file.type.startsWith("image/");
+          setPreview({ name: file.name, isImage, url: isImage ? URL.createObjectURL(file) : null });
         }}
       />
     </div>
@@ -83,9 +76,68 @@ export function CastingUploadForm({
   photoLabels: string[];
   demandeBandeDemo: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(submitCastingUpload.bind(null, token), undefined);
+  const [videos, setVideos] = useState<(File | null)[]>(Array.from({ length: nbVideos }, () => null));
+  const [photos, setPhotos] = useState<Record<string, File | null>>({});
+  const [bandeDemo, setBandeDemo] = useState("");
+  const [step, setStep] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [pending, setPending] = useState(false);
 
-  if (state?.success) {
+  async function uploadOne(kind: "video" | "photo", slot: string, file: File) {
+    const target = await createCastingUploadSlot(token, kind, slot);
+    if (target.error || !target.bucket || !target.path || !target.token) {
+      throw new Error(target.error ?? "Impossible de préparer l'envoi.");
+    }
+    const supabase = createBrowserSupabaseClient();
+    const { error: uploadError } = await supabase.storage
+      .from(target.bucket)
+      .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+    if (uploadError) throw new Error(uploadError.message);
+    return target.path;
+  }
+
+  async function submit() {
+    setError(null);
+    if (nbVideos > 0 && !videos[0]) {
+      setError("Au moins une vidéo est obligatoire.");
+      return;
+    }
+    setPending(true);
+    try {
+      const videoPaths: string[] = [];
+      for (let i = 0; i < videos.length; i++) {
+        const file = videos[i];
+        if (!file) continue;
+        setStep(`Envoi de la vidéo ${i + 1}...`);
+        videoPaths.push(await uploadOne("video", String(i), file));
+      }
+
+      const uploadedPhotos: { label: string; path: string }[] = [];
+      for (const label of photoLabels) {
+        const file = photos[label];
+        if (!file) continue;
+        setStep(`Envoi de la photo « ${label} »...`);
+        uploadedPhotos.push({ label, path: await uploadOne("photo", label, file) });
+      }
+
+      setStep("Finalisation...");
+      const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo });
+      if (result?.error) {
+        setError(result.error);
+        setStep(null);
+        return;
+      }
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      setStep(null);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (success) {
     return (
       <Card className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-turquoise">Envoyé !</h2>
@@ -95,16 +147,20 @@ export function CastingUploadForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      {state?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {state.error}
-        </div>
+    <div className="flex flex-col gap-4">
+      {error && (
+        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
       )}
       {nbVideos > 0 && (
         <Card className="flex flex-col gap-4">
-          {Array.from({ length: nbVideos }).map((_, i) => (
-            <VideoSlot key={i} index={i} />
+          {videos.map((_, i) => (
+            <FileSlot
+              key={i}
+              label={`Vidéo ${i + 1}`}
+              accept="video/*"
+              required={i === 0}
+              onSelect={(file) => setVideos((prev) => prev.map((v, idx) => (idx === i ? file : v)))}
+            />
           ))}
         </Card>
       )}
@@ -113,7 +169,12 @@ export function CastingUploadForm({
           <span className="text-xs font-medium text-text-muted">Photos</span>
           <div className="grid grid-cols-3 gap-3">
             {photoLabels.map((label) => (
-              <PhotoSlot key={label} label={label} />
+              <FileSlot
+                key={label}
+                label={label}
+                accept="image/*"
+                onSelect={(file) => setPhotos((prev) => ({ ...prev, [label]: file }))}
+              />
             ))}
           </div>
         </Card>
@@ -121,14 +182,14 @@ export function CastingUploadForm({
       {demandeBandeDemo && (
         <Card>
           <Field label="Lien de votre bande démo (optionnel)">
-            <Input type="url" name="bande_demo" placeholder="https://..." />
+            <Input type="url" value={bandeDemo} onChange={(e) => setBandeDemo(e.target.value)} placeholder="https://..." />
           </Field>
         </Card>
       )}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Envoi..." : "Envoyer"}
+      <Button type="button" disabled={pending} onClick={submit}>
+        {pending ? step ?? "Envoi..." : "Envoyer"}
       </Button>
-    </form>
+    </div>
   );
 }
