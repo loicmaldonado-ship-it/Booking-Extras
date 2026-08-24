@@ -18,6 +18,8 @@ import {
 } from "@/lib/bookings/actions";
 import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
+import { applyMajorationToBookings } from "@/lib/bareme/actions";
+import { formatMajorationValeur, type BaremeMajoration, type MajorationValeurType } from "@/lib/bareme/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
@@ -100,6 +102,7 @@ export type Row = {
   raccord?: boolean;
   autresDates?: { date: string; statut: string }[];
   indemnites?: { id: string; label: string; montant: number }[];
+  majorations?: { id: string; label: string; valeur_type: MajorationValeurType; valeur: number | null }[];
 };
 
 // Petit badge "R" pour repérer en un coup d'œil un jour de suite (raccord) —
@@ -280,6 +283,7 @@ export function BookingsTable({
   initialReplies = [],
   messagesByFigurant = {},
   projetIndemnites = [],
+  baremeMajorations = [],
 }: {
   rows: Row[];
   projetId?: string;
@@ -290,6 +294,7 @@ export function BookingsTable({
   initialReplies?: InboxReply[];
   messagesByFigurant?: Record<string, MessageRow[]>;
   projetIndemnites?: ProjetIndemnite[];
+  baremeMajorations?: BaremeMajoration[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -469,6 +474,16 @@ export function BookingsTable({
     const ids = Array.from(selected);
     startTransition(async () => {
       await applyIndemniteToBookings(ids, projetIndemniteId);
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  function applyBulkMajoration(baremeMajorationId: string) {
+    if (!baremeMajorationId || selected.size === 0) return;
+    const ids = Array.from(selected);
+    startTransition(async () => {
+      await applyMajorationToBookings(ids, baremeMajorationId);
       setSelected(new Set());
       router.refresh();
     });
@@ -825,6 +840,11 @@ export function BookingsTable({
                 {ind.label}
               </Badge>
             ))}
+            {(r.majorations ?? []).map((m) => (
+              <Badge key={m.id} tone="turquoise" title={formatMajorationValeur(m)}>
+                {m.label}
+              </Badge>
+            ))}
           </Link>
           <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
           {rowDelai && (
@@ -980,6 +1000,11 @@ export function BookingsTable({
           {(r.indemnites ?? []).map((ind) => (
             <Badge key={ind.id} tone="yellow" title={`${ind.montant.toFixed(2)} €`}>
               {ind.label}
+            </Badge>
+          ))}
+          {(r.majorations ?? []).map((m) => (
+            <Badge key={m.id} tone="turquoise" title={formatMajorationValeur(m)}>
+              {m.label}
             </Badge>
           ))}
         </Link>
@@ -1360,10 +1385,12 @@ export function BookingsTable({
               Appliquer l&apos;heure
             </Button>
           </div>
-          {projetIndemnites.length > 0 && (
+          {(projetIndemnites.length > 0 || baremeMajorations.length > 0) && (
             <select
               onChange={(e) => {
-                applyBulkIndemnite(e.target.value);
+                const [kind, id] = e.target.value.split(":");
+                if (kind === "indemnite") applyBulkIndemnite(id);
+                else if (kind === "majoration") applyBulkMajoration(id);
                 e.target.value = "";
               }}
               disabled={pending}
@@ -1371,13 +1398,26 @@ export function BookingsTable({
               className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
             >
               <option value="" disabled>
-                {pending ? "Mise à jour..." : "Appliquer une indemnité..."}
+                {pending ? "Mise à jour..." : "Appliquer une indemnité/majoration..."}
               </option>
-              {projetIndemnites.map((ind) => (
-                <option key={ind.id} value={ind.id}>
-                  {ind.label} ({ind.montant.toFixed(2)} €)
-                </option>
-              ))}
+              {projetIndemnites.length > 0 && (
+                <optgroup label="Indemnités du projet">
+                  {projetIndemnites.map((ind) => (
+                    <option key={ind.id} value={`indemnite:${ind.id}`}>
+                      {ind.label} ({ind.montant.toFixed(2)} €)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {baremeMajorations.length > 0 && (
+                <optgroup label="Majorations barème">
+                  {baremeMajorations.map((m) => (
+                    <option key={m.id} value={`majoration:${m.id}`}>
+                      {m.label} ({formatMajorationValeur(m)})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           )}
           <Button type="button" variant="secondary" disabled={pending || sendPending} onClick={openConvocationConfirm}>

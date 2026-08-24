@@ -16,6 +16,7 @@ import type { JourneeBesoin } from "@/lib/bookings/besoins";
 import type { ConvocationSettings } from "@/lib/bookings/convocation";
 import type { InboxReply } from "@/lib/email/inbox";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
+import type { BaremeMajoration } from "@/lib/bareme/types";
 
 const TABS = [
   { value: "bookings", label: "Bookings" },
@@ -47,6 +48,7 @@ export function JourneeTabs({
   covoiturageTarifBase,
   covoiturageTarifPassager,
   projetIndemnites,
+  baremeMajorations,
 }: {
   bookings: Row[];
   templates: MessageTemplate[];
@@ -68,6 +70,7 @@ export function JourneeTabs({
   covoiturageTarifBase?: number;
   covoiturageTarifPassager?: number;
   projetIndemnites?: ProjetIndemnite[];
+  baremeMajorations?: BaremeMajoration[];
 }) {
   const [tab, setTab] = useState<Tab>("bookings");
   const query = `?projet_id=${projetId}&date=${date}`;
@@ -118,6 +121,7 @@ export function JourneeTabs({
             initialReplies={initialReplies}
             messagesByFigurant={messagesByFigurant}
             projetIndemnites={projetIndemnites}
+            baremeMajorations={baremeMajorations}
           />
         </div>
       )}

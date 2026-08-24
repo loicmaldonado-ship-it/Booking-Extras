@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireChef } from "@/lib/auth/session";
+import { requireChef, checkProjetAccess } from "@/lib/auth/session";
 import type { Convention } from "@/lib/projets/types";
 import type { Cachet } from "@/lib/candidatures/types";
 import type { MajorationValeurType } from "./types";
@@ -110,4 +110,43 @@ export async function deleteBaremeMajoration(id: string) {
   const supabase = createAdminClient();
   await supabase.from("bareme_majorations").delete().eq("id", id);
   revalidatePath("/bareme");
+}
+
+export async function applyMajorationToBookings(bookingIds: string[], baremeMajorationId: string) {
+  if (bookingIds.length === 0) return { error: "Sélectionne au moins un profil." };
+  const supabase = createAdminClient();
+
+  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", bookingIds);
+  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
+  for (const projetId of projetIds) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
+  }
+
+  const rows = bookingIds.map((bookingId) => ({ booking_id: bookingId, bareme_majoration_id: baremeMajorationId }));
+  const { error } = await supabase
+    .from("booking_majorations")
+    .upsert(rows, { onConflict: "booking_id,bareme_majoration_id" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  return { success: true as const };
+}
+
+export async function removeMajorationFromBooking(bookingId: string, baremeMajorationId: string) {
+  const supabase = createAdminClient();
+  const { data: booking } = await supabase.from("bookings").select("projet_id").eq("id", bookingId).maybeSingle();
+  if (booking) {
+    const accessError = await checkProjetAccess(booking.projet_id);
+    if (accessError) return { error: accessError };
+  }
+  await supabase
+    .from("booking_majorations")
+    .delete()
+    .eq("booking_id", bookingId)
+    .eq("bareme_majoration_id", baremeMajorationId);
+  revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  return { success: true as const };
 }

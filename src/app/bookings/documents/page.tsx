@@ -18,6 +18,7 @@ import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
+import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,7 @@ export default async function JourneeDashboardPage({
     await Promise.all([
     supabase
       .from("projets")
-      .select("nom, confidentiel, lieu, covoiturage_tarif_base, covoiturage_tarif_passager")
+      .select("nom, confidentiel, lieu, convention, covoiturage_tarif_base, covoiturage_tarif_passager")
       .eq("id", projet_id)
       .single(),
     supabase
@@ -167,6 +168,33 @@ export default async function JourneeDashboardPage({
     indemnitesByBooking.set(bi.booking_id, list);
   }
 
+  const [{ data: baremeMajorations }, { data: bookingMajorationsRaw }] = await Promise.all([
+    projet?.convention
+      ? supabase
+          .from("bareme_majorations")
+          .select("*")
+          .eq("convention", projet.convention)
+          .order("type")
+          .returns<BaremeMajoration[]>()
+      : Promise.resolve({ data: [] as BaremeMajoration[] }),
+    bookingIds.length > 0
+      ? supabase
+          .from("booking_majorations")
+          .select("booking_id, bareme_majorations(id, label, valeur_type, valeur)")
+          .in("booking_id", bookingIds)
+          .returns<
+            { booking_id: string; bareme_majorations: { id: string; label: string; valeur_type: MajorationValeurType; valeur: number | null } | null }[]
+          >()
+      : Promise.resolve({ data: [] as { booking_id: string; bareme_majorations: { id: string; label: string; valeur_type: MajorationValeurType; valeur: number | null } | null }[] }),
+  ]);
+  const majorationsByBooking = new Map<string, { id: string; label: string; valeur_type: MajorationValeurType; valeur: number | null }[]>();
+  for (const bm of bookingMajorationsRaw ?? []) {
+    if (!bm.bareme_majorations) continue;
+    const list = majorationsByBooking.get(bm.booking_id) ?? [];
+    list.push(bm.bareme_majorations);
+    majorationsByBooking.set(bm.booking_id, list);
+  }
+
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
     portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
@@ -176,6 +204,7 @@ export default async function JourneeDashboardPage({
     raccord: raccordFigurantIds.has(b.figurant_id),
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
     indemnites: indemnitesByBooking.get(b.id) ?? [],
+    majorations: majorationsByBooking.get(b.id) ?? [],
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
@@ -293,6 +322,7 @@ export default async function JourneeDashboardPage({
         journeePartage={journeePartage}
         publicOrigin={publicOrigin}
         projetIndemnites={projetIndemnites ?? []}
+        baremeMajorations={baremeMajorations ?? []}
       />
     </div>
   );

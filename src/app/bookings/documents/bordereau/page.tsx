@@ -7,7 +7,7 @@ import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatHeureConvocation } from "@/lib/documents/fields";
 import { formatDateLong } from "@/lib/format-date";
-import type { BaremeCachet, BaremeMajoration } from "@/lib/bareme/types";
+import { formatMajorationValeur, type BaremeCachet, type BaremeMajoration } from "@/lib/bareme/types";
 import { requireProjetAccess } from "@/lib/auth/session";
 
 const ROWS_PER_PAGE = 16;
@@ -56,7 +56,7 @@ export default async function BordereauPage({
   const convention = projet?.convention ?? null;
   const figurantIds = bookings.map((b) => b.figurant.id);
   const bookingIds = bookings.map((b) => b.id);
-  const [{ data: cachetsBareme }, { data: majorationsBareme }, { data: essaisFaits }, { data: indemnitesRaw }] = await Promise.all([
+  const [{ data: cachetsBareme }, { data: majorationsBareme }, { data: essaisFaits }, { data: indemnitesRaw }, { data: bookingMajorationsRaw }] = await Promise.all([
     convention
       ? supabase.from("bareme_cachets").select("*").eq("convention", convention).returns<BaremeCachet[]>()
       : Promise.resolve({ data: [] as BaremeCachet[] }),
@@ -78,6 +78,17 @@ export default async function BordereauPage({
           .in("booking_id", bookingIds)
           .returns<{ booking_id: string; projet_indemnites: { label: string; montant: number } | null }[]>()
       : Promise.resolve({ data: [] as { booking_id: string; projet_indemnites: { label: string; montant: number } | null }[] }),
+    bookingIds.length > 0
+      ? supabase
+          .from("booking_majorations")
+          .select("booking_id, bareme_majorations(label, valeur_type, valeur)")
+          .in("booking_id", bookingIds)
+          .returns<
+            { booking_id: string; bareme_majorations: Pick<BaremeMajoration, "label" | "valeur_type" | "valeur"> | null }[]
+          >()
+      : Promise.resolve({
+          data: [] as { booking_id: string; bareme_majorations: Pick<BaremeMajoration, "label" | "valeur_type" | "valeur"> | null }[],
+        }),
   ]);
 
   const figurantsAvecEssai = new Set((essaisFaits ?? []).map((e) => e.figurant_id));
@@ -89,6 +100,14 @@ export default async function BordereauPage({
     const list = indemnitesByBooking.get(bi.booking_id) ?? [];
     list.push(bi.projet_indemnites);
     indemnitesByBooking.set(bi.booking_id, list);
+  }
+
+  const majorationsByBooking = new Map<string, Pick<BaremeMajoration, "label" | "valeur_type" | "valeur">[]>();
+  for (const bm of bookingMajorationsRaw ?? []) {
+    if (!bm.bareme_majorations) continue;
+    const list = majorationsByBooking.get(bm.booking_id) ?? [];
+    list.push(bm.bareme_majorations);
+    majorationsByBooking.set(bm.booking_id, list);
   }
 
   function montantForCachet(cachet: string | null) {
@@ -189,6 +208,11 @@ export default async function BordereauPage({
                         {(indemnitesByBooking.get(b.id) ?? []).map((ind, i) => (
                           <div key={i}>
                             {ind.label} {ind.montant.toFixed(2)} €
+                          </div>
+                        ))}
+                        {(majorationsByBooking.get(b.id) ?? []).map((m, i) => (
+                          <div key={i}>
+                            {m.label} {formatMajorationValeur(m)}
                           </div>
                         ))}
                       </td>
