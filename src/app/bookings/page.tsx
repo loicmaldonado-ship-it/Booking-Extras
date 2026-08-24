@@ -8,6 +8,7 @@ import { formatDateLong } from "@/lib/format-date";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { BookOpen } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -38,8 +39,10 @@ export default async function BookingsPage({
     return <ProjetPicker projets={await accessibleProjets()} />;
   }
 
-  if (accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
+  if (!isOwner(profile) && accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
     // Accès révoqué (ou jamais accordé) entre-temps : retour au choix de projet.
+    // Le compte propriétaire garde un accès direct (ex. depuis /admin) même à
+    // un projet qui n'est pas dans sa propre liste.
     return <ProjetPicker projets={await accessibleProjets()} />;
   }
 

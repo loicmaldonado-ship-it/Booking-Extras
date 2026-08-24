@@ -17,12 +17,14 @@ import {
   ShieldCheck,
   UsersRound,
   Video,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOut } from "@/lib/auth/actions";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { isOwner } from "@/lib/auth/owner";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIcon }[] = [
@@ -88,6 +90,7 @@ export function AppShell({
     ...(profile?.role === "chef"
       ? [{ label: "Équipe", href: "/equipe", enabled: true, icon: UsersRound }]
       : []),
+    ...(isOwner(profile) ? [{ label: "Admin", href: "/admin", enabled: true, icon: Crown }] : []),
   ];
 
   const current = navItems.find((item) => (item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href)));

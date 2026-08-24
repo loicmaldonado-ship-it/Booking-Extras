@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentProfile, getAccessibleProjetIds } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 
 const COOKIE_NAME = "current_projet_id";
 
@@ -17,7 +18,7 @@ export async function getCurrentProjetId(): Promise<string | null> {
 // été invitée) même si l'UI ne devrait normalement proposer que ceux-là.
 export async function setCurrentProjet(projetId: string, redirectTo = "/bookings") {
   const profile = await getCurrentProfile();
-  if (profile) {
+  if (profile && !isOwner(profile)) {
     const accessibleIds = await getAccessibleProjetIds(profile);
     if (accessibleIds !== null && !accessibleIds.includes(projetId)) {
       redirect("/bookings?switch=1");

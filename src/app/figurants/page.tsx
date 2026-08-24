@@ -10,6 +10,7 @@ import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -148,6 +149,7 @@ export default async function FigurantsPage({
             photos: portraitByFigurant.get(f.id) ?? [],
           }))}
           projets={projets ?? []}
+          canSelectAll={isOwner(profile)}
         />
       ) : (
       <Card className="p-0">

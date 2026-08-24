@@ -10,6 +10,7 @@ import { CastingEntryCard } from "@/components/casting/casting-entry-card";
 import { AddToCastingPicker } from "@/components/casting/add-to-casting-picker";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { Video } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function CastingPage({
   if (!currentProjetId || params.switch) {
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
-  if (accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
+  if (!isOwner(profile) && accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 

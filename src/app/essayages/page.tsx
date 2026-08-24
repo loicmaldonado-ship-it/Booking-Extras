@@ -11,6 +11,7 @@ import { EssayageLieuProjetPanel } from "@/components/essayages/essayage-lieu-pr
 import { AjouterJourneesForm } from "@/components/essayages/ajouter-journees-form";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { isOwner } from "@/lib/auth/owner";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
 
@@ -37,7 +38,7 @@ export default async function EssayagesPage({
   if (!currentProjetId || params.switch) {
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/essayages" sectionLabel="Essayages" />;
   }
-  if (accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
+  if (!isOwner(profile) && accessibleIds !== null && !accessibleIds.includes(currentProjetId)) {
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/essayages" sectionLabel="Essayages" />;
   }
 

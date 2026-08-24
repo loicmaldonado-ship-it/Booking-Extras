@@ -2,32 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireChef } from "@/lib/auth/session";
+import { getCurrentProfile, checkProjetAccess } from "@/lib/auth/session";
+import { findOrInviteProfile } from "@/lib/auth/invite";
 
-async function findOrInviteProfile(email: string, projetNom: string) {
-  const admin = createAdminClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${siteUrl}/auth/invite`,
-    data: { projet_nom: projetNom },
-  });
-  if (!inviteError && invited.user) {
-    return { id: invited.user.id, error: null as string | null };
-  }
-
-  const { data: list } = await admin.auth.admin.listUsers();
-  const existing = list?.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-  if (existing) {
-    return { id: existing.id, error: null as string | null };
-  }
-
-  return { id: null, error: inviteError?.message ?? "Impossible d'inviter cet email." };
+// Réservé au·à la chef·fe propriétaire du projet ciblé (ou au compte
+// propriétaire) — pas à n'importe quelle chef·fe, sans quoi une chef·fe
+// pourrait s'inviter elle-même (ou inviter qui elle veut) sur le projet
+// d'une autre chef·fe.
+async function requireChefOnProjet(projetId: string): Promise<string | null> {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "chef") return "Réservé au·à la chef·fe de casting.";
+  return checkProjetAccess(projetId);
 }
 
 export async function inviteAssistant(_prevState: unknown, formData: FormData) {
-  await requireChef();
-
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const projetId = String(formData.get("projet_id") ?? "");
 
@@ -35,10 +23,13 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
     return { error: "Email et projet sont obligatoires." };
   }
 
+  const accessError = await requireChefOnProjet(projetId);
+  if (accessError) return { error: accessError };
+
   const admin = createAdminClient();
   const { data: projet } = await admin.from("projets").select("nom").eq("id", projetId).single();
 
-  const { id: profileId, error } = await findOrInviteProfile(email, projet?.nom ?? "");
+  const { id: profileId, error } = await findOrInviteProfile(email, { projet_nom: projet?.nom ?? "" });
   if (!profileId) {
     return { error };
   }
@@ -56,8 +47,17 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
 }
 
 export async function revokeAccess(projetMembreId: string) {
-  await requireChef();
   const admin = createAdminClient();
+  const { data: membre } = await admin
+    .from("projet_membres")
+    .select("projet_id")
+    .eq("id", projetMembreId)
+    .maybeSingle();
+  if (!membre) return;
+
+  const accessError = await requireChefOnProjet(membre.projet_id);
+  if (accessError) throw new Error(accessError);
+
   await admin.from("projet_membres").delete().eq("id", projetMembreId);
   revalidatePath("/equipe");
 }

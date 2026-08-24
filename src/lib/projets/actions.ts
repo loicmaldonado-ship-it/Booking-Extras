@@ -54,7 +54,7 @@ function validateGmailFields(gmailUser: string | null, gmailAppPasswordEncrypted
 }
 
 export async function createProjet(_prevState: unknown, formData: FormData) {
-  await requireChef();
+  const profile = await requireChef();
 
   const payload = buildProjetPayload(formData);
   if (!payload.nom) {
@@ -72,7 +72,7 @@ export async function createProjet(_prevState: unknown, formData: FormData) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("projets")
-    .insert({ ...payload, gmail_smtp_app_password: gmailAppPasswordEncrypted })
+    .insert({ ...payload, owner_id: profile.id, gmail_smtp_app_password: gmailAppPasswordEncrypted })
     .select("id")
     .single();
 
@@ -152,7 +152,8 @@ export async function updateProjet(
 }
 
 export async function deleteProjet(id: string) {
-  await requireChef();
+  const accessError = await checkProjetAccess(id);
+  if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
   const { data: projet } = await supabase.from("projets").select("archive, archive_le").eq("id", id).maybeSingle();
@@ -170,7 +171,8 @@ export async function deleteProjet(id: string) {
 // figuration qu'une fois sur ce projet, cochés par le candidat lui-même à
 // la candidature). Irréversible : désarchiver ne les restaure pas.
 export async function archiverProjet(id: string) {
-  await requireChef();
+  const accessError = await checkProjetAccess(id);
+  if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
 
@@ -200,7 +202,8 @@ export async function archiverProjet(id: string) {
 }
 
 export async function desarchiverProjet(id: string) {
-  await requireChef();
+  const accessError = await checkProjetAccess(id);
+  if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
   await supabase.from("projets").update({ archive: false, archive_le: null }).eq("id", id);

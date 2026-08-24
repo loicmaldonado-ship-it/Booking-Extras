@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { Card } from "@/components/ui/card";
 import { InviteAssistantForm } from "@/components/equipe/invite-assistant-form";
 import { MembresList, type Membre } from "@/components/equipe/membres-list";
@@ -21,13 +21,20 @@ export default async function EquipePage() {
   }
 
   const supabase = createAdminClient();
+  const accessibleIds = await getAccessibleProjetIds(profile);
+
+  let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
+  if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
+
+  let membresQuery = supabase
+    .from("projet_membres")
+    .select("id, created_at, projets(id, nom), profiles(id, email, nom)")
+    .order("created_at", { ascending: false });
+  if (accessibleIds !== null) membresQuery = membresQuery.in("projet_id", idsOrNone(accessibleIds));
+
   const [{ data: projets }, { data: membresRaw }] = await Promise.all([
-    supabase.from("projets").select("id, nom").order("nom"),
-    supabase
-      .from("projet_membres")
-      .select("id, created_at, projets(id, nom), profiles(id, email, nom)")
-      .order("created_at", { ascending: false })
-      .returns<Membre[]>(),
+    projetsQuery,
+    membresQuery.returns<Membre[]>(),
   ]);
 
   return (

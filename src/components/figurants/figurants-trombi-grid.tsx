@@ -22,9 +22,11 @@ type FigurantCard = {
 export function FigurantsTrombiGrid({
   figurants,
   projets,
+  canSelectAll = true,
 }: {
   figurants: FigurantCard[];
   projets: { id: string; nom: string }[];
+  canSelectAll?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const allSelected = figurants.length > 0 && selected.size === figurants.length;
@@ -45,9 +47,11 @@ export function FigurantsTrombiGrid({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="secondary" onClick={toggleAll} disabled={figurants.length === 0}>
-          {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
-        </Button>
+        {canSelectAll && (
+          <Button type="button" variant="secondary" onClick={toggleAll} disabled={figurants.length === 0}>
+            {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+          </Button>
+        )}
         {selected.size > 0 && (
           <Link
             href={`/figurants/fiches?ids=${Array.from(selected).join(",")}`}
