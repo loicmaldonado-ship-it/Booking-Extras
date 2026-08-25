@@ -15,11 +15,7 @@ import type { AnnonceDate } from "@/lib/annonces/dates";
 const REQUIRED_PHOTO_SLOTS = [
   { name: "photo_portrait", label: "Portrait" },
   { name: "photo_pied", label: "Photo en pied" },
-  {
-    name: "photo_selfie",
-    label: "Selfie avec la date du jour",
-    hint: "Écris la date d'aujourd'hui sur un papier et prends-toi en photo avec.",
-  },
+  { name: "photo_selfie", label: "Selfie récent" },
 ] as const;
 
 const MAX_EXTRA_PHOTOS = 4; // 3 obligatoires + 4 = 7 photos maximum
@@ -27,12 +23,10 @@ const MAX_EXTRA_PHOTOS = 4; // 3 obligatoires + 4 = 7 photos maximum
 function PhotoSlot({
   name,
   label,
-  hint,
   required,
 }: {
   name: string;
   label: string;
-  hint?: string;
   required?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +76,6 @@ function PhotoSlot({
         {label}
         {required ? " *" : ""}
       </span>
-      {hint && <span className="text-center text-[10px] text-text-muted">{hint}</span>}
     </div>
   );
 }
@@ -118,6 +111,7 @@ export function PostulerForm({
     undefined
   );
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
+  const today = new Date().toISOString().slice(0, 10);
 
   if (state?.success) {
     return (
@@ -271,17 +265,16 @@ export function PostulerForm({
           </span>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
             {REQUIRED_PHOTO_SLOTS.map((slot) => (
-              <PhotoSlot
-                key={slot.name}
-                name={slot.name}
-                label={slot.label}
-                hint={"hint" in slot ? slot.hint : undefined}
-                required
-              />
+              <PhotoSlot key={slot.name} name={slot.name} label={slot.label} required />
             ))}
             {Array.from({ length: MAX_EXTRA_PHOTOS }).map((_, i) => (
               <PhotoSlot key={`extra-${i}`} name="photo_extra" label="Autre (optionnel)" />
             ))}
+          </div>
+          <div className="mt-3">
+            <Field label="Date du selfie" required>
+              <Input type="date" name="selfie_date" required max={today} defaultValue={today} />
+            </Field>
           </div>
         </div>
       </Card>

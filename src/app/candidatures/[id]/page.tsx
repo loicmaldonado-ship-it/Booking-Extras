@@ -265,7 +265,7 @@ export default async function CandidatureDetailPage({
       {photos.length > 0 && (
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Photos</h2>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
                 {p.url && (

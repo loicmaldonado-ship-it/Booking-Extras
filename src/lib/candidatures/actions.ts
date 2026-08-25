@@ -100,7 +100,10 @@ export async function postulerAnnonce(
     !(photoPied instanceof File && photoPied.size > 0) ||
     !(photoSelfie instanceof File && photoSelfie.size > 0)
   ) {
-    return { error: "Les 3 photos (portrait, pied, selfie avec la date) sont obligatoires." };
+    return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
+  }
+  if (!str(formData, "selfie_date")) {
+    return { error: "La date du selfie est obligatoire." };
   }
   if (aVehiculeRaw !== "oui" && aVehiculeRaw !== "non") {
     return { error: "Merci d'indiquer si tu as un véhicule." };
@@ -290,7 +293,7 @@ export async function postulerAnnonce(
 
 async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
   const supabase = createAdminClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const selfieDate = str(formData, "selfie_date") ?? new Date().toISOString().slice(0, 10);
 
   const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre" | "vehicule"; priseLe?: string | null }[] =
     [];
@@ -299,7 +302,7 @@ async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
   const pied = formData.get("photo_pied");
   if (pied instanceof File && pied.size > 0) files.push({ file: pied, type: "pied" });
   const selfie = formData.get("photo_selfie");
-  if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: today });
+  if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: selfieDate });
   const vehicule = formData.get("photo_vehicule");
   if (vehicule instanceof File && vehicule.size > 0) files.push({ file: vehicule, type: "vehicule" });
   for (const extra of formData.getAll("photo_extra")) {
