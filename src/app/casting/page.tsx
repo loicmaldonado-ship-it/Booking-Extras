@@ -4,7 +4,7 @@ import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
-import { getCastingRoles, getCastingEntries, getCastingVideoUrls } from "@/lib/casting/data";
+import { getCastingRoles, getCastingEntries, getCastingVideoUrlPairs, getCastingEntryPhotos } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
@@ -58,14 +58,16 @@ export default async function CastingPage({
     ]);
 
   const figurantIds = entries.map((e) => e.figurant_id);
-  const [photosByFigurant, ...videoUrlsList] = await Promise.all([
+  const entryIds = entries.map((e) => e.id);
+  const [photosByFigurant, videoUrlPairsList, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    ...entries.map((e) => getCastingVideoUrls(e.video_storage_paths)),
+    Promise.all(entries.map((e) => getCastingVideoUrlPairs(e.video_storage_paths))),
+    getCastingEntryPhotos(entryIds),
   ]);
   const portraitByFigurant = new Map(
     figurantIds.map((id) => [id, pickPortrait(photosByFigurant.get(id), currentProjetId)?.url ?? null])
   );
-  const videoUrlsByEntry = new Map(entries.map((e, i) => [e.id, videoUrlsList[i]]));
+  const videoUrlsByEntry = new Map(entries.map((e, i) => [e.id, videoUrlPairsList[i]]));
 
   const entriesByRole = new Map<string, typeof entries>();
   for (const e of entries) {
@@ -105,6 +107,7 @@ export default async function CastingPage({
           entries={entriesByRole.get(role.id) ?? []}
           portraitByFigurant={portraitByFigurant}
           videoUrlsByEntry={videoUrlsByEntry}
+          entryPhotosByEntry={entryPhotosByEntry}
           allFigurants={allFigurants ?? []}
           templates={templates ?? []}
         />

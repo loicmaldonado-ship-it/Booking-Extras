@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/field";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
 import { formatDateLong } from "@/lib/format-date";
-import { CastingEntryCard } from "@/components/casting/casting-entry-card";
+import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
 import type { CastingRole, CastingEntry } from "@/lib/casting/types";
+import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -23,6 +24,7 @@ export function CastingRoleSection({
   entries,
   portraitByFigurant,
   videoUrlsByEntry,
+  entryPhotosByEntry,
   allFigurants,
   templates,
 }: {
@@ -31,7 +33,8 @@ export function CastingRoleSection({
   role: CastingRole;
   entries: CastingEntry[];
   portraitByFigurant: Map<string, string | null>;
-  videoUrlsByEntry: Map<string, string[]>;
+  videoUrlsByEntry: Map<string, { path: string; url: string }[]>;
+  entryPhotosByEntry: Map<string, CastingEntryPhoto[]>;
   allFigurants: { id: string; prenom: string; nom: string }[];
   templates: MessageTemplate[];
 }) {
@@ -142,11 +145,13 @@ export function CastingRoleSection({
 
       <div className="flex flex-wrap gap-3">
         {entries.map((entry) => (
-          <CastingEntryCard
+          <CastingEntryManageCard
             key={entry.id}
             entry={entry}
             portraitUrl={portraitByFigurant.get(entry.figurant_id) ?? null}
             videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
+            photoLabels={role.photo_labels}
+            photos={entryPhotosByEntry.get(entry.id) ?? []}
             selected={selected.has(entry.id)}
             onToggleSelect={() => toggleSelect(entry.id)}
           />

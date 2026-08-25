@@ -28,18 +28,25 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
 }
 
 export async function getCastingVideoUrls(storagePaths: string[]): Promise<string[]> {
-  if (storagePaths.length === 0) return [];
-  const supabase = createAdminClient();
-  const urls = await Promise.all(
-    storagePaths.map(async (path) => {
-      const { data } = await supabase.storage.from("casting-videos").createSignedUrl(path, 60 * 60);
-      return data?.signedUrl ?? null;
-    })
-  );
-  return urls.filter((u): u is string => !!u);
+  return (await getCastingVideoUrlPairs(storagePaths)).map((p) => p.url);
 }
 
-export type CastingEntryPhoto = { label: string; url: string };
+// Comme getCastingVideoUrls, mais garde le chemin de stockage d'origine
+// associé à chaque URL — nécessaire côté staff pour pouvoir retirer une
+// vidéo précise (removeCastingVideo prend le chemin, pas l'URL signée).
+export async function getCastingVideoUrlPairs(storagePaths: string[]): Promise<{ path: string; url: string }[]> {
+  if (storagePaths.length === 0) return [];
+  const supabase = createAdminClient();
+  const pairs = await Promise.all(
+    storagePaths.map(async (path) => {
+      const { data } = await supabase.storage.from("casting-videos").createSignedUrl(path, 60 * 60);
+      return data?.signedUrl ? { path, url: data.signedUrl } : null;
+    })
+  );
+  return pairs.filter((p): p is { path: string; url: string } => !!p);
+}
+
+export type CastingEntryPhoto = { id: string; label: string; url: string };
 
 // Les photos envoyées pour un casting (pas juste le portrait) — retrouvées
 // via casting_entry_id, posé sur figurant_photos à la soumission.
@@ -52,9 +59,9 @@ export async function getCastingEntryPhotos(
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("figurant_photos")
-    .select("casting_entry_id, label, storage_path")
+    .select("id, casting_entry_id, label, storage_path")
     .in("casting_entry_id", entryIds)
-    .returns<{ casting_entry_id: string | null; label: string | null; storage_path: string }[]>();
+    .returns<{ id: string; casting_entry_id: string | null; label: string | null; storage_path: string }[]>();
 
   for (const photo of data ?? []) {
     if (!photo.casting_entry_id) continue;
@@ -63,7 +70,7 @@ export async function getCastingEntryPhotos(
       .createSignedUrl(photo.storage_path, 60 * 60);
     if (!signed?.signedUrl) continue;
     const list = map.get(photo.casting_entry_id) ?? [];
-    list.push({ label: photo.label ?? "Photo", url: signed.signedUrl });
+    list.push({ id: photo.id, label: photo.label ?? "Photo", url: signed.signedUrl });
     map.set(photo.casting_entry_id, list);
   }
 

@@ -294,6 +294,138 @@ export async function deleteCastingEntry(entryId: string) {
   revalidatePath("/casting");
 }
 
+// Retire une photo envoyée par le candidat (staff seulement) — pour laisser
+// la place à un remplacement via addCastingPhoto, ex. si la photo envoyée
+// est floue ou ne correspond pas au libellé demandé.
+export async function deleteCastingPhoto(photoId: string) {
+  const supabase = createAdminClient();
+  const { data: photo } = await supabase
+    .from("figurant_photos")
+    .select("storage_path, casting_entry_id")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (!photo?.casting_entry_id) return;
+
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id")
+    .eq("id", photo.casting_entry_id)
+    .maybeSingle();
+  if (!entry) return;
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) throw new Error(accessError);
+
+  await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
+  await supabase.from("figurant_photos").delete().eq("id", photoId);
+  revalidatePath("/casting");
+}
+
+// Ajoute (ou remplace, une fois l'ancienne retirée) une photo pour un
+// libellé donné, à la place du candidat — staff seulement, upload direct
+// via Server Action (photos toujours petites, pas de risque de timeout).
+export async function addCastingPhoto(
+  entryId: string,
+  label: string,
+  formData: FormData
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, figurant_id")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const photo = formData.get("photo");
+  if (!(photo instanceof File) || photo.size === 0) return { error: "Choisis une image." };
+
+  const ext = photo.name.split(".").pop() || "jpg";
+  const path = `${entry.figurant_id}/casting-${label}-${crypto.randomUUID()}.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from("figurant-photos")
+    .upload(path, photo, { contentType: photo.type, upsert: false });
+  if (uploadError) return { error: uploadError.message };
+
+  const { error } = await supabase.from("figurant_photos").insert({
+    figurant_id: entry.figurant_id,
+    type: "casting",
+    storage_path: path,
+    projet_id: entry.projet_id,
+    casting_entry_id: entryId,
+    label,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Retire une vidéo précise d'une entrée (staff seulement) — le candidat
+// peut en avoir envoyé plusieurs si le rôle en demandait plusieurs.
+export async function removeCastingVideo(entryId: string, path: string) {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, video_storage_paths")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return;
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) throw new Error(accessError);
+
+  await supabase.storage.from("casting-videos").remove([path]);
+  const remaining = (entry.video_storage_paths ?? []).filter((p: string) => p !== path);
+  await supabase.from("casting_entries").update({ video_storage_paths: remaining }).eq("id", entryId);
+  revalidatePath("/casting");
+}
+
+// Prépare un envoi direct navigateur -> Storage pour une vidéo de
+// remplacement (staff seulement) — même mécanisme que le formulaire
+// candidat (createCastingUploadSlot), pour ne pas re-timeout sur une vidéo
+// lourde envoyée depuis la fonction serveur.
+export async function createStaffCastingVideoSlot(
+  entryId: string
+): Promise<{ bucket?: string; path?: string; token?: string; error?: string }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, figurant_id")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const path = `${entry.figurant_id}/${entryId}-video-${crypto.randomUUID()}.mp4`;
+  const { data, error } = await supabase.storage.from("casting-videos").createSignedUploadUrl(path);
+  if (error || !data) return { error: error?.message ?? "Impossible de préparer l'envoi." };
+
+  return { bucket: "casting-videos", path: data.path, token: data.token };
+}
+
+// Finalise l'ajout de la vidéo une fois le fichier envoyé à Storage via le
+// slot signé ci-dessus.
+export async function addCastingVideo(entryId: string, path: string): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, video_storage_paths")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const paths = [...(entry.video_storage_paths ?? []), path];
+  const { error } = await supabase.from("casting_entries").update({ video_storage_paths: paths }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 export async function recordCastingMessage(
   figurantId: string,
   corps: string,
