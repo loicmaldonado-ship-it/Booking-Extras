@@ -25,6 +25,7 @@ import { signOut } from "@/lib/auth/actions";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { MyAvatarMenu } from "@/components/my-avatar-menu";
+import { TeamPresenceStrip } from "@/components/team-presence-strip";
 import { isOwner } from "@/lib/auth/owner";
 import type { CurrentProfile } from "@/lib/auth/session";
 
@@ -167,6 +168,7 @@ export function AppShell({
 
         {profile && (
           <div className="flex items-center gap-3">
+            <TeamPresenceStrip />
             <NotificationsBell />
             <CommandPalette />
             <div className="hidden text-right text-xs sm:block">

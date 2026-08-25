@@ -4,19 +4,23 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
+import { createNotification } from "@/lib/notifications/create";
 
 type EntryWithRole = {
   id: string;
   projet_id: string;
   figurant_id: string;
-  casting_roles: { nb_videos: number; photo_labels: string[]; demande_bande_demo: boolean } | null;
+  casting_roles: { nom: string; nb_videos: number; photo_labels: string[]; demande_bande_demo: boolean } | null;
+  figurants: { prenom: string; nom: string } | null;
 };
 
 async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("casting_entries")
-    .select("id, projet_id, figurant_id, casting_roles(nb_videos, photo_labels, demande_bande_demo)")
+    .select(
+      "id, projet_id, figurant_id, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo), figurants(prenom, nom)"
+    )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
   return data;
@@ -99,6 +103,14 @@ export async function finalizeCastingUpload(
     .update({ video_storage_paths: payload.videoPaths, submitted_at: new Date().toISOString() })
     .eq("id", entry.id);
   if (error) return { error: error.message };
+
+  if (entry.figurants) {
+    await createNotification(
+      "casting",
+      `${entry.figurants.prenom} ${entry.figurants.nom} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
+      { figurantId: entry.figurant_id, lien: "/casting" }
+    );
+  }
 
   revalidatePath("/casting");
   return { success: true };

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, FileText, MessageCircle, UserPlus, type LucideIcon } from "lucide-react";
+import { Bell, FileText, MessageCircle, UserPlus, Video, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDelai } from "@/lib/format-date";
 import {
@@ -18,6 +18,7 @@ const TYPE_META: Record<NotificationType, { label: string; icon: LucideIcon; ton
   candidature: { label: "Candidatures", icon: FileText, tone: "text-coral" },
   reponse: { label: "Réponses", icon: MessageCircle, tone: "text-turquoise" },
   compte_cree: { label: "Comptes", icon: UserPlus, tone: "text-text" },
+  casting: { label: "Casting", icon: Video, tone: "text-yellow" },
 };
 
 const FILTERS: { key: NotificationType | "tous"; label: string }[] = [
@@ -25,6 +26,7 @@ const FILTERS: { key: NotificationType | "tous"; label: string }[] = [
   { key: "candidature", label: "Candidatures" },
   { key: "reponse", label: "Réponses" },
   { key: "compte_cree", label: "Comptes" },
+  { key: "casting", label: "Casting" },
 ];
 
 function timeAgo(iso: string) {

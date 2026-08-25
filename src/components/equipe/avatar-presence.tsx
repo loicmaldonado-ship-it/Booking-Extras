@@ -13,13 +13,21 @@ export function AvatarPresence({
   email,
   online,
   size = 40,
+  // "dot-when-online" (défaut) : pastille verte seulement si connecté·e,
+  // rien sinon — utilisé sur Équipe/Admin et le menu "ma photo" (où on ne
+  // veut pas indiquer de statut du tout pour l'avatar de soi-même).
+  // "dot-always" : pastille verte OU rouge, pour un bandeau où l'absence de
+  // pastille serait ambiguë (connecté ? pas encore chargé ?).
+  variant = "dot-when-online",
 }: {
   avatarUrl: string | null;
   nom: string | null;
   email: string | null;
   online: boolean;
   size?: number;
+  variant?: "dot-when-online" | "dot-always";
 }) {
+  const showDot = variant === "dot-always" || online;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {avatarUrl ? (
@@ -29,10 +37,10 @@ export function AvatarPresence({
           {initials(nom, email)}
         </div>
       )}
-      {online && (
+      {showDot && (
         <span
-          className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-ink-raised bg-turquoise"
-          title="Connecté·e"
+          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-ink-raised ${online ? "bg-turquoise" : "bg-danger"}`}
+          title={online ? "Connecté·e" : "Hors ligne"}
         />
       )}
     </div>
