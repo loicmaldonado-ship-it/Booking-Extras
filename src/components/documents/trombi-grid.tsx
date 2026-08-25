@@ -55,6 +55,14 @@ export function TrombiGrid({
               {selectedFields.has("ville") && item.booking.figurant.ville && (
                 <span className="text-[8px] leading-tight text-gray-500">{item.booking.figurant.ville}</span>
               )}
+              {selectedFields.has("telephone") && item.booking.figurant.telephone && (
+                <span className="text-[8px] leading-tight text-gray-500">{item.booking.figurant.telephone}</span>
+              )}
+              {selectedFields.has("email") && item.booking.figurant.email && (
+                <span className="max-w-24 truncate text-[8px] leading-tight text-gray-500">
+                  {item.booking.figurant.email}
+                </span>
+              )}
               {showHmc && (
                 <div className="mt-0.5 flex gap-2 text-[8px] font-medium text-gray-700">
                   {["H", "M", "C"].map((label) => (

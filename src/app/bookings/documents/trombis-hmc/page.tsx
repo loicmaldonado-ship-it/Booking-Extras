@@ -75,7 +75,6 @@ export default async function TrombisHmcPage({
         projetId={projet_id}
         date={date}
         selected={selectedFields}
-        excludeFields={["telephone", "email"]}
         extraHidden={{ booking_ids }}
       />
 

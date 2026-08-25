@@ -108,12 +108,14 @@ export default async function PartageTrombisPage({
 
   const { projet, showContacts } = share;
 
-  // Les trombis n'affichent jamais ni téléphone ni email, même si le lien
-  // partagé autorise les coordonnées pour les fiches mensu (showContacts) —
-  // seule la fiche mensu peut les montrer, sur décision explicite.
+  // Les trombis n'affichent téléphone/email que si le lien a été généré
+  // "avec les contacts" (showContacts) — décision explicite prise au moment
+  // du partage, la même que pour la fiche mensu.
   const selectedFields = parseFields(fields);
-  selectedFields.delete("telephone");
-  selectedFields.delete("email");
+  if (!showContacts) {
+    selectedFields.delete("telephone");
+    selectedFields.delete("email");
+  }
   const showFonction = selectedFields.has("fonction");
 
   const bookings = await getConfirmedBookings(projet.id, date);
@@ -141,7 +143,7 @@ export default async function PartageTrombisPage({
         projetId={projet.id}
         date={date}
         selected={selectedFields}
-        excludeFields={["telephone", "email", "sexe"]}
+        excludeFields={showContacts ? ["sexe"] : ["telephone", "email", "sexe"]}
       />
 
       {pages.length === 0 && (
@@ -217,6 +219,12 @@ export default async function PartageTrombisPage({
                         {selectedFields.has("age") && age !== null && <span>{age} ans</span>}
                         {selectedFields.has("ville") && item.booking.figurant.ville && (
                           <span>{item.booking.figurant.ville}</span>
+                        )}
+                        {selectedFields.has("telephone") && item.booking.figurant.telephone && (
+                          <span>{item.booking.figurant.telephone}</span>
+                        )}
+                        {selectedFields.has("email") && item.booking.figurant.email && (
+                          <span className="max-w-24 truncate">{item.booking.figurant.email}</span>
                         )}
                       </div>
                     </div>
