@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
+import { defaultCastingInviteMessage } from "@/lib/casting/message-template";
 import { formatDateLong } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
@@ -20,6 +21,7 @@ const DEFAULT_BODY = "Bonjour {prenom},\n\n";
 export function CastingRoleSection({
   projetId,
   projetNom,
+  origin,
   role,
   entries,
   portraitByFigurant,
@@ -30,6 +32,7 @@ export function CastingRoleSection({
 }: {
   projetId: string;
   projetNom: string;
+  origin: string;
   role: CastingRole;
   entries: CastingEntry[];
   portraitByFigurant: Map<string, string | null>;
@@ -42,8 +45,8 @@ export function CastingRoleSection({
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkSubject, setBulkSubject] = useState("");
-  const [bulkMessage, setBulkMessage] = useState(DEFAULT_BODY);
+  const [bulkSubject, setBulkSubject] = useState(`Booking Extras — casting « ${role.nom} »`);
+  const [bulkMessage, setBulkMessage] = useState(() => defaultCastingInviteMessage(role));
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -65,12 +68,18 @@ export function CastingRoleSection({
       role: role.nom,
       date: role.date_tournage ? formatDateLong(role.date_tournage) : "",
       signature: "",
+      lien: `${origin}/casting/upload/${entry.request_token}`,
     };
   }
 
   function applyTemplate(t?: MessageTemplate) {
     setBulkSubject(t ? t.sujet : `Casting « ${role.nom} »`);
     setBulkMessage(t ? t.corps : DEFAULT_BODY);
+  }
+
+  function applyInviteTemplate() {
+    setBulkSubject(`Booking Extras — casting « ${role.nom} »`);
+    setBulkMessage(defaultCastingInviteMessage(role));
   }
 
   function sendTo(entry: CastingEntry) {
@@ -170,17 +179,24 @@ export function CastingRoleSection({
               Envoyer à tous
             </Button>
           </div>
-          {templates.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-text-muted">Modèle :</span>
-              <button
-                type="button"
-                onClick={() => applyTemplate()}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
-              >
-                Vierge
-              </button>
-              {templates.map((t) => (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-text-muted">Modèle :</span>
+            <button
+              type="button"
+              onClick={applyInviteTemplate}
+              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+            >
+              Invitation (avec le lien)
+            </button>
+            <button
+              type="button"
+              onClick={() => applyTemplate()}
+              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+            >
+              Vierge
+            </button>
+            {templates.length > 0 &&
+              templates.map((t) => (
                 <button
                   key={t.id}
                   type="button"
@@ -190,8 +206,7 @@ export function CastingRoleSection({
                   {t.nom}
                 </button>
               ))}
-            </div>
-          )}
+          </div>
           <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
           <textarea
             value={bulkMessage}

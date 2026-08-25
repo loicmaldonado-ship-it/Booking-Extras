@@ -103,6 +103,7 @@ export default async function CastingPage({
           key={role.id}
           projetId={currentProjetId}
           projetNom={projet.nom}
+          origin={origin}
           role={role}
           entries={entriesByRole.get(role.id) ?? []}
           portraitByFigurant={portraitByFigurant}

@@ -3,11 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
-import { sendEmail } from "@/lib/email/send";
-import { getSiteOrigin } from "@/lib/partage/data";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { substituteTokens } from "@/lib/bookings/convocation";
-import type { CastingRole } from "./types";
 
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
@@ -101,56 +97,12 @@ export async function deleteCastingRole(roleId: string) {
   revalidatePath("/casting");
 }
 
-function inviteEmailBody(params: {
-  prenom: string;
-  roleNom: string;
-  projetNom: string;
-  dateTournage: string | null;
-  nbVideos: number;
-  photoLabels: string[];
-  demandeBandeDemo: boolean;
-  link: string;
-  customBody: string | null;
-}) {
-  const { prenom, roleNom, projetNom, dateTournage, nbVideos, photoLabels, demandeBandeDemo, link, customBody } =
-    params;
-
-  if (customBody) {
-    return substituteTokens(customBody, {
-      prenom,
-      role: roleNom,
-      projet: projetNom,
-      date: dateTournage ?? "",
-      lien: link,
-    });
-  }
-
-  const besoin: string[] = [];
-  if (nbVideos > 0) besoin.push(`${nbVideos} vidéo${nbVideos > 1 ? "s" : ""} de présentation`);
-  if (photoLabels.length > 0) besoin.push(`${photoLabels.length} photo${photoLabels.length > 1 ? "s" : ""} (${photoLabels.join(", ")})`);
-  if (demandeBandeDemo) besoin.push("un lien vers votre bande démo");
-
-  return [
-    `Bonjour ${prenom},`,
-    "",
-    `L'équipe de casting du projet « ${projetNom} » vous propose pour le rôle « ${roleNom} »` +
-      (dateTournage ? ` (tournage le ${dateTournage})` : "") +
-      ".",
-    "",
-    besoin.length > 0
-      ? `Merci de nous envoyer, via ce lien : ${besoin.join(", ")}.`
-      : `Merci de tout envoyer via ce lien : ${link}`,
-    ...(besoin.length > 0 ? ["", link] : []),
-    "",
-    "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-  ].join("\n");
-}
-
-async function createEntryAndInvite(
-  role: Pick<
-    CastingRole,
-    "id" | "nom" | "projet_id" | "date_tournage" | "nb_videos" | "photo_labels" | "demande_bande_demo" | "message_corps"
-  >,
+// Crée juste l'entrée (avec son request_token) — n'envoie plus rien : le
+// mail d'invitation part à la main, calibré dans le composeur de message du
+// rôle (avec le token {lien}), pas automatiquement à l'ajout.
+async function createCastingEntry(
+  roleId: string,
+  projetId: string,
   figurantId: string,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
@@ -158,7 +110,7 @@ async function createEntryAndInvite(
 
   const { data: figurant } = await supabase
     .from("figurants")
-    .select("prenom, nom, email")
+    .select("email")
     .eq("id", figurantId)
     .maybeSingle();
   if (!figurant) return { error: "Profil introuvable." };
@@ -167,45 +119,19 @@ async function createEntryAndInvite(
   const { data: existing } = await supabase
     .from("casting_entries")
     .select("id")
-    .eq("role_id", role.id)
+    .eq("role_id", roleId)
     .eq("figurant_id", figurantId)
     .maybeSingle();
   if (existing) return { created: false };
 
-  const { data: projet } = await supabase.from("projets").select("nom").eq("id", role.projet_id).maybeSingle();
-
-  const { data: created, error } = await supabase
-    .from("casting_entries")
-    .insert({
-      projet_id: role.projet_id,
-      role_id: role.id,
-      figurant_id: figurantId,
-      booking_id: opts?.bookingId ?? null,
-      candidature_id: opts?.candidatureId ?? null,
-    })
-    .select("request_token")
-    .single();
+  const { error } = await supabase.from("casting_entries").insert({
+    projet_id: projetId,
+    role_id: roleId,
+    figurant_id: figurantId,
+    booking_id: opts?.bookingId ?? null,
+    candidature_id: opts?.candidatureId ?? null,
+  });
   if (error) return { error: error.message };
-
-  const origin = await getSiteOrigin();
-  const link = `${origin}/casting/upload/${created.request_token}`;
-
-  const result = await sendEmail(
-    figurant.email,
-    `Booking Extras — casting « ${role.nom} »`,
-    inviteEmailBody({
-      prenom: figurant.prenom,
-      roleNom: role.nom,
-      projetNom: projet?.nom ?? "",
-      dateTournage: role.date_tournage,
-      nbVideos: role.nb_videos,
-      photoLabels: role.photo_labels,
-      demandeBandeDemo: role.demande_bande_demo,
-      link,
-      customBody: role.message_corps,
-    })
-  );
-  if (result.error) return { error: result.error };
 
   return { created: true };
 }
@@ -218,16 +144,12 @@ export async function addFigurantToCastingRole(
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
-  const { data: role } = await supabase
-    .from("casting_roles")
-    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps")
-    .eq("id", roleId)
-    .maybeSingle<CastingRole>();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
 
-  const result = await createEntryAndInvite(role, figurantId, opts);
+  const result = await createCastingEntry(roleId, role.projet_id, figurantId, opts);
   if (result.error) return { error: result.error };
 
   revalidatePath("/casting");
@@ -258,15 +180,15 @@ export async function addFigurantsToCasting(
       { projet_id: projetId, nom, date_tournage: dateTournage },
       { onConflict: "projet_id,nom", ignoreDuplicates: false }
     )
-    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps")
-    .single<CastingRole>();
+    .select("id")
+    .single<{ id: string }>();
   if (roleError || !role) return { error: roleError?.message ?? "Impossible de créer le rôle." };
 
   let ok = 0;
   let deja = 0;
   let echecs = 0;
   for (const figurantId of figurantIds) {
-    const result = await createEntryAndInvite(role, figurantId);
+    const result = await createCastingEntry(role.id, projetId, figurantId);
     if (result.error) echecs += 1;
     else if (result.created) ok += 1;
     else deja += 1;
