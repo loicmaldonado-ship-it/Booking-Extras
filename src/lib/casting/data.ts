@@ -5,7 +5,7 @@ export async function getCastingRoles(projetId: string): Promise<CastingRole[]> 
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("casting_roles")
-    .select("id, projet_id, nom, date_tournage, nb_videos, photo_labels, demande_bande_demo, created_at")
+    .select("id, projet_id, nom, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps, created_at")
     .eq("projet_id", projetId)
     .order("date_tournage", { ascending: true, nullsFirst: false })
     .returns<CastingRole[]>();
@@ -37,4 +37,35 @@ export async function getCastingVideoUrls(storagePaths: string[]): Promise<strin
     })
   );
   return urls.filter((u): u is string => !!u);
+}
+
+export type CastingEntryPhoto = { label: string; url: string };
+
+// Les photos envoyées pour un casting (pas juste le portrait) — retrouvées
+// via casting_entry_id, posé sur figurant_photos à la soumission.
+export async function getCastingEntryPhotos(
+  entryIds: string[]
+): Promise<Map<string, CastingEntryPhoto[]>> {
+  const map = new Map<string, CastingEntryPhoto[]>();
+  if (entryIds.length === 0) return map;
+
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("figurant_photos")
+    .select("casting_entry_id, label, storage_path")
+    .in("casting_entry_id", entryIds)
+    .returns<{ casting_entry_id: string | null; label: string | null; storage_path: string }[]>();
+
+  for (const photo of data ?? []) {
+    if (!photo.casting_entry_id) continue;
+    const { data: signed } = await supabase.storage
+      .from("figurant-photos")
+      .createSignedUrl(photo.storage_path, 60 * 60);
+    if (!signed?.signedUrl) continue;
+    const list = map.get(photo.casting_entry_id) ?? [];
+    list.push({ label: photo.label ?? "Photo", url: signed.signedUrl });
+    map.set(photo.casting_entry_id, list);
+  }
+
+  return map;
 }

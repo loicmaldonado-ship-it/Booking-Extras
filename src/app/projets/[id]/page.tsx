@@ -14,6 +14,8 @@ import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { DocumentTemplatePanel } from "@/components/projets/document-template-panel";
+import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
+import { AnnoncePhotoPanel } from "@/components/projets/annonce-photo-panel";
 
 export default async function ProjetDetailPage({
   params,
@@ -111,6 +113,8 @@ export default async function ProjetDetailPage({
         logoUrl={documentTemplate.logoUrl}
         accentColor={documentTemplate.accentColor}
       />
+
+      <AnnoncePhotoPanel projetId={id} photoUrl={getAnnoncePhotoUrl(supabase, projet.annonce_photo_storage_path)} />
 
       {(projet.besoins_figuration || projet.synopsis) && (
         <Card className="flex flex-col gap-3">

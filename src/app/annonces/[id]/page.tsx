@@ -9,6 +9,9 @@ import { CopyAnnonceText } from "@/components/annonces/copy-annonce-text";
 import { ToggleStatutButton } from "@/components/annonces/toggle-statut-button";
 import { QuestionsManager } from "@/components/annonces/questions-manager";
 import { DatesManager } from "@/components/annonces/dates-manager";
+import { MoodboardPanel } from "@/components/annonces/moodboard-panel";
+import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
+import { generateQrCodeDataUrl } from "@/lib/annonces/qrcode";
 import { BackLink } from "@/components/ui/back-link";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { deleteAnnonce } from "@/lib/annonces/actions";
@@ -45,10 +48,12 @@ export default async function AnnonceDetailPage({
     .select("id", { count: "exact", head: true })
     .eq("annonce_id", id);
 
-  const [questions, templates, dates] = await Promise.all([
+  const [questions, templates, dates, moodboardPhotos, qrCodeDataUrl] = await Promise.all([
     getAnnonceQuestions(id),
     getQuestionTemplates(),
     getAnnonceDates(id),
+    getAnnoncePhotos(supabase, id),
+    generateQrCodeDataUrl(publicUrl),
   ]);
 
   const boundDeleteAnnonce = deleteAnnonce.bind(null, id);
@@ -98,6 +103,26 @@ export default async function AnnonceDetailPage({
         <h2 className="text-lg font-semibold">Lien public à diffuser</h2>
         <CopyLink url={publicUrl} />
         <CopyAnnonceText text={shareText} />
+        <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- data URL générée côté serveur, pas une image optimisable */}
+          <img src={qrCodeDataUrl} alt="QR code vers l'annonce" width={96} height={96} className="rounded-lg" />
+          <div className="flex flex-col gap-2">
+            <a
+              href={qrCodeDataUrl}
+              download={`qr-${id}.png`}
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              Télécharger le QR code
+            </a>
+            <a
+              href={`/annonces/${id}/poster`}
+              download={`affiche-${id}.png`}
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              Télécharger l&apos;affiche (Insta/Facebook)
+            </a>
+          </div>
+        </div>
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm text-text-muted">
             <Link href={`/candidatures?annonce_id=${id}`} className="text-coral hover:underline">
@@ -119,6 +144,8 @@ export default async function AnnonceDetailPage({
           <p className="text-sm whitespace-pre-wrap">{annonce.description}</p>
         </Card>
       )}
+
+      <MoodboardPanel annonceId={id} photos={moodboardPhotos} />
 
       <Card className="flex flex-col gap-3">
         <div>

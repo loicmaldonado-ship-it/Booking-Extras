@@ -6,6 +6,7 @@ import { checkProjetAccess } from "@/lib/auth/session";
 import { sendEmail } from "@/lib/email/send";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { substituteTokens } from "@/lib/bookings/convocation";
 import type { CastingRole } from "./types";
 
 function parsePhotoLabels(formData: FormData): string[] {
@@ -30,6 +31,7 @@ export async function createCastingRole(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("casting_roles").insert({
@@ -39,6 +41,7 @@ export async function createCastingRole(
     nb_videos: nbVideos,
     photo_labels: photoLabels,
     demande_bande_demo: demandeBandeDemo,
+    message_corps: messageCorps,
   });
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
 
@@ -64,6 +67,7 @@ export async function updateCastingRoleCalibration(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
 
   const { error } = await supabase
     .from("casting_roles")
@@ -73,6 +77,7 @@ export async function updateCastingRoleCalibration(
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
+      message_corps: messageCorps,
     })
     .eq("id", roleId);
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
@@ -105,8 +110,21 @@ function inviteEmailBody(params: {
   photoLabels: string[];
   demandeBandeDemo: boolean;
   link: string;
+  customBody: string | null;
 }) {
-  const { prenom, roleNom, projetNom, dateTournage, nbVideos, photoLabels, demandeBandeDemo, link } = params;
+  const { prenom, roleNom, projetNom, dateTournage, nbVideos, photoLabels, demandeBandeDemo, link, customBody } =
+    params;
+
+  if (customBody) {
+    return substituteTokens(customBody, {
+      prenom,
+      role: roleNom,
+      projet: projetNom,
+      date: dateTournage ?? "",
+      lien: link,
+    });
+  }
+
   const besoin: string[] = [];
   if (nbVideos > 0) besoin.push(`${nbVideos} vidéo${nbVideos > 1 ? "s" : ""} de présentation`);
   if (photoLabels.length > 0) besoin.push(`${photoLabels.length} photo${photoLabels.length > 1 ? "s" : ""} (${photoLabels.join(", ")})`);
@@ -129,7 +147,10 @@ function inviteEmailBody(params: {
 }
 
 async function createEntryAndInvite(
-  role: Pick<CastingRole, "id" | "nom" | "projet_id" | "date_tournage" | "nb_videos" | "photo_labels" | "demande_bande_demo">,
+  role: Pick<
+    CastingRole,
+    "id" | "nom" | "projet_id" | "date_tournage" | "nb_videos" | "photo_labels" | "demande_bande_demo" | "message_corps"
+  >,
   figurantId: string,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
@@ -181,6 +202,7 @@ async function createEntryAndInvite(
       photoLabels: role.photo_labels,
       demandeBandeDemo: role.demande_bande_demo,
       link,
+      customBody: role.message_corps,
     })
   );
   if (result.error) return { error: result.error };
@@ -198,7 +220,7 @@ export async function addFigurantToCastingRole(
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
-    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo")
+    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps")
     .eq("id", roleId)
     .maybeSingle<CastingRole>();
   if (!role) return { error: "Rôle introuvable." };
@@ -236,7 +258,7 @@ export async function addFigurantsToCasting(
       { projet_id: projetId, nom, date_tournage: dateTournage },
       { onConflict: "projet_id,nom", ignoreDuplicates: false }
     )
-    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo")
+    .select("id, nom, projet_id, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps")
     .single<CastingRole>();
   if (roleError || !role) return { error: roleError?.message ?? "Impossible de créer le rôle." };
 

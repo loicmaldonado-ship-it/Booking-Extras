@@ -30,6 +30,28 @@ export async function getPartageToken(projetId: string, type: PartageType) {
   return data?.token ?? null;
 }
 
+// Titre affiché en haut de la page publique du lien — personnalisable
+// (ex. "Casting — LD"), vide si non renseigné (la page retombe alors sur
+// son titre générique habituel).
+export async function getPartageTitre(projetId: string, type: PartageType) {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("partage_liens")
+    .select("titre")
+    .eq("projet_id", projetId)
+    .eq("type", type)
+    .maybeSingle();
+  return data?.titre ?? null;
+}
+
+export async function updatePartageTitre(projetId: string, type: PartageType, titre: string | null) {
+  await requireAccessOrThrow(projetId);
+
+  const supabase = createAdminClient();
+  await supabase.from("partage_liens").update({ titre }).eq("projet_id", projetId).eq("type", type);
+  revalidatePath("/casting");
+}
+
 export async function createPartageLien(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
 

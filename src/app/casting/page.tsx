@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
-import { getPartageToken } from "@/lib/partage/actions";
+import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getCastingRoles, getCastingEntries, getCastingVideoUrls } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
@@ -46,14 +46,16 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  const [roles, entries, partageToken, origin, { data: allFigurants }, { data: templates }] = await Promise.all([
-    getCastingRoles(currentProjetId),
-    getCastingEntries(currentProjetId),
-    getPartageToken(currentProjetId, "casting"),
-    getSiteOrigin(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
-  ]);
+  const [roles, entries, partageToken, partageTitre, origin, { data: allFigurants }, { data: templates }] =
+    await Promise.all([
+      getCastingRoles(currentProjetId),
+      getCastingEntries(currentProjetId),
+      getPartageToken(currentProjetId, "casting"),
+      getPartageTitre(currentProjetId, "casting"),
+      getSiteOrigin(),
+      supabase.from("figurants").select("id, prenom, nom").order("nom"),
+      supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    ]);
 
   const figurantIds = entries.map((e) => e.figurant_id);
   const [photosByFigurant, ...videoUrlsList] = await Promise.all([
@@ -124,6 +126,8 @@ export default async function CastingPage({
         description="Lien en lecture seule pour le réalisateur·ice, classé par rôle."
         token={partageToken}
         publicBaseUrl={`${origin}/partage/casting`}
+        titre={partageTitre}
+        titrePlaceholder={`Casting — ${projet.nom}`}
       />
     </div>
   );

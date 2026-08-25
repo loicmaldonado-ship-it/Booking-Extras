@@ -6,6 +6,7 @@ export type CastingRole = {
   nb_videos: number;
   photo_labels: string[];
   demande_bande_demo: boolean;
+  message_corps: string | null;
   created_at: string;
 };
 

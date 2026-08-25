@@ -17,5 +17,11 @@ export type Annonce = {
 };
 
 export type AnnonceAvecProjet = Annonce & {
-  projets: { nom: string; confidentiel: boolean; nom_code: string | null; signature: string | null } | null;
+  projets: {
+    nom: string;
+    confidentiel: boolean;
+    nom_code: string | null;
+    signature: string | null;
+    annonce_photo_storage_path: string | null;
+  } | null;
 };

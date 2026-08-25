@@ -91,6 +91,20 @@ export function CastingRoleForm({
         Demander un lien de bande démo
       </label>
 
+      <Field label="Corps du mail d'invitation (optionnel)">
+        <textarea
+          name="message_corps"
+          defaultValue={role?.message_corps ?? ""}
+          rows={5}
+          placeholder={
+            "Vide = message généré automatiquement. Sinon, utilise {prenom}, {role}, {projet}, {date} et " +
+            "{lien} (obligatoire, c'est le lien d'envoi) — ex. « Bonjour {prenom}, le rôle {role} vous intéresse ? " +
+            "Envoyez-nous ça via {lien} »"
+          }
+          className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+        />
+      </Field>
+
       <Button type="submit" disabled={pending}>
         {pending ? "Enregistrement..." : role ? "Enregistrer" : "Créer le rôle"}
       </Button>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { PostulerForm } from "@/components/candidatures/postuler-form";
@@ -5,6 +6,8 @@ import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
+import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { formatDateShort } from "@/lib/format-date";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
@@ -19,7 +22,7 @@ export default async function PostulerPage({
 
   const { data: annonce } = await supabase
     .from("annonces")
-    .select("*, projets(nom, confidentiel, nom_code, signature)")
+    .select("*, projets(nom, confidentiel, nom_code, signature, annonce_photo_storage_path)")
     .eq("public_token", token)
     .single<AnnonceAvecProjet>();
 
@@ -31,6 +34,9 @@ export default async function PostulerPage({
       </div>
     );
   }
+
+  const moodboardPhotos = await getAnnoncePhotos(supabase, annonce.id);
+  const photoUrl = getAnnoncePhotoUrl(supabase, annonce.projets?.annonce_photo_storage_path);
 
   let complet = false;
   if (annonce.limite_candidatures !== null) {
@@ -100,6 +106,11 @@ export default async function PostulerPage({
 
       <div>
         <div className="flex items-center gap-3">
+          {photoUrl && (
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
+              <Image src={photoUrl} alt="" fill className="object-cover" unoptimized />
+            </div>
+          )}
           <h1 className="text-2xl font-semibold">{annonce.titre}</h1>
           {annonce.statut === "fermée" && <Badge>Fermée</Badge>}
         </div>
@@ -114,6 +125,16 @@ export default async function PostulerPage({
         <Card>
           <p className="text-sm whitespace-pre-wrap">{annonce.description}</p>
         </Card>
+      )}
+
+      {moodboardPhotos.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          {moodboardPhotos.map((p) => (
+            <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-ink-raised-2">
+              <Image src={p.url} alt="" fill className="object-cover" unoptimized />
+            </div>
+          ))}
+        </div>
       )}
 
       {annonce.projets?.signature && (

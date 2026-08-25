@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/field";
 import { CopyLink } from "@/components/annonces/copy-link";
-import { createPartageLien, revokePartageLien, type PartageType } from "@/lib/partage/actions";
+import { createPartageLien, revokePartageLien, updatePartageTitre, type PartageType } from "@/lib/partage/actions";
 
 export function PartageCard({
   projetId,
@@ -13,6 +14,8 @@ export function PartageCard({
   description,
   token,
   publicBaseUrl,
+  titre,
+  titrePlaceholder,
 }: {
   projetId: string;
   type: PartageType;
@@ -20,9 +23,15 @@ export function PartageCard({
   description: string;
   token: string | null;
   publicBaseUrl: string;
+  // Fourni uniquement quand le titre affiché sur la page publique doit être
+  // personnalisable (ex. Casting) — absent ailleurs (documents, essayages).
+  titre?: string | null;
+  titrePlaceholder?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [titreValue, setTitreValue] = useState(titre ?? "");
+  const [titreSaved, setTitreSaved] = useState(false);
 
   function create() {
     startTransition(async () => {
@@ -38,6 +47,15 @@ export function PartageCard({
     });
   }
 
+  function saveTitre() {
+    setTitreSaved(false);
+    startTransition(async () => {
+      await updatePartageTitre(projetId, type, titreValue.trim() || null);
+      setTitreSaved(true);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
       <div>
@@ -48,6 +66,21 @@ export function PartageCard({
       {token ? (
         <div className="flex flex-col gap-2">
           <CopyLink url={`${publicBaseUrl}/${token}`} />
+          {titre !== undefined && (
+            <div className="flex items-center gap-2">
+              <Input
+                value={titreValue}
+                onChange={(e) => {
+                  setTitreValue(e.target.value);
+                  setTitreSaved(false);
+                }}
+                placeholder={titrePlaceholder ?? "Titre affiché"}
+              />
+              <Button type="button" variant="secondary" disabled={pending} onClick={saveTitre}>
+                {titreSaved ? "Enregistré" : "Enregistrer le titre"}
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button type="button" variant="secondary" disabled={pending} onClick={create}>
               Régénérer le lien

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildXlsxResponse } from "@/lib/export/xlsx";
+import { buildXlsxResponse, sanitizeFilenamePart } from "@/lib/export/xlsx";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { computeAge } from "@/lib/documents/fields";
@@ -43,18 +43,24 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient();
 
-  const [{ data: candidaturesRaw }, { data: onglets }, { data: bookedCandidatures }] = await Promise.all([
-    supabase
-      .from("candidatures")
-      .select(
-        "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
-      )
-      .eq("annonce_id", annonceId)
-      .order("created_at", { ascending: false })
-      .returns<ExportRow[]>(),
-    supabase.from("candidature_onglets").select("id, nom"),
-    supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
-  ]);
+  const [{ data: candidaturesRaw }, { data: onglets }, { data: bookedCandidatures }, { data: annonce }] =
+    await Promise.all([
+      supabase
+        .from("candidatures")
+        .select(
+          "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
+        )
+        .eq("annonce_id", annonceId)
+        .order("created_at", { ascending: false })
+        .returns<ExportRow[]>(),
+      supabase.from("candidature_onglets").select("id, nom"),
+      supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
+      supabase.from("annonces").select("titre, projets(nom)").eq("id", annonceId).single<{
+        titre: string;
+        projets: { nom: string } | null;
+      }>(),
+    ]);
+  const projetNom = annonce?.projets?.nom ?? "";
 
   const bookedIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
   const ongletNom = new Map((onglets ?? []).map((o) => [o.id, o.nom]));
@@ -94,21 +100,27 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return buildXlsxResponse("candidatures.xlsx", "Candidatures", [
-    { header: "Prénom", key: "prenom" },
-    { header: "Nom", key: "nom" },
-    { header: "Ville", key: "ville" },
-    { header: "Email", key: "email", width: 28 },
-    { header: "Téléphone", key: "telephone" },
-    { header: "Genre", key: "genre" },
-    { header: "Âge", key: "age" },
-    { header: "Onglet", key: "onglet" },
-    { header: "Fonction assignée", key: "fonction" },
-    { header: "Cachet assigné", key: "cachet" },
-    { header: "Compte Myrole", key: "myrole" },
-    { header: "Véhicule", key: "vehicule" },
-    { header: "Type véhicule", key: "vehiculeType" },
-    { header: "Message", key: "message", width: 40 },
-    { header: "Reçue le", key: "recueLe" },
-  ], rows);
+  return buildXlsxResponse(
+    `candidatures-${sanitizeFilenamePart(projetNom)}.xlsx`,
+    "Candidatures",
+    [
+      { header: "Prénom", key: "prenom" },
+      { header: "Nom", key: "nom" },
+      { header: "Ville", key: "ville" },
+      { header: "Email", key: "email", width: 28 },
+      { header: "Téléphone", key: "telephone" },
+      { header: "Genre", key: "genre" },
+      { header: "Âge", key: "age" },
+      { header: "Onglet", key: "onglet" },
+      { header: "Fonction assignée", key: "fonction" },
+      { header: "Cachet assigné", key: "cachet" },
+      { header: "Compte Myrole", key: "myrole" },
+      { header: "Véhicule", key: "vehicule" },
+      { header: "Type véhicule", key: "vehiculeType" },
+      { header: "Message", key: "message", width: 40 },
+      { header: "Reçue le", key: "recueLe" },
+    ],
+    rows,
+    `${projetNom}${annonce?.titre ? ` — ${annonce.titre}` : ""}`
+  );
 }

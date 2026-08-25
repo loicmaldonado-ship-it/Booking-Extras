@@ -1,8 +1,8 @@
-import Image from "next/image";
-import { resolvePartageToken } from "@/lib/partage/data";
-import { getCastingRoles, getCastingEntries, getCastingVideoUrls } from "@/lib/casting/data";
+import { resolvePartageToken, getPartageTitreByToken } from "@/lib/partage/data";
+import { getCastingRoles, getCastingEntries, getCastingVideoUrls, getCastingEntryPhotos } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { Card, Badge } from "@/components/ui/card";
+import { CastingRealEntryCard } from "@/components/casting/casting-real-entry-card";
 import { formatDateLong } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -23,7 +23,11 @@ export default async function PartageCastingPage({
     );
   }
 
-  const [roles, entries] = await Promise.all([getCastingRoles(projet.id), getCastingEntries(projet.id)]);
+  const [roles, entries, titre] = await Promise.all([
+    getCastingRoles(projet.id),
+    getCastingEntries(projet.id),
+    getPartageTitreByToken(token, "casting"),
+  ]);
   const submitted = entries.filter((e) => e.submitted_at);
 
   const submittedByRole = new Map<string, typeof submitted>();
@@ -34,10 +38,12 @@ export default async function PartageCastingPage({
   }
   const rolesAvecProfils = roles.filter((r) => (submittedByRole.get(r.id) ?? []).length > 0);
 
+  const entryIds = submitted.map((e) => e.id);
   const figurantIds = submitted.map((e) => e.figurant_id);
-  const [photosByFigurant, videoUrlsList] = await Promise.all([
+  const [photosByFigurant, videoUrlsList, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
     Promise.all(submitted.map((e) => getCastingVideoUrls(e.video_storage_paths))),
+    getCastingEntryPhotos(entryIds),
   ]);
   const videoUrlsByEntry = new Map(submitted.map((e, i) => [e.id, videoUrlsList[i]]));
 
@@ -47,12 +53,12 @@ export default async function PartageCastingPage({
         <span className="font-display text-lg font-semibold">
           Booking<span className="text-coral">Extras</span>
         </span>
-        <h1 className="mt-4 text-2xl font-semibold">Casting — {projetNomPublic(projet)}</h1>
+        <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
+        <p className="mt-1 text-sm text-text-muted">Clique un profil pour voir ses photos et lancer sa vidéo.</p>
       </div>
 
       {rolesAvecProfils.map((role) => {
         const roleEntries = submittedByRole.get(role.id) ?? [];
-        const avecVideo = role.nb_videos > 0;
         return (
           <Card key={role.id} className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -60,58 +66,17 @@ export default async function PartageCastingPage({
               {role.date_tournage && <Badge>{formatDateLong(role.date_tournage)}</Badge>}
             </div>
 
-            {avecVideo ? (
-              <div className="flex flex-col gap-4">
-                {roleEntries.map((entry) => {
-                  const portraitUrl = pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null;
-                  const videoUrls = videoUrlsByEntry.get(entry.id) ?? [];
-                  return (
-                    <div
-                      key={entry.id}
-                      className="flex items-center gap-4 rounded-xl border border-border bg-ink px-4 py-3"
-                    >
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-                        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                      </div>
-                      <div className="flex flex-1 flex-col gap-1">
-                        <span className="font-medium">
-                          {entry.figurants?.prenom} {entry.figurants?.nom}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        {videoUrls.map((url, i) => (
-                          <a
-                            key={url}
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full bg-coral px-4 py-2 text-sm font-medium text-ink hover:opacity-90"
-                          >
-                            Vidéo{videoUrls.length > 1 ? ` ${i + 1}` : ""} ↗
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6">
-                {roleEntries.map((entry) => {
-                  const portraitUrl = pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null;
-                  return (
-                    <div key={entry.id} className="flex flex-col items-center gap-1 text-center">
-                      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                      </div>
-                      <span className="text-xs font-medium">
-                        {entry.figurants?.prenom} {entry.figurants?.nom}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="flex flex-col gap-3">
+              {roleEntries.map((entry) => (
+                <CastingRealEntryCard
+                  key={entry.id}
+                  nom={`${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim()}
+                  portraitUrl={pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
+                  videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
+                  photos={entryPhotosByEntry.get(entry.id) ?? []}
+                />
+              ))}
+            </div>
           </Card>
         );
       })}

@@ -29,6 +29,12 @@ export async function resolvePartageToken(token: string, type: PartageType) {
   return projet;
 }
 
+export async function getPartageTitreByToken(token: string, type: PartageType) {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("partage_liens").select("titre").eq("token", token).eq("type", type).maybeSingle();
+  return data?.titre ?? null;
+}
+
 type ProjetPublic = {
   id: string;
   nom: string;

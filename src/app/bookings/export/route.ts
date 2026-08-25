@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { buildXlsxResponse } from "@/lib/export/xlsx";
+import { buildXlsxResponse, sanitizeFilenamePart } from "@/lib/export/xlsx";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 
@@ -33,16 +33,20 @@ export async function GET(request: NextRequest) {
   if (!projetId || !date) return NextResponse.json({ error: "projet_id et date requis." }, { status: 400 });
 
   const supabase = createAdminClient();
-  const { data: bookingsRaw } = await supabase
-    .from("bookings")
-    .select(
-      "heure_convocation, fonction, cachet, convocation_envoyee, reponse_recue, figurants!bookings_figurant_id_fkey(prenom, nom, email, telephone, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
-    )
-    .eq("projet_id", projetId)
-    .eq("date", date)
-    .eq("statut", "confirmé")
-    .order("heure_convocation")
-    .returns<ExportRow[]>();
+  const [{ data: bookingsRaw }, { data: projet }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select(
+        "heure_convocation, fonction, cachet, convocation_envoyee, reponse_recue, figurants!bookings_figurant_id_fkey(prenom, nom, email, telephone, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
+      )
+      .eq("projet_id", projetId)
+      .eq("date", date)
+      .eq("statut", "confirmé")
+      .order("heure_convocation")
+      .returns<ExportRow[]>(),
+    supabase.from("projets").select("nom").eq("id", projetId).single(),
+  ]);
+  const projetNom = projet?.nom ?? "";
 
   const rows = (bookingsRaw ?? []).map((b) => {
     const f = b.figurants;
@@ -66,18 +70,24 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return buildXlsxResponse(`booking-${date}.xlsx`, "Booking", [
-    { header: "Prénom", key: "prenom" },
-    { header: "Nom", key: "nom" },
-    { header: "Téléphone", key: "telephone" },
-    { header: "Email", key: "email", width: 28 },
-    { header: "Heure convocation", key: "heure" },
-    { header: "Fonction", key: "fonction" },
-    { header: "Cachet", key: "cachet" },
-    { header: "Convocation envoyée", key: "convocationEnvoyee" },
-    { header: "Réponse reçue", key: "reponseRecue" },
-    { header: "Compte Myrole", key: "myrole" },
-    { header: "Véhicule", key: "vehicule" },
-    { header: "Type véhicule", key: "vehiculeType" },
-  ], rows);
+  return buildXlsxResponse(
+    `booking-${sanitizeFilenamePart(projetNom)}-${date}.xlsx`,
+    "Booking",
+    [
+      { header: "Prénom", key: "prenom" },
+      { header: "Nom", key: "nom" },
+      { header: "Téléphone", key: "telephone" },
+      { header: "Email", key: "email", width: 28 },
+      { header: "Heure convocation", key: "heure" },
+      { header: "Fonction", key: "fonction" },
+      { header: "Cachet", key: "cachet" },
+      { header: "Convocation envoyée", key: "convocationEnvoyee" },
+      { header: "Réponse reçue", key: "reponseRecue" },
+      { header: "Compte Myrole", key: "myrole" },
+      { header: "Véhicule", key: "vehicule" },
+      { header: "Type véhicule", key: "vehiculeType" },
+    ],
+    rows,
+    `${projetNom} — ${date}`
+  );
 }
