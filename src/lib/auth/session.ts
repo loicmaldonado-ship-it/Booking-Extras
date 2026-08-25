@@ -9,7 +9,10 @@ export type CurrentProfile = {
   email: string | null;
   nom: string | null;
   role: "chef" | "assistant";
+  avatarUrl: string | null;
 };
+
+const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   const supabase = await createServerSupabaseClient();
@@ -21,17 +24,31 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nom, role")
+    .select("id, nom, role, avatar_storage_path, last_seen_at")
     .eq("id", user.id)
     .single();
 
   if (!profile) return null;
+
+  // Présence équipe (Équipe / Admin) : dernière activité mise à jour ici,
+  // avec le même throttle applicatif que getCurrentFigurant() — ce point
+  // s'exécute à chaque page (racine du layout), pas besoin d'un heartbeat
+  // client dédié.
+  const lastSeen = profile.last_seen_at ? new Date(profile.last_seen_at) : null;
+  if (!lastSeen || Date.now() - lastSeen.getTime() > LAST_SEEN_THROTTLE_MS) {
+    await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", profile.id);
+  }
+
+  const avatarUrl = profile.avatar_storage_path
+    ? supabase.storage.from("profile-avatars").getPublicUrl(profile.avatar_storage_path).data.publicUrl
+    : null;
 
   return {
     id: profile.id,
     email: user.email ?? null,
     nom: profile.nom,
     role: profile.role as "chef" | "assistant",
+    avatarUrl,
   };
 }
 

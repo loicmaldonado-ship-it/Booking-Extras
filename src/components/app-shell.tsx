@@ -24,6 +24,7 @@ import { cn } from "@/lib/cn";
 import { signOut } from "@/lib/auth/actions";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { MyAvatarMenu } from "@/components/my-avatar-menu";
 import { isOwner } from "@/lib/auth/owner";
 import type { CurrentProfile } from "@/lib/auth/session";
 
@@ -172,6 +173,7 @@ export function AppShell({
               <div className="truncate font-medium text-text">{profile.email}</div>
               <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
+            <MyAvatarMenu profile={profile} />
             <form action={signOut}>
               <button
                 type="submit"

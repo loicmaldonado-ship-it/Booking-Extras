@@ -19,10 +19,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: annonce } = await supabase
     .from("annonces")
-    .select("titre, date_recherchee, lieu, public_token, projet_id, projets(nom, annonce_photo_storage_path)")
+    .select("titre, description, date_recherchee, lieu, public_token, projet_id, projets(nom, annonce_photo_storage_path)")
     .eq("id", id)
     .single<{
       titre: string;
+      description: string | null;
       date_recherchee: string | null;
       lieu: string | null;
       public_token: string;
@@ -42,6 +43,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const infoLine = [annonce.projets?.nom, annonce.date_recherchee ? formatDateShort(annonce.date_recherchee) : null, annonce.lieu]
     .filter(Boolean)
     .join(" · ");
+
+  const descriptionText = annonce.description?.replace(/\s+/g, " ").trim() ?? "";
+  const description = descriptionText.length > 220 ? `${descriptionText.slice(0, 220).trim()}…` : descriptionText;
 
   return new ImageResponse(
     (
@@ -72,6 +76,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
               <div style={{ fontSize: 56, fontWeight: 700, color: "white", lineHeight: 1.1 }}>{annonce.titre}</div>
               {infoLine && <div style={{ fontSize: 28, color: "#E8E8E8" }}>{infoLine}</div>}
+              {description && (
+                <div style={{ fontSize: 22, color: "#D8D8D8", lineHeight: 1.4, marginTop: 4 }}>{description}</div>
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- rendu via Satori (next/og), pas le DOM */}

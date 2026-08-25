@@ -3,8 +3,10 @@ import { getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { setCurrentProjet } from "@/lib/projet-context";
+import { isOnline } from "@/lib/auth/presence";
 import { Card, Badge } from "@/components/ui/card";
 import { InviteChefForm } from "@/components/admin/invite-chef-form";
+import { TeamPresenceList, type PresenceMember } from "@/components/equipe/team-presence-list";
 import { Crown } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +26,28 @@ export default async function AdminPage() {
   }
 
   const supabase = createAdminClient();
-  const [{ data: chefs }, { data: projets }] = await Promise.all([
+  const [{ data: chefs }, { data: projets }, { data: tousLesProfils }] = await Promise.all([
     supabase.from("profiles").select("id, email, nom").eq("role", "chef").order("email"),
     supabase.from("projets").select("id, nom, owner_id").eq("archive", false),
+    supabase
+      .from("profiles")
+      .select("id, email, nom, role, avatar_storage_path, last_seen_at")
+      .order("role")
+      .returns<
+        { id: string; email: string | null; nom: string | null; role: "chef" | "assistant"; avatar_storage_path: string | null; last_seen_at: string | null }[]
+      >(),
   ]);
+
+  const presenceMembers: PresenceMember[] = (tousLesProfils ?? []).map((p) => ({
+    id: p.id,
+    nom: p.nom,
+    email: p.email,
+    role: p.role,
+    avatarUrl: p.avatar_storage_path
+      ? supabase.storage.from("profile-avatars").getPublicUrl(p.avatar_storage_path).data.publicUrl
+      : null,
+    online: p.email === profile!.email ? true : isOnline(p.last_seen_at),
+  }));
 
   const projetsByOwner = new Map<string, { id: string; nom: string }[]>();
   for (const p of projets ?? []) {
@@ -51,6 +71,8 @@ export default async function AdminPage() {
           aider si besoin.
         </p>
       </div>
+
+      <TeamPresenceList title="Qui est connecté (toute l'agence)" members={presenceMembers} />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Inviter un·e chef·fe</h2>
