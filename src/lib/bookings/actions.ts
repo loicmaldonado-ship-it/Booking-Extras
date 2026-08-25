@@ -433,8 +433,11 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
     }
 
     const result = figurant.acces_compte
-      ? await sendMagicLinkEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email })
-      : await sendAccesCompteActiveEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email });
+      ? await sendMagicLinkEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email }, projetId)
+      : await sendAccesCompteActiveEmail(
+          { id: figurant.id, prenom: figurant.prenom, email: figurant.email },
+          projetId
+        );
 
     if (result.error) {
       failed += 1;

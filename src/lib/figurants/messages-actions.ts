@@ -4,7 +4,23 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
+import { getCurrentProjetId } from "@/lib/projet-context";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { getProjetEmailCredentials, getOwnerEmailCredentials } from "@/lib/projets/email";
 import type { FigurantMessageCategorie } from "@/lib/candidats/types";
+
+// Base Profils est partagé entre cheffes, sans projet "propriétaire" du
+// message — on envoie donc depuis la boîte du projet actuellement
+// sélectionné (bandeau du haut) si elle est configurée, sinon celle de la
+// cheffe qui écrit, sinon la boîte partagée par défaut.
+async function resolveSenderCredentials(supabase: ReturnType<typeof createAdminClient>) {
+  const projetId = await getCurrentProjetId();
+  const viaProjet = await getProjetEmailCredentials(supabase, projetId);
+  if (viaProjet) return viaProjet;
+
+  const profile = await getCurrentProfile();
+  return getOwnerEmailCredentials(supabase, profile?.id ?? null);
+}
 
 export async function sendStaffMessageToFigurant(figurantId: string, formData: FormData) {
   const corps = String(formData.get("corps") ?? "").trim();
@@ -28,7 +44,8 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 
   let emailError: string | undefined;
   if (email) {
-    const result = await sendEmail(email, "Booking Extras", corps);
+    const credentials = await resolveSenderCredentials(supabase);
+    const result = await sendEmail(email, "Booking Extras", corps, credentials);
     emailError = result.error;
   }
 
@@ -37,10 +54,13 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 }
 
 export async function notifyFigurantByEmail(figurantId: string, email: string, prenom: string, siteUrl: string) {
+  const supabase = createAdminClient();
+  const credentials = await resolveSenderCredentials(supabase);
   const result = await sendEmail(
     email,
     "Booking Extras — Vous avez un message",
-    `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras, merci de vous connecter très rapidement :\n${siteUrl}/compte/connexion\n\nMerci !`
+    `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras, merci de vous connecter très rapidement :\n${siteUrl}/compte/connexion\n\nMerci !`,
+    credentials
   );
   return result;
 }

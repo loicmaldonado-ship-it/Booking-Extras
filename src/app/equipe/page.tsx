@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { InviteAssistantForm } from "@/components/equipe/invite-assistant-form";
 import { MembresList, type Membre } from "@/components/equipe/membres-list";
 import { TeamPresenceList } from "@/components/equipe/team-presence-list";
+import { MyEmailPanel } from "@/components/equipe/my-email-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +35,11 @@ export default async function EquipePage() {
     .order("created_at", { ascending: false });
   if (accessibleIds !== null) membresQuery = membresQuery.in("projet_id", idsOrNone(accessibleIds));
 
-  const [{ data: projets }, { data: membresRaw }, teamPresence] = await Promise.all([
+  const [{ data: projets }, { data: membresRaw }, teamPresence, { data: myProfile }] = await Promise.all([
     projetsQuery,
     membresQuery.returns<Membre[]>(),
     getMyTeamPresence(profile),
+    supabase.from("profiles").select("gmail_smtp_user").eq("id", profile.id).maybeSingle(),
   ]);
 
   return (
@@ -50,6 +52,8 @@ export default async function EquipePage() {
       </div>
 
       <TeamPresenceList title="Qui est connecté" members={teamPresence} />
+
+      <MyEmailPanel gmailUser={myProfile?.gmail_smtp_user ?? null} />
 
       <Card>
         <InviteAssistantForm projets={projets ?? []} />

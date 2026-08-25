@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
+import { getProjetEmailCredentials } from "@/lib/projets/email";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
@@ -33,8 +34,12 @@ async function createMagicLinkToken(figurantId: string) {
 }
 
 // Envoi réel (Gmail SMTP) du lien de connexion — utilisé pour une demande
-// volontaire du candidat déjà actif (/compte/connexion).
-export async function sendMagicLinkEmail(figurant: { id: string; prenom: string; email: string }) {
+// volontaire du candidat déjà actif (/compte/connexion). projetId absent
+// (demande publique, sans contexte cheffe) => boîte partagée par défaut.
+export async function sendMagicLinkEmail(
+  figurant: { id: string; prenom: string; email: string },
+  projetId?: string | null
+) {
   const { link, error: linkError } = await createMagicLinkToken(figurant.id);
   if (linkError || !link) return { error: linkError };
 
@@ -48,7 +53,8 @@ export async function sendMagicLinkEmail(figurant: { id: string; prenom: string;
     "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   ].join("\n");
 
-  const result = await sendEmail(figurant.email, subject, body);
+  const credentials = await getProjetEmailCredentials(createAdminClient(), projetId);
+  const result = await sendEmail(figurant.email, subject, body, credentials);
   if (result.error) return { error: result.error };
   return { success: true as const };
 }
@@ -57,7 +63,10 @@ export async function sendMagicLinkEmail(figurant: { id: string; prenom: string;
 // (candidature passée à "retenu", ou activation manuelle par le staff) —
 // texte différent du simple renvoi de lien : explique le statut "retenu"
 // et à quoi sert l'espace.
-export async function sendAccesCompteActiveEmail(figurant: { id: string; prenom: string; email: string }) {
+export async function sendAccesCompteActiveEmail(
+  figurant: { id: string; prenom: string; email: string },
+  projetId?: string | null
+) {
   const { link, error: linkError } = await createMagicLinkToken(figurant.id);
   if (linkError || !link) return { error: linkError };
 
@@ -75,7 +84,8 @@ export async function sendAccesCompteActiveEmail(figurant: { id: string; prenom:
     "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   ].join("\n");
 
-  const result = await sendEmail(figurant.email, subject, body);
+  const credentials = await getProjetEmailCredentials(createAdminClient(), projetId);
+  const result = await sendEmail(figurant.email, subject, body, credentials);
   if (result.error) return { error: result.error };
   return { success: true as const };
 }
@@ -247,7 +257,10 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 
   let emailError: string | undefined;
   if (figurant.email) {
-    const result = await sendAccesCompteActiveEmail({ id: figurant.id, prenom: figurant.prenom, email: figurant.email });
+    const result = await sendAccesCompteActiveEmail(
+      { id: figurant.id, prenom: figurant.prenom, email: figurant.email },
+      projetId
+    );
     emailError = result.error;
   }
 
