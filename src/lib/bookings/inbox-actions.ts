@@ -10,13 +10,13 @@ import {
 // Relève les nouveaux mails puis renvoie la liste complète et persistée des
 // réponses pas encore effacées, pour que le panneau accumule d'un contrôle à
 // l'autre au lieu de ne montrer que les tout derniers mails reçus.
-export async function checkEmailReplies() {
+export async function checkEmailReplies(projetId?: string | null) {
   const result = await checkEmailRepliesInbox();
   if (result.matched.length > 0) {
     revalidatePath("/figurants");
     revalidatePath("/bookings/documents");
   }
-  const replies = result.error ? [] : await getUnreviewedReplies();
+  const replies = result.error ? [] : await getUnreviewedReplies(projetId);
   return { ...result, replies };
 }
 

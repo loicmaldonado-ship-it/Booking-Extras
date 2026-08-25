@@ -10,11 +10,11 @@ import { getProjetEmailCredentials, getOwnerEmailCredentials } from "@/lib/proje
 import type { FigurantMessageCategorie } from "@/lib/candidats/types";
 
 // Base Profils est partagé entre cheffes, sans projet "propriétaire" du
-// message — on envoie donc depuis la boîte du projet actuellement
-// sélectionné (bandeau du haut) si elle est configurée, sinon celle de la
-// cheffe qui écrit, sinon la boîte partagée par défaut.
-async function resolveSenderCredentials(supabase: ReturnType<typeof createAdminClient>) {
-  const projetId = await getCurrentProjetId();
+// message — on rattache donc le message au projet actuellement sélectionné
+// (bandeau du haut) si la personne qui écrit en a un, pour qu'il reste
+// cloisonné comme les autres (voir /figurants/[id]) et parte de la bonne
+// boîte, sinon celle de la cheffe qui écrit, sinon la boîte partagée.
+async function resolveSenderCredentials(supabase: ReturnType<typeof createAdminClient>, projetId: string | null) {
   const viaProjet = await getProjetEmailCredentials(supabase, projetId);
   if (viaProjet) return viaProjet;
 
@@ -29,10 +29,11 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
   const email = String(formData.get("email") ?? "").trim() || null;
   if (!corps) return { error: "Le message ne peut pas être vide." };
 
+  const projetId = await getCurrentProjetId();
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("figurant_messages")
-    .insert({ figurant_id: figurantId, sender: "staff", corps, categorie });
+    .insert({ figurant_id: figurantId, sender: "staff", corps, categorie, projet_id: projetId });
 
   if (error) return { error: error.message };
 
@@ -44,7 +45,7 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 
   let emailError: string | undefined;
   if (email) {
-    const credentials = await resolveSenderCredentials(supabase);
+    const credentials = await resolveSenderCredentials(supabase, projetId);
     const result = await sendEmail(email, "Booking Extras", corps, credentials);
     emailError = result.error;
   }
@@ -55,7 +56,8 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 
 export async function notifyFigurantByEmail(figurantId: string, email: string, prenom: string, siteUrl: string) {
   const supabase = createAdminClient();
-  const credentials = await resolveSenderCredentials(supabase);
+  const projetId = await getCurrentProjetId();
+  const credentials = await resolveSenderCredentials(supabase, projetId);
   const result = await sendEmail(
     email,
     "Booking Extras — Vous avez un message",

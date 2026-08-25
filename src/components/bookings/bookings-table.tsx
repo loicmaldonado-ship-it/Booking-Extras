@@ -562,7 +562,7 @@ export function BookingsTable({
     setRepliesPending(true);
     setRepliesError(null);
     startTransition(async () => {
-      const result = await checkEmailReplies();
+      const result = await checkEmailReplies(projetId);
       setRepliesPending(false);
       if (result.error) {
         setRepliesError(result.error);

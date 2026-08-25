@@ -70,12 +70,22 @@ export default async function FigurantDetailPage({
     .select("date")
     .eq("figurant_id", id);
 
-  const { data: messages } = await supabase
+  const profile = await getCurrentProfile();
+  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+
+  // La fiche figurant est partagée entre cheffes, mais la messagerie interne
+  // ne doit montrer que les fils rattachés à un projet accessible à cette
+  // cheffe (ou sans projet identifiable) — sinon on lit les échanges privés
+  // d'une autre équipe sur ce même profil partagé.
+  let messagesQuery = supabase
     .from("figurant_messages")
     .select("*")
     .eq("figurant_id", id)
-    .order("created_at", { ascending: true })
-    .returns<FigurantMessage[]>();
+    .order("created_at", { ascending: true });
+  if (accessibleIds !== null) {
+    messagesQuery = messagesQuery.or(`projet_id.is.null,projet_id.in.(${idsOrNone(accessibleIds).join(",")})`);
+  }
+  const { data: messages } = await messagesQuery.returns<FigurantMessage[]>();
 
   const { data: costumes } = await supabase
     .from("essayages")
@@ -89,8 +99,6 @@ export default async function FigurantDetailPage({
   const protocol = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
   const disponibiliteUrl = `${protocol}://${host}/disponibilites/${figurant.token_disponibilite}`;
 
-  const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
   let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
   const { data: projets } = await projetsQuery;

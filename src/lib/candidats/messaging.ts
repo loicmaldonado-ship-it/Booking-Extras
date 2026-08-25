@@ -30,6 +30,7 @@ export async function recordFigurantMessage(params: {
   await supabase.from("figurant_messages").insert({
     figurant_id: params.figurantId,
     booking_id: params.bookingId ?? null,
+    projet_id: params.projetId ?? null,
     sender: "staff",
     corps: params.corps,
     categorie: params.categorie,

@@ -56,6 +56,25 @@ export function guessSentiment(text: string): Sentiment {
   return null;
 }
 
+// Rattache une réponse entrante au projet du dernier message STAFF envoyé à
+// ce figurant — un figurant ne choisit pas de projet en répondant, donc on
+// hérite du fil auquel il répond, pour que la réponse reste cloisonnée côté
+// staff comme le reste de la messagerie (voir /figurants/[id]).
+export async function inferReplyProjetId(
+  supabase: ReturnType<typeof createAdminClient>,
+  figurantId: string
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("figurant_messages")
+    .select("projet_id")
+    .eq("figurant_id", figurantId)
+    .eq("sender", "staff")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.projet_id ?? null;
+}
+
 export type InboxReply = {
   messageId: string;
   figurantId: string;
@@ -70,13 +89,18 @@ export type InboxReply = {
 // Toutes les réponses de figurants pas encore "effacées" (reviewed_at nul) —
 // s'accumulent au fil des vérifications successives jusqu'à ce qu'on les
 // efface explicitement via clearUnreviewedReplies().
-export async function getUnreviewedReplies(): Promise<InboxReply[]> {
+export async function getUnreviewedReplies(projetId?: string | null): Promise<InboxReply[]> {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  let query = supabase
     .from("figurant_messages")
     .select("id, corps, sujet, figurant_id, figurants(id, prenom, nom, email)")
     .eq("sender", "figurant")
-    .is("reviewed_at", null)
+    .is("reviewed_at", null);
+  // Une réponse sans projet (héritage impossible, ex. mail hors-sujet capté
+  // par l'IMAP) reste visible partout plutôt que de disparaître ; sinon on
+  // ne montre que celles héritées du projet actuellement consulté.
+  if (projetId) query = query.or(`projet_id.is.null,projet_id.eq.${projetId}`);
+  const { data } = await query
     .order("created_at", { ascending: false })
     .returns<
       { id: string; corps: string; sujet: string | null; figurant_id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null }[]
@@ -168,6 +192,7 @@ export async function checkEmailReplies(): Promise<CheckRepliesResult> {
         corps = corps.slice(0, 3000) || "(message vide)";
         const sujet = message.envelope?.subject?.trim() || null;
 
+        const projetId = await inferReplyProjetId(supabase, figurant.id);
         const { data: inserted } = await supabase
           .from("figurant_messages")
           .insert({
@@ -176,6 +201,7 @@ export async function checkEmailReplies(): Promise<CheckRepliesResult> {
             corps,
             sujet,
             categorie: "libre",
+            projet_id: projetId,
           })
           .select("id")
           .single();

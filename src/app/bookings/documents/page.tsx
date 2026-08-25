@@ -99,6 +99,7 @@ export default async function JourneeDashboardPage({
           .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu")
           .in("figurant_id", figurantIds)
           .neq("categorie", "espace_perso")
+          .or(`projet_id.is.null,projet_id.eq.${projet_id}`)
           .order("created_at", { ascending: false })
           .returns<(MessageRow & { figurant_id: string })[]>()
       : { data: [] as (MessageRow & { figurant_id: string })[] };
@@ -227,7 +228,7 @@ export default async function JourneeDashboardPage({
   const [journeePartage, publicOrigin, initialReplies] = await Promise.all([
     getJourneePartageLien(projet_id, date),
     getSiteOrigin(),
-    getUnreviewedReplies(),
+    getUnreviewedReplies(projet_id),
   ]);
 
   return (
