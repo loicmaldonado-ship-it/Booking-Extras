@@ -128,7 +128,7 @@ export default async function PostulerPage({
       )}
 
       {moodboardPhotos.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {moodboardPhotos.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-ink-raised-2">
               <Image src={p.url} alt="" fill className="object-cover" unoptimized />

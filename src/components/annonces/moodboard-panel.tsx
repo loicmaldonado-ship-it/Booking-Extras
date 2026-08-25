@@ -52,7 +52,7 @@ export function MoodboardPanel({ annonceId, photos }: { annonceId: string; photo
       </div>
 
       {photos.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {photos.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
               <Image src={p.url} alt="" fill className="object-cover" unoptimized />
