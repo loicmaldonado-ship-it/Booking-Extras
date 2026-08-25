@@ -104,7 +104,7 @@ export function AppShell({
         <div className="flex items-center gap-4">
           <Link href="/" className="shrink-0">
             <span className="font-display text-lg font-semibold tracking-tight">
-              Booking<span className="text-coral">Extras</span>
+              Booking<span className="hidden text-coral sm:inline">Extras</span>
             </span>
           </Link>
 
@@ -114,7 +114,7 @@ export function AppShell({
               onClick={() => router.back()}
               className="flex items-center gap-1 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
             >
-              ← Retour
+              ← <span className="hidden sm:inline">Retour</span>
             </button>
           )}
 
@@ -125,7 +125,7 @@ export function AppShell({
               className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60"
             >
               {CurrentIcon && <CurrentIcon size={16} strokeWidth={1.75} />}
-              {current?.label ?? "Menu"}
+              <span className="hidden sm:inline">{current?.label ?? "Menu"}</span>
               <span className={cn("text-text-muted transition-transform", menuOpen && "rotate-180")}>▾</span>
             </button>
 
@@ -175,8 +175,8 @@ export function AppShell({
               <div className="truncate font-medium text-text">{profile.email}</div>
               <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
-            <MyAvatarMenu profile={profile} />
-            <form action={signOut}>
+            <MyAvatarMenu profile={profile} signOutAction={signOut} />
+            <form action={signOut} className="hidden sm:block">
               <button
                 type="submit"
                 className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"

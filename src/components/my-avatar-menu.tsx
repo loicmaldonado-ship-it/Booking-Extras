@@ -6,7 +6,13 @@ import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
 import type { CurrentProfile } from "@/lib/auth/session";
 
-export function MyAvatarMenu({ profile }: { profile: CurrentProfile }) {
+export function MyAvatarMenu({
+  profile,
+  signOutAction,
+}: {
+  profile: CurrentProfile;
+  signOutAction: () => Promise<void>;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -52,6 +58,14 @@ export function MyAvatarMenu({ profile }: { profile: CurrentProfile }) {
                 formAction(fd);
               }}
             />
+            <form action={signOutAction} className="border-t border-border pt-2 sm:hidden">
+              <button
+                type="submit"
+                className="w-full rounded-lg border border-border px-3 py-1.5 text-left text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              >
+                Se déconnecter
+              </button>
+            </form>
           </div>
         </>
       )}
