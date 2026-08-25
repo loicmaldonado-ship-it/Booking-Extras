@@ -9,13 +9,14 @@ import type { NotificationType } from "./types";
 export async function createNotification(
   type: NotificationType,
   titre: string,
-  opts?: { figurantId?: string | null; lien?: string | null }
+  opts?: { figurantId?: string | null; projetId?: string | null; lien?: string | null }
 ) {
   const supabase = createAdminClient();
   await supabase.from("notifications").insert({
     type,
     titre,
     figurant_id: opts?.figurantId ?? null,
+    projet_id: opts?.projetId ?? null,
     lien: opts?.lien ?? null,
   });
 }

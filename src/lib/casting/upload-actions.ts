@@ -108,7 +108,7 @@ export async function finalizeCastingUpload(
     await createNotification(
       "casting",
       `${entry.figurants.prenom} ${entry.figurants.nom} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
-      { figurantId: entry.figurant_id, lien: "/casting" }
+      { figurantId: entry.figurant_id, projetId: entry.projet_id, lien: "/casting" }
     );
   }
 

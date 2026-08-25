@@ -5,6 +5,7 @@ export type AppNotification = {
   type: NotificationType;
   titre: string;
   figurant_id: string | null;
+  projet_id: string | null;
   lien: string | null;
   lu_at: string | null;
   created_at: string;
