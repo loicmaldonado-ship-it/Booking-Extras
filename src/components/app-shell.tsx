@@ -27,6 +27,7 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { MyAvatarMenu } from "@/components/my-avatar-menu";
 import { TeamPresenceStrip } from "@/components/team-presence-strip";
 import { isOwner } from "@/lib/auth/owner";
+import { hasSectionAccess, type SectionKey } from "@/lib/auth/sections";
 import type { CurrentProfile } from "@/lib/auth/session";
 import { Logo } from "@/components/ui/logo";
 
@@ -102,7 +103,7 @@ export function AppShell({
   }
 
   const navItems = [
-    ...NAV_ITEMS,
+    ...NAV_ITEMS.filter((item) => item.href === "/" || hasSectionAccess(profile, item.href as SectionKey)),
     ...(profile?.role === "chef"
       ? [{ label: "Équipe", href: "/equipe", enabled: true, icon: UsersRound }]
       : []),

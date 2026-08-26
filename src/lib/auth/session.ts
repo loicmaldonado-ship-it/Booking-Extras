@@ -15,6 +15,9 @@ export type CurrentProfile = {
   // Fiche membre complète (photo, email, nom, prénom, téléphone) —
   // obligatoire pour les cheffes, voir /mon-compte et AppShell.
   profileComplete: boolean;
+  // null = accès complet à toutes les sections (défaut historique) — voir
+  // src/lib/auth/sections.ts. Sans effet pour les comptes "chef".
+  sectionsAutorisees: string[] | null;
 };
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
@@ -37,7 +40,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at")
+    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees")
     .eq("id", user.id)
     .single();
 
@@ -65,6 +68,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     role: profile.role as "chef" | "assistant",
     avatarUrl,
     profileComplete: !!(avatarUrl && user.email && profile.nom && profile.prenom && profile.telephone),
+    sectionsAutorisees: profile.sections_autorisees,
   };
 }
 

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SESSION_STARTED_AT_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-timeout";
+import { APP_SECTIONS, hasSectionAccess } from "@/lib/auth/sections";
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -75,6 +76,29 @@ export async function middleware(request: NextRequest) {
         sameSite: "lax",
         maxAge: SESSION_MAX_AGE_SECONDS,
       });
+    }
+  }
+
+  // Restriction d'accès par section pour les assistant·es (choix cochés par
+  // la cheffe dans la console Équipe) — seul choke-point qui couvre toutes
+  // les sous-routes de chaque section, plutôt que de patcher chaque page.
+  if (user) {
+    const matchedSection = APP_SECTIONS.find((s) => request.nextUrl.pathname.startsWith(s.key));
+    if (matchedSection) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, sections_autorisees")
+        .eq("id", user.id)
+        .single();
+      if (
+        profile?.role === "assistant" &&
+        !hasSectionAccess({ role: "assistant", sectionsAutorisees: profile.sections_autorisees }, matchedSection.key)
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
     }
   }
 

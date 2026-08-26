@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile, checkProjetAccess } from "@/lib/auth/session";
+import { getCurrentProfile, getAccessibleProjetIds, checkProjetAccess, idsOrNone } from "@/lib/auth/session";
 import { findOrInviteProfile } from "@/lib/auth/invite";
+import type { SectionKey } from "@/lib/auth/sections";
 
 // Réservé au·à la chef·fe propriétaire du projet ciblé (ou au compte
 // propriétaire) — pas à n'importe quelle chef·fe, sans quoi une chef·fe
@@ -59,5 +60,29 @@ export async function revokeAccess(projetMembreId: string) {
   if (accessError) throw new Error(accessError);
 
   await admin.from("projet_membres").delete().eq("id", projetMembreId);
+  revalidatePath("/equipe");
+}
+
+// Stockage global sur profiles (pas par projet_membres) : un·e assistant·e
+// n'a qu'un seul jeu de sections autorisées, valable sur tous les projets où
+// iel est invité·e. On vérifie juste que l'assistant·e visé·e est bien
+// rattaché·e à l'un des projets de la cheffe qui fait la demande, pour
+// empêcher de modifier les accès d'un·e assistant·e qu'on ne gère pas.
+export async function updateAssistantSections(profileId: string, sections: SectionKey[] | null) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "chef") throw new Error("Réservé au·à la chef·fe de casting.");
+
+  const admin = createAdminClient();
+  const accessibleProjetIds = await getAccessibleProjetIds(profile);
+  const { data: membre } = await admin
+    .from("projet_membres")
+    .select("id")
+    .eq("profile_id", profileId)
+    .in("projet_id", idsOrNone(accessibleProjetIds ?? []))
+    .limit(1)
+    .maybeSingle();
+  if (!membre) throw new Error("Cet assistant·e n'est rattaché·e à aucun de vos projets.");
+
+  await admin.from("profiles").update({ sections_autorisees: sections }).eq("id", profileId);
   revalidatePath("/equipe");
 }

@@ -32,7 +32,7 @@ export default async function EquipePage() {
 
   let membresQuery = supabase
     .from("projet_membres")
-    .select("id, created_at, projets(id, nom), profiles(id, email, nom)")
+    .select("id, created_at, projets(id, nom), profiles(id, email, nom, sections_autorisees)")
     .order("created_at", { ascending: false });
   if (accessibleIds !== null) membresQuery = membresQuery.in("projet_id", idsOrNone(accessibleIds));
 
