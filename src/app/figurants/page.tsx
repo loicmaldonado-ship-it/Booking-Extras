@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import type { Figurant } from "@/lib/figurants/types";
@@ -11,6 +11,7 @@ import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-gri
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
+import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,10 @@ export default async function FigurantsPage({
   const supabase = createAdminClient();
   const profile = await getCurrentProfile();
   const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  const currentProjetId = await getCurrentProjetId();
+  const { data: currentProjet } = currentProjetId
+    ? await supabase.from("projets").select("nom").eq("id", currentProjetId).single()
+    : { data: null };
 
   const { data: figurants, error } = await buildFigurantsQuery(supabase, filters).returns<
     Figurant[]
@@ -72,7 +77,16 @@ export default async function FigurantsPage({
             {figurants?.length ?? 0} profil{(figurants?.length ?? 0) > 1 ? "s" : ""}
           </p>
         </div>
-        <ButtonLink href="/figurants/nouveau">+ Nouveau profil</ButtonLink>
+        <div className="flex flex-wrap items-center gap-2">
+          {currentProjetId && currentProjet && (
+            <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+              <Button type="submit" variant="secondary">
+                📋 Bookings — {currentProjet.nom}
+              </Button>
+            </form>
+          )}
+          <ButtonLink href="/figurants/nouveau">+ Nouveau profil</ButtonLink>
+        </div>
       </div>
 
       <DoublonsPanel groupes={doublons} />

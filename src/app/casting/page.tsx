@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
@@ -8,7 +9,7 @@ import { getCastingRoles, getCastingEntries, getCastingVideoUrlPairs, getCasting
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
-import { getCurrentProjetId } from "@/lib/projet-context";
+import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
@@ -96,6 +97,11 @@ export default async function CastingPage({
             {roles.length} rôle{roles.length > 1 ? "s" : ""} · {entries.length} profil{entries.length > 1 ? "s" : ""}
           </p>
         </div>
+        <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+          <Button type="submit" variant="secondary">
+            📋 Bookings
+          </Button>
+        </form>
       </div>
 
       <NewCastingRoleCard projetId={currentProjetId} />

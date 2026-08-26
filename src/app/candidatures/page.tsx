@@ -1,8 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Select, Input } from "@/components/ui/field";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
+import { setCurrentProjet } from "@/lib/projet-context";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row } from "@/components/candidatures/candidatures-table";
 import { SortChips } from "@/components/documents/sort-chips";
@@ -33,7 +34,10 @@ type SearchParams = {
   question_id?: string;
   question_reponse?: string;
   sort?: string | string[];
+  page?: string;
 };
+
+const CANDIDATURES_PAR_PAGE = 30;
 
 // Les candidatures n'ont pas d'heure de convocation (ça n'existe qu'une fois
 // bookées) — la puce "Heure de convocation" est donc exclue ci-dessous.
@@ -295,6 +299,28 @@ export default async function CandidaturesPage({
     photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
   }));
 
+  // Pagination — au-delà d'une trentaine de profils la page devient
+  // interminable à parcourir, surtout en trombinoscope avec les photos.
+  const totalPages = Math.max(1, Math.ceil(rows.length / CANDIDATURES_PAR_PAGE));
+  const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
+  const pagedRows = rows.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
+
+  function pageHref(p: number) {
+    const sp = new URLSearchParams();
+    sp.set("annonce_id", params.annonce_id!);
+    if (params.onglet_id) sp.set("onglet_id", params.onglet_id);
+    if (params.myrole) sp.set("myrole", params.myrole);
+    if (params.genre) sp.set("genre", params.genre);
+    if (params.vehicule) sp.set("vehicule", params.vehicule);
+    if (params.age_min) sp.set("age_min", params.age_min);
+    if (params.age_max) sp.set("age_max", params.age_max);
+    if (params.question_id) sp.set("question_id", params.question_id);
+    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
+    for (const dim of docSort) sp.append("sort", dim);
+    if (p > 1) sp.set("page", String(p));
+    return `/candidatures?${sp.toString()}`;
+  }
+
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];
 
   function tabHref(ongletParam?: string) {
@@ -324,6 +350,40 @@ export default async function CandidaturesPage({
     })),
   ];
 
+  // Compteurs par genre calculés sur le périmètre déjà filtré (onglet,
+  // myrole, véhicule...) — mais AVANT le filtre genre lui-même, pour que
+  // les pastilles montrent la répartition réelle et pas juste 0 partout
+  // une fois un genre sélectionné.
+  function genreTabHref(genreParam?: string) {
+    const sp = new URLSearchParams();
+    sp.set("annonce_id", params.annonce_id!);
+    if (params.onglet_id) sp.set("onglet_id", params.onglet_id);
+    if (params.myrole) sp.set("myrole", params.myrole);
+    if (params.vehicule) sp.set("vehicule", params.vehicule);
+    if (params.age_min) sp.set("age_min", params.age_min);
+    if (params.age_max) sp.set("age_max", params.age_max);
+    if (params.question_id) sp.set("question_id", params.question_id);
+    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
+    if (genreParam) sp.set("genre", genreParam);
+    for (const dim of docSort) sp.append("sort", dim);
+    return `/candidatures?${sp.toString()}`;
+  }
+  const candidaturesAvantGenre = (candidaturesRaw ?? [])
+    .filter((c) => !bookedCandidatureIds.has(c.id))
+    .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
+    .filter((c) => (params.myrole === "non" ? !c.figurants?.compte_myrole : true))
+    .filter((c) => (params.onglet_id === "a_trier" ? c.onglet_id === null : true))
+    .filter((c) => (params.onglet_id && params.onglet_id !== "a_trier" ? c.onglet_id === params.onglet_id : true));
+  const genreTabs = [
+    { key: "", label: "Tous", href: genreTabHref(), count: candidaturesAvantGenre.length },
+    ...GENRES.map((g) => ({
+      key: g,
+      label: g,
+      href: genreTabHref(g),
+      count: candidaturesAvantGenre.filter((c) => c.figurants?.genre === g).length,
+    })),
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -343,21 +403,30 @@ export default async function CandidaturesPage({
               {annonce?.lieu ? ` · ${annonce.lieu}` : ""} · {rows.length} candidature{rows.length > 1 ? "s" : ""}
             </p>
           </div>
-          {isOwner(profile) && (
-            <ButtonLink
-              href={`/candidatures/export?${new URLSearchParams(
-                Object.entries({
-                  annonce_id: params.annonce_id,
-                  myrole: params.myrole,
-                  genre: params.genre,
-                  vehicule: params.vehicule,
-                }).filter(([, v]) => v) as [string, string][]
-              ).toString()}`}
-              variant="secondary"
-            >
-              Exporter Excel
-            </ButtonLink>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {annonce?.projet_id && (
+              <form action={setCurrentProjet.bind(null, annonce.projet_id, "/bookings")}>
+                <Button type="submit" variant="secondary">
+                  📋 Bookings
+                </Button>
+              </form>
+            )}
+            {isOwner(profile) && (
+              <ButtonLink
+                href={`/candidatures/export?${new URLSearchParams(
+                  Object.entries({
+                    annonce_id: params.annonce_id,
+                    myrole: params.myrole,
+                    genre: params.genre,
+                    vehicule: params.vehicule,
+                  }).filter(([, v]) => v) as [string, string][]
+                ).toString()}`}
+                variant="secondary"
+              >
+                Exporter Excel
+              </ButtonLink>
+            )}
+          </div>
         </div>
       </div>
 
@@ -375,6 +444,25 @@ export default async function CandidaturesPage({
                     ? "border-danger bg-danger/15 text-danger"
                     : "border-coral bg-coral/15 text-coral"
                   : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {tab.label} ({tab.count})
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Genre :</span>
+        {genreTabs.map((tab) => {
+          const active = tab.key === "" ? !params.genre : params.genre === tab.key;
+          return (
+            <Link
+              key={tab.key || "tous"}
+              href={tab.href}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
               )}
             >
               {tab.label} ({tab.count})
@@ -482,12 +570,40 @@ export default async function CandidaturesPage({
       )}
 
       <CandidaturesTable
-        rows={rows}
+        rows={pagedRows}
         templates={templates ?? []}
         projets={projetOption}
         summaries={summaries}
         onglets={onglets ?? []}
       />
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 text-sm">
+          <Link
+            href={pageHref(page - 1)}
+            aria-disabled={page <= 1}
+            className={cn(
+              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+              page <= 1 ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+            )}
+          >
+            ← Précédent
+          </Link>
+          <span className="text-text-muted">
+            Page {page} / {totalPages}
+          </span>
+          <Link
+            href={pageHref(page + 1)}
+            aria-disabled={page >= totalPages}
+            className={cn(
+              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+              page >= totalPages ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+            )}
+          >
+            Suivant →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken } from "@/lib/partage/actions";
@@ -9,7 +10,7 @@ import { getEssayageJournees } from "@/lib/essayages/journees";
 import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { EssayageLieuProjetPanel } from "@/components/essayages/essayage-lieu-projet-panel";
 import { AjouterJourneesForm } from "@/components/essayages/ajouter-journees-form";
-import { getCurrentProjetId } from "@/lib/projet-context";
+import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { formatDateLong } from "@/lib/format-date";
@@ -77,6 +78,11 @@ export default async function EssayagesPage({
             {journees.length} journée{journees.length > 1 ? "s" : ""} d&apos;essayage
           </p>
         </div>
+        <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+          <Button type="submit" variant="secondary">
+            📋 Bookings
+          </Button>
+        </form>
       </div>
 
       <EssayageLieuProjetPanel projetId={currentProjetId} lieu={essayageLieu.nom} adresse={essayageLieu.adresse} />
