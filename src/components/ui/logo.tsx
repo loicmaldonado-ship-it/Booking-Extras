@@ -79,18 +79,24 @@ export function Logo({
   showText = true,
   stacked = true,
   textClassName = "",
+  hideTextOnMobile = false,
 }: {
   iconSize?: number;
   showText?: boolean;
   stacked?: boolean;
   textClassName?: string;
+  // Cache le wordmark sous 640px (utile dans le bandeau, déjà chargé en
+  // boutons sur les pages avec fil d'Ariane + sélecteur de projet) — l'icône
+  // seule suffit à identifier la marque sur mobile.
+  hideTextOnMobile?: boolean;
 }) {
+  const textDisplay = hideTextOnMobile ? "hidden sm:flex" : "flex";
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark size={iconSize} />
       {showText &&
         (stacked ? (
-          <span className={`font-display flex flex-col leading-none ${textClassName}`}>
+          <span className={`font-display ${textDisplay} flex-col leading-none ${textClassName}`}>
             <span className="font-bold tracking-tight" style={{ color: LOGO_INK }}>
               BOOKING
             </span>
@@ -99,7 +105,7 @@ export function Logo({
             </span>
           </span>
         ) : (
-          <span className={`font-display font-semibold tracking-tight ${textClassName}`}>
+          <span className={`font-display ${textDisplay} font-semibold tracking-tight ${textClassName}`}>
             <span style={{ color: LOGO_INK }}>Booking</span>
             <span style={{ color: LOGO_LILAC }}>Extras</span>
           </span>

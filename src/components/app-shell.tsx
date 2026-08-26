@@ -117,7 +117,7 @@ export function AppShell({
       <header className="print:hidden relative z-50 flex items-center justify-between border-b border-border bg-ink-raised px-6 py-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="shrink-0">
-            <Logo iconSize={30} textClassName="text-lg" />
+            <Logo iconSize={30} textClassName="text-lg" hideTextOnMobile />
           </Link>
 
           {pathname !== "/" && (

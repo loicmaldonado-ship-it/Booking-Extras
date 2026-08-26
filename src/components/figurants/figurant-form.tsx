@@ -51,7 +51,7 @@ export function FigurantForm({
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Identité</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Prénom" required>
             <Input name="prenom" defaultValue={figurant?.prenom} required />
           </Field>
@@ -59,7 +59,7 @@ export function FigurantForm({
             <Input name="nom" defaultValue={figurant?.nom} required />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Civilité">
             <Select name="civilite" defaultValue={figurant?.civilite ?? ""}>
               <option value=""></option>
@@ -91,7 +91,7 @@ export function FigurantForm({
             </Select>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Date de naissance">
             <Input type="date" name="date_naissance" defaultValue={figurant?.date_naissance ?? ""} />
           </Field>
@@ -101,7 +101,7 @@ export function FigurantForm({
         </div>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">Adresse de résidence</span>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="md:col-span-2">
               <Field label="Rue et numéro" required>
                 <Input name="adresse" defaultValue={figurant?.adresse ?? ""} required />
@@ -119,7 +119,7 @@ export function FigurantForm({
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Contact</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Email" required>
             <Input type="email" name="email" defaultValue={figurant?.email ?? ""} required />
           </Field>

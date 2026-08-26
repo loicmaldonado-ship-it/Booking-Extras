@@ -143,7 +143,7 @@ export function PostulerForm({
         </div>
       )}
       <Card className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Prénom" required>
             <Input name="prenom" required defaultValue={prefill?.prenom} />
           </Field>
@@ -185,7 +185,7 @@ export function PostulerForm({
         </div>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">Adresse de résidence</span>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Rue et numéro" required>
               <Input name="adresse" required defaultValue={prefill?.adresse ?? undefined} />
             </Field>
@@ -199,7 +199,7 @@ export function PostulerForm({
         </div>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">Mensurations</span>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <Field label="Taille (cm)" required>
               <Input type="number" name="taille_cm" required min={0} defaultValue={prefill?.taille_cm ?? undefined} />
             </Field>
