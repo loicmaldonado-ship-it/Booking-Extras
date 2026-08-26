@@ -152,6 +152,80 @@ export async function createBookingFromDrop(
   return { success: true };
 }
 
+// Même opération que createBookingFromDrop, mais pour toute une sélection
+// de profils × dates en un seul aller-retour serveur — la version "un par
+// un" (200 appels séquentiels, chacun avec son propre check d'accès, ses
+// requêtes et ses revalidatePath) prenait plusieurs minutes dès qu'on
+// bookait beaucoup de monde d'un coup. Ici : un seul check d'accès, un seul
+// select pour repérer les doublons, un seul upsert des journées, un seul
+// insert groupé, une seule mise à jour "confirmé".
+export async function createBookingsFromDropBulk(
+  figurantIds: string[],
+  projetId: string,
+  dates: string[],
+  candidatureIdByFigurant: Record<string, string> | undefined,
+  fonction: string,
+  cachet: Cachet | ""
+): Promise<{ ok: number; deja: number; error?: string }> {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { ok: 0, deja: 0, error: accessError };
+  if (figurantIds.length === 0 || dates.length === 0) return { ok: 0, deja: 0 };
+
+  const supabase = createAdminClient();
+
+  const { data: existingRows } = await supabase
+    .from("bookings")
+    .select("figurant_id, date")
+    .eq("projet_id", projetId)
+    .in("figurant_id", figurantIds)
+    .in("date", dates);
+  const existingKeys = new Set((existingRows ?? []).map((r) => `${r.figurant_id}|${r.date}`));
+
+  await supabase
+    .from("journees")
+    .upsert(
+      dates.map((date) => ({ projet_id: projetId, date })),
+      { onConflict: "projet_id,date" }
+    );
+
+  const payload: {
+    figurant_id: string;
+    projet_id: string;
+    date: string;
+    candidature_id: string | null;
+    fonction: string | null;
+    cachet: string | null;
+  }[] = [];
+  let deja = 0;
+  for (const date of dates) {
+    for (const figurantId of figurantIds) {
+      if (existingKeys.has(`${figurantId}|${date}`)) {
+        deja += 1;
+        continue;
+      }
+      payload.push({
+        figurant_id: figurantId,
+        projet_id: projetId,
+        date,
+        candidature_id: candidatureIdByFigurant?.[figurantId] ?? null,
+        fonction: fonction.trim() || null,
+        cachet: cachet || null,
+      });
+    }
+  }
+
+  if (payload.length > 0) {
+    const { error } = await supabase.from("bookings").insert(payload);
+    if (error) return { ok: 0, deja, error: error.message };
+    await supabase.from("figurants").update({ confirme: true }).in("id", figurantIds);
+  }
+
+  revalidatePath("/bookings/planning");
+  revalidatePath("/candidatures");
+  revalidatePath("/figurants");
+  return { ok: payload.length, deja };
+}
+
 export async function createJournee(projetId: string, formData: FormData) {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) throw new Error(accessError);

@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createBookingFromDrop } from "@/lib/bookings/actions";
+import { createBookingsFromDropBulk } from "@/lib/bookings/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { MultiDateCalendar } from "@/components/ui/multi-date-calendar";
 
@@ -51,23 +51,15 @@ export function AddToJourneeBar({
     if (!projetId || dates.length === 0 || figurantIds.length === 0) return;
     setResult(null);
     startTransition(async () => {
-      let ok = 0;
-      let deja = 0;
-      for (const d of dates) {
-        for (const figurantId of figurantIds) {
-          const res = await createBookingFromDrop(
-            figurantId,
-            projetId,
-            d,
-            candidatureIdByFigurant?.[figurantId],
-            fonction,
-            cachet
-          );
-          if (res?.error) deja += 1;
-          else ok += 1;
-        }
-      }
-      setResult({ ok, deja });
+      const res = await createBookingsFromDropBulk(
+        figurantIds,
+        projetId,
+        dates,
+        candidatureIdByFigurant,
+        fonction,
+        cachet
+      );
+      setResult({ ok: res.ok, deja: res.deja });
       setDates([]);
       router.refresh();
       onDone?.();
