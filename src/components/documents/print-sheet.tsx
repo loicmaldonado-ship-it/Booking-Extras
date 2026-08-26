@@ -13,18 +13,25 @@ export function PrintSheet({
   fixedHeight?: boolean;
   className?: string;
 }) {
+  // Le format papier ne doit jamais rétrécir pour tenir dans une fenêtre
+  // étroite : ça fausse le nombre de colonnes de la grille (flex-wrap) et
+  // fait déborder le contenu hors du cadre — silencieusement perdu à la
+  // capture PDF (overflow-hidden). Le conteneur défile plutôt que la page
+  // ne rétrécisse.
   return (
-    <div
-      data-print-sheet
-      className={cn(
-        "mx-auto max-w-full rounded-2xl bg-white p-8 text-black shadow-xl print:rounded-none print:p-0 print:shadow-none",
-        orientation === "landscape" ? "w-[1123px]" : "w-[794px]",
-        fixedHeight && (orientation === "landscape" ? "h-[794px] overflow-hidden" : "h-[1123px] overflow-hidden"),
-        className
-      )}
-    >
-      {orientation === "landscape" && <style>{"@page { size: landscape; }"}</style>}
-      {children}
+    <div className="overflow-x-auto print:overflow-visible">
+      <div
+        data-print-sheet
+        className={cn(
+          "mx-auto rounded-2xl bg-white p-8 text-black shadow-xl print:mx-0 print:rounded-none print:p-0 print:shadow-none",
+          orientation === "landscape" ? "w-[1123px]" : "w-[794px]",
+          fixedHeight && (orientation === "landscape" ? "h-[794px] overflow-hidden" : "h-[1123px] overflow-hidden"),
+          className
+        )}
+      >
+        {orientation === "landscape" && <style>{"@page { size: landscape; }"}</style>}
+        {children}
+      </div>
     </div>
   );
 }

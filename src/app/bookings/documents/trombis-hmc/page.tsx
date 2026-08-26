@@ -9,7 +9,7 @@ import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { parseFields, parseIds, type DocumentField } from "@/lib/documents/fields";
-import { buildFixedOrderTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
+import { buildFixedOrderTrombiItems, paginateGroupedItems, type TrombiItem } from "@/lib/documents/trombi";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 
@@ -18,13 +18,6 @@ import { requireProjetAccess } from "@/lib/auth/session";
 // c'est l'ordre de passage attendu par l'équipe HMC), avec 3 cases à cocher
 // par profil pour pointer le passage de chacun.
 const DEFAULT_FIELDS: DocumentField[] = ["fonction", "sexe", "age"];
-const PHOTOS_PER_PAGE = 18;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
 
 export default async function TrombisHmcPage({
   searchParams,
@@ -57,7 +50,9 @@ export default async function TrombisHmcPage({
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
   const items: TrombiItem[] = buildFixedOrderTrombiItems(bookings);
-  const pages = chunk(items, PHOTOS_PER_PAGE);
+  // Chaque profil a en plus la ligne de cases H/M/C à cocher — un peu plus
+  // haut que le trombi standard, marge de sécurité réduite en conséquence.
+  const pages = paginateGroupedItems(items, (i) => i.headerLabel, { maxItemsPerPage: 12, maxGroupsPerPage: 3 });
 
   return (
     <div className="flex flex-col gap-4">

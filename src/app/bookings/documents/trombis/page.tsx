@@ -11,17 +11,9 @@ import { getDocumentTemplate } from "@/lib/documents/templates";
 import { BackToJournee } from "@/components/documents/back-to-journee";
 import { parseFields, parseIds } from "@/lib/documents/fields";
 import { parseDocSort } from "@/lib/documents/sort";
-import { buildTrombiItems, type TrombiItem } from "@/lib/documents/trombi";
+import { buildTrombiItems, paginateGroupedItems, type TrombiItem } from "@/lib/documents/trombi";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
-
-const PHOTOS_PER_PAGE = 24;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
 
 export default async function TrombisPage({
   searchParams,
@@ -56,7 +48,7 @@ export default async function TrombisPage({
 
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
   const items: TrombiItem[] = buildTrombiItems(bookings, docSort);
-  const pages = chunk(items, PHOTOS_PER_PAGE);
+  const pages = paginateGroupedItems(items, (i) => i.headerLabel);
 
   return (
     <div className="flex flex-col gap-4">

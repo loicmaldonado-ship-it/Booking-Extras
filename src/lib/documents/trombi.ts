@@ -35,6 +35,55 @@ function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {
 
 export type TrombiItem = { booking: ConfirmedBooking; headerLabel: string | null };
 
+// Découpe en pages en respectant les groupes (même en-tête) autant que
+// possible, plutôt qu'un simple découpage par nombre fixe — un en-tête
+// force un retour à la ligne dans la grille en flex-wrap, donc plusieurs
+// petits groupes sur une même page consomment beaucoup plus de hauteur que
+// le même nombre de profils dans un seul groupe. Sans ça, une page pouvait
+// déborder de son cadre fixe et perdre silencieusement des profils au
+// PDF/impression (capture html2canvas bornée à la hauteur de la page).
+export function paginateGroupedItems<T>(
+  items: T[],
+  groupKeyOf: (item: T) => string | null,
+  { maxItemsPerPage = 15, maxGroupsPerPage = 4 }: { maxItemsPerPage?: number; maxGroupsPerPage?: number } = {}
+): T[][] {
+  const groups: T[][] = [];
+  for (const item of items) {
+    const key = groupKeyOf(item);
+    const last = groups[groups.length - 1];
+    if (last && groupKeyOf(last[0]) === key) last.push(item);
+    else groups.push([item]);
+  }
+
+  const pages: T[][] = [];
+  let current: T[] = [];
+  let currentGroupCount = 0;
+  for (const group of groups) {
+    if (group.length > maxItemsPerPage) {
+      if (current.length > 0) {
+        pages.push(current);
+        current = [];
+        currentGroupCount = 0;
+      }
+      for (let i = 0; i < group.length; i += maxItemsPerPage) {
+        pages.push(group.slice(i, i + maxItemsPerPage));
+      }
+      continue;
+    }
+    const wouldExceedItems = current.length + group.length > maxItemsPerPage;
+    const wouldExceedGroups = currentGroupCount + 1 > maxGroupsPerPage;
+    if (current.length > 0 && (wouldExceedItems || wouldExceedGroups)) {
+      pages.push(current);
+      current = [];
+      currentGroupCount = 0;
+    }
+    current.push(...group);
+    currentGroupCount += 1;
+  }
+  if (current.length > 0) pages.push(current);
+  return pages;
+}
+
 // Aucun tri choisi : liste simple triée par nom, sans regroupement ni
 // en-tête imposé — on n'invente pas un découpage par défaut.
 function flatByName(bookings: ConfirmedBooking[]): TrombiItem[] {

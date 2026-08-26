@@ -15,6 +15,7 @@ import { resolveDocumentsShareToken } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, tCachet, parseLang, localeFor, type Lang } from "@/lib/i18n/partage";
+import { paginateGroupedItems } from "@/lib/documents/trombi";
 
 // Ordre d'affichage voulu sur les trombis : silhouettes, puis doublures, puis figurants en dernier.
 const TROMBI_CACHET_ORDER = [
@@ -25,8 +26,6 @@ const TROMBI_CACHET_ORDER = [
   "Rôle",
   "Figurant",
 ];
-
-const PHOTOS_PER_PAGE = 24;
 
 type FlatItem = {
   booking: ConfirmedBooking;
@@ -81,12 +80,6 @@ function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: bo
   return items;
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
 export default async function PartageTrombisPage({
   params,
   searchParams,
@@ -123,7 +116,10 @@ export default async function PartageTrombisPage({
 
   const bookings = await getConfirmedBookings(projet.id, date);
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
-  const pages = chunk(flattenByHeureEtCachet(bookings, showFonction, lang), PHOTOS_PER_PAGE);
+  const pages = paginateGroupedItems(
+    flattenByHeureEtCachet(bookings, showFonction, lang),
+    (i) => `${i.heureLabel}·${i.cachetLabel}${showFonction ? `·${i.fonctionLabel}` : ""}`
+  );
   const documentTemplate = await getDocumentTemplate(createAdminClient(), projet.id);
 
   return (
