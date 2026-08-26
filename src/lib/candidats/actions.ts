@@ -292,8 +292,23 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
 
   const email = str(formData, "email");
   const telephone = str(formData, "telephone");
+  const ville = str(formData, "ville");
+  const adresse = str(formData, "adresse");
+  const codePostal = str(formData, "code_postal");
+  const communeNaissance = str(formData, "commune_naissance");
+  const genre = str(formData, "genre");
+  const pronom = str(formData, "pronom");
   if (!email || !telephone) {
     return { error: "Email et téléphone sont obligatoires." };
+  }
+  if (!adresse || !codePostal || !ville) {
+    return { error: "L'adresse de résidence complète (rue, code postal, ville) est obligatoire." };
+  }
+  if (!communeNaissance) {
+    return { error: "La commune de naissance est obligatoire." };
+  }
+  if (!genre || !pronom) {
+    return { error: "Le genre et le pronom sont obligatoires." };
   }
 
   const supabase = createAdminClient();
@@ -302,13 +317,29 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
     .update({
       email,
       telephone,
-      ville: str(formData, "ville"),
-      adresse: str(formData, "adresse"),
+      ville,
+      adresse,
+      code_postal: codePostal,
+      commune_naissance: communeNaissance,
+      date_naissance: str(formData, "date_naissance"),
+      genre,
+      pronom,
       taille_cm: num(formData, "taille_cm"),
       poids_kg: num(formData, "poids_kg"),
       pointure: num(formData, "pointure"),
       veste: str(formData, "veste"),
       pantalon: str(formData, "pantalon"),
+      tour_tete_cm: num(formData, "tour_tete_cm"),
+      tour_cou_cm: num(formData, "tour_cou_cm"),
+      tour_poitrine_cm: num(formData, "tour_poitrine_cm"),
+      tour_taille_cm: num(formData, "tour_taille_cm"),
+      tour_hanches_cm: num(formData, "tour_hanches_cm"),
+      jambes_ext_cm: num(formData, "jambes_ext_cm"),
+      jambes_int_cm: num(formData, "jambes_int_cm"),
+      gant: str(formData, "gant"),
+      carrure_cm: num(formData, "carrure_cm"),
+      couleur_yeux: str(formData, "couleur_yeux"),
+      couleur_cheveux: str(formData, "couleur_cheveux"),
     })
     .eq("id", session.id);
 

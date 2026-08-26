@@ -257,6 +257,11 @@ export default function AidePage() {
             </>,
           ]}
         />
+        <Callout>
+          <strong className="text-text">Fiche incomplète.</strong> Depuis son espace, le·la figurant·e voit
+          « Ma fiche » automatiquement ouverte en édition, avec la liste des champs obligatoires manquants —
+          pratique quand tu renvoies le lien de connexion justement pour lui faire compléter une info.
+        </Callout>
         <MiniGrid
           items={[
             { title: "Vue Liste", body: "Pour filtrer par ville, tag, véhicule ou compte Myrole." },
