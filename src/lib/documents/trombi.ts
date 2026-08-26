@@ -46,13 +46,14 @@ export type TrombiItem = { booking: ConfirmedBooking; headerLabel: string | null
 // Le budget est exprimé en LIGNES (pas en nombre brut de profils) : chaque
 // groupe consomme ceil(taille / colonnes) lignes, et un nouveau groupe ne
 // commence jamais à cheval sur une ligne déjà entamée par le précédent.
-// columns=8 et maxRowsPerPage=3 sont calibrés sur la taille réelle d'une
-// page trombi en paysage (1123×794, cf. mesures DOM) — à resserrer si on
-// ajoute des champs qui allongent les légendes sous chaque photo.
+// columns=9 et maxRowsPerPage=3 sont calibrés sur la taille réelle d'une
+// page trombi en paysage (1123×794, cf. mesures DOM — 9 colonnes de 96px
+// tiennent réellement par ligne) — à resserrer si on ajoute des champs qui
+// allongent les légendes sous chaque photo.
 export function paginateGroupedItems<T>(
   items: T[],
   groupKeyOf: (item: T) => string | null,
-  { columns = 8, maxRowsPerPage = 3 }: { columns?: number; maxRowsPerPage?: number } = {}
+  { columns = 9, maxRowsPerPage = 3 }: { columns?: number; maxRowsPerPage?: number } = {}
 ): T[][] {
   const groups: T[][] = [];
   for (const item of items) {
