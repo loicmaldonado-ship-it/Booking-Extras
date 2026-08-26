@@ -1,4 +1,4 @@
-export type DocumentField = "fonction" | "telephone" | "email" | "age" | "ville" | "sexe";
+export type DocumentField = "fonction" | "telephone" | "email" | "age" | "ville" | "sexe" | "pronom";
 
 export const DOCUMENT_FIELDS: { key: DocumentField; label: string }[] = [
   { key: "fonction", label: "Fonction" },
@@ -7,6 +7,7 @@ export const DOCUMENT_FIELDS: { key: DocumentField; label: string }[] = [
   { key: "age", label: "Âge" },
   { key: "ville", label: "Ville" },
   { key: "sexe", label: "Genre" },
+  { key: "pronom", label: "Pronom" },
 ];
 
 export function parseFields(raw: string | string[] | undefined): Set<DocumentField> {

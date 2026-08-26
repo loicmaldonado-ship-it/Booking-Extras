@@ -8,6 +8,7 @@ const FIELD_DICT_KEY: Record<DocumentField, DictKey> = {
   age: "champ_age",
   ville: "champ_ville",
   sexe: "champ_genre",
+  pronom: "champ_pronom",
 };
 
 export function FieldsToggle({

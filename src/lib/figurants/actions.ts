@@ -85,6 +85,9 @@ function requireBaseFields(payload: ReturnType<typeof buildFigurantPayload>): st
   if (!payload.commune_naissance) {
     return "La commune de naissance est obligatoire.";
   }
+  if (!payload.genre || !payload.pronom) {
+    return "Le genre et le pronom sont obligatoires.";
+  }
   return null;
 }
 

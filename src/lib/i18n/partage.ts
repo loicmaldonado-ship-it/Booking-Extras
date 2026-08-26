@@ -46,6 +46,7 @@ const DICT = {
   champ_age: { fr: "Âge", en: "Age" },
   champ_ville: { fr: "Ville", en: "City" },
   champ_genre: { fr: "Genre", en: "Gender" },
+  champ_pronom: { fr: "Pronom", en: "Pronoun" },
   ans: { fr: "ans", en: "y/o" },
   aucun_booking_confirme: { fr: "Aucun booking confirmé pour cette journée.", en: "No confirmed booking for this day." },
   heure_non_renseignee: { fr: "Heure non renseignée", en: "Time not set" },

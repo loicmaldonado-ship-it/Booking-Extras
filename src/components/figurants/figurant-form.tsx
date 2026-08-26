@@ -70,8 +70,8 @@ export function FigurantForm({
               ))}
             </Select>
           </Field>
-          <Field label="Pronom">
-            <Select name="pronom" defaultValue={figurant?.pronom ?? ""}>
+          <Field label="Pronom" required>
+            <Select name="pronom" defaultValue={figurant?.pronom ?? ""} required>
               <option value=""></option>
               {PRONOMS.map((p) => (
                 <option key={p} value={p}>
@@ -80,8 +80,8 @@ export function FigurantForm({
               ))}
             </Select>
           </Field>
-          <Field label="Genre">
-            <Select name="genre" defaultValue={figurant?.genre ?? ""}>
+          <Field label="Genre" required>
+            <Select name="genre" defaultValue={figurant?.genre ?? ""} required>
               <option value=""></option>
               {GENRES.map((g) => (
                 <option key={g} value={g}>

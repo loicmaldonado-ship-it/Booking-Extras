@@ -1,6 +1,6 @@
 export type Civilite = "Mme" | "M." | "Autre";
 export type Pronom = "Elle" | "Il" | "Iel";
-export type Genre = "Femme" | "Homme" | "Non-binaire";
+export type Genre = "Femme" | "Homme" | "Non-binaire" | "Autre";
 export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue" | "vehicule" | "casting";
 
 // Au-delà, une fiche devient difficile à parcourir et le stockage explose
@@ -83,4 +83,4 @@ export const LIEN_INSTAGRAM = "Instagram";
 
 export const CIVILITES: Civilite[] = ["Mme", "M.", "Autre"];
 export const PRONOMS: Pronom[] = ["Elle", "Il", "Iel"];
-export const GENRES: Genre[] = ["Femme", "Homme", "Non-binaire"];
+export const GENRES: Genre[] = ["Femme", "Homme", "Non-binaire", "Autre"];

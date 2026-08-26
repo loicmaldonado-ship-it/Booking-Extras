@@ -66,6 +66,8 @@ export async function postulerAnnonce(
   const codePostal = str(formData, "code_postal");
   const communeNaissance = str(formData, "commune_naissance");
   const dateNaissance = str(formData, "date_naissance");
+  const genre = str(formData, "genre");
+  const pronom = str(formData, "pronom");
   const message = str(formData, "message");
   const lienBandeDemo = str(formData, "lien_bande_demo");
   const tailleCm = num(formData, "taille_cm");
@@ -91,6 +93,9 @@ export async function postulerAnnonce(
   }
   if (!communeNaissance) {
     return { error: "La commune de naissance est obligatoire." };
+  }
+  if (!genre || !pronom) {
+    return { error: "Le genre et le pronom sont obligatoires." };
   }
   if (!message) {
     return { error: "Le message est obligatoire." };
@@ -210,6 +215,8 @@ export async function postulerAnnonce(
         code_postal: codePostal,
         commune_naissance: communeNaissance,
         date_naissance: dateNaissance,
+        genre,
+        pronom,
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,
@@ -243,6 +250,8 @@ export async function postulerAnnonce(
         adresse,
         code_postal: codePostal,
         commune_naissance: communeNaissance,
+        genre,
+        pronom,
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,

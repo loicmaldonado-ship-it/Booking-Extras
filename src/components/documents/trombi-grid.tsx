@@ -27,6 +27,7 @@ export function TrombiGrid({
           selectedFields.has("fonction") && item.booking.fonction ? item.booking.fonction : null,
           selectedFields.has("age") && age !== null ? `${age} ans` : null,
           selectedFields.has("sexe") && item.booking.figurant.genre ? item.booking.figurant.genre : null,
+          selectedFields.has("pronom") && item.booking.figurant.pronom ? item.booking.figurant.pronom : null,
         ].filter((l): l is string => !!l);
 
         return (

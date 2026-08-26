@@ -239,8 +239,8 @@ export default function AidePage() {
           items={[
             <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce. Identité,
-              contact, adresse complète (rue, code postal, ville), commune de naissance et une photo portrait
-              sont obligatoires — le reste (mensurations, véhicule) peut attendre.
+              contact, genre et pronom, adresse complète (rue, code postal, ville), commune de naissance et
+              une photo portrait sont obligatoires — le reste (mensurations, véhicule) peut attendre.
             </>,
             <>
               Complète les <strong className="text-text">mensurations</strong> et ajoute ses{" "}

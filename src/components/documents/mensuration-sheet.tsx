@@ -51,6 +51,9 @@ export function MensurationSheet({
         <h2 className="flex items-center gap-2 text-xl font-bold">
           {figurant.civilite ? `${figurant.civilite} ` : ""}
           {figurant.prenom} {figurant.nom}
+          {figurant.pronom && (
+            <span className="text-sm font-normal text-gray-500">({figurant.pronom})</span>
+          )}
           {numeroCostume && (
             <span className="rounded-full border border-gray-400 px-2 py-0.5 text-sm font-semibold">
               {t(lang, "costume")} {numeroCostume}

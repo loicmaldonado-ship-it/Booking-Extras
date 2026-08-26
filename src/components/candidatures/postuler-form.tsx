@@ -5,10 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Textarea } from "@/components/ui/field";
+import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
 import { formatDateShort } from "@/lib/format-date";
 import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
+import { GENRES, PRONOMS } from "@/lib/figurants/types";
 import type { AnnonceQuestion } from "@/lib/annonces/questions";
 import type { AnnonceDate } from "@/lib/annonces/dates";
 
@@ -106,6 +107,8 @@ export function PostulerForm({
     pointure?: number | null;
     veste?: string | null;
     pantalon?: string | null;
+    genre?: string | null;
+    pronom?: string | null;
   };
   bandeDemoObligatoire?: boolean;
 }) {
@@ -158,6 +161,26 @@ export function PostulerForm({
           </Field>
           <Field label="Commune de naissance" required>
             <Input name="commune_naissance" required defaultValue={prefill?.commune_naissance ?? undefined} />
+          </Field>
+          <Field label="Genre" required>
+            <Select name="genre" required defaultValue={prefill?.genre ?? ""}>
+              <option value="" disabled></option>
+              {GENRES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Pronom" required>
+            <Select name="pronom" required defaultValue={prefill?.pronom ?? ""}>
+              <option value="" disabled></option>
+              {PRONOMS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
         <div>

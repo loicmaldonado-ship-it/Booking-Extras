@@ -66,13 +66,15 @@ export default async function PostulerPage({
     pointure: number | null;
     veste: string | null;
     pantalon: string | null;
+    genre: string | null;
+    pronom: string | null;
   } | undefined;
   if (session) {
     const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
       supabase
         .from("figurants")
         .select(
-          "prenom, nom, email, telephone, ville, adresse, code_postal, commune_naissance, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon"
+          "prenom, nom, email, telephone, ville, adresse, code_postal, commune_naissance, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, genre, pronom"
         )
         .eq("id", session.id)
         .single(),
@@ -100,6 +102,8 @@ export default async function PostulerPage({
         pointure: figurantComplet.pointure,
         veste: figurantComplet.veste,
         pantalon: figurantComplet.pantalon,
+        genre: figurantComplet.genre,
+        pronom: figurantComplet.pronom,
       };
     }
   }
