@@ -129,9 +129,21 @@ export function buildTrombiItems(bookings: ConfirmedBooking[], docSort: DocSort)
   return groups.flatMap(([label, items]) => [...items].sort(nomSort).map((booking) => ({ booking, headerLabel: label })));
 }
 
-// Trombi HMC : ordre fixe heure -> cachet (priorité production) -> fonction
-// -> nom, en-tête "Cachet · Heure" systématique — ce document a son propre
-// tri imposé, indépendant du tri additif des autres documents.
+// Ordre d'affichage du genre — les groupes HMC (habillage/maquillage/
+// coiffure ont souvent des postes de prépa séparés par genre) suivent cet
+// ordre plutôt que l'alphabétique.
+const GENRE_ORDER = ["Femme", "Homme", "Non-binaire", "Autre"];
+
+function genreOrder(genre: string | null) {
+  const idx = genre ? GENRE_ORDER.indexOf(genre) : -1;
+  return idx === -1 ? GENRE_ORDER.length : idx;
+}
+
+// Trombi HMC : ordre fixe heure -> genre -> cachet (priorité production) ->
+// fonction -> nom, en-tête "Heure · Genre · Cachet" systématique — ce
+// document a son propre tri imposé, indépendant du tri additif des autres
+// documents. Le genre est séparé pour que l'équipe HMC organise ses postes
+// de prépa (femme/homme/non-binaire) sans avoir à trier elle-même.
 export function buildFixedOrderTrombiItems(bookings: ConfirmedBooking[]): TrombiItem[] {
   const byHeure = new Map<string, ConfirmedBooking[]>();
   for (const b of bookings) {
@@ -141,27 +153,43 @@ export function buildFixedOrderTrombiItems(bookings: ConfirmedBooking[]): Trombi
     byHeure.set(key, list);
   }
 
-  const ordered: ConfirmedBooking[] = [];
-  for (const [, group] of Array.from(byHeure.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
-    const byCachet = new Map<string, ConfirmedBooking[]>();
-    for (const b of group) {
-      const key = b.cachet ?? "";
-      const list = byCachet.get(key) ?? [];
+  const items: TrombiItem[] = [];
+  for (const [heure, heureGroup] of Array.from(byHeure.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const heureLabel = heure ? formatHeureConvocation(heure) : "Heure non renseignée";
+
+    const byGenre = new Map<string, ConfirmedBooking[]>();
+    for (const b of heureGroup) {
+      const key = b.figurant.genre ?? "Non renseigné";
+      const list = byGenre.get(key) ?? [];
       list.push(b);
-      byCachet.set(key, list);
+      byGenre.set(key, list);
     }
-    const cachetGroups = Array.from(byCachet.entries()).sort(
-      (a, b) => cachetOrder(a[1][0]?.cachet ?? null) - cachetOrder(b[1][0]?.cachet ?? null)
+    const genreGroups = Array.from(byGenre.entries()).sort(
+      ([labelA, itemsA], [labelB, itemsB]) => genreOrder(itemsA[0]?.figurant.genre ?? null) - genreOrder(itemsB[0]?.figurant.genre ?? null) || labelA.localeCompare(labelB)
     );
-    for (const [, sousGroup] of cachetGroups) {
-      ordered.push(...[...sousGroup].sort((a, b) => (a.fonction ?? "").localeCompare(b.fonction ?? "") || nomSort(a, b)));
+
+    for (const [genreLabel, genreGroup] of genreGroups) {
+      const byCachet = new Map<string, ConfirmedBooking[]>();
+      for (const b of genreGroup) {
+        const key = b.cachet ?? "";
+        const list = byCachet.get(key) ?? [];
+        list.push(b);
+        byCachet.set(key, list);
+      }
+      const cachetGroups = Array.from(byCachet.entries()).sort(
+        (a, b) => cachetOrder(a[1][0]?.cachet ?? null) - cachetOrder(b[1][0]?.cachet ?? null)
+      );
+      for (const [, sousGroup] of cachetGroups) {
+        const sorted = [...sousGroup].sort(
+          (a, b) => (a.fonction ?? "").localeCompare(b.fonction ?? "") || nomSort(a, b)
+        );
+        const headerLabel = `${heureLabel} · ${genreLabel} · ${sorted[0]?.cachet ?? "Cachet non assigné"}`;
+        for (const booking of sorted) {
+          items.push({ booking, headerLabel });
+        }
+      }
     }
   }
 
-  return ordered.map((booking) => ({
-    booking,
-    headerLabel: `${booking.cachet ?? "Cachet non assigné"} · ${
-      booking.heure_convocation ? formatHeureConvocation(booking.heure_convocation) : "Heure non renseignée"
-    }`,
-  }));
+  return items;
 }
