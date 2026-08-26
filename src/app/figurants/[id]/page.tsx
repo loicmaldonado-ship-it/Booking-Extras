@@ -182,13 +182,13 @@ export default async function FigurantDetailPage({
             <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
           )}
         </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-text-muted">Email : </span>
-            {figurant.email ?? "—"}
+            <span className="break-all">{figurant.email ?? "—"}</span>
             {figurant.email && <CopyEmailButton email={figurant.email} />}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-text-muted">Téléphone : </span>
             {figurant.telephone ?? "—"}
             {figurant.telephone && (
