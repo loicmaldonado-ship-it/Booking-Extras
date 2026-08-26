@@ -122,6 +122,10 @@ export function MaFicheForm({
             <span className="text-text-muted">Ville : </span>
             {figurant.ville ?? "—"}
           </div>
+          <div className="min-w-0 break-words">
+            <span className="text-text-muted">Compte Myrole : </span>
+            {figurant.compte_myrole ? "Oui" : "Non"}
+          </div>
         </div>
         <p className="mt-1 text-xs font-medium text-text-muted">Mensurations</p>
         <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
@@ -276,6 +280,15 @@ export function MaFicheForm({
               </Select>
             </Field>
           </div>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="compte_myrole"
+              defaultChecked={figurant.compte_myrole}
+              className="h-4 w-4 rounded border-border accent-coral"
+            />
+            J&apos;ai déjà un compte Myrole
+          </label>
         </div>
 
         <div>

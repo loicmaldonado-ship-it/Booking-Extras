@@ -351,6 +351,7 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
       carrure_cm: num(formData, "carrure_cm"),
       couleur_yeux: str(formData, "couleur_yeux"),
       couleur_cheveux: str(formData, "couleur_cheveux"),
+      compte_myrole: formData.get("compte_myrole") === "on",
       ...buildVehiculePayload(formData),
     })
     .eq("id", session.id);
