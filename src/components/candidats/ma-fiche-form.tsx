@@ -47,6 +47,7 @@ export function MaFicheForm({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [aVehicule, setAVehicule] = useState<boolean | null>(figurant.a_vehicule);
 
   function save(formData: FormData) {
     setError(null);
@@ -183,6 +184,22 @@ export function MaFicheForm({
           <div className="min-w-0 break-words">
             <span className="text-text-muted">Cheveux : </span>
             {figurant.couleur_cheveux ?? "—"}
+          </div>
+          <div className="min-w-0 break-words">
+            <span className="text-text-muted">Véhicule : </span>
+            {figurant.a_vehicule === null
+              ? "—"
+              : figurant.a_vehicule
+                ? [
+                    "Oui",
+                    [figurant.vehicule_velo && "vélo", figurant.vehicule_moto && "moto", figurant.vehicule_scooter && "scooter"]
+                      .filter(Boolean)
+                      .join(", "),
+                    figurant.vehicule_marque,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : "Non"}
           </div>
           <div className="min-w-0 break-words">
             <span className="text-text-muted">Bande démo : </span>
@@ -327,6 +344,78 @@ export function MaFicheForm({
             <Field label="Couleur des cheveux">
               <Input name="couleur_cheveux" defaultValue={figurant.couleur_cheveux ?? ""} />
             </Field>
+          </div>
+        </div>
+
+        <div>
+          <span className="mb-1.5 block text-xs font-medium text-text-muted">Véhicule</span>
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-ink px-3 py-3">
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium">As-tu un véhicule ?</span>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="radio"
+                    name="a_vehicule"
+                    value="oui"
+                    defaultChecked={figurant.a_vehicule === true}
+                    onChange={() => setAVehicule(true)}
+                    className="accent-coral"
+                  />
+                  Oui
+                </label>
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input
+                    type="radio"
+                    name="a_vehicule"
+                    value="non"
+                    defaultChecked={figurant.a_vehicule === false}
+                    onChange={() => setAVehicule(false)}
+                    className="accent-coral"
+                  />
+                  Non
+                </label>
+              </div>
+            </div>
+            {aVehicule && (
+              <>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name="vehicule_velo"
+                      defaultChecked={figurant.vehicule_velo}
+                      className="h-4 w-4 rounded border-border accent-coral"
+                    />
+                    Vélo
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name="vehicule_moto"
+                      defaultChecked={figurant.vehicule_moto}
+                      className="h-4 w-4 rounded border-border accent-coral"
+                    />
+                    Moto
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name="vehicule_scooter"
+                      defaultChecked={figurant.vehicule_scooter}
+                      className="h-4 w-4 rounded border-border accent-coral"
+                    />
+                    Scooter
+                  </label>
+                </div>
+                <Field label="Marque du véhicule">
+                  <Input name="vehicule_marque" defaultValue={figurant.vehicule_marque ?? ""} />
+                </Field>
+                <p className="text-xs text-text-muted">
+                  Ajoute une photo du véhicule depuis « Mes photos » ci-dessous (type « Véhicule »).
+                </p>
+              </>
+            )}
           </div>
         </div>
 

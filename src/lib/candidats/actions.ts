@@ -283,6 +283,17 @@ function num(fd: FormData, key: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function buildVehiculePayload(fd: FormData) {
+  const aVehicule = str(fd, "a_vehicule");
+  return {
+    a_vehicule: aVehicule === null ? null : aVehicule === "oui",
+    vehicule_velo: fd.get("vehicule_velo") === "on",
+    vehicule_moto: fd.get("vehicule_moto") === "on",
+    vehicule_scooter: fd.get("vehicule_scooter") === "on",
+    vehicule_marque: str(fd, "vehicule_marque"),
+  };
+}
+
 // Le candidat ne modifie que sa PROPRE fiche — l'id vient de sa session,
 // jamais d'un champ du formulaire, pour ne jamais pouvoir modifier un autre
 // profil.
@@ -340,6 +351,7 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
       carrure_cm: num(formData, "carrure_cm"),
       couleur_yeux: str(formData, "couleur_yeux"),
       couleur_cheveux: str(formData, "couleur_cheveux"),
+      ...buildVehiculePayload(formData),
     })
     .eq("id", session.id);
 
