@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
@@ -191,6 +192,10 @@ export default async function PostulerPage({
           </p>
         </Card>
       )}
+
+      <Link href="/compte/connexion" className="text-center text-sm text-coral hover:underline">
+        Voir toutes les annonces ouvertes / me connecter à mon espace →
+      </Link>
     </div>
   );
 }

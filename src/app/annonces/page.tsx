@@ -5,6 +5,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { getSiteOrigin } from "@/lib/partage/data";
+import { CopyLink } from "@/components/annonces/copy-link";
 import { Megaphone } from "lucide-react";
 import { formatDateShort } from "@/lib/format-date";
 
@@ -45,9 +47,10 @@ export default async function AnnoncesPage({
   let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
-  const [{ data: annonces, error }, { data: projets }] = await Promise.all([
+  const [{ data: annonces, error }, { data: projets }, origin] = await Promise.all([
     query.returns<AnnonceAvecProjet[]>(),
     projetsQuery,
+    getSiteOrigin(),
   ]);
 
   return (
@@ -61,6 +64,17 @@ export default async function AnnoncesPage({
         </div>
         <ButtonLink href="/annonces/nouveau">+ Nouvelle annonce</ButtonLink>
       </div>
+
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold">Espace candidat·es</h2>
+          <p className="text-sm text-text-muted">
+            Le lien à partager (Instagram, affiche, réseau...) pour que tout le monde retrouve toutes les
+            annonces ouvertes du site, ou se connecte à son espace perso.
+          </p>
+        </div>
+        <CopyLink url={`${origin}/compte/connexion`} />
+      </Card>
 
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
