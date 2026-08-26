@@ -1,72 +1,108 @@
-"use client";
-
-import { Suspense, useActionState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Card } from "@/components/ui/card";
+import Link from "next/link";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
-import { requestMagicLink } from "@/lib/candidats/actions";
+import { ConnexionForm } from "@/components/auth/connexion-form";
+import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getProjetOwnerNames } from "@/lib/projets/signature";
+import { formatAnnonceDatesLabel } from "@/lib/format-date";
+import { projetNomPublic } from "@/lib/projets/types";
 
-function ExpiredLinkNotice() {
-  const searchParams = useSearchParams();
-  if (searchParams.get("error") !== "lien_invalide") return null;
+export const dynamic = "force-dynamic";
+
+type AnnonceOuverte = {
+  id: string;
+  titre: string;
+  lieu: string | null;
+  date_recherchee: string | null;
+  public_token: string;
+  types_cachet: string[];
+  projet_id: string;
+  projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
+};
+
+export default async function ConnexionCandidatPage() {
+  const supabase = createAdminClient();
+
+  const { data: annoncesRaw } = await supabase
+    .from("annonces")
+    .select(
+      "id, titre, lieu, date_recherchee, public_token, types_cachet, projet_id, projets(nom, confidentiel, nom_code)"
+    )
+    .eq("statut", "ouverte")
+    .order("date_recherchee", { ascending: true, nullsFirst: false })
+    .returns<AnnonceOuverte[]>();
+
+  const annonces = annoncesRaw ?? [];
+  const [ownerNames, datesEntries] = await Promise.all([
+    getProjetOwnerNames(supabase, annonces.map((a) => a.projet_id)),
+    Promise.all(
+      annonces.map(async (a) => [a.id, formatAnnonceDatesLabel(await getAnnonceDates(a.id), a.date_recherchee)] as const)
+    ),
+  ]);
+  const datesByAnnonce = new Map(datesEntries);
+
   return (
-    <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
-      Ce lien n&apos;est plus valide (expiré ou déjà utilisé). Demandez-en un nouveau.
-    </div>
-  );
-}
-
-function ConnexionForm() {
-  const [state, formAction, pending] = useActionState(requestMagicLink, undefined);
-
-  if (state?.sentTo) {
-    return (
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-turquoise">Email envoyé</h2>
-        <p className="text-sm text-text-muted">
-          Un lien de connexion vient d&apos;être envoyé à <strong>{state.sentTo}</strong> (valable 30
-          minutes). Ouvrez-le depuis votre messagerie pour accéder à votre espace.
-        </p>
-      </Card>
-    );
-  }
-
-  return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <Suspense fallback={null}>
-        <ExpiredLinkNotice />
-      </Suspense>
-      {state?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
-          {state.error}
-        </div>
-      )}
-      <Card className="flex flex-col gap-4">
-        <Field label="Email" required>
-          <Input type="email" name="email" required autoFocus placeholder="vous@exemple.com" />
-        </Field>
-        <Button type="submit" disabled={pending}>
-          {pending ? "Envoi..." : "Recevoir mon lien de connexion"}
-        </Button>
-      </Card>
-    </form>
-  );
-}
-
-export default function ConnexionCandidatPage() {
-  return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 py-10">
+    <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-10">
       <div>
         <Logo iconSize={26} textClassName="text-lg" />
-        <h1 className="mt-4 text-2xl font-semibold">Mon espace</h1>
+        <h1 className="mt-4 text-2xl font-semibold">Espace candidat·es</h1>
         <p className="mt-1 text-text-muted">
-          Recevez un lien de connexion par email, sans mot de passe.
+          Déjà booké·e par notre équipe ? Reçois ton lien de connexion par email pour mettre à jour tes infos
+          (adresse, mensurations, photos...). Sinon, découvre les annonces ouvertes ci-dessous — postuler ne
+          demande pas de compte.
         </p>
       </div>
 
       <ConnexionForm />
+
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Annonces en cours</h2>
+        {annonces.length === 0 ? (
+          <Card>
+            <p className="text-sm text-text-muted">Aucune annonce ouverte pour l&apos;instant.</p>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {annonces.map((a) => {
+              const chef = ownerNames.get(a.projet_id);
+              const dates = datesByAnnonce.get(a.id);
+              return (
+                <Link
+                  key={a.id}
+                  href={`/postuler/${a.public_token}`}
+                  className="flex flex-col gap-1.5 rounded-xl border border-border bg-ink px-4 py-3 transition-colors hover:border-coral/60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{a.titre}</span>
+                    <Badge tone="coral">Postuler →</Badge>
+                  </div>
+                  <span className="text-xs text-text-muted">
+                    {projetNomPublic(a.projets)}
+                    {chef ? ` · ${chef}` : ""}
+                    {a.lieu ? ` · ${a.lieu}` : ""}
+                  </span>
+                  {dates && (
+                    <span className="text-xs text-text-muted">
+                      <span className="font-medium text-text">Dates : </span>
+                      {dates}
+                    </span>
+                  )}
+                  {a.types_cachet.length > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {a.types_cachet.map((t) => (
+                        <Badge key={t} tone="turquoise">
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

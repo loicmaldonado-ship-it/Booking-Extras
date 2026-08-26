@@ -24,6 +24,7 @@ function buildAnnoncePayload(fd: FormData) {
     ouverte_mineurs: fd.get("ouverte_mineurs") === "on",
     bande_demo_obligatoire: fd.get("bande_demo_obligatoire") === "on",
     limite_candidatures: limiteRaw ? Number(limiteRaw) : null,
+    types_cachet: fd.getAll("types_cachet").map(String),
   };
 }
 

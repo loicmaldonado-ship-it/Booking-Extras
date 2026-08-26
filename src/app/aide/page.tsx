@@ -281,6 +281,11 @@ export default function AidePage() {
           items={[
             "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es.",
             <>
+              Coche le·s <strong className="text-text">type·s de profil recherché</strong> (Figurant, Silhouette,
+              Doublure...) — affiché sur l&apos;annonce publique pour que les candidat·es sachent d&apos;emblée ce
+              qui est recherché.
+            </>,
+            <>
               Ajoute des photos de <strong className="text-text">moodboard</strong> pour donner le ton visuel
               recherché.
             </>,
@@ -292,6 +297,11 @@ export default function AidePage() {
             "Les candidatures arrivent automatiquement dans Candidatures, classées par annonce.",
           ]}
         />
+        <Callout>
+          <strong className="text-text">Espace candidat·es (/compte/connexion).</strong> Toutes les annonces
+          ouvertes y sont listées publiquement (avec le nom du·de la chef·fe et les dates), et c&apos;est aussi
+          là qu&apos;un·e figurant·e déjà booké·e demande son lien de connexion pour mettre à jour sa fiche.
+        </Callout>
       </GuideChapter>
 
       <GuideChapter

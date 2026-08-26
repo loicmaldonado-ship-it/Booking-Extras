@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import type { Annonce } from "@/lib/annonces/types";
+import { CACHETS } from "@/lib/candidatures/types";
 
 type Action = (
   prevState: unknown,
@@ -73,6 +74,25 @@ export function AnnonceForm({
               defaultValue={annonce?.limite_candidatures ?? ""}
             />
           </Field>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-xs font-medium text-text-muted">
+            Type(s) de profil recherché — affiché sur l&apos;annonce
+          </span>
+          <div className="flex flex-wrap gap-3">
+            {CACHETS.map((c) => (
+              <label key={c} className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
+                  name="types_cachet"
+                  value={c}
+                  defaultChecked={annonce?.types_cachet?.includes(c) ?? false}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+                {c}
+              </label>
+            ))}
+          </div>
         </div>
         <Field label="Description">
           <Textarea name="description" defaultValue={annonce?.description ?? ""} />

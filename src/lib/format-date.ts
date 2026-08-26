@@ -16,6 +16,19 @@ export function formatDateLong(date: string, locale: "fr-FR" | "en-US" = "fr-FR"
   return `${weekday} ${formatDateShort(date)}`;
 }
 
+// Libellé "Dates : ..." d'une annonce — les dates de tournage précises si
+// elles sont calibrées, sinon la date recherchée unique (souvent tout ce
+// qu'on a au moment de la publication).
+export function formatAnnonceDatesLabel(
+  annonceDates: { date: string }[],
+  dateRecherchee: string | null
+): string | null {
+  if (annonceDates.length > 0) {
+    return annonceDates.map((d) => formatDateShort(d.date)).join(", ");
+  }
+  return dateRecherchee ? formatDateShort(dateRecherchee) : null;
+}
+
 export function formatDateTime(iso: string) {
   const time = new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   return `${formatDateShort(iso)} ${time}`;

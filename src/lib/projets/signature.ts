@@ -57,3 +57,30 @@ export async function getProjetSignaturesOrOwnerNames(
   }
   return result;
 }
+
+// Identité de la cheffe propriétaire du projet, sans jamais retomber sur la
+// signature calibrée — utile pour "posté par" sur les annonces publiques,
+// où on veut savoir QUI a publié, pas la formule de politesse des messages.
+export async function getProjetOwnerNames(
+  supabase: ReturnType<typeof createAdminClient>,
+  projetIds: string[]
+): Promise<Map<string, string>> {
+  const ids = Array.from(new Set(projetIds));
+  const result = new Map<string, string>();
+  if (ids.length === 0) return result;
+
+  const { data: projets } = await supabase.from("projets").select("id, owner_id").in("id", ids);
+  const ownerIds = Array.from(new Set((projets ?? []).filter((p) => p.owner_id).map((p) => p.owner_id as string)));
+  const { data: owners } =
+    ownerIds.length > 0
+      ? await supabase.from("profiles").select("id, prenom, nom, email").in("id", ownerIds)
+      : { data: [] as { id: string; prenom: string | null; nom: string | null; email: string | null }[] };
+  const ownerNameById = new Map(
+    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? `${o.prenom} ${o.nom}` : o.nom || o.email || ""])
+  );
+
+  for (const p of projets ?? []) {
+    result.set(p.id, p.owner_id ? ownerNameById.get(p.owner_id) ?? "" : "");
+  }
+  return result;
+}

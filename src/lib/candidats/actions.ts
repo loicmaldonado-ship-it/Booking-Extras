@@ -117,7 +117,10 @@ export async function requestMagicLink(
     .maybeSingle();
 
   if (!figurant?.email) {
-    return { error: "Aucun compte ne correspond à cet email. Vérifiez votre saisie ou contactez le casting." };
+    return {
+      error:
+        "Aucun compte ne correspond à cet email. Vous devez déjà avoir été booké·e par un·e chargé·e de casting pour avoir accès à un compte personnel — cela ne vous empêche en rien de postuler à une annonce en cours ci-dessous.",
+    };
   }
   if (!figurant.acces_compte) {
     return {

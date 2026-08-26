@@ -1,3 +1,5 @@
+import type { Cachet } from "@/lib/candidatures/types";
+
 export type AnnonceStatut = "ouverte" | "fermée";
 
 export type Annonce = {
@@ -12,6 +14,7 @@ export type Annonce = {
   ouverte_mineurs: boolean;
   bande_demo_obligatoire: boolean;
   limite_candidatures: number | null;
+  types_cachet: Cachet[];
   created_at: string;
   updated_at: string;
 };

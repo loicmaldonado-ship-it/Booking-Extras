@@ -10,8 +10,9 @@ import { getAnnonceDates } from "@/lib/annonces/dates";
 import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
-import { formatDateShort } from "@/lib/format-date";
+import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
+import { getProjetOwnerNames } from "@/lib/projets/signature";
 
 export default async function PostulerPage({
   params,
@@ -36,8 +37,14 @@ export default async function PostulerPage({
     );
   }
 
-  const moodboardPhotos = await getAnnoncePhotos(supabase, annonce.id);
+  const [moodboardPhotos, annonceDates, ownerNames] = await Promise.all([
+    getAnnoncePhotos(supabase, annonce.id),
+    getAnnonceDates(annonce.id),
+    getProjetOwnerNames(supabase, [annonce.projet_id]),
+  ]);
   const photoUrl = getAnnoncePhotoUrl(supabase, annonce.projets?.annonce_photo_storage_path);
+  const datesLabel = formatAnnonceDatesLabel(annonceDates, annonce.date_recherchee);
+  const chefNom = ownerNames.get(annonce.projet_id);
 
   let complet = false;
   if (annonce.limite_candidatures !== null) {
@@ -127,9 +134,24 @@ export default async function PostulerPage({
         </div>
         <p className="mt-1 text-text-muted">
           {projetNomPublic(annonce.projets)}
-          {annonce.date_recherchee ? ` · ${formatDateShort(annonce.date_recherchee)}` : ""}
+          {chefNom ? ` · ${chefNom}` : ""}
           {annonce.lieu ? ` · ${annonce.lieu}` : ""}
         </p>
+        {datesLabel && (
+          <p className="mt-0.5 text-sm text-text-muted">
+            <span className="font-medium text-text">Dates : </span>
+            {datesLabel}
+          </p>
+        )}
+        {annonce.types_cachet.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {annonce.types_cachet.map((t) => (
+              <Badge key={t} tone="turquoise">
+                {t}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
       {annonce.description && (
@@ -156,7 +178,7 @@ export default async function PostulerPage({
         <PostulerForm
           publicToken={annonce.public_token}
           questions={await getAnnonceQuestions(annonce.id)}
-          dates={await getAnnonceDates(annonce.id)}
+          dates={annonceDates}
           prefill={prefill}
           bandeDemoObligatoire={annonce.bande_demo_obligatoire}
         />

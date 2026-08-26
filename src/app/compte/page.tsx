@@ -11,8 +11,10 @@ import { PushSubscribe } from "@/components/candidats/push-subscribe";
 import { MaFicheForm } from "@/components/candidats/ma-fiche-form";
 import { IndisponibilitesPanel } from "@/components/candidats/indisponibilites-panel";
 import { MesPhotosPanel } from "@/components/candidats/mes-photos-panel";
-import { formatDateShort } from "@/lib/format-date";
+import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getProjetOwnerNames } from "@/lib/projets/signature";
 import type { FigurantMessage } from "@/lib/candidats/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant, type FigurantPhoto } from "@/lib/figurants/types";
 
@@ -24,6 +26,8 @@ type AnnonceOuverte = {
   lieu: string | null;
   date_recherchee: string | null;
   public_token: string;
+  types_cachet: string[];
+  projet_id: string;
   projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
 };
 
@@ -68,12 +72,21 @@ export default async function CompteCandidatPage() {
 
   const { data: annoncesRaw } = await supabase
     .from("annonces")
-    .select("id, titre, lieu, date_recherchee, public_token, projets(nom, confidentiel, nom_code)")
+    .select(
+      "id, titre, lieu, date_recherchee, public_token, types_cachet, projet_id, projets(nom, confidentiel, nom_code)"
+    )
     .eq("statut", "ouverte")
     .order("date_recherchee", { ascending: true, nullsFirst: false })
     .returns<AnnonceOuverte[]>();
 
   const annonces = (annoncesRaw ?? []).filter((a) => !annonceIdsDejaPostulees.has(a.id));
+  const [ownerNames, datesEntries] = await Promise.all([
+    getProjetOwnerNames(supabase, annonces.map((a) => a.projet_id)),
+    Promise.all(
+      annonces.map(async (a) => [a.id, formatAnnonceDatesLabel(await getAnnonceDates(a.id), a.date_recherchee)] as const)
+    ),
+  ]);
+  const datesByAnnonce = new Map(datesEntries);
 
   if (!figurant) {
     redirect("/compte/connexion");
@@ -101,23 +114,42 @@ export default async function CompteCandidatPage() {
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Annonces en cours</h2>
           <div className="flex flex-col gap-2">
-            {annonces.map((a) => (
-              <Link
-                key={a.id}
-                href={`/postuler/${a.public_token}`}
-                className="flex flex-col gap-1 rounded-xl border border-border bg-ink px-4 py-3 transition-colors hover:border-coral/60"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{a.titre}</span>
-                  <Badge tone="coral">Postuler →</Badge>
-                </div>
-                <span className="text-xs text-text-muted">
-                  {projetNomPublic(a.projets, "Projet confidentiel")}
-                  {a.date_recherchee ? ` · ${formatDateShort(a.date_recherchee)}` : ""}
-                  {a.lieu ? ` · ${a.lieu}` : ""}
-                </span>
-              </Link>
-            ))}
+            {annonces.map((a) => {
+              const chef = ownerNames.get(a.projet_id);
+              const dates = datesByAnnonce.get(a.id);
+              return (
+                <Link
+                  key={a.id}
+                  href={`/postuler/${a.public_token}`}
+                  className="flex flex-col gap-1.5 rounded-xl border border-border bg-ink px-4 py-3 transition-colors hover:border-coral/60"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{a.titre}</span>
+                    <Badge tone="coral">Postuler →</Badge>
+                  </div>
+                  <span className="text-xs text-text-muted">
+                    {projetNomPublic(a.projets, "Projet confidentiel")}
+                    {chef ? ` · ${chef}` : ""}
+                    {a.lieu ? ` · ${a.lieu}` : ""}
+                  </span>
+                  {dates && (
+                    <span className="text-xs text-text-muted">
+                      <span className="font-medium text-text">Dates : </span>
+                      {dates}
+                    </span>
+                  )}
+                  {a.types_cachet.length > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {a.types_cachet.map((t) => (
+                        <Badge key={t} tone="turquoise">
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </Card>
       )}
