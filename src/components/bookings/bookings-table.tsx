@@ -229,6 +229,23 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
 // des bookings confirmés.
 const DOCUMENT_SORT_DIMENSIONS = new Set<Dimension>(["fonction", "cachet", "sexe", "age", "heure"]);
 
+// Chaque statut a un ton (voir STATUTS) qu'on rend visible directement sur la
+// ligne/carte, pas seulement dans la petite pastille du select — pour repérer
+// d'un coup d'œil les groupes de statuts (tous les confirmé, etc.) même hors
+// tri par statut.
+const STATUT_ROW_CLASSES: Record<string, { rowBorderL: string; rowBg: string; cardBorder: string; cardBg: string }> = {
+  default: { rowBorderL: "border-l-border", rowBg: "", cardBorder: "border-border", cardBg: "bg-ink-raised" },
+  coral: { rowBorderL: "border-l-coral", rowBg: "bg-coral/5", cardBorder: "border-coral/40", cardBg: "bg-coral/10" },
+  turquoise: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/5", cardBorder: "border-turquoise/40", cardBg: "bg-turquoise/10" },
+  yellow: { rowBorderL: "border-l-yellow", rowBg: "bg-yellow/5", cardBorder: "border-yellow/40", cardBg: "bg-yellow/10" },
+  danger: { rowBorderL: "border-l-danger", rowBg: "bg-danger/5", cardBorder: "border-danger/40", cardBg: "bg-danger/10" },
+};
+
+function statutRowClasses(statut: BookingStatut) {
+  const tone = STATUTS.find((s) => s.value === statut)?.tone ?? "default";
+  return STATUT_ROW_CLASSES[tone] ?? STATUT_ROW_CLASSES.default;
+}
+
 type Group = { label: string | null; rows: Row[] };
 
 function dimensionLabel(r: Row, dimension: Dimension) {
@@ -799,13 +816,15 @@ export function BookingsTable({
 
   function renderRow(r: Row) {
     const rowDelai = convocationDelai(r, now);
+    const tone = statutRowClasses(r.statut);
     return (
       <tr
         key={r.id}
         className={cn(
-          "border-b border-border last:border-0 hover:bg-ink-raised-2",
-          r.statut === "confirmé" && "border-l-2 border-l-turquoise",
-          r.reponse_recue && "bg-yellow-fluo/30 border-l-4 border-l-yellow-fluo"
+          "border-b-2 border-l-4 border-border last:border-b-0 hover:bg-ink-raised-2",
+          tone.rowBorderL,
+          tone.rowBg,
+          r.reponse_recue && "bg-yellow-fluo/30 border-l-yellow-fluo"
         )}
       >
         <td className="px-4 py-4 align-middle">
@@ -967,16 +986,13 @@ export function BookingsTable({
 
   function renderTrombiCard(r: Row) {
     const cardDelai = convocationDelai(r, now);
+    const tone = statutRowClasses(r.statut);
     return (
       <div
         key={r.id}
         className={cn(
-          "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
-          r.reponse_recue
-            ? "border-yellow-fluo bg-yellow-fluo/30 hover:border-yellow-fluo"
-            : r.statut === "confirmé"
-              ? "border-turquoise/40 bg-turquoise/10 hover:border-turquoise/60"
-              : "border-border bg-ink-raised hover:border-coral/60"
+          "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors hover:border-coral/60",
+          r.reponse_recue ? "border-yellow-fluo bg-yellow-fluo/30 hover:border-yellow-fluo" : cn(tone.cardBorder, tone.cardBg)
         )}
       >
         <input
