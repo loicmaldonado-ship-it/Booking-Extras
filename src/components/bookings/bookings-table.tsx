@@ -329,8 +329,10 @@ export function BookingsTable({
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [onlyNonRepondus, setOnlyNonRepondus] = useState(false);
+  const [bulkStatut, setBulkStatut] = useState("");
   const [bulkFonction, setBulkFonction] = useState("");
-  const [bulkHeure, setBulkHeure] = useState("08:00");
+  const [bulkCachet, setBulkCachet] = useState("");
+  const [bulkHeure, setBulkHeure] = useState("");
   const [viewMode, setViewMode] = useState<"liste" | "trombi">("trombi");
   const [essayageOpen, setEssayageOpen] = useState(false);
   const [castingOpen, setCastingOpen] = useState(false);
@@ -452,43 +454,21 @@ export function BookingsTable({
     });
   }
 
-  function applyBulkStatut(statut: string) {
-    if (!statut || selected.size === 0) return;
+  function applyBulkChanges() {
+    if (selected.size === 0) return;
+    const changes: Parameters<typeof bulkUpdateBookings>[1] = {};
+    if (bulkStatut) changes.statut = bulkStatut as BookingStatut;
+    if (bulkFonction.trim()) changes.fonction = bulkFonction.trim();
+    if (bulkCachet) changes.cachet = bulkCachet;
+    if (bulkHeure) changes.heure_convocation = bulkHeure;
+    if (Object.keys(changes).length === 0) return;
     const ids = Array.from(selected);
     startTransition(async () => {
-      await bulkUpdateBookings(ids, { statut: statut as BookingStatut });
+      await bulkUpdateBookings(ids, changes);
       setSelected(new Set());
-      router.refresh();
-    });
-  }
-
-  function applyBulkFonction() {
-    if (!bulkFonction.trim() || selected.size === 0) return;
-    const ids = Array.from(selected);
-    startTransition(async () => {
-      await bulkUpdateBookings(ids, { fonction: bulkFonction.trim() });
-      setSelected(new Set());
+      setBulkStatut("");
       setBulkFonction("");
-      router.refresh();
-    });
-  }
-
-  function applyBulkCachet(cachet: string) {
-    if (!cachet || selected.size === 0) return;
-    const ids = Array.from(selected);
-    startTransition(async () => {
-      await bulkUpdateBookings(ids, { cachet });
-      setSelected(new Set());
-      router.refresh();
-    });
-  }
-
-  function applyBulkHeure() {
-    if (!bulkHeure || selected.size === 0) return;
-    const ids = Array.from(selected);
-    startTransition(async () => {
-      await bulkUpdateBookings(ids, { heure_convocation: bulkHeure });
-      setSelected(new Set());
+      setBulkCachet("");
       setBulkHeure("");
       router.refresh();
     });
@@ -1377,65 +1357,56 @@ export function BookingsTable({
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
           <span className="text-sm">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
-          <select
-            onChange={(e) => {
-              applyBulkStatut(e.target.value);
-              e.target.value = "";
-            }}
-            disabled={pending}
-            defaultValue=""
-            className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-          >
-            <option value="" disabled>
-              {pending ? "Mise à jour..." : "Marquer statut..."}
-            </option>
-            {STATUTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                Marquer {s.label}
-              </option>
-            ))}
-          </select>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-ink/40 px-3 py-2">
+            <span className="text-xs text-text-muted">Modifier :</span>
+            <select
+              value={bulkStatut}
+              onChange={(e) => setBulkStatut(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            >
+              <option value="">Statut (inchangé)</option>
+              {STATUTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
             <input
               list="fonctions-suggestions"
               value={bulkFonction}
               onChange={(e) => setBulkFonction(e.target.value)}
-              placeholder="Fonction..."
+              placeholder="Fonction (inchangée)"
               disabled={pending}
               className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
             />
-            <Button type="button" variant="secondary" disabled={pending || !bulkFonction.trim()} onClick={applyBulkFonction}>
-              Appliquer
-            </Button>
-          </div>
-          <select
-            onChange={(e) => {
-              applyBulkCachet(e.target.value);
-              e.target.value = "";
-            }}
-            disabled={pending}
-            defaultValue=""
-            className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-          >
-            <option value="" disabled>
-              {pending ? "Mise à jour..." : "Marquer cachet..."}
-            </option>
-            {CACHETS.map((c) => (
-              <option key={c} value={c}>
-                Marquer {c}
-              </option>
-            ))}
-          </select>
-          <div className="flex items-center gap-2">
+            <select
+              value={bulkCachet}
+              onChange={(e) => setBulkCachet(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            >
+              <option value="">Cachet (inchangé)</option>
+              {CACHETS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
             <input
               type="time"
               value={bulkHeure}
               onChange={(e) => setBulkHeure(e.target.value)}
               disabled={pending}
+              title="Heure de convocation (laisser vide pour ne pas changer)"
               className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
             />
-            <Button type="button" variant="secondary" disabled={pending || !bulkHeure} onClick={applyBulkHeure}>
-              Appliquer l&apos;heure
+            <Button
+              type="button"
+              disabled={pending || (!bulkStatut && !bulkFonction.trim() && !bulkCachet && !bulkHeure)}
+              onClick={applyBulkChanges}
+            >
+              {pending ? "Mise à jour..." : "Appliquer"}
             </Button>
           </div>
           {(projetIndemnites.length > 0 || baremeMajorations.length > 0) && (

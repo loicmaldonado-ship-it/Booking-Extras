@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createBookingFromDrop } from "@/lib/bookings/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
+import { MultiDateCalendar } from "@/components/ui/multi-date-calendar";
 
 export function AddToJourneeBar({
   figurantIds,
@@ -19,17 +20,27 @@ export function AddToJourneeBar({
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
-  const [dateInput, setDateInput] = useState("");
   const [dates, setDates] = useState<string[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: number; deja: number } | null>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  function addDate() {
-    if (!dateInput || dates.includes(dateInput)) return;
-    setDates((prev) => [...prev, dateInput].sort());
-    setDateInput("");
+  useEffect(() => {
+    if (!calendarOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setCalendarOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [calendarOpen]);
+
+  function toggleDate(iso: string) {
+    setDates((prev) => (prev.includes(iso) ? prev.filter((x) => x !== iso) : [...prev, iso].sort()));
   }
 
   function removeDate(d: string) {
@@ -86,22 +97,25 @@ export function AddToJourneeBar({
           ))}
         </select>
       </div>
-      <div className="flex flex-col gap-1">
+      <div className="relative flex flex-col gap-1" ref={popoverRef}>
         <label className="text-xs text-text-muted">
           Date{dates.length > 0 ? `s (${dates.length})` : ""}
         </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateInput}
-            onChange={(e) => setDateInput(e.target.value)}
-            disabled={pending}
-            className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
-          />
-          <Button type="button" variant="ghost" disabled={pending || !dateInput} onClick={addDate}>
-            + Ajouter une date
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={pending}
+          onClick={() => setCalendarOpen((v) => !v)}
+        >
+          {dates.length > 0
+            ? `${dates.length} date${dates.length > 1 ? "s" : ""} choisie${dates.length > 1 ? "s" : ""}`
+            : "📅 Choisir les dates"}
+        </Button>
+        {calendarOpen && (
+          <div className="absolute left-0 top-full z-20 mt-1">
+            <MultiDateCalendar selected={new Set(dates)} onToggle={toggleDate} />
+          </div>
+        )}
         {dates.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {dates.map((d) => (
