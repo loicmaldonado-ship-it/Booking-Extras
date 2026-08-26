@@ -176,6 +176,7 @@ export default async function PartageTrombisPage({
             orientation="landscape"
             fixedHeight
             className="break-after-page print:break-after-page"
+            pageLabel={pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : undefined}
           >
             <DocumentLetterhead
               societe={projet.societe_production}

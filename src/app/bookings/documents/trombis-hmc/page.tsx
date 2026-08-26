@@ -52,7 +52,7 @@ export default async function TrombisHmcPage({
   const items: TrombiItem[] = buildFixedOrderTrombiItems(bookings);
   // Chaque profil a en plus la ligne de cases H/M/C à cocher — un peu plus
   // haut que le trombi standard, marge de sécurité réduite en conséquence.
-  const pages = paginateGroupedItems(items, (i) => i.headerLabel, { maxItemsPerPage: 12, maxGroupsPerPage: 3 });
+  const pages = paginateGroupedItems(items, (i) => i.headerLabel, { maxRowsPerPage: 2 });
 
   return (
     <div className="flex flex-col gap-4">
@@ -93,6 +93,7 @@ export default async function TrombisHmcPage({
           orientation="landscape"
           fixedHeight
           className="break-after-page print:break-after-page"
+          pageLabel={pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : undefined}
         >
           <DocumentLetterhead
             societe={projet?.societe_production ?? null}

@@ -42,10 +42,17 @@ export type TrombiItem = { booking: ConfirmedBooking; headerLabel: string | null
 // le même nombre de profils dans un seul groupe. Sans ça, une page pouvait
 // déborder de son cadre fixe et perdre silencieusement des profils au
 // PDF/impression (capture html2canvas bornée à la hauteur de la page).
+//
+// Le budget est exprimé en LIGNES (pas en nombre brut de profils) : chaque
+// groupe consomme ceil(taille / colonnes) lignes, et un nouveau groupe ne
+// commence jamais à cheval sur une ligne déjà entamée par le précédent.
+// columns=8 et maxRowsPerPage=3 sont calibrés sur la taille réelle d'une
+// page trombi en paysage (1123×794, cf. mesures DOM) — à resserrer si on
+// ajoute des champs qui allongent les légendes sous chaque photo.
 export function paginateGroupedItems<T>(
   items: T[],
   groupKeyOf: (item: T) => string | null,
-  { maxItemsPerPage = 15, maxGroupsPerPage = 4 }: { maxItemsPerPage?: number; maxGroupsPerPage?: number } = {}
+  { columns = 8, maxRowsPerPage = 3 }: { columns?: number; maxRowsPerPage?: number } = {}
 ): T[][] {
   const groups: T[][] = [];
   for (const item of items) {
@@ -55,30 +62,31 @@ export function paginateGroupedItems<T>(
     else groups.push([item]);
   }
 
+  const maxItemsPerPage = maxRowsPerPage * columns;
   const pages: T[][] = [];
   let current: T[] = [];
-  let currentGroupCount = 0;
+  let currentRows = 0;
+
   for (const group of groups) {
-    if (group.length > maxItemsPerPage) {
+    const groupRows = Math.ceil(group.length / columns);
+    if (groupRows > maxRowsPerPage) {
       if (current.length > 0) {
         pages.push(current);
         current = [];
-        currentGroupCount = 0;
+        currentRows = 0;
       }
       for (let i = 0; i < group.length; i += maxItemsPerPage) {
         pages.push(group.slice(i, i + maxItemsPerPage));
       }
       continue;
     }
-    const wouldExceedItems = current.length + group.length > maxItemsPerPage;
-    const wouldExceedGroups = currentGroupCount + 1 > maxGroupsPerPage;
-    if (current.length > 0 && (wouldExceedItems || wouldExceedGroups)) {
+    if (current.length > 0 && currentRows + groupRows > maxRowsPerPage) {
       pages.push(current);
       current = [];
-      currentGroupCount = 0;
+      currentRows = 0;
     }
     current.push(...group);
-    currentGroupCount += 1;
+    currentRows += groupRows;
   }
   if (current.length > 0) pages.push(current);
   return pages;
