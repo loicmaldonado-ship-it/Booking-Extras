@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { CastingUploadForm } from "@/components/casting/casting-upload-form";
 
 // Marge de sécurité pour les Server Actions de cette page (génération d'URL
@@ -39,9 +40,7 @@ export default async function CastingUploadPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
         <h1 className="mt-4 text-2xl font-semibold">Bonjour {entry.figurants?.prenom}</h1>
         <p className="mt-1 text-text-muted">
           {entry.casting_roles

@@ -3,6 +3,7 @@
 import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { requestMagicLink } from "@/lib/candidats/actions";
@@ -58,9 +59,7 @@ export default function ConnexionCandidatPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 py-10">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
         <h1 className="mt-4 text-2xl font-semibold">Mon espace</h1>
         <p className="mt-1 text-text-muted">
           Recevez un lien de connexion par email, sans mot de passe.

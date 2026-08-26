@@ -1,40 +1,19 @@
 import { ImageResponse } from "next/og";
+import { LogoMark } from "@/components/ui/logo";
 
 export const dynamic = "force-static";
 
+// Note : "force-static" fait que cette route ignore la query string
+// (?maskable) pour la génération — même comportement (non différencié)
+// qu'avant ce changement, on se contente donc de remplacer le glyphe. Le
+// dessin garde une marge intérieure suffisante pour rester lisible même
+// recadré en cercle/squircle par l'OS.
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ size: string }> }
 ) {
   const { size } = await params;
   const dim = Number(size) === 512 ? 512 : 192;
-  const maskable = new URL(request.url).searchParams.has("maskable");
-  const scale = maskable ? 0.55 : 0.72;
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          background: "#10141f",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            fontSize: dim * scale * 0.42,
-            fontWeight: 700,
-            color: "#ff6a3d",
-            display: "flex",
-          }}
-        >
-          BE
-        </div>
-      </div>
-    ),
-    { width: dim, height: dim }
-  );
+  return new ImageResponse(<LogoMark size={dim} />, { width: dim, height: dim });
 }

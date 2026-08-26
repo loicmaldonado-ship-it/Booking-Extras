@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { resolveDocumentsShareToken } from "@/lib/partage/data";
 import { getJournees } from "@/lib/bookings/journees";
@@ -35,9 +36,7 @@ export default async function PartageDocumentsPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
         <LangToggle lang={lang} basePath={`/partage/documents/${token}`} />
       </div>
 

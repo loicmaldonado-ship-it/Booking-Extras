@@ -2,6 +2,7 @@ import { resolvePartageToken, getPartageTitreByToken } from "@/lib/partage/data"
 import { getCastingRoles, getCastingEntries, getCastingVideoUrls, getCastingEntryPhotos } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { Card, Badge } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard } from "@/components/casting/casting-real-entry-card";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
@@ -56,9 +57,7 @@ export default async function PartageCastingPage({
     <div className="flex flex-col gap-8">
       <div>
         <div className="flex items-center justify-between gap-3">
-          <span className="font-display text-lg font-semibold">
-            Booking<span className="text-coral">Extras</span>
-          </span>
+          <Logo iconSize={26} textClassName="text-lg" />
           <LangToggle lang={lang} basePath={`/partage/casting/${token}`} />
         </div>
         <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>

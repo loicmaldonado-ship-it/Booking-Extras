@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { logoutFigurant } from "@/lib/candidats/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -81,9 +82,7 @@ export default async function CompteCandidatPage() {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-6 py-10">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
         <h1 className="mt-4 text-2xl font-semibold">
           Bonjour {figurant.prenom} {figurant.nom}
         </h1>

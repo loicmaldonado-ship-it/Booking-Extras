@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { RESPONSABLE_TRAITEMENT, CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 
 export const metadata = {
@@ -10,9 +11,7 @@ export default function ConfidentialitePage() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-10">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
       </div>
 
       <div>

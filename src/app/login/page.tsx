@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { Logo } from "@/components/ui/logo";
 
 export default async function LoginPage({
   searchParams,
@@ -11,9 +12,7 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <span className="font-display text-2xl font-semibold tracking-tight">
-            Booking<span className="text-coral">Extras</span>
-          </span>
+          <Logo iconSize={48} stacked textClassName="text-2xl" />
         </div>
         <LoginForm next={next ?? "/"} />
       </div>

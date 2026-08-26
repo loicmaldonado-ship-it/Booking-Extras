@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
 import { resolvePartageToken } from "@/lib/partage/data";
 import {
   getPhotosByFigurantId,
@@ -80,9 +81,7 @@ export default async function PartageEssayagesPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
         <LangToggle lang={lang} basePath={`/partage/essayages/${token}`} />
       </div>
 

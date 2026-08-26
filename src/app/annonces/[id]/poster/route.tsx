@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NextResponse, type NextRequest } from "next/server";
+import { LogoMark } from "@/components/ui/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
@@ -86,8 +87,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               <div style={{ fontSize: 16, color: "#E8E8E8" }}>Scannez pour postuler</div>
             </div>
           </div>
-          <div style={{ display: "flex", fontSize: 20, color: "#F5A47A", fontWeight: 600 }}>
-            Booking<span style={{ color: "white" }}>Extras</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <LogoMark size={28} />
+            <div style={{ display: "flex", fontSize: 20, color: "#F5A47A", fontWeight: 600 }}>
+              Booking<span style={{ color: "white" }}>Extras</span>
+            </div>
           </div>
         </div>
       </div>

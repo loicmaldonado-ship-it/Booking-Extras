@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
 import { PostulerForm } from "@/components/candidatures/postuler-form";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
@@ -111,9 +112,7 @@ export default async function PostulerPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <Logo iconSize={26} textClassName="text-lg" />
       </div>
 
       <div>

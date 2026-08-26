@@ -28,6 +28,7 @@ import { MyAvatarMenu } from "@/components/my-avatar-menu";
 import { TeamPresenceStrip } from "@/components/team-presence-strip";
 import { isOwner } from "@/lib/auth/owner";
 import type { CurrentProfile } from "@/lib/auth/session";
+import { Logo } from "@/components/ui/logo";
 
 const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIcon }[] = [
   { label: "Tableau de bord", href: "/", enabled: true, icon: LayoutDashboard },
@@ -116,9 +117,7 @@ export function AppShell({
       <header className="print:hidden relative z-50 flex items-center justify-between border-b border-border bg-ink-raised px-6 py-4">
         <div className="flex items-center gap-4">
           <Link href="/" className="shrink-0">
-            <span className="font-display text-lg font-semibold tracking-tight">
-              Booking<span className="hidden text-coral sm:inline">Extras</span>
-            </span>
+            <Logo iconSize={30} textClassName="text-lg" />
           </Link>
 
           {pathname !== "/" && (
