@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { type Row, type MessageRow } from "@/components/bookings/bookings-table";
 import { type EssayageRow, type BookedFigurant } from "@/components/bookings/essayages-panel";
@@ -280,12 +281,20 @@ export default async function JourneeDashboardPage({
             <Badge>{bookings.length} au total</Badge>
           </div>
         </div>
-        <QuickAddFigurant
-          projetId={projet_id}
-          date={date}
-          figurants={allFigurants ?? []}
-          alreadyBookedIds={figurantIds}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ButtonLink href="/candidatures" variant="secondary">
+            📄 Candidatures
+          </ButtonLink>
+          <ButtonLink href="/casting" variant="secondary">
+            🎬 Casting
+          </ButtonLink>
+          <QuickAddFigurant
+            projetId={projet_id}
+            date={date}
+            figurants={allFigurants ?? []}
+            alreadyBookedIds={figurantIds}
+          />
+        </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
