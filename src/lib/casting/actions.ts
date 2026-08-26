@@ -35,6 +35,7 @@ export async function createCastingRole(
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
+  const visiblePartage = formData.get("visible_partage") === "on";
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("casting_roles").insert({
@@ -46,6 +47,7 @@ export async function createCastingRole(
     photo_labels: photoLabels,
     demande_bande_demo: demandeBandeDemo,
     message_corps: messageCorps,
+    visible_partage: visiblePartage,
   });
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
 
@@ -73,6 +75,7 @@ export async function updateCastingRoleCalibration(
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
+  const visiblePartage = formData.get("visible_partage") === "on";
 
   const { error } = await supabase
     .from("casting_roles")
@@ -84,6 +87,7 @@ export async function updateCastingRoleCalibration(
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
       message_corps: messageCorps,
+      visible_partage: visiblePartage,
     })
     .eq("id", roleId);
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };

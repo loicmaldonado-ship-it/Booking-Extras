@@ -18,6 +18,7 @@ import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
+import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
 
@@ -54,7 +55,7 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
-  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }] =
+  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
     await Promise.all([
     supabase
       .from("projets")
@@ -78,6 +79,7 @@ export default async function JourneeDashboardPage({
       .eq("projet_id", projet_id)
       .order("created_at")
       .returns<ProjetIndemnite[]>(),
+    getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
   const journees = await getJournees(projet_id);
@@ -200,6 +202,10 @@ export default async function JourneeDashboardPage({
 
   const bookings: Row[] = rawBookings.map((b) => ({
     ...b,
+    // La signature calibrée sur le projet prime ; sans elle, le nom de la
+    // cheffe propriétaire (jamais une formule générique type "L'équipe
+    // casting") — voir getProjetSignatureOrOwnerName.
+    projets: b.projets ? { ...b.projets, signature: b.projets.signature || resolvedSignature } : b.projets,
     portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
     photos: photosByFigurant.get(b.figurant_id) ?? [],
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),

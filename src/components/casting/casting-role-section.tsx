@@ -22,6 +22,7 @@ export function CastingRoleSection({
   projetId,
   projetNom,
   origin,
+  signature,
   role,
   entries,
   portraitByFigurant,
@@ -33,6 +34,7 @@ export function CastingRoleSection({
   projetId: string;
   projetNom: string;
   origin: string;
+  signature: string;
   role: CastingRole;
   entries: CastingEntry[];
   portraitByFigurant: Map<string, string | null>;
@@ -67,7 +69,7 @@ export function CastingRoleSection({
       projet: projetNom,
       role: role.nom,
       date: role.date_tournage ? formatDateLong(role.date_tournage) : "",
-      signature: "",
+      signature,
       lien: `${origin}/casting/upload/${entry.request_token}`,
     };
   }
@@ -129,6 +131,7 @@ export function CastingRoleSection({
             <Badge>{CATEGORIE_CACHET_LABELS[role.categorie_cachet]}</Badge>
             <Badge tone="turquoise">{submitted} envoyé{submitted > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{entries.length - submitted} en attente</Badge>
+            {!role.visible_partage && <Badge tone="danger">Masqué du partage réal</Badge>}
           </div>
         </div>
         <div className="flex gap-2">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -79,12 +79,25 @@ export function AppShell({
   const isWidePublic =
     pathname?.startsWith("/partage/documents") || pathname?.startsWith("/partage/essayages");
 
+  // Fiche membre obligatoire pour les cheffes (photo, nom, prénom,
+  // téléphone) — tant qu'elle n'est pas complète, on bloque le reste de
+  // l'appli plutôt que de laisser une fiche vide traîner indéfiniment.
+  const needsProfileCompletion =
+    !isPublic && profile?.role === "chef" && !profile.profileComplete && pathname !== "/mon-compte";
+  useEffect(() => {
+    if (needsProfileCompletion) router.replace("/mon-compte");
+  }, [needsProfileCompletion, router]);
+
   if (isPublic) {
     return (
       <main className={cn("mx-auto w-full px-6 py-10", isWidePublic ? "max-w-6xl" : "max-w-2xl")}>
         {children}
       </main>
     );
+  }
+
+  if (needsProfileCompletion) {
+    return <main className="mx-auto w-full max-w-2xl px-6 py-10" />;
   }
 
   const navItems = [

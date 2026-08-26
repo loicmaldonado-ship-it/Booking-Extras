@@ -8,11 +8,24 @@ export type CurrentProfile = {
   id: string;
   email: string | null;
   nom: string | null;
+  prenom: string | null;
+  telephone: string | null;
   role: "chef" | "assistant";
   avatarUrl: string | null;
+  // Fiche membre complète (photo, email, nom, prénom, téléphone) —
+  // obligatoire pour les cheffes, voir /mon-compte et AppShell.
+  profileComplete: boolean;
 };
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
+
+// "nom" contenait le nom complet avant la fiche membre (prenom/nom
+// séparés) — reste utilisable tel quel pour les profils pas encore migrés
+// (assistant·es notamment, pas soumis à l'obligation de fiche complète).
+export function profileDisplayName(p: { prenom?: string | null; nom: string | null; email: string | null }): string | null {
+  if (p.prenom && p.nom) return `${p.prenom} ${p.nom}`;
+  return p.nom || p.email;
+}
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   const supabase = await createServerSupabaseClient();
@@ -24,7 +37,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nom, role, avatar_storage_path, last_seen_at")
+    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at")
     .eq("id", user.id)
     .single();
 
@@ -47,8 +60,11 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     id: profile.id,
     email: user.email ?? null,
     nom: profile.nom,
+    prenom: profile.prenom,
+    telephone: profile.telephone,
     role: profile.role as "chef" | "assistant",
     avatarUrl,
+    profileComplete: !!(avatarUrl && user.email && profile.nom && profile.prenom && profile.telephone),
   };
 }
 

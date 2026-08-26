@@ -16,6 +16,7 @@ import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dime
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
+import { getProjetSignaturesOrOwnerNames } from "@/lib/projets/signature";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { FileText } from "lucide-react";
 
@@ -271,8 +272,25 @@ export default async function CandidaturesPage({
     summaries[d.candidature_id] = entry;
   }
 
+  const signatureByProjet = await getProjetSignaturesOrOwnerNames(
+    supabase,
+    candidatures.map((c) => c.annonces?.projet_id).filter((id): id is string => !!id)
+  );
   const rows: Row[] = candidatures.map((c) => ({
     ...c,
+    // La signature calibrée sur le projet prime ; sans elle, le nom de la
+    // cheffe propriétaire — jamais une formule générique.
+    annonces: c.annonces
+      ? {
+          ...c.annonces,
+          projets: c.annonces.projets
+            ? {
+                ...c.annonces.projets,
+                signature: c.annonces.projets.signature || signatureByProjet.get(c.annonces.projet_id) || "",
+              }
+            : c.annonces.projets,
+        }
+      : c.annonces,
     portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
     photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
   }));

@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
 import type { CurrentProfile } from "@/lib/auth/session";
@@ -33,6 +34,13 @@ export function MyAvatarMenu({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-2 flex w-56 flex-col gap-2 rounded-xl border border-border bg-ink-raised-2 p-3 shadow-xl">
+            <Link
+              href="/mon-compte"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-1 py-1 text-sm font-medium hover:text-coral"
+            >
+              Mon profil →
+            </Link>
             <p className="text-xs text-text-muted">Ta photo de profil</p>
             {state?.error && <p className="text-xs text-danger">{state.error}</p>}
             <button

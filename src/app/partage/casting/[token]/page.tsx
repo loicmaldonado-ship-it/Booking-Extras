@@ -41,7 +41,7 @@ export default async function PartageCastingPage({
     list.push(e);
     submittedByRole.set(e.role_id, list);
   }
-  const rolesAvecProfils = roles.filter((r) => (submittedByRole.get(r.id) ?? []).length > 0);
+  const rolesAvecProfils = roles.filter((r) => r.visible_partage && (submittedByRole.get(r.id) ?? []).length > 0);
 
   const entryIds = submitted.map((e) => e.id);
   const figurantIds = submitted.map((e) => e.figurant_id);

@@ -42,13 +42,11 @@ export function substituteTokens(
   return result;
 }
 
-// Utilisée quand un projet n'a pas encore de signature configurée
-// (Projet > Signature).
-export const DEFAULT_SIGNATURE = [
-  "Loïc MALDONADO ACFDA",
-  "Chargé de Casting Rôle & Figuration",
-  "06 59 04 98 36",
-].join("\n");
+// Dernier filet de sécurité si un appelant oublie de résoudre la signature
+// en amont (voir getProjetSignatureOrOwnerName) — jamais une identité en
+// dur : ça signerait au nom de la mauvaise cheffe sur les projets qui ne
+// sont pas les siens.
+export const DEFAULT_SIGNATURE = "";
 
 // Valeurs par défaut des blocs calibrables de la convocation (Précisions,
 // HMC, Commentaires) — reprennent le texte historique tel quel, pour que les

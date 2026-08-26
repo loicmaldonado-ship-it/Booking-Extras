@@ -32,3 +32,26 @@ export async function inviteChef(_prevState: unknown, formData: FormData) {
   revalidatePath("/admin");
   return { success: true };
 }
+
+// Bloque la connexion d'une cheffe sans rien supprimer (projets, historique
+// intacts) — via le bannissement natif de Supabase Auth plutôt qu'un
+// champ maison, pour ne pas réinventer une règle de sécurité.
+export async function revokeChefAccess(chefId: string) {
+  await requireOwner();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(chefId, { ban_duration: "876000h" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { success: true as const };
+}
+
+export async function restoreChefAccess(chefId: string) {
+  await requireOwner();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(chefId, { ban_duration: "none" });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { success: true as const };
+}

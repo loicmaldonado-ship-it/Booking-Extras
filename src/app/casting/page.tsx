@@ -11,6 +11,7 @@ import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
+import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { Video } from "lucide-react";
 
@@ -46,7 +47,7 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  const [roles, entries, partageToken, partageTitre, origin, { data: allFigurants }, { data: templates }] =
+  const [roles, entries, partageToken, partageTitre, origin, { data: allFigurants }, { data: templates }, signature] =
     await Promise.all([
       getCastingRoles(currentProjetId),
       getCastingEntries(currentProjetId),
@@ -55,6 +56,7 @@ export default async function CastingPage({
       getSiteOrigin(),
       supabase.from("figurants").select("id, prenom, nom").order("nom"),
       supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+      getProjetSignatureOrOwnerName(supabase, currentProjetId),
     ]);
 
   const figurantIds = entries.map((e) => e.figurant_id);
@@ -104,6 +106,7 @@ export default async function CastingPage({
           projetId={currentProjetId}
           projetNom={projet.nom}
           origin={origin}
+          signature={signature}
           role={role}
           entries={entriesByRole.get(role.id) ?? []}
           portraitByFigurant={portraitByFigurant}

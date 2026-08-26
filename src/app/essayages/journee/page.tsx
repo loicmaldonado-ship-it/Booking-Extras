@@ -12,6 +12,7 @@ import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,11 @@ export default async function EssayageJourneePage({
 
   const supabase = createAdminClient();
 
-  const [{ data: projet }, { data: journee }, essayageLieu] = await Promise.all([
+  const [{ data: projet }, { data: journee }, essayageLieu, resolvedSignature] = await Promise.all([
     supabase.from("projets").select("nom, confidentiel, signature").eq("id", projet_id).single(),
     supabase.from("essayage_journees").select("id").eq("projet_id", projet_id).eq("date", date).single(),
     getEssayageLieuProjet(projet_id),
+    getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
   if (!journee) {
@@ -112,7 +114,7 @@ export default async function EssayageJourneePage({
           rows={rows}
           projetId={projet_id}
           projetNom={projet?.nom ?? ""}
-          signature={projet?.signature ?? null}
+          signature={projet?.signature || resolvedSignature}
           journeeDate={date}
           journeeLieu={essayageLieu.nom}
           journeeAdresse={essayageLieu.adresse}

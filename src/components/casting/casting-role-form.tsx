@@ -101,6 +101,16 @@ export function CastingRoleForm({
         Demander un lien de bande démo
       </label>
 
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="visible_partage"
+          defaultChecked={role?.visible_partage ?? true}
+          className="accent-coral"
+        />
+        Visible sur le lien de partage réal
+      </label>
+
       <Field label="Corps du mail d'invitation (optionnel)">
         <textarea
           name="message_corps"

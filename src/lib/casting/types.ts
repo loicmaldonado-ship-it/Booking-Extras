@@ -16,6 +16,7 @@ export type CastingRole = {
   photo_labels: string[];
   demande_bande_demo: boolean;
   message_corps: string | null;
+  visible_partage: boolean;
   created_at: string;
 };
 

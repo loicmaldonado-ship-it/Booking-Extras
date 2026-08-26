@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getAccessibleProjetIds, idsOrNone, type CurrentProfile } from "@/lib/auth/session";
+import { getAccessibleProjetIds, idsOrNone, profileDisplayName, type CurrentProfile } from "@/lib/auth/session";
 import { isOnline } from "@/lib/auth/presence";
 import type { PresenceMember } from "@/components/equipe/team-presence-list";
 
@@ -15,17 +15,17 @@ export async function getMyTeamPresence(profile: CurrentProfile): Promise<Presen
 
   let membresQuery = supabase
     .from("projet_membres")
-    .select("profiles(id, email, nom, avatar_storage_path, last_seen_at)");
+    .select("profiles(id, email, nom, prenom, avatar_storage_path, last_seen_at)");
   if (accessibleIds !== null) membresQuery = membresQuery.in("projet_id", idsOrNone(accessibleIds));
 
   const { data: membresRaw } = await membresQuery.returns<
-    { profiles: { id: string; email: string | null; nom: string | null; avatar_storage_path: string | null; last_seen_at: string | null } | null }[]
+    { profiles: { id: string; email: string | null; nom: string | null; prenom: string | null; avatar_storage_path: string | null; last_seen_at: string | null } | null }[]
   >();
 
   const byId = new Map<string, PresenceMember>();
   byId.set(profile.id, {
     id: profile.id,
-    nom: profile.nom,
+    nom: profileDisplayName(profile),
     email: profile.email,
     role: "chef",
     avatarUrl: profile.avatarUrl,
@@ -35,7 +35,7 @@ export async function getMyTeamPresence(profile: CurrentProfile): Promise<Presen
     if (!m.profiles || byId.has(m.profiles.id)) continue;
     byId.set(m.profiles.id, {
       id: m.profiles.id,
-      nom: m.profiles.nom,
+      nom: profileDisplayName(m.profiles),
       email: m.profiles.email,
       role: "assistant",
       avatarUrl: m.profiles.avatar_storage_path

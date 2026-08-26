@@ -178,7 +178,7 @@ export default function AidePage() {
               </>,
               <>
                 <strong className="text-text">Ta photo</strong> — en haut à droite, pour changer ton avatar et
-                (sur mobile) te déconnecter.
+                (sur mobile) te déconnecter. <UI>Mon profil</UI> dans ce menu ouvre ta fiche membre.
               </>,
             ]}
           />
@@ -187,6 +187,11 @@ export default function AidePage() {
           <strong className="text-text">Un projet à la fois.</strong> Beaucoup de sections (Bookings, Casting,
           Essayages) travaillent sur « le projet actuel », affiché en haut de la page. Change de projet via{" "}
           <UI>Changer de projet</UI> en passant d&apos;un tournage à l&apos;autre.
+        </Callout>
+        <Callout tone="yellow">
+          <strong className="text-text">Fiche membre obligatoire (cheffes).</strong> Photo, nom, prénom et
+          téléphone sont demandés à la première connexion sur <UI>Mon profil</UI> — impossible d&apos;utiliser le
+          reste de l&apos;appli tant qu&apos;elle n&apos;est pas complète.
         </Callout>
       </GuideChapter>
 
@@ -233,7 +238,9 @@ export default function AidePage() {
         <Steps
           items={[
             <>
-              <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce.
+              <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce. Identité,
+              contact, adresse complète (rue, code postal, ville), commune de naissance et une photo portrait
+              sont obligatoires — le reste (mensurations, véhicule) peut attendre.
             </>,
             <>
               Complète les <strong className="text-text">mensurations</strong> et ajoute ses{" "}
@@ -343,7 +350,13 @@ export default function AidePage() {
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
           <UI>Partage réal — Casting</UI> montre au réalisateur·ice uniquement les profils ayant déjà envoyé
-          leur vidéo, classés par rôle — jamais les infos de contact.
+          leur vidéo, classés par rôle — jamais les infos de contact. Décoche{" "}
+          <UI>Visible sur le lien de partage réal</UI> en calibrant un rôle pour le masquer sans le supprimer
+          (utile pour une silhouette que tu ne veux plus montrer).
+        </Callout>
+        <Callout tone="yellow">
+          <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du
+          projet si elle est calibrée (Projets → Signature), sinon par ton nom — jamais une formule générique.
         </Callout>
       </GuideChapter>
 
@@ -443,9 +456,16 @@ export default function AidePage() {
       >
         <Steps
           items={[
-            <>Écris un message libre depuis la fiche, ou utilise un <strong className="text-text">modèle</strong> pré-rempli.</>,
+            <>
+              Écris un message depuis la fiche en choisissant une{" "}
+              <strong className="text-text">catégorie</strong> (Booking, Convocations, Covoiturage, Essayage, HMC,
+              Casting, Libre, Espace perso), ou utilise un <strong className="text-text">modèle</strong> pré-rempli.
+            </>,
             <>Coche <strong className="text-text">Notifier par email</strong> pour que le message parte aussi par mail.</>,
-            <>Le figurant·e doit cocher <UI>BIEN REÇU</UI> sur tes messages avant de pouvoir répondre à son tour.</>,
+            <>
+              Côté figurant·e, l&apos;espace ne sert qu&apos;à consulter et cocher <UI>BIEN REÇU</UI> — pour
+              répondre, c&apos;est par email, pas depuis l&apos;appli.
+            </>,
           ]}
         />
       </GuideChapter>
@@ -482,6 +502,11 @@ export default function AidePage() {
           boîte configurée, l&apos;envoi de tout message (convocations, casting, espace perso...) est bloqué —
           c&apos;est voulu, pour qu&apos;aucun message ne parte jamais depuis l&apos;adresse d&apos;une autre
           cheffe.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Mails automatiques.</strong> Toujours dans Équipe, section{" "}
+          <UI>Mails automatiques</UI> : calibre le texte d&apos;activation de l&apos;espace perso et de renvoi du
+          lien de connexion, ou laisse vide pour garder le texte par défaut.
         </Callout>
       </GuideChapter>
 
