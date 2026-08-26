@@ -177,7 +177,7 @@ export function CastingRoleSection({
           {sendError && <p className="text-sm text-danger">{sendError}</p>}
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
+              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
             </span>
             <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendToAll}>
               Envoyer à tous

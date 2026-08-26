@@ -20,7 +20,7 @@ export function AcceptInviteForm() {
       const accessToken = hash.get("access_token");
       const refreshToken = hash.get("refresh_token");
       const invalidLinkMessage =
-        "Lien d'invitation invalide ou expiré. Demande une nouvelle invitation à la cheffe de casting.";
+        "Lien d'invitation invalide ou expiré. Demande une nouvelle invitation au·à la chef·fe de casting.";
 
       if (!accessToken || !refreshToken) {
         setError(invalidLinkMessage);

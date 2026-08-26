@@ -10,7 +10,7 @@ export function RevokeChefButton({ chefId, revoked }: { chefId: string; revoked:
   const [pending, startTransition] = useTransition();
 
   function toggle() {
-    if (!revoked && !confirm("Révoquer l'accès de cette cheffe ? Elle ne pourra plus se connecter.")) return;
+    if (!revoked && !confirm("Révoquer l'accès de ce·cette chef·fe ? Il·elle ne pourra plus se connecter.")) return;
     startTransition(async () => {
       if (revoked) await restoreChefAccess(chefId);
       else await revokeChefAccess(chefId);

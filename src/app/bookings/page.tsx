@@ -110,7 +110,7 @@ export default async function BookingsPage({
                 <Badge tone={j.confirmes > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
               )}
               <div className="flex gap-1.5">
-                <Badge tone="turquoise">{j.confirmes} confirmé{j.confirmes > 1 ? "s" : ""}</Badge>
+                <Badge tone="turquoise">{j.confirmes} confirmé·e{j.confirmes > 1 ? "s" : ""}</Badge>
                 <Badge tone="yellow">{j.per} PER</Badge>
               </div>
               <div className="flex gap-1.5">

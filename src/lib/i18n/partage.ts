@@ -30,8 +30,8 @@ const DICT = {
   trombis: { fr: "Trombis", en: "Contact sheet" },
   fiches_mensuration: { fr: "Fiches mensuration", en: "Measurement sheets" },
   aucune_journee: { fr: "Aucune journée pour l'instant.", en: "No day yet." },
-  confirme: { fr: "confirmé", en: "confirmed" },
-  confirmes: { fr: "confirmés", en: "confirmed" },
+  confirme: { fr: "confirmé·e", en: "confirmed" },
+  confirmes: { fr: "confirmé·es", en: "confirmed" },
   au_total: { fr: "au total", en: "total" },
 
   // Trombis / fiches toolbar

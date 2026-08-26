@@ -275,7 +275,7 @@ export default async function JourneeDashboardPage({
             )}
           </div>
           <div className="mt-2 flex gap-2">
-            <Badge tone="turquoise">{confirmes} confirmé{confirmes > 1 ? "s" : ""}</Badge>
+            <Badge tone="turquoise">{confirmes} confirmé·e{confirmes > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{enAttente} en attente</Badge>
             <Badge>{bookings.length} au total</Badge>
           </div>

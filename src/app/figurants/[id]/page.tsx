@@ -265,7 +265,7 @@ export default async function FigurantDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Messagerie interne</h2>
         <p className="text-sm text-text-muted">
-          Message direct dans l&apos;espace du figurant, sans passer par email ou SMS. Il·elle doit se connecter
+          Message direct dans l&apos;espace du·de la figurant·e, sans passer par email ou SMS. Il·elle doit se connecter
           sur son compte pour le lire.
         </p>
         <MessageriePanel
@@ -280,7 +280,7 @@ export default async function FigurantDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Disponibilités</h2>
         <p className="text-sm text-text-muted">
-          Envoie ce lien au figurant pour qu&apos;il déclare lui-même ses jours indisponibles.
+          Envoie ce lien au·à la figurant·e pour qu&apos;il·elle déclare lui-même ses jours indisponibles.
         </p>
         <CopyLink url={disponibiliteUrl} />
         <AvailabilityCalendar

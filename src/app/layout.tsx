@@ -26,7 +26,7 @@ const inter = localFont({
 
 export const metadata: Metadata = {
   title: "Booking Extras",
-  description: "Gestion de casting figuration — figurants, projets, annonces, bookings.",
+  description: "Gestion de casting figuration — figurant·es, projets, annonces, bookings.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

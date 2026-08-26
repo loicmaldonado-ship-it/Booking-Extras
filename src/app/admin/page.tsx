@@ -79,7 +79,7 @@ export default async function AdminPage() {
         </p>
       </div>
 
-      <TeamPresenceList title="Qui est connecté (toute l'agence)" members={presenceMembers} />
+      <TeamPresenceList title="Qui est connecté·e (toute l'agence)" members={presenceMembers} />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Dernière connexion</h2>

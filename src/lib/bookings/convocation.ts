@@ -64,7 +64,7 @@ export const DEFAULT_CONVOCATION_HMC = [
 ].join("\n");
 
 export const DEFAULT_CONVOCATION_COMMENTAIRES =
-  "Nous avons à cœur de faire attention à la bienveillance entre les figurants, comédiens et les membres " +
+  "Nous avons à cœur de faire attention à la bienveillance entre les figurant·es, comédien·nes et les membres " +
   "de l'équipe technique. Si vous êtes victime ou témoin d'un comportement déplacé de la part d'une " +
   "personne sur le tournage, merci de nous en faire part.";
 

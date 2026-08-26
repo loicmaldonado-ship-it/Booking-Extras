@@ -150,7 +150,7 @@ export function PlanningBoard({
               </div>
             ))}
             {figurants.length === 0 && (
-              <p className="text-sm text-text-muted">Aucun figurant trouvé.</p>
+              <p className="text-sm text-text-muted">Aucun·e figurant·e trouvé·e.</p>
             )}
           </div>
         </Card>

@@ -88,9 +88,9 @@ export default async function EssayageJourneePage({
             {essayageLieu.nom ?? "Lieu non calibré"} · {rows.length} profil{rows.length > 1 ? "s" : ""}
           </p>
           <div className="mt-2 flex gap-2">
-            <Badge tone="yellow">{rows.filter((r) => r.statut === "proposé").length} proposé</Badge>
-            <Badge tone="coral">{rows.filter((r) => r.statut === "confirmé").length} confirmé</Badge>
-            <Badge tone="turquoise">{rows.filter((r) => r.statut === "fait").length} fait</Badge>
+            <Badge tone="yellow">{rows.filter((r) => r.statut === "proposé").length} proposé·e</Badge>
+            <Badge tone="coral">{rows.filter((r) => r.statut === "confirmé").length} confirmé·e</Badge>
+            <Badge tone="turquoise">{rows.filter((r) => r.statut === "fait").length} fait·e</Badge>
           </div>
         </div>
         <div className="flex gap-3">

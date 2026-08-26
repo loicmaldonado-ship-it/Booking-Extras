@@ -57,7 +57,7 @@ export function AddToCastingBar({
   return (
     <div className="flex flex-wrap items-end gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3">
       <span className="text-sm font-medium">
-        {figurantIds.length} sélectionné{figurantIds.length > 1 ? "s" : ""}
+        {figurantIds.length} sélectionné·e{figurantIds.length > 1 ? "s" : ""}
       </span>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-text-muted">Projet</label>

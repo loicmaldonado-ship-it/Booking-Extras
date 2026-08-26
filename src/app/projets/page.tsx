@@ -70,7 +70,7 @@ export default async function ProjetsPage({
 
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
-          <Input name="q" placeholder="Nom, réalisateur, société..." defaultValue={params.q} />
+          <Input name="q" placeholder="Nom, réalisateur·ice, société..." defaultValue={params.q} />
           <Select name="type" defaultValue={params.type ?? ""}>
             <option value="">Type (tous)</option>
             {PROJET_TYPES.map((t) => (

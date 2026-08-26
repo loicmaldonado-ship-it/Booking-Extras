@@ -174,7 +174,7 @@ export default function AidePage() {
               </>,
               <>
                 <strong className="text-text">Cloche</strong> — notifications (candidature reçue, réponse
-                d&apos;un figurant, vidéo de casting envoyée).
+                d&apos;un·e figurant·e, vidéo de casting envoyée).
               </>,
               <>
                 <strong className="text-text">Ta photo</strong> — en haut à droite, pour changer ton avatar et
@@ -189,7 +189,7 @@ export default function AidePage() {
           <UI>Changer de projet</UI> en passant d&apos;un tournage à l&apos;autre.
         </Callout>
         <Callout tone="yellow">
-          <strong className="text-text">Fiche membre obligatoire (cheffes).</strong> Photo, nom, prénom et
+          <strong className="text-text">Fiche membre obligatoire (chef·fes).</strong> Photo, nom, prénom et
           téléphone sont demandés à la première connexion sur <UI>Mon profil</UI> — impossible d&apos;utiliser le
           reste de l&apos;appli tant qu&apos;elle n&apos;est pas complète.
         </Callout>
@@ -452,7 +452,7 @@ export default function AidePage() {
         icon={MessageCircle}
         title="Messagerie"
         audiences={["tous"]}
-        intro="Chaque fiche figurant·e a son propre fil de discussion, visible uniquement par les cheffes concernées par ses projets en cours."
+        intro="Chaque fiche figurant·e a son propre fil de discussion, visible uniquement par les chef·fes concerné·es par ses projets en cours."
       >
         <Steps
           items={[
@@ -482,7 +482,7 @@ export default function AidePage() {
           <Steps
             items={[
               "Va dans Équipe, choisis le projet concerné et l'email de la personne.",
-              "Elle reçoit une invitation par email pour créer son compte — son accès reste limité à ce projet.",
+              "Il·elle reçoit une invitation par email pour créer son compte — son accès reste limité à ce projet.",
             ]}
           />
         </div>
@@ -500,8 +500,8 @@ export default function AidePage() {
         <Callout tone="yellow">
           <strong className="text-text">Obligatoire si tu n&apos;es pas le compte principal.</strong> Sans
           boîte configurée, l&apos;envoi de tout message (convocations, casting, espace perso...) est bloqué —
-          c&apos;est voulu, pour qu&apos;aucun message ne parte jamais depuis l&apos;adresse d&apos;une autre
-          cheffe.
+          c&apos;est voulu, pour qu&apos;aucun message ne parte jamais depuis l&apos;adresse d&apos;un·e autre
+          chef·fe.
         </Callout>
         <Callout>
           <strong className="text-text">Mails automatiques.</strong> Toujours dans Équipe, section{" "}
@@ -529,7 +529,7 @@ export default function AidePage() {
       <p className="text-center text-xs text-text-muted">
         Une question, un écran qui ne correspond plus à ce guide ?{" "}
         <Link href="/equipe" className="text-coral hover:underline">
-          Préviens ta cheffe de casting
+          Préviens ton·ta chef·fe de casting
         </Link>{" "}
         — ce guide est mis à jour à chaque nouvelle fonctionnalité livrée.
       </p>

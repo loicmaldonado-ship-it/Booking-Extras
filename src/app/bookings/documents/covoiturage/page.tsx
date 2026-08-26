@@ -69,7 +69,7 @@ export default async function CovoiturageDocPage({
         <p className="mb-4 text-sm text-gray-600">{formatDateShort(date)}</p>
 
         {conducteurs.length === 0 && (
-          <p className="text-sm text-gray-600">Aucun chauffeur désigné pour cette journée.</p>
+          <p className="text-sm text-gray-600">Aucun·e chauffeur·euse désigné·e pour cette journée.</p>
         )}
 
         <div className="flex flex-col gap-4">

@@ -32,7 +32,7 @@ export function TeamPresenceList({ title, members }: { title: string; members: P
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
         <span className="text-xs text-text-muted">
-          {onlineCount} connecté{onlineCount > 1 ? "s" : ""} / {members.length}
+          {onlineCount} connecté·e{onlineCount > 1 ? "s" : ""} / {members.length}
         </span>
       </div>
       <div className="flex flex-wrap gap-4">

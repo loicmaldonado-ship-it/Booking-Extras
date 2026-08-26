@@ -126,7 +126,7 @@ export default async function CandidaturesPage({
               </span>
               <div className="flex gap-1.5">
                 <Badge tone={a.statut === "ouverte" ? "turquoise" : "default"}>{a.statut}</Badge>
-                <Badge>{countByAnnonce.get(a.id) ?? 0} candidat{(countByAnnonce.get(a.id) ?? 0) > 1 ? "s" : ""}</Badge>
+                <Badge>{countByAnnonce.get(a.id) ?? 0} candidat·e{(countByAnnonce.get(a.id) ?? 0) > 1 ? "s" : ""}</Badge>
               </div>
             </Link>
           ))}

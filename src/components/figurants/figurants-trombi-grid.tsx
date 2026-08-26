@@ -111,7 +111,7 @@ export function FigurantsTrombiGrid({
           </div>
         ))}
         {figurants.length === 0 && (
-          <p className="col-span-full py-10 text-center text-text-muted">Aucun figurant pour l&apos;instant.</p>
+          <p className="col-span-full py-10 text-center text-text-muted">Aucun·e figurant·e pour l&apos;instant.</p>
         )}
       </div>
     </div>

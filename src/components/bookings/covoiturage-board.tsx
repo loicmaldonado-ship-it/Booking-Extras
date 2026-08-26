@@ -293,8 +293,8 @@ export function CovoiturageBoard({
       {viewMode === "trombi" && (
         <div className="flex flex-col gap-4">
           <p className="text-xs text-text-muted">
-            Glisse un profil sur un chauffeur pour l&apos;ajouter comme passager, ou sur « + Nouveau chauffeur »
-            pour le promouvoir.
+            Glisse un profil sur un·e chauffeur·euse pour l&apos;ajouter comme passager·ère, ou sur « + Nouveau·elle chauffeur·euse »
+            pour le·la promouvoir.
           </p>
 
           <div className="flex flex-wrap items-start gap-4">
@@ -389,7 +389,7 @@ export function CovoiturageBoard({
                 dragOverZone === "nouveau-conducteur" ? "border-coral bg-coral/10 text-coral" : "border-border"
               )}
             >
-              + Nouveau chauffeur
+              + Nouveau·elle chauffeur·euse
             </div>
           </div>
 

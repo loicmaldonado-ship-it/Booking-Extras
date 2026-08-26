@@ -36,7 +36,7 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
         <Card className="border-coral/40 bg-coral/10">
           <p className="text-sm">
             Avant de continuer, complète ta fiche membre — photo, nom, prénom et téléphone sont obligatoires pour
-            les cheffes de casting.
+            les chef·fes de casting.
           </p>
         </Card>
       )}

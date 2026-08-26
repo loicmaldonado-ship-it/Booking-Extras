@@ -131,7 +131,7 @@ export default async function PlanningPage({
         </p>
         <h1 className="text-3xl font-semibold">Planning</h1>
         <p className="mt-1 text-text-muted">
-          Glisse la photo d&apos;un figurant sur une journée pour créer son booking.
+          Glisse la photo d&apos;un·e figurant·e sur une journée pour créer son booking.
         </p>
       </div>
 

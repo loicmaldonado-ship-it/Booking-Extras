@@ -161,7 +161,7 @@ export default async function AnnonceDetailPage({
         <div>
           <h2 className="text-lg font-semibold">Dates de disponibilité à demander</h2>
           <p className="text-sm text-text-muted">
-            Chaque candidat indiquera s&apos;il est disponible ou non pour chacune de ces dates.
+            Chaque candidat·e indiquera s&apos;il·elle est disponible ou non pour chacune de ces dates.
           </p>
         </div>
         <DatesManager annonceId={id} dates={dates} />

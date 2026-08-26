@@ -297,7 +297,7 @@ export function CandidaturesTable({
         <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
+              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
             </span>
             <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendBulkToAll}>
               Envoyer à tous

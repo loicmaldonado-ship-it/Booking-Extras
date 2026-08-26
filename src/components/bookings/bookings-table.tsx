@@ -1221,7 +1221,7 @@ export function BookingsTable({
         {projetId && date && (
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-text-muted">
-              {selected.size > 0 ? `Trombis / Fiches (${selected.size} sélectionné${selected.size > 1 ? "s" : ""})` : "Trombis / Fiches (tous)"}
+              {selected.size > 0 ? `Trombis / Fiches (${selected.size} sélectionné·e${selected.size > 1 ? "s" : ""})` : "Trombis / Fiches (tous)"}
             </span>
             <Link
               href={documentHref("trombis")}
@@ -1372,7 +1372,7 @@ export function BookingsTable({
 
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <span className="text-sm">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+          <span className="text-sm">{selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}</span>
           <div className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-border bg-ink/40 px-3 py-2">
             <span className="text-xs text-text-muted">Modifier :</span>
             <select

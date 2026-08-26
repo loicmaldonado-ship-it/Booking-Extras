@@ -37,7 +37,7 @@ export default async function NouveauBookingPage({
 
       <div>
         <h1 className="text-3xl font-semibold">Nouveau booking</h1>
-        <p className="mt-1 text-text-muted">Une journée de tournage pour un figurant.</p>
+        <p className="mt-1 text-text-muted">Une journée de tournage pour un·e figurant·e.</p>
       </div>
       <BookingForm
         action={createBooking}

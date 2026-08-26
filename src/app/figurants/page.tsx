@@ -199,7 +199,7 @@ export default async function FigurantsPage({
             {(figurants ?? []).length === 0 && !error && (
               <tr>
                 <td colSpan={5} className="px-6 py-10 text-center text-text-muted">
-                  Aucun figurant pour l&apos;instant.
+                  Aucun·e figurant·e pour l&apos;instant.
                 </td>
               </tr>
             )}

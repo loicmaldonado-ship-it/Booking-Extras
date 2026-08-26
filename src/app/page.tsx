@@ -44,7 +44,7 @@ type DashboardAnnonce = {
 };
 
 const SECTIONS: { label: string; href: string; description: string; icon: LucideIcon; chefOnly?: boolean }[] = [
-  { label: "Base Profils", href: "/figurants", description: "Fiches figurants, photos, disponibilités", icon: Users },
+  { label: "Base Profils", href: "/figurants", description: "Fiches figurant·es, photos, disponibilités", icon: Users },
   { label: "Projets", href: "/projets", description: "Tournages et infos production", icon: Clapperboard },
   { label: "Annonces", href: "/annonces", description: "Offres publiées, candidatures reçues", icon: Megaphone },
   { label: "Candidatures", href: "/candidatures", description: "Trier, répondre, ajouter au booking", icon: FileText },

@@ -127,7 +127,7 @@ export function FigurantForm({
             <Input type="tel" name="telephone" defaultValue={figurant?.telephone ?? ""} required />
           </Field>
         </div>
-        <Field label="Où peut-il/elle loger en France ? (option)">
+        <Field label="Où peut-il·elle loger en France ? (option)">
           <Textarea
             name="logement_france"
             placeholder="Ex. peut loger chez de la famille à Lyon et Marseille"

@@ -211,7 +211,7 @@ export function EssayageJourneeTable({
       )}
       {selected.size > 0 && projetId && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <span className="text-sm">{selected.size} sélectionné{selected.size > 1 ? "s" : ""}</span>
+          <span className="text-sm">{selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}</span>
           <Button
             type="button"
             variant="secondary"

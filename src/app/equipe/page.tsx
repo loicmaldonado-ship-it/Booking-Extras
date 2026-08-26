@@ -56,7 +56,7 @@ export default async function EquipePage() {
         </p>
       </div>
 
-      <TeamPresenceList title="Qui est connecté" members={teamPresence} />
+      <TeamPresenceList title="Qui est connecté·e" members={teamPresence} />
 
       <MyEmailPanel gmailUser={myProfile?.gmail_smtp_user ?? null} />
 
