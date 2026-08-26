@@ -56,6 +56,9 @@ export default async function PostulerPage({
     email: string;
     telephone: string | null;
     ville: string | null;
+    adresse: string | null;
+    code_postal: string | null;
+    commune_naissance: string | null;
     date_naissance: string | null;
     lien_bande_demo: string | null;
     taille_cm: number | null;
@@ -68,7 +71,9 @@ export default async function PostulerPage({
     const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
       supabase
         .from("figurants")
-        .select("prenom, nom, email, telephone, ville, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon")
+        .select(
+          "prenom, nom, email, telephone, ville, adresse, code_postal, commune_naissance, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon"
+        )
         .eq("id", session.id)
         .single(),
       supabase
@@ -85,6 +90,9 @@ export default async function PostulerPage({
         email: figurantComplet.email,
         telephone: figurantComplet.telephone,
         ville: figurantComplet.ville,
+        adresse: figurantComplet.adresse,
+        code_postal: figurantComplet.code_postal,
+        commune_naissance: figurantComplet.commune_naissance,
         date_naissance: figurantComplet.date_naissance,
         lien_bande_demo: lienBandeDemo?.url ?? null,
         taille_cm: figurantComplet.taille_cm,

@@ -62,6 +62,9 @@ export async function postulerAnnonce(
   const email = str(formData, "email");
   const telephone = str(formData, "telephone");
   const ville = str(formData, "ville");
+  const adresse = str(formData, "adresse");
+  const codePostal = str(formData, "code_postal");
+  const communeNaissance = str(formData, "commune_naissance");
   const dateNaissance = str(formData, "date_naissance");
   const message = str(formData, "message");
   const lienBandeDemo = str(formData, "lien_bande_demo");
@@ -80,8 +83,14 @@ export async function postulerAnnonce(
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
   }
+  if (!adresse || !codePostal) {
+    return { error: "L'adresse de résidence complète (rue et code postal) est obligatoire." };
+  }
   if (!dateNaissance) {
     return { error: "La date de naissance est obligatoire." };
+  }
+  if (!communeNaissance) {
+    return { error: "La commune de naissance est obligatoire." };
   }
   if (!message) {
     return { error: "Le message est obligatoire." };
@@ -197,6 +206,9 @@ export async function postulerAnnonce(
         email,
         telephone,
         ville,
+        adresse,
+        code_postal: codePostal,
+        commune_naissance: communeNaissance,
         date_naissance: dateNaissance,
         taille_cm: tailleCm,
         poids_kg: poidsKg,
@@ -227,6 +239,10 @@ export async function postulerAnnonce(
     await supabase
       .from("figurants")
       .update({
+        ville,
+        adresse,
+        code_postal: codePostal,
+        commune_naissance: communeNaissance,
         taille_cm: tailleCm,
         poids_kg: poidsKg,
         pointure,

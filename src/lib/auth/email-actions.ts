@@ -53,3 +53,23 @@ export async function updateMyGmailSmtp(_prevState: unknown, formData: FormData)
   revalidatePath("/equipe");
   return { success: true as const };
 }
+
+// Modèles des mails automatiques (activation espace perso, renvoi du lien
+// de connexion) — vide = texte par défaut généré par l'appli.
+export async function updateMyEmailTemplates(_prevState: unknown, formData: FormData) {
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== "chef") return { error: "Réservé au·à la chef·fe." };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      email_espace_perso_template: str(formData, "email_espace_perso_template"),
+      email_magic_link_template: str(formData, "email_magic_link_template"),
+    })
+    .eq("id", profile.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/equipe");
+  return { success: true as const };
+}

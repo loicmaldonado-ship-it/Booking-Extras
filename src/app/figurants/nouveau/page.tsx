@@ -8,7 +8,7 @@ export default function NouveauFigurantPage() {
       <BackLink href="/figurants" label="Base Profils" />
 
       <div>
-        <h1 className="text-3xl font-semibold">Nouveau figurant</h1>
+        <h1 className="text-3xl font-semibold">Nouveau profil</h1>
         <p className="mt-1 text-text-muted">
           Crée un profil réutilisable pour tous les projets.
         </p>

@@ -72,7 +72,7 @@ export default async function FigurantsPage({
             {figurants?.length ?? 0} profil{(figurants?.length ?? 0) > 1 ? "s" : ""}
           </p>
         </div>
-        <ButtonLink href="/figurants/nouveau">+ Nouveau figurant</ButtonLink>
+        <ButtonLink href="/figurants/nouveau">+ Nouveau profil</ButtonLink>
       </div>
 
       <DoublonsPanel groupes={doublons} />

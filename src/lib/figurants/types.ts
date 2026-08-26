@@ -19,6 +19,7 @@ export type Figurant = {
   telephone: string | null;
   ville: string | null;
   adresse: string | null;
+  code_postal: string | null;
   date_naissance: string | null;
   commune_naissance: string | null;
   logement_france: string | null;

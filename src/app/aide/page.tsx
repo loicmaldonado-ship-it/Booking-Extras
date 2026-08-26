@@ -233,7 +233,7 @@ export default function AidePage() {
         <Steps
           items={[
             <>
-              <UI>+ Nouveau figurant</UI>, ou laisse-le·la candidater directement via une annonce.
+              <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce.
             </>,
             <>
               Complète les <strong className="text-text">mensurations</strong> et ajoute ses{" "}

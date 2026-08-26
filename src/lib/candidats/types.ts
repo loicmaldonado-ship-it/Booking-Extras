@@ -3,6 +3,7 @@ export type FigurantMessageCategorie =
   | "convocation"
   | "covoiturage"
   | "essayage"
+  | "hmc"
   | "casting"
   | "libre"
   | "espace_perso";
@@ -12,6 +13,7 @@ export const FIGURANT_MESSAGE_CATEGORIES: { value: FigurantMessageCategorie; lab
   { value: "convocation", label: "Convocations" },
   { value: "covoiturage", label: "Covoiturage" },
   { value: "essayage", label: "Essayage" },
+  { value: "hmc", label: "HMC" },
   { value: "casting", label: "Casting" },
   { value: "libre", label: "Libre" },
   { value: "espace_perso", label: "Espace perso" },

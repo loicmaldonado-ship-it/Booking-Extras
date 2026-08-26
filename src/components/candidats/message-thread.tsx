@@ -1,18 +1,14 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { markMessageBienRecu, sendFigurantReply } from "@/lib/candidats/actions";
+import { markMessageBienRecu } from "@/lib/candidats/actions";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessage } from "@/lib/candidats/types";
 import { formatDateTime } from "@/lib/format-date";
 
 export function MessageThread({ messages }: { messages: FigurantMessage[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [state, formAction, replyPending] = useActionState(sendFigurantReply, undefined);
-
-  const hasUnacknowledged = messages.some((m) => m.sender === "staff" && !m.bien_recu);
 
   function acknowledge(id: string) {
     startTransition(async () => {
@@ -66,24 +62,12 @@ export function MessageThread({ messages }: { messages: FigurantMessage[] }) {
         </div>
       ))}
 
-      <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-4">
-        {hasUnacknowledged && (
-          <p className="text-xs text-danger">
-            Merci de cocher « BIEN REÇU » sur le(s) message(s) ci-dessus avant de répondre.
-          </p>
-        )}
-        {state?.error && <p className="text-xs text-danger">{state.error}</p>}
-        <textarea
-          name="corps"
-          rows={3}
-          disabled={hasUnacknowledged || replyPending}
-          placeholder="Votre message..."
-          className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-50"
-        />
-        <Button type="submit" disabled={hasUnacknowledged || replyPending} className="self-end">
-          {replyPending ? "Envoi..." : "Envoyer"}
-        </Button>
-      </form>
+      {messages.some((m) => m.sender === "staff") && (
+        <p className="border-t border-border pt-4 text-xs text-text-muted">
+          Pour répondre, merci de le faire directement par email — cet espace ne sert qu&apos;à consulter vos
+          messages et cocher « BIEN REÇU ».
+        </p>
+      )}
     </div>
   );
 }

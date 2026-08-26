@@ -30,6 +30,8 @@ function buildFigurantPayload(fd: FormData) {
     telephone: str(fd, "telephone"),
     ville: str(fd, "ville"),
     adresse: str(fd, "adresse"),
+    code_postal: str(fd, "code_postal"),
+    commune_naissance: str(fd, "commune_naissance"),
     date_naissance: str(fd, "date_naissance"),
     logement_france: str(fd, "logement_france"),
     taille_cm: num(fd, "taille_cm"),
@@ -69,13 +71,31 @@ function buildVehiculePayload(fd: FormData) {
   };
 }
 
+// Minimum pour créer un profil à la main : identité, contact, adresse
+// complète (obligatoire à la candidature comme à la création, pour ne
+// jamais se retrouver avec un profil sans coordonnées exploitables) et un
+// portrait — le reste (mensurations, véhicule) se complète plus tard.
+function requireBaseFields(payload: ReturnType<typeof buildFigurantPayload>): string | null {
+  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
+    return "Prénom, nom, email et téléphone sont obligatoires.";
+  }
+  if (!payload.adresse || !payload.code_postal || !payload.ville) {
+    return "L'adresse de résidence complète (rue, code postal, ville) est obligatoire.";
+  }
+  if (!payload.commune_naissance) {
+    return "La commune de naissance est obligatoire.";
+  }
+  return null;
+}
+
 export async function createFigurant(_prevState: unknown, formData: FormData) {
   const payload = buildFigurantPayload(formData);
-  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
-    return { error: "Prénom, nom, email et téléphone sont obligatoires." };
-  }
-  if (payload.a_vehicule === null) {
-    return { error: "Merci d'indiquer si le figurant a un véhicule." };
+  const fieldsError = requireBaseFields(payload);
+  if (fieldsError) return { error: fieldsError };
+
+  const portrait = formData.get("photo_portrait");
+  if (!(portrait instanceof File) || portrait.size === 0) {
+    return { error: "Une photo portrait est obligatoire." };
   }
 
   const supabase = createAdminClient();
@@ -92,6 +112,9 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
     return { error: error.message };
   }
 
+  const { error: photoError } = await insertFigurantPhoto(supabase, data.id, "portrait", portrait);
+  if (photoError) return { error: photoError };
+
   await handleLiens(formData, data.id);
 
   revalidatePath("/figurants");
@@ -104,12 +127,8 @@ export async function updateFigurant(
   formData: FormData
 ) {
   const payload = buildFigurantPayload(formData);
-  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
-    return { error: "Prénom, nom, email et téléphone sont obligatoires." };
-  }
-  if (payload.a_vehicule === null) {
-    return { error: "Merci d'indiquer si le figurant a un véhicule." };
-  }
+  const fieldsError = requireBaseFields(payload);
+  if (fieldsError) return { error: fieldsError };
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("figurants").update(payload).eq("id", id);

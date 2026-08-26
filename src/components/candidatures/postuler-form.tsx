@@ -96,6 +96,9 @@ export function PostulerForm({
     email: string;
     telephone: string | null;
     ville: string | null;
+    adresse: string | null;
+    code_postal: string | null;
+    commune_naissance: string | null;
     date_naissance: string | null;
     lien_bande_demo?: string | null;
     taille_cm?: number | null;
@@ -150,12 +153,26 @@ export function PostulerForm({
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
           </Field>
-          <Field label="Ville" required>
-            <Input name="ville" required defaultValue={prefill?.ville ?? undefined} />
-          </Field>
           <Field label="Date de naissance" required>
             <Input type="date" name="date_naissance" required defaultValue={prefill?.date_naissance ?? undefined} />
           </Field>
+          <Field label="Commune de naissance" required>
+            <Input name="commune_naissance" required defaultValue={prefill?.commune_naissance ?? undefined} />
+          </Field>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-xs font-medium text-text-muted">Adresse de résidence</span>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Rue et numéro" required>
+              <Input name="adresse" required defaultValue={prefill?.adresse ?? undefined} />
+            </Field>
+            <Field label="Code postal" required>
+              <Input name="code_postal" required defaultValue={prefill?.code_postal ?? undefined} />
+            </Field>
+            <Field label="Ville" required>
+              <Input name="ville" required defaultValue={prefill?.ville ?? undefined} />
+            </Field>
+          </div>
         </div>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">Mensurations</span>

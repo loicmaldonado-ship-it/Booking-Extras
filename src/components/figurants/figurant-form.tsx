@@ -95,17 +95,25 @@ export function FigurantForm({
           <Field label="Date de naissance">
             <Input type="date" name="date_naissance" defaultValue={figurant?.date_naissance ?? ""} />
           </Field>
-          <Field label="Ville de résidence" required>
-            <Input name="ville" defaultValue={figurant?.ville ?? ""} required />
+          <Field label="Commune de naissance" required>
+            <Input name="commune_naissance" defaultValue={figurant?.commune_naissance ?? ""} required />
           </Field>
-          <Field label="Adresse complète" required>
-            <Input
-              name="adresse"
-              placeholder="N°, rue, code postal, ville"
-              defaultValue={figurant?.adresse ?? ""}
-              required
-            />
-          </Field>
+        </div>
+        <div>
+          <span className="mb-1.5 block text-xs font-medium text-text-muted">Adresse de résidence</span>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <Field label="Rue et numéro" required>
+                <Input name="adresse" defaultValue={figurant?.adresse ?? ""} required />
+              </Field>
+            </div>
+            <Field label="Code postal" required>
+              <Input name="code_postal" defaultValue={figurant?.code_postal ?? ""} required />
+            </Field>
+            <Field label="Ville" required>
+              <Input name="ville" defaultValue={figurant?.ville ?? ""} required />
+            </Field>
+          </div>
         </div>
       </Card>
 
@@ -130,18 +138,19 @@ export function FigurantForm({
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Mensurations</h2>
+        <p className="text-xs text-text-muted">Optionnel à la création — à compléter dès que tu as les mesures.</p>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Field label="Hauteur (cm)" required>
-            <Input type="number" name="taille_cm" defaultValue={figurant?.taille_cm ?? ""} required />
+          <Field label="Hauteur (cm)">
+            <Input type="number" name="taille_cm" defaultValue={figurant?.taille_cm ?? ""} />
           </Field>
-          <Field label="Poids (kg)" required>
-            <Input type="number" name="poids_kg" defaultValue={figurant?.poids_kg ?? ""} required />
+          <Field label="Poids (kg)">
+            <Input type="number" name="poids_kg" defaultValue={figurant?.poids_kg ?? ""} />
           </Field>
-          <Field label="Veste" required>
-            <Input name="veste" placeholder="Ex. 48/50" defaultValue={figurant?.veste ?? ""} required />
+          <Field label="Veste">
+            <Input name="veste" placeholder="Ex. 48/50" defaultValue={figurant?.veste ?? ""} />
           </Field>
-          <Field label="Pantalon" required>
-            <Input name="pantalon" placeholder="Ex. 42" defaultValue={figurant?.pantalon ?? ""} required />
+          <Field label="Pantalon">
+            <Input name="pantalon" placeholder="Ex. 42" defaultValue={figurant?.pantalon ?? ""} />
           </Field>
           <Field label="Tour de tête (cm)">
             <Input type="number" name="tour_tete_cm" defaultValue={figurant?.tour_tete_cm ?? ""} />
@@ -164,8 +173,8 @@ export function FigurantForm({
           <Field label="Jambes int. (cm)">
             <Input type="number" name="jambes_int_cm" defaultValue={figurant?.jambes_int_cm ?? ""} />
           </Field>
-          <Field label="Pointure" required>
-            <Input type="number" step="0.5" name="pointure" defaultValue={figurant?.pointure ?? ""} required />
+          <Field label="Pointure">
+            <Input type="number" step="0.5" name="pointure" defaultValue={figurant?.pointure ?? ""} />
           </Field>
           <Field label="Gant">
             <Input name="gant" defaultValue={figurant?.gant ?? ""} />
@@ -185,14 +194,13 @@ export function FigurantForm({
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Véhicule</h2>
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">A un véhicule ? *</span>
+          <span className="text-sm font-medium">A un véhicule ?</span>
           <div className="flex gap-4">
             <label className="flex items-center gap-1.5 text-sm">
               <input
                 type="radio"
                 name="a_vehicule"
                 value="oui"
-                required
                 defaultChecked={figurant?.a_vehicule === true}
                 onChange={() => setAVehicule(true)}
                 className="accent-coral"
@@ -204,7 +212,6 @@ export function FigurantForm({
                 type="radio"
                 name="a_vehicule"
                 value="non"
-                required
                 defaultChecked={figurant?.a_vehicule === false}
                 onChange={() => setAVehicule(false)}
                 className="accent-coral"
@@ -260,13 +267,27 @@ export function FigurantForm({
         )}
       </Card>
 
-      {figurant && (
+      {figurant ? (
         <Card className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold">Photos</h2>
           <p className="text-sm text-text-muted">
             Gère les photos depuis <a href={`/figurants/${figurant.id}`} className="text-coral hover:underline">la fiche du profil</a>,
             une par une (plus fiable pour les grosses photos de téléphone).
           </p>
+        </Card>
+      ) : (
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">Photo</h2>
+          <Field label="Portrait" required>
+            <input
+              type="file"
+              name="photo_portrait"
+              accept="image/*"
+              required
+              className="text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
+            />
+          </Field>
+          <p className="text-xs text-text-muted">Les autres photos (pied, selfie...) se gèrent depuis la fiche une fois le profil créé.</p>
         </Card>
       )}
 
@@ -316,7 +337,7 @@ export function FigurantForm({
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le figurant"}
+          {pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le profil"}
         </Button>
       </div>
     </form>

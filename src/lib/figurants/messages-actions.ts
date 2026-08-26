@@ -66,7 +66,7 @@ export async function notifyFigurantByEmail(figurantId: string, email: string, p
   return sendEmail(
     email,
     "Booking Extras — Vous avez un message",
-    `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras, merci de vous connecter très rapidement :\n${siteUrl}/compte/connexion\n\nMerci !`,
+    `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras. Merci de vous connecter dès que possible pour le consulter et vérifier que vos informations sont bien à jour :\n${siteUrl}/compte/connexion\n\nMerci !`,
     credentials
   );
 }

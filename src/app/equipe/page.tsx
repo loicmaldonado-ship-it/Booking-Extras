@@ -6,6 +6,7 @@ import { InviteAssistantForm } from "@/components/equipe/invite-assistant-form";
 import { MembresList, type Membre } from "@/components/equipe/membres-list";
 import { TeamPresenceList } from "@/components/equipe/team-presence-list";
 import { MyEmailPanel } from "@/components/equipe/my-email-panel";
+import { MyEmailTemplatesPanel } from "@/components/equipe/my-email-templates-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,11 @@ export default async function EquipePage() {
     projetsQuery,
     membresQuery.returns<Membre[]>(),
     getMyTeamPresence(profile),
-    supabase.from("profiles").select("gmail_smtp_user").eq("id", profile.id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("gmail_smtp_user, email_espace_perso_template, email_magic_link_template")
+      .eq("id", profile.id)
+      .maybeSingle(),
   ]);
 
   return (
@@ -54,6 +59,11 @@ export default async function EquipePage() {
       <TeamPresenceList title="Qui est connecté" members={teamPresence} />
 
       <MyEmailPanel gmailUser={myProfile?.gmail_smtp_user ?? null} />
+
+      <MyEmailTemplatesPanel
+        espacePerso={myProfile?.email_espace_perso_template ?? null}
+        magicLink={myProfile?.email_magic_link_template ?? null}
+      />
 
       <Card>
         <InviteAssistantForm projets={projets ?? []} />

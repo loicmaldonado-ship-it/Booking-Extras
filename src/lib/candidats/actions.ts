@@ -7,11 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
-import { inferReplyProjetId } from "@/lib/email/inbox";
+import { getEmailTemplate, applyEmailTemplate } from "@/lib/projets/email-templates";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
-import { createNotification } from "@/lib/notifications/create";
 import { clearFigurantSessionCookie, getCurrentFigurant } from "./session";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
@@ -44,15 +43,20 @@ export async function sendMagicLinkEmail(
   const { link, error: linkError } = await createMagicLinkToken(figurant.id);
   if (linkError || !link) return { error: linkError };
 
+  const supabaseForTemplate = createAdminClient();
+  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "magic_link");
+
   const subject = "Booking Extras — votre lien de connexion";
-  const body = [
-    `Bonjour ${figurant.prenom},`,
-    "",
-    "Voici votre lien de connexion à votre espace Booking Extras (valable 30 minutes) :",
-    link,
-    "",
-    "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-  ].join("\n");
+  const body = customTemplate
+    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
+    : [
+        `Bonjour ${figurant.prenom},`,
+        "",
+        "Voici votre lien de connexion à votre espace Booking Extras (valable 30 minutes) :",
+        link,
+        "",
+        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
+      ].join("\n");
 
   const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
   if (credError) return { error: credError };
@@ -72,19 +76,24 @@ export async function sendAccesCompteActiveEmail(
   const { link, error: linkError } = await createMagicLinkToken(figurant.id);
   if (linkError || !link) return { error: linkError };
 
+  const supabaseForTemplate = createAdminClient();
+  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "espace_perso");
+
   const subject = "Booking Extras — votre espace personnel est prêt";
-  const body = [
-    `Bonjour ${figurant.prenom},`,
-    "",
-    "Vous avez été ajouté·e à une date de tournage.",
-    "",
-    "Merci d'accéder à votre espace personnel : vous y retrouverez vos dates et les échanges de messages avec nous.",
-    "",
-    `Voici votre lien de connexion (valable 30 minutes) :`,
-    link,
-    "",
-    "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-  ].join("\n");
+  const body = customTemplate
+    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
+    : [
+        `Bonjour ${figurant.prenom},`,
+        "",
+        "Vous avez été ajouté·e à une date de tournage.",
+        "",
+        "Merci d'accéder à votre espace personnel : vous y retrouverez vos dates et les échanges de messages avec nous.",
+        "",
+        `Voici votre lien de connexion (valable 30 minutes) :`,
+        link,
+        "",
+        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
+      ].join("\n");
 
   const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
   if (credError) return { error: credError };
@@ -184,42 +193,6 @@ export async function unsubscribeFromPush(endpoint: string) {
   return { success: true };
 }
 
-export async function sendFigurantReply(_prevState: unknown, formData: FormData) {
-  const figurant = await getCurrentFigurant();
-  if (!figurant) return { error: "Non connecté." };
-
-  const corps = String(formData.get("corps") ?? "").trim();
-  if (!corps) return { error: "Le message ne peut pas être vide." };
-
-  const supabase = createAdminClient();
-
-  const { count: unacknowledged } = await supabase
-    .from("figurant_messages")
-    .select("id", { count: "exact", head: true })
-    .eq("figurant_id", figurant.id)
-    .eq("sender", "staff")
-    .eq("bien_recu", false);
-
-  if ((unacknowledged ?? 0) > 0) {
-    return { error: "Merci de cocher « BIEN REÇU » sur les messages en attente avant de répondre." };
-  }
-
-  const projetId = await inferReplyProjetId(supabase, figurant.id);
-  const { error } = await supabase
-    .from("figurant_messages")
-    .insert({ figurant_id: figurant.id, sender: "figurant", corps, bien_recu: true, projet_id: projetId });
-
-  if (error) return { error: error.message };
-
-  await createNotification("reponse", `${figurant.prenom} ${figurant.nom} a répondu à un message`, {
-    figurantId: figurant.id,
-    projetId,
-    lien: `/figurants/${figurant.id}`,
-  });
-
-  revalidatePath("/compte");
-  return { success: true };
-}
 
 // Débloque l'accès à /compte pour ce figurant. Le mail "espace prêt" ne
 // repart qu'une fois PAR PROJET (tracé via figurant_messages, catégorie
