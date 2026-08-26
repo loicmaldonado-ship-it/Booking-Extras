@@ -12,6 +12,7 @@ import {
   Calculator,
   ShieldCheck,
   UsersRound,
+  BookOpenCheck,
   type LucideIcon,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -192,6 +193,19 @@ export default async function Home() {
           ))}
         </div>
       </div>
+
+      <Link
+        href="/aide"
+        className="flex items-center gap-4 rounded-2xl border border-coral/40 bg-coral/10 px-5 py-4 transition-colors hover:border-coral/70"
+      >
+        <BookOpenCheck size={22} strokeWidth={1.75} className="shrink-0 text-coral" />
+        <div>
+          <span className="font-medium">Prise en main</span>
+          <p className="text-xs text-text-muted">
+            Nouveau·elle sur Booking Extras ? Le guide de chaque section, étape par étape.
+          </p>
+        </div>
+      </Link>
     </div>
   );
 }
