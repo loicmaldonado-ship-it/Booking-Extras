@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
 
 export function CastingRealEntryCard({
   nom,
@@ -11,12 +12,14 @@ export function CastingRealEntryCard({
   roleLabel,
   videoUrls,
   photos,
+  lang = DEFAULT_LANG,
 }: {
   nom: string;
   portraitUrl: string | null;
   roleLabel?: string | null;
   videoUrls: string[];
   photos: { label: string; url: string }[];
+  lang?: Lang;
 }) {
   const [open, setOpen] = useState(false);
   const hasMedia = videoUrls.length > 0 || photos.length > 0;
@@ -39,9 +42,9 @@ export function CastingRealEntryCard({
         </div>
         {hasMedia && (
           <span className="text-xs text-text-muted">
-            {videoUrls.length > 0 && `${videoUrls.length} vidéo${videoUrls.length > 1 ? "s" : ""}`}
+            {videoUrls.length > 0 && `${videoUrls.length} ${t(lang, videoUrls.length > 1 ? "videos" : "video")}`}
             {videoUrls.length > 0 && photos.length > 0 && " · "}
-            {photos.length > 0 && `${photos.length} photo${photos.length > 1 ? "s" : ""}`}
+            {photos.length > 0 && `${photos.length} ${t(lang, photos.length > 1 ? "photos" : "photo")}`}
             <span className="ml-2">{open ? "▾" : "▸"}</span>
           </span>
         )}

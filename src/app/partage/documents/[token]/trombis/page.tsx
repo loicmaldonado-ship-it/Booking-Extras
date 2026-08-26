@@ -13,6 +13,8 @@ import { computeAge, parseFields, formatHeureConvocation } from "@/lib/documents
 import { formatDateLong } from "@/lib/format-date";
 import { resolveDocumentsShareToken } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import { t, tCachet, parseLang, localeFor, type Lang } from "@/lib/i18n/partage";
 
 // Ordre d'affichage voulu sur les trombis : silhouettes, puis doublures, puis figurants en dernier.
 const TROMBI_CACHET_ORDER = [
@@ -38,7 +40,7 @@ function cachetOrder(cachet: string | null) {
   return idx === -1 ? TROMBI_CACHET_ORDER.length : idx;
 }
 
-function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: boolean): FlatItem[] {
+function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: boolean, lang: Lang): FlatItem[] {
   const byHeure = new Map<string, ConfirmedBooking[]>();
   for (const b of bookings) {
     const key = b.heure_convocation ?? "";
@@ -49,7 +51,7 @@ function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: bo
 
   const items: FlatItem[] = [];
   for (const [heure, group] of Array.from(byHeure.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
-    const heureLabel = heure ? formatHeureConvocation(heure) : "Heure non renseignée";
+    const heureLabel = heure ? formatHeureConvocation(heure) : t(lang, "heure_non_renseignee");
     const byCachet = new Map<string, ConfirmedBooking[]>();
     for (const b of group) {
       const key = b.cachet ?? "Cachet non assigné";
@@ -70,8 +72,8 @@ function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: bo
         items.push({
           booking: b,
           heureLabel,
-          cachetLabel,
-          fonctionLabel: b.fonction ?? "Sans fonction assignée",
+          cachetLabel: cachetLabel === "Cachet non assigné" ? t(lang, "cachet_non_assigne") : tCachet(lang, cachetLabel) ?? cachetLabel,
+          fonctionLabel: b.fonction ?? t(lang, "sans_fonction_assignee"),
         });
       }
     }
@@ -90,18 +92,19 @@ export default async function PartageTrombisPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ date?: string; fields?: string | string[] }>;
+  searchParams: Promise<{ date?: string; fields?: string | string[]; lang?: string }>;
 }) {
   const { token } = await params;
-  const { date: queryDate, fields } = await searchParams;
+  const { date: queryDate, fields, lang: langRaw } = await searchParams;
+  const lang = parseLang(langRaw);
   const share = await resolveDocumentsShareToken(token);
   const date = share?.dateLock ?? queryDate;
 
   if (!share || !date) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de partage n&apos;est plus valide.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{t(lang, "lien_invalide")}</p>
       </div>
     );
   }
@@ -120,22 +123,26 @@ export default async function PartageTrombisPage({
 
   const bookings = await getConfirmedBookings(projet.id, date);
   const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
-  const pages = chunk(flattenByHeureEtCachet(bookings, showFonction), PHOTOS_PER_PAGE);
+  const pages = chunk(flattenByHeureEtCachet(bookings, showFonction, lang), PHOTOS_PER_PAGE);
   const documentTemplate = await getDocumentTemplate(createAdminClient(), projet.id);
 
   return (
     <div className="flex flex-col gap-4">
       {!share.dateLock && (
-        <Link href={`/partage/documents/${token}`} className="print-hide text-sm text-text-muted hover:text-coral">
-          ← Retour aux journées
+        <Link
+          href={`/partage/documents/${token}?lang=${lang}`}
+          className="print-hide text-sm text-text-muted hover:text-coral"
+        >
+          {t(lang, "retour_journees")}
         </Link>
       )}
 
       <div className="print-hide flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Trombis</h1>
-        <div className="flex gap-3">
-          <DownloadPdfButton filename={`trombis-${date}.pdf`} orientation="landscape" />
-          <PrintButton />
+        <h1 className="text-2xl font-semibold">{t(lang, "trombis")}</h1>
+        <div className="flex items-center gap-3">
+          <LangToggle lang={lang} basePath={`/partage/documents/${token}/trombis`} otherParams={{ date }} />
+          <DownloadPdfButton filename={`trombis-${date}.pdf`} orientation="landscape" lang={lang} />
+          <PrintButton lang={lang} />
         </div>
       </div>
 
@@ -144,6 +151,7 @@ export default async function PartageTrombisPage({
         date={date}
         selected={selectedFields}
         excludeFields={showContacts ? ["sexe"] : ["telephone", "email", "sexe"]}
+        lang={lang}
       />
 
       {pages.length === 0 && (
@@ -151,12 +159,13 @@ export default async function PartageTrombisPage({
           <DocumentLetterhead
             societe={projet.societe_production}
             filmNom={projetNomPublic(projet)}
-            dateLabel={formatDateLong(date)}
+            dateLabel={formatDateLong(date, localeFor(lang))}
             realisateur={projet.realisateur}
             logoUrl={documentTemplate.logoUrl}
             accentColor={documentTemplate.accentColor}
+            lang={lang}
           />
-          <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
+          <p className="py-6 text-center text-gray-500">{t(lang, "aucun_booking_confirme")}</p>
         </PrintSheet>
       )}
 
@@ -175,10 +184,11 @@ export default async function PartageTrombisPage({
             <DocumentLetterhead
               societe={projet.societe_production}
               filmNom={projetNomPublic(projet)}
-              dateLabel={formatDateLong(date)}
+              dateLabel={formatDateLong(date, localeFor(lang))}
               realisateur={projet.realisateur}
             logoUrl={documentTemplate.logoUrl}
             accentColor={documentTemplate.accentColor}
+            lang={lang}
             />
 
             <div className="flex flex-wrap gap-x-3 gap-y-2">
@@ -216,7 +226,11 @@ export default async function PartageTrombisPage({
                         </span>
                       )}
                       <div className="flex flex-col text-[8px] leading-tight text-gray-600">
-                        {selectedFields.has("age") && age !== null && <span>{age} ans</span>}
+                        {selectedFields.has("age") && age !== null && (
+                          <span>
+                            {age} {t(lang, "ans")}
+                          </span>
+                        )}
                         {selectedFields.has("ville") && item.booking.figurant.ville && (
                           <span>{item.booking.figurant.ville}</span>
                         )}

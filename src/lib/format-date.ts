@@ -10,9 +10,9 @@ function capitalize(s: string) {
 // Garde le jour de la semaine (utile pour la logistique de tournage) mais la
 // date elle-même reste toujours au format JJ/MM/AAAA, comme partout ailleurs
 // dans l'app.
-export function formatDateLong(date: string) {
+export function formatDateLong(date: string, locale: "fr-FR" | "en-US" = "fr-FR") {
   const d = new Date(`${date}T00:00:00`);
-  const weekday = capitalize(d.toLocaleDateString("fr-FR", { weekday: "long" }));
+  const weekday = capitalize(d.toLocaleDateString(locale, { weekday: "long" }));
   return `${weekday} ${formatDateShort(date)}`;
 }
 

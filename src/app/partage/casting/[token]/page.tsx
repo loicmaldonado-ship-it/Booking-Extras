@@ -3,22 +3,27 @@ import { getCastingRoles, getCastingEntries, getCastingVideoUrls, getCastingEntr
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { Card, Badge } from "@/components/ui/card";
 import { CastingRealEntryCard } from "@/components/casting/casting-real-entry-card";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import { t, parseLang } from "@/lib/i18n/partage";
 import { formatDateLong } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export default async function PartageCastingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { token } = await params;
+  const lang = parseLang((await searchParams).lang);
   const projet = await resolvePartageToken(token, "casting");
 
   if (!projet) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de partage n&apos;est plus valide.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{t(lang, "lien_invalide")}</p>
       </div>
     );
   }
@@ -50,11 +55,14 @@ export default async function PartageCastingPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <span className="font-display text-lg font-semibold">
-          Booking<span className="text-coral">Extras</span>
-        </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-display text-lg font-semibold">
+            Booking<span className="text-coral">Extras</span>
+          </span>
+          <LangToggle lang={lang} basePath={`/partage/casting/${token}`} />
+        </div>
         <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
-        <p className="mt-1 text-sm text-text-muted">Clique un profil pour voir ses photos et lancer sa vidéo.</p>
+        <p className="mt-1 text-sm text-text-muted">{t(lang, "clique_profil")}</p>
       </div>
 
       {rolesAvecProfils.map((role) => {
@@ -74,6 +82,7 @@ export default async function PartageCastingPage({
                   portraitUrl={pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
                   videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
                   photos={entryPhotosByEntry.get(entry.id) ?? []}
+                  lang={lang}
                 />
               ))}
             </div>
@@ -81,7 +90,7 @@ export default async function PartageCastingPage({
         );
       })}
 
-      {rolesAvecProfils.length === 0 && <p className="text-text-muted">Aucun profil disponible pour l&apos;instant.</p>}
+      {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
     </div>
   );
 }

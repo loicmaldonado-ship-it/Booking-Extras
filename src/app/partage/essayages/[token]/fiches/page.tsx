@@ -15,6 +15,8 @@ import { MensurationSheet } from "@/components/documents/mensuration-sheet";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { Figurant } from "@/lib/figurants/types";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import { t, tCachet, parseLang } from "@/lib/i18n/partage";
 
 type EssayageRow = {
   figurant_id: string;
@@ -28,17 +30,18 @@ export default async function PartageEssayagesFichesPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; lang?: string }>;
 }) {
   const { token } = await params;
-  const { date } = await searchParams;
+  const { date, lang: langRaw } = await searchParams;
+  const lang = parseLang(langRaw);
   const projet = await resolvePartageToken(token, "essayages");
 
   if (!projet) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de partage n&apos;est plus valide.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{t(lang, "lien_invalide")}</p>
       </div>
     );
   }
@@ -104,27 +107,32 @@ export default async function PartageEssayagesFichesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href={`/partage/essayages/${token}`} className="print-hide text-sm text-text-muted hover:text-coral">
-        ← Retour au planning
+      <Link
+        href={`/partage/essayages/${token}?lang=${lang}`}
+        className="print-hide text-sm text-text-muted hover:text-coral"
+      >
+        {t(lang, "retour_planning")}
       </Link>
 
       <div className="print-hide flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
-          Fiches de mensuration — {projetNomPublic(projet)}
+          {t(lang, "fiches_mensuration_titre")} — {projetNomPublic(projet)}
           {date ? ` — ${formatDateShort(date)}` : ""}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <LangToggle lang={lang} basePath={`/partage/essayages/${token}/fiches`} otherParams={{ date }} />
           <DownloadPdfButton
             filename={`fiches-mensuration-${projet.nom}${date ? `-${date}` : ""}.pdf`}
             orientation="landscape"
+            lang={lang}
           />
-          <PrintButton />
+          <PrintButton lang={lang} />
         </div>
       </div>
 
       {figurants.length === 0 && (
         <PrintSheet orientation="landscape">
-          <p className="py-6 text-center text-gray-500">Aucun essayage pour l&apos;instant.</p>
+          <p className="py-6 text-center text-gray-500">{t(lang, "aucun_essayage")}</p>
         </PrintSheet>
       )}
 
@@ -136,7 +144,7 @@ export default async function PartageEssayagesFichesPage({
           f.telephone,
           f.email,
           f.ville,
-          age !== null ? `${age} ans` : null,
+          age !== null ? `${age} ${t(lang, "ans")}` : null,
           fonction,
         ].filter(Boolean);
 
@@ -146,12 +154,13 @@ export default async function PartageEssayagesFichesPage({
               <MensurationSheet
                 figurant={f}
                 photos={photos}
+                lang={lang}
                 header={
                   coordonnees.length > 0 ? (
                     <p className="mt-0.5 text-sm text-gray-600">{coordonnees.join(" · ")}</p>
                   ) : undefined
                 }
-                extraRows={[["Cachet", cachet ?? "—"]]}
+                extraRows={[[t(lang, "cachet"), tCachet(lang, cachet) ?? "—"]]}
                 numeroCostume={numeroCostumeByFigurant.get(f.id) ?? null}
                 futureBookings={bookingDatesByFigurant.get(f.id) ?? []}
               />

@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
 
 export function DownloadPdfButton({
   filename,
   orientation = "portrait",
+  lang = DEFAULT_LANG,
 }: {
   filename: string;
   orientation?: "portrait" | "landscape";
+  lang?: Lang;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +50,7 @@ export function DownloadPdfButton({
 
   return (
     <Button type="button" variant="secondary" className="print-hide" onClick={download} disabled={loading}>
-      {loading ? "Génération..." : "Télécharger le PDF"}
+      {loading ? t(lang, "generation_pdf") : t(lang, "telecharger_pdf")}
     </Button>
   );
 }

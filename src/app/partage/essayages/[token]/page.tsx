@@ -13,6 +13,8 @@ import {
 import { buildSlotItems, type PartageEssayageRow } from "@/lib/essayages/partage-planning";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import { t, tCachet, tStatut, parseLang } from "@/lib/i18n/partage";
 
 const COLUMN_COUNT = 9;
 
@@ -20,17 +22,20 @@ export const dynamic = "force-dynamic";
 
 export default async function PartageEssayagesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ lang?: string }>;
 }) {
   const { token } = await params;
+  const lang = parseLang((await searchParams).lang);
   const projet = await resolvePartageToken(token, "essayages");
 
   if (!projet) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de partage n&apos;est plus valide.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{t(lang, "lien_invalide")}</p>
       </div>
     );
   }
@@ -74,15 +79,16 @@ export default async function PartageEssayagesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="flex items-center justify-between gap-3">
         <span className="font-display text-lg font-semibold">
           Booking<span className="text-coral">Extras</span>
         </span>
+        <LangToggle lang={lang} basePath={`/partage/essayages/${token}`} />
       </div>
 
       <div>
         <h1 className="text-2xl font-semibold">{projetNomPublic(projet)}</h1>
-        <p className="mt-1 text-text-muted">Planning des essayages par jour — lecture seule.</p>
+        <p className="mt-1 text-text-muted">{t(lang, "planning_essayages_jour")}</p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -90,15 +96,15 @@ export default async function PartageEssayagesPage({
           <Card key={date} className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-text-muted">
-                {date === "Date à confirmer" ? date : formatDateShort(date)}
+                {date === "Date à confirmer" ? t(lang, "date_a_confirmer") : formatDateShort(date)}
               </h2>
               {date !== "Date à confirmer" && (
                 <div className="flex gap-2">
-                  <ButtonLink href={`/partage/essayages/${token}/planning?date=${date}`} variant="secondary">
-                    Télécharger le planning
+                  <ButtonLink href={`/partage/essayages/${token}/planning?date=${date}&lang=${lang}`} variant="secondary">
+                    {t(lang, "telecharger_planning")}
                   </ButtonLink>
-                  <ButtonLink href={`/partage/essayages/${token}/fiches?date=${date}`} variant="secondary">
-                    Télécharger les fiches
+                  <ButtonLink href={`/partage/essayages/${token}/fiches?date=${date}&lang=${lang}`} variant="secondary">
+                    {t(lang, "telecharger_fiches")}
                   </ButtonLink>
                 </div>
               )}
@@ -106,15 +112,15 @@ export default async function PartageEssayagesPage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-text-muted">
-                  <th className="py-2 pr-4 font-medium">Photo</th>
-                  <th className="py-2 pr-4 font-medium">Figurant</th>
-                  <th className="py-2 pr-4 font-medium">Fonction</th>
-                  <th className="py-2 pr-4 font-medium">Cachet</th>
-                  <th className="py-2 pr-4 font-medium">Costume</th>
-                  <th className="py-2 pr-4 font-medium">Dates de tournage</th>
-                  <th className="py-2 pr-4 font-medium">Lieu</th>
-                  <th className="py-2 pr-4 font-medium">Statut</th>
-                  <th className="py-2 pr-4 font-medium">Notes</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_photo")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_figurant")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_fonction")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_cachet")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_costume")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_dates_tournage")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_lieu")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_statut")}</th>
+                  <th className="py-2 pr-4 font-medium">{t(lang, "col_notes")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -129,7 +135,7 @@ export default async function PartageEssayagesPage({
                       {showSlotHeader && (
                         <tr>
                           <td colSpan={COLUMN_COUNT} className="pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-coral first:pt-0">
-                            Créneau {slotNumber} : {label}
+                            {t(lang, "creneau")} {slotNumber} : {label}
                           </td>
                         </tr>
                       )}
@@ -145,7 +151,7 @@ export default async function PartageEssayagesPage({
                           #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
                         </td>
                         <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
-                        <td className="py-2 pr-4 text-text-muted">{cachet ?? "—"}</td>
+                        <td className="py-2 pr-4 text-text-muted">{tCachet(lang, cachet ?? null) ?? "—"}</td>
                         <td className="py-2 pr-4">
                           {e.numero_costume ? <Badge tone="coral">{e.numero_costume}</Badge> : <span className="text-text-muted">—</span>}
                         </td>
@@ -157,7 +163,7 @@ export default async function PartageEssayagesPage({
                         <td className="py-2 pr-4 text-text-muted">{e.lieu ?? "—"}</td>
                         <td className="py-2 pr-4">
                           <Badge tone={e.statut === "fait" ? "turquoise" : e.statut === "confirmé" ? "coral" : "yellow"}>
-                            {e.statut}
+                            {tStatut(lang, e.statut)}
                           </Badge>
                         </td>
                         <td className="py-2 pr-4 text-text-muted">{e.notes ?? "—"}</td>
@@ -169,7 +175,7 @@ export default async function PartageEssayagesPage({
             </table>
           </Card>
         ))}
-        {groups.length === 0 && <p className="text-sm text-text-muted">Aucun essayage pour l&apos;instant.</p>}
+        {groups.length === 0 && <p className="text-sm text-text-muted">{t(lang, "aucun_essayage")}</p>}
       </div>
     </div>
   );

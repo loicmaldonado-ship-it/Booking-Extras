@@ -17,6 +17,8 @@ import { computeAge, parseFields, formatHeureConvocation, type DocumentField } f
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { resolveDocumentsShareToken } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import { t, tCachet, parseLang, localeFor } from "@/lib/i18n/partage";
 
 const DEFAULT_FIELDS: DocumentField[] = ["fonction", "telephone", "email", "ville"];
 
@@ -25,18 +27,19 @@ export default async function PartageFichesPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ date?: string; fields?: string | string[] }>;
+  searchParams: Promise<{ date?: string; fields?: string | string[]; lang?: string }>;
 }) {
   const { token } = await params;
-  const { date: queryDate, fields } = await searchParams;
+  const { date: queryDate, fields, lang: langRaw } = await searchParams;
+  const lang = parseLang(langRaw);
   const share = await resolveDocumentsShareToken(token);
   const date = share?.dateLock ?? queryDate;
 
   if (!share || !date) {
     return (
       <div className="flex flex-col gap-4">
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de partage n&apos;est plus valide.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{t(lang, "lien_invalide")}</p>
       </div>
     );
   }
@@ -61,16 +64,20 @@ export default async function PartageFichesPage({
   return (
     <div className="flex flex-col gap-4">
       {!share.dateLock && (
-        <Link href={`/partage/documents/${token}`} className="print-hide text-sm text-text-muted hover:text-coral">
-          ← Retour aux journées
+        <Link
+          href={`/partage/documents/${token}?lang=${lang}`}
+          className="print-hide text-sm text-text-muted hover:text-coral"
+        >
+          {t(lang, "retour_journees")}
         </Link>
       )}
 
       <div className="print-hide flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Fiches mensuration</h1>
-        <div className="flex gap-3">
-          <DownloadPdfButton filename={`fiches-mensuration-${date}.pdf`} orientation="landscape" />
-          <PrintButton />
+        <h1 className="text-2xl font-semibold">{t(lang, "fiches_mensuration")}</h1>
+        <div className="flex items-center gap-3">
+          <LangToggle lang={lang} basePath={`/partage/documents/${token}/fiches`} otherParams={{ date }} />
+          <DownloadPdfButton filename={`fiches-mensuration-${date}.pdf`} orientation="landscape" lang={lang} />
+          <PrintButton lang={lang} />
         </div>
       </div>
 
@@ -79,11 +86,12 @@ export default async function PartageFichesPage({
         date={date}
         selected={selectedFields}
         excludeFields={showContacts ? ["sexe"] : ["telephone", "email", "sexe"]}
+        lang={lang}
       />
 
       {bookings.length === 0 && (
         <PrintSheet orientation="landscape">
-          <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
+          <p className="py-6 text-center text-gray-500">{t(lang, "aucun_booking_confirme")}</p>
         </PrintSheet>
       )}
 
@@ -95,7 +103,7 @@ export default async function PartageFichesPage({
           selectedFields.has("telephone") ? f.telephone : null,
           selectedFields.has("email") ? f.email : null,
           selectedFields.has("ville") ? f.ville : null,
-          selectedFields.has("age") && age !== null ? `${age} ans` : null,
+          selectedFields.has("age") && age !== null ? `${age} ${t(lang, "ans")}` : null,
         ].filter(Boolean);
 
         return (
@@ -104,14 +112,16 @@ export default async function PartageFichesPage({
               <DocumentLetterhead
                 societe={projet.societe_production}
                 filmNom={projetNomPublic(projet)}
-                dateLabel={formatDateLong(date)}
+                dateLabel={formatDateLong(date, localeFor(lang))}
                 realisateur={projet.realisateur}
                 logoUrl={documentTemplate.logoUrl}
                 accentColor={documentTemplate.accentColor}
+                lang={lang}
               />
               <MensurationSheet
                 figurant={f}
                 photos={photos}
+                lang={lang}
                 header={
                   <>
                     <p className="mt-0.5 text-sm text-gray-600">
@@ -124,8 +134,8 @@ export default async function PartageFichesPage({
                   </>
                 }
                 extraRows={[
-                  ["Cachet", b.cachet ?? "—"],
-                  ["Convocation", b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—"],
+                  [t(lang, "cachet"), tCachet(lang, b.cachet) ?? "—"],
+                  [t(lang, "convocation"), b.heure_convocation ? formatHeureConvocation(b.heure_convocation) : "—"],
                 ]}
                 futureBookings={(futureBookingsByFigurant.get(f.id) ?? []).filter((fb) => fb.id !== b.id)}
               />

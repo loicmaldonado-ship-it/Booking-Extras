@@ -2,25 +2,26 @@ import Image from "next/image";
 import type { Figurant } from "@/lib/figurants/types";
 import type { FigurantPhotoWithUrl, FutureBooking } from "@/lib/documents/data";
 import { formatDateShort } from "@/lib/format-date";
+import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
 
 export type FieldRow = [string, string | null];
 
-function mensurationRows(f: Figurant): FieldRow[] {
+function mensurationRows(f: Figurant, lang: Lang): FieldRow[] {
   return [
-    ["Hauteur", f.taille_cm ? `${f.taille_cm} cm` : null],
-    ["Poids", f.poids_kg ? `${f.poids_kg} kg` : null],
-    ["Veste", f.veste],
-    ["Pantalon", f.pantalon],
-    ["Tour de tête", f.tour_tete_cm ? `${f.tour_tete_cm} cm` : null],
-    ["Tour de cou", f.tour_cou_cm ? `${f.tour_cou_cm} cm` : null],
-    ["Tour de poitrine", f.tour_poitrine_cm ? `${f.tour_poitrine_cm} cm` : null],
-    ["Tour de taille", f.tour_taille_cm ? `${f.tour_taille_cm} cm` : null],
-    ["Tour de hanches", f.tour_hanches_cm ? `${f.tour_hanches_cm} cm` : null],
-    ["Jambes ext.", f.jambes_ext_cm ? `${f.jambes_ext_cm} cm` : null],
-    ["Jambes int.", f.jambes_int_cm ? `${f.jambes_int_cm} cm` : null],
-    ["Pointure", f.pointure ? `${f.pointure}` : null],
-    ["Gant", f.gant],
-    ["Carrure", f.carrure_cm ? `${f.carrure_cm} cm` : null],
+    [t(lang, "hauteur"), f.taille_cm ? `${f.taille_cm} cm` : null],
+    [t(lang, "poids"), f.poids_kg ? `${f.poids_kg} kg` : null],
+    [t(lang, "veste"), f.veste],
+    [t(lang, "pantalon"), f.pantalon],
+    [t(lang, "tour_tete"), f.tour_tete_cm ? `${f.tour_tete_cm} cm` : null],
+    [t(lang, "tour_cou"), f.tour_cou_cm ? `${f.tour_cou_cm} cm` : null],
+    [t(lang, "tour_poitrine"), f.tour_poitrine_cm ? `${f.tour_poitrine_cm} cm` : null],
+    [t(lang, "tour_taille"), f.tour_taille_cm ? `${f.tour_taille_cm} cm` : null],
+    [t(lang, "tour_hanches"), f.tour_hanches_cm ? `${f.tour_hanches_cm} cm` : null],
+    [t(lang, "jambes_ext"), f.jambes_ext_cm ? `${f.jambes_ext_cm} cm` : null],
+    [t(lang, "jambes_int"), f.jambes_int_cm ? `${f.jambes_int_cm} cm` : null],
+    [t(lang, "pointure"), f.pointure ? `${f.pointure}` : null],
+    [t(lang, "gant"), f.gant],
+    [t(lang, "carrure"), f.carrure_cm ? `${f.carrure_cm} cm` : null],
   ];
 }
 
@@ -31,6 +32,7 @@ export function MensurationSheet({
   extraRows,
   futureBookings,
   numeroCostume,
+  lang = DEFAULT_LANG,
 }: {
   figurant: Figurant;
   photos: FigurantPhotoWithUrl[];
@@ -38,8 +40,9 @@ export function MensurationSheet({
   extraRows?: FieldRow[];
   futureBookings?: FutureBooking[];
   numeroCostume?: string | null;
+  lang?: Lang;
 }) {
-  const rows = mensurationRows(figurant);
+  const rows = mensurationRows(figurant, lang);
   const mainPhotos = photos.slice(0, 3);
 
   return (
@@ -50,14 +53,14 @@ export function MensurationSheet({
           {figurant.prenom} {figurant.nom}
           {numeroCostume && (
             <span className="rounded-full border border-gray-400 px-2 py-0.5 text-sm font-semibold">
-              Costume {numeroCostume}
+              {t(lang, "costume")} {numeroCostume}
             </span>
           )}
         </h2>
         {header}
         {futureBookings && futureBookings.length > 0 && (
           <p className="mt-0.5 text-sm text-gray-600">
-            <span className="font-medium text-gray-700">Autres dates bookées : </span>
+            <span className="font-medium text-gray-700">{t(lang, "autres_dates_bookees")} </span>
             {futureBookings
               .map((b) => `${formatDateShort(b.date)}${b.projetNom ? ` (${b.projetNom})` : ""}`)
               .join(" · ")}

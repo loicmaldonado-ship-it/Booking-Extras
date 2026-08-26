@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
 
 export function DocumentLetterhead({
   societe,
@@ -7,6 +8,7 @@ export function DocumentLetterhead({
   realisateur,
   logoUrl,
   accentColor,
+  lang = DEFAULT_LANG,
 }: {
   societe: string | null;
   filmNom: string;
@@ -14,6 +16,7 @@ export function DocumentLetterhead({
   realisateur?: string | null;
   logoUrl?: string | null;
   accentColor?: string | null;
+  lang?: Lang;
 }) {
   return (
     <div
@@ -36,7 +39,7 @@ export function DocumentLetterhead({
       </div>
       <div className="text-right text-xs text-gray-700">
         <div className="font-semibold uppercase">{filmNom}</div>
-        {realisateur && <div>Réal. : {realisateur}</div>}
+        {realisateur && <div>{t(lang, "real")} : {realisateur}</div>}
       </div>
     </div>
   );
