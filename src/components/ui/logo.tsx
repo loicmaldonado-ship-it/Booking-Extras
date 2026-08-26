@@ -77,7 +77,7 @@ export function LogoMark({ size = 32, rounded = true }: { size?: number; rounded
 export function Logo({
   iconSize = 32,
   showText = true,
-  stacked = false,
+  stacked = true,
   textClassName = "",
 }: {
   iconSize?: number;
