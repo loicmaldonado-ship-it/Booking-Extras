@@ -12,7 +12,7 @@ import { formatDateLong } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
-import type { CastingRole, CastingEntry } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 
@@ -126,6 +126,7 @@ export function CastingRoleSection({
             {calibrationSummary ? ` · ${calibrationSummary}` : ""}
           </p>
           <div className="mt-1 flex gap-1.5">
+            <Badge>{CATEGORIE_CACHET_LABELS[role.categorie_cachet]}</Badge>
             <Badge tone="turquoise">{submitted} envoyé{submitted > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{entries.length - submitted} en attente</Badge>
           </div>

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -262,6 +263,15 @@ export function CastingEntryManageCard({
             </div>
           )}
         </div>
+      )}
+
+      {entry.booking_id && (
+        <Link
+          href={`/bookings/${entry.booking_id}`}
+          className="text-center text-xs font-medium text-coral hover:underline"
+        >
+          → Voir le booking
+        </Link>
       )}
 
       <Button type="button" variant="ghost" disabled={pending} onClick={removeEntry}>

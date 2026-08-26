@@ -15,6 +15,7 @@ import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/
 import { requireProjetAccess } from "@/lib/auth/session";
 import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
 import { DuplicateWarning } from "@/components/figurants/duplicate-warning";
+import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
 
 type CandidatureDetail = {
   id: string;
@@ -52,6 +53,13 @@ export default async function CandidatureDetailPage({
   await requireProjetAccess(candidature.annonces?.projet_id);
 
   const f = candidature.figurants;
+  const { data: lienBooking } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("candidature_id", candidature.id)
+    .order("date", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const { data: onglets } = await supabase
     .from("candidature_onglets")
     .select("id, nom, couleur, fixe, ordre")
@@ -119,9 +127,18 @@ export default async function CandidatureDetailPage({
           <Badge tone={ongletActuel?.couleur === "danger" ? "danger" : ongletActuel?.couleur === "coral" ? "coral" : "default"}>
             {ongletActuel?.nom ?? "À trier"}
           </Badge>
-          <ButtonLink href={`/bookings/nouveau?figurant_id=${f.id}&projet_id=${candidature.annonces?.projet_id ?? ""}`}>
-            + Ajouter à un booking
-          </ButtonLink>
+          {lienBooking ? (
+            <ButtonLink href={`/bookings/${lienBooking.id}`} variant="secondary">
+              → Voir le booking
+            </ButtonLink>
+          ) : (
+            <ButtonLink href={`/bookings/nouveau?figurant_id=${f.id}&projet_id=${candidature.annonces?.projet_id ?? ""}`}>
+              + Ajouter à un booking
+            </ButtonLink>
+          )}
+          {candidature.annonces?.projet_id && (
+            <SendEspacePersoButton figurantId={f.id} projetId={candidature.annonces.projet_id} email={f.email} />
+          )}
         </div>
       </div>
 

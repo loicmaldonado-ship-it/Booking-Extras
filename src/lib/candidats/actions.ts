@@ -54,7 +54,8 @@ export async function sendMagicLinkEmail(
     "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   ].join("\n");
 
-  const credentials = await getProjetEmailCredentials(createAdminClient(), projetId);
+  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
+  if (credError) return { error: credError };
   const result = await sendEmail(figurant.email, subject, body, credentials);
   if (result.error) return { error: result.error };
   return { success: true as const };
@@ -85,7 +86,8 @@ export async function sendAccesCompteActiveEmail(
     "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   ].join("\n");
 
-  const credentials = await getProjetEmailCredentials(createAdminClient(), projetId);
+  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
+  if (credError) return { error: credError };
   const result = await sendEmail(figurant.email, subject, body, credentials);
   if (result.error) return { error: result.error };
   return { success: true as const };
@@ -258,13 +260,15 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     return { success: true as const };
   }
 
-  let emailError: string | undefined;
   if (figurant.email) {
     const result = await sendAccesCompteActiveEmail(
       { id: figurant.id, prenom: figurant.prenom, email: figurant.email },
       projetId
     );
-    emailError = result.error;
+    if (result.error) {
+      revalidatePath(`/figurants/${figurantId}`);
+      return { error: result.error };
+    }
   }
 
   await supabase.from("figurant_messages").insert({
@@ -276,14 +280,17 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
   });
 
   revalidatePath(`/figurants/${figurantId}`);
-  return { success: true as const, emailError };
+  return { success: true as const };
 }
 
 // Bascule manuelle depuis la fiche figurant (accorder ou révoquer), pour les
-// cas hors du flux candidature normal.
-export async function toggleAccesCompte(figurantId: string, value: boolean) {
+// cas hors du flux candidature normal. projetId = projet actuellement
+// sélectionné (bandeau du haut), pour que l'envoi respecte la même boîte
+// Gmail (et la même obligation de config pour les cheffes non-admin) que le
+// reste de la messagerie sur cette fiche partagée.
+export async function toggleAccesCompte(figurantId: string, value: boolean, projetId?: string | null) {
   const supabase = createAdminClient();
-  if (value) return activerAccesCompte(figurantId);
+  if (value) return activerAccesCompte(figurantId, projetId);
 
   await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
   revalidatePath(`/figurants/${figurantId}`);

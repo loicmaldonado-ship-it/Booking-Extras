@@ -27,6 +27,14 @@ export async function recordFigurantMessage(params: {
   }
 
   const supabase = createAdminClient();
+
+  if (params.email) {
+    const { credentials, error } = await getProjetEmailCredentials(supabase, params.projetId);
+    if (error) return { error };
+    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials);
+    if (result.error) return { error: result.error };
+  }
+
   await supabase.from("figurant_messages").insert({
     figurant_id: params.figurantId,
     booking_id: params.bookingId ?? null,
@@ -42,10 +50,5 @@ export async function recordFigurantMessage(params: {
     url: "/compte",
   });
 
-  if (params.email) {
-    const credentials = await getProjetEmailCredentials(supabase, params.projetId);
-    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials);
-    if (result.error) return { error: result.error };
-  }
   return {};
 }

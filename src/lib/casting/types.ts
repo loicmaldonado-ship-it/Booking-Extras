@@ -1,8 +1,17 @@
+export type CategorieCachet = "role" | "silhouette" | "doublure";
+
+export const CATEGORIE_CACHET_LABELS: Record<CategorieCachet, string> = {
+  role: "Rôle",
+  silhouette: "Silhouette",
+  doublure: "Doublure",
+};
+
 export type CastingRole = {
   id: string;
   projet_id: string;
   nom: string;
   date_tournage: string | null;
+  categorie_cachet: CategorieCachet;
   nb_videos: number;
   photo_labels: string[];
   demande_bande_demo: boolean;

@@ -5,7 +5,9 @@ export async function getCastingRoles(projetId: string): Promise<CastingRole[]> 
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("casting_roles")
-    .select("id, projet_id, nom, date_tournage, nb_videos, photo_labels, demande_bande_demo, message_corps, created_at")
+    .select(
+      "id, projet_id, nom, date_tournage, categorie_cachet, nb_videos, photo_labels, demande_bande_demo, message_corps, created_at"
+    )
     .eq("projet_id", projetId)
     .order("date_tournage", { ascending: true, nullsFirst: false })
     .returns<CastingRole[]>();

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { activerAccesCompte, sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
+import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
@@ -20,19 +20,6 @@ function friendlyError(message: string) {
     return "Impossible de passer à \"Présent\" : ce booking doit d'abord être passé par \"CONFIRMÉ\".";
   }
   return message;
-}
-
-// Le lien d'espace personnel ne doit partir qu'une fois le booking
-// réellement confirmé — sinon le figurant le reçoit avant même la
-// proposition et ne comprend pas de quoi il s'agit.
-async function syncAccesCompteSurConfirmation(
-  figurantId: string,
-  projetId: string,
-  statut: BookingStatut | null | undefined
-) {
-  if (statut === "confirmé") {
-    await activerAccesCompte(figurantId, projetId);
-  }
 }
 
 function buildBookingPayload(fd: FormData) {
@@ -75,7 +62,6 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   }
 
   await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
-  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.projet_id, payload.statut);
   revalidatePath("/figurants");
 
   revalidatePath("/bookings");
@@ -101,8 +87,6 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   if (error) {
     return { error: friendlyError(error.message) };
   }
-
-  await syncAccesCompteSurConfirmation(payload.figurant_id, payload.projet_id, payload.statut);
 
   revalidatePath("/bookings");
   revalidatePath(`/bookings/${id}`);
@@ -268,17 +252,6 @@ export async function bulkUpdateBookings(
   const { error } = await supabase.from("bookings").update(payload).in("id", ids);
   if (error) return { error: friendlyError(error.message) };
 
-  if (changes.statut === "confirmé") {
-    const { data: confirmes } = await supabase.from("bookings").select("figurant_id, projet_id").in("id", ids);
-    const pairs = new Map<string, { figurantId: string; projetId: string }>();
-    for (const b of confirmes ?? []) {
-      pairs.set(`${b.figurant_id}|${b.projet_id}`, { figurantId: b.figurant_id, projetId: b.projet_id });
-    }
-    for (const { figurantId, projetId } of pairs.values()) {
-      await activerAccesCompte(figurantId, projetId);
-    }
-  }
-
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   return {};
@@ -415,6 +388,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
   const supabase = createAdminClient();
   let sent = 0;
   let failed = 0;
+  let lastError: string | undefined;
 
   for (const figurantId of Array.from(new Set(figurantIds))) {
     const { data: figurant } = await supabase
@@ -441,6 +415,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
 
     if (result.error) {
       failed += 1;
+      lastError = result.error;
       continue;
     }
 
@@ -456,5 +431,5 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
 
   revalidatePath("/bookings");
   revalidatePath("/figurants");
-  return { sent, failed };
+  return { sent, failed, lastError };
 }

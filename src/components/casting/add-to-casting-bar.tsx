@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { addFigurantsToCasting } from "@/lib/casting/actions";
+import { addFigurantsToCastingRole, listCastingRolesForProjet } from "@/lib/casting/actions";
+import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
+
+type RoleOption = { id: string; nom: string; categorie_cachet: CategorieCachet };
 
 export function AddToCastingBar({
   figurantIds,
@@ -16,23 +19,36 @@ export function AddToCastingBar({
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
-  const [roleNom, setRoleNom] = useState("");
-  const [dateTournage, setDateTournage] = useState("");
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [roleId, setRoleId] = useState("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: number; deja: number; echecs: number } | string | null>(null);
 
+  useEffect(() => {
+    if (!projetId) {
+      setRoles([]);
+      setRoleId("");
+      return;
+    }
+    setRolesLoading(true);
+    setRoleId("");
+    listCastingRolesForProjet(projetId).then((res) => {
+      setRoles(res.roles ?? []);
+      setRolesLoading(false);
+    });
+  }, [projetId]);
+
   function submit() {
-    if (!projetId || !roleNom.trim() || figurantIds.length === 0) return;
+    if (!roleId || figurantIds.length === 0) return;
     setResult(null);
     startTransition(async () => {
-      const res = await addFigurantsToCasting(figurantIds, projetId, roleNom.trim(), dateTournage || null);
+      const res = await addFigurantsToCastingRole(figurantIds, roleId);
       if (res.error) {
         setResult(res.error);
         return;
       }
       setResult({ ok: res.ok ?? 0, deja: res.deja ?? 0, echecs: res.echecs ?? 0 });
-      setRoleNom("");
-      setDateTournage("");
       router.refresh();
       onDone?.();
     });
@@ -63,28 +79,30 @@ export function AddToCastingBar({
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-text-muted">Rôle</label>
-        <input
-          type="text"
-          value={roleNom}
-          onChange={(e) => setRoleNom(e.target.value)}
-          placeholder="Boulanger, Silhouettes marché..."
-          disabled={pending}
+        <select
+          value={roleId}
+          onChange={(e) => setRoleId(e.target.value)}
+          disabled={pending || rolesLoading || roles.length === 0}
           className="w-48 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
-        />
+        >
+          <option value="" disabled>
+            {rolesLoading ? "Chargement..." : roles.length === 0 ? "Aucun rôle sur ce projet" : "Choisir un rôle"}
+          </option>
+          {roles.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.nom} ({CATEGORIE_CACHET_LABELS[r.categorie_cachet]})
+            </option>
+          ))}
+        </select>
       </div>
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Tournage (optionnel)</label>
-        <input
-          type="date"
-          value={dateTournage}
-          onChange={(e) => setDateTournage(e.target.value)}
-          disabled={pending}
-          className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
-        />
-      </div>
-      <Button type="button" disabled={pending || !projetId || !roleNom.trim()} onClick={submit}>
+      <Button type="button" disabled={pending || !roleId} onClick={submit}>
         {pending ? "Envoi..." : "Ajouter au casting"}
       </Button>
+      {!rolesLoading && projetId && roles.length === 0 && (
+        <span className="text-xs text-text-muted">
+          Crée d&apos;abord un rôle depuis la page Casting de ce projet.
+        </span>
+      )}
       {result && typeof result === "string" && <span className="text-xs text-danger">{result}</span>}
       {result && typeof result === "object" && (
         <span className="text-xs text-text-muted">

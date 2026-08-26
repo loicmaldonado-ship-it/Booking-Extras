@@ -11,6 +11,8 @@ import { BackLink } from "@/components/ui/back-link";
 import { MessageriePanel } from "@/components/figurants/messagerie-panel";
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
 import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
+import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
+import { getCurrentProjetId } from "@/lib/projet-context";
 import { AddDatesPanel } from "@/components/figurants/add-dates-panel";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
@@ -37,6 +39,7 @@ export default async function FigurantDetailPage({
 }) {
   const { id } = await params;
   const supabase = createAdminClient();
+  const currentProjetId = await getCurrentProjetId();
 
   const { data: figurant } = await supabase
     .from("figurants")
@@ -173,7 +176,12 @@ export default async function FigurantDetailPage({
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Contact</h2>
-        <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} projetId={currentProjetId} />
+          {figurant.acces_compte && currentProjetId && (
+            <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
+          )}
+        </div>
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-text-muted">Email : </span>

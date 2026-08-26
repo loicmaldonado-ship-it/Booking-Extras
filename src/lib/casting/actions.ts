@@ -4,12 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import type { CategorieCachet } from "./types";
 
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
     .getAll("photo_label")
     .map((v) => String(v).trim())
     .filter(Boolean);
+}
+
+function parseCategorieCachet(formData: FormData): CategorieCachet {
+  const v = String(formData.get("categorie_cachet") ?? "");
+  return v === "silhouette" || v === "doublure" ? v : "role";
 }
 
 export async function createCastingRole(
@@ -24,6 +30,7 @@ export async function createCastingRole(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const categorieCachet = parseCategorieCachet(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
@@ -34,6 +41,7 @@ export async function createCastingRole(
     projet_id: projetId,
     nom,
     date_tournage: dateTournage,
+    categorie_cachet: categorieCachet,
     nb_videos: nbVideos,
     photo_labels: photoLabels,
     demande_bande_demo: demandeBandeDemo,
@@ -60,6 +68,7 @@ export async function updateCastingRoleCalibration(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const categorieCachet = parseCategorieCachet(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
@@ -70,6 +79,7 @@ export async function updateCastingRoleCalibration(
     .update({
       nom,
       date_tournage: dateTournage,
+      categorie_cachet: categorieCachet,
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
@@ -156,39 +166,47 @@ export async function addFigurantToCastingRole(
   return { success: true };
 }
 
-// Depuis Base Profils / Booking / Candidatures : envoie une sélection de
-// profils vers un rôle, en le créant s'il n'existe pas encore sur ce projet
-// (comme sendFigurantsToEssayage crée la journée à la volée) — calibration
-// par défaut, à affiner ensuite depuis la page Casting.
-export async function addFigurantsToCasting(
-  figurantIds: string[],
-  projetId: string,
-  roleNom: string,
-  dateTournage: string | null
-): Promise<{ error?: string; ok?: number; deja?: number; echecs?: number }> {
-  if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
-  const nom = roleNom.trim();
-  if (!nom) return { error: "Le nom du rôle est obligatoire." };
-
+// Depuis Base Profils / Booking / Candidatures : liste les rôles déjà
+// calibrés sur un projet, pour choisir lequel recevra la sélection — la
+// date de tournage et le reste de la calibration restent réservés à la
+// création du rôle depuis /casting, pas re-demandés ici.
+export async function listCastingRolesForProjet(
+  projetId: string
+): Promise<{ error?: string; roles?: { id: string; nom: string; categorie_cachet: CategorieCachet }[] }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  const { data: role, error: roleError } = await supabase
+  const { data } = await supabase
     .from("casting_roles")
-    .upsert(
-      { projet_id: projetId, nom, date_tournage: dateTournage },
-      { onConflict: "projet_id,nom", ignoreDuplicates: false }
-    )
-    .select("id")
-    .single<{ id: string }>();
-  if (roleError || !role) return { error: roleError?.message ?? "Impossible de créer le rôle." };
+    .select("id, nom, categorie_cachet")
+    .eq("projet_id", projetId)
+    .order("nom");
+
+  return { roles: data ?? [] };
+}
+
+// Envoie une sélection de profils vers un rôle EXISTANT (choisi dans un
+// déroulant côté UI) — plus de création de rôle à la volée par nom libre,
+// qui pouvait dupliquer un rôle par faute de frappe ou écraser sa date de
+// tournage déjà calibrée.
+export async function addFigurantsToCastingRole(
+  figurantIds: string[],
+  roleId: string
+): Promise<{ error?: string; ok?: number; deja?: number; echecs?: number }> {
+  if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
+
+  const supabase = createAdminClient();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  if (!role) return { error: "Rôle introuvable." };
+  const accessError = await checkProjetAccess(role.projet_id);
+  if (accessError) return { error: accessError };
 
   let ok = 0;
   let deja = 0;
   let echecs = 0;
   for (const figurantId of figurantIds) {
-    const result = await createCastingEntry(role.id, projetId, figurantId);
+    const result = await createCastingEntry(roleId, role.projet_id, figurantId);
     if (result.error) echecs += 1;
     else if (result.created) ok += 1;
     else deja += 1;

@@ -6,7 +6,7 @@ import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile } from "@/lib/auth/session";
-import { getProjetEmailCredentials, getOwnerEmailCredentials } from "@/lib/projets/email";
+import { getProjetEmailCredentials, getOwnerEmailCredentials, type EmailCredentialsResult } from "@/lib/projets/email";
 import type { FigurantMessageCategorie } from "@/lib/candidats/types";
 
 // Base Profils est partagé entre cheffes, sans projet "propriétaire" du
@@ -14,9 +14,11 @@ import type { FigurantMessageCategorie } from "@/lib/candidats/types";
 // (bandeau du haut) si la personne qui écrit en a un, pour qu'il reste
 // cloisonné comme les autres (voir /figurants/[id]) et parte de la bonne
 // boîte, sinon celle de la cheffe qui écrit, sinon la boîte partagée.
-async function resolveSenderCredentials(supabase: ReturnType<typeof createAdminClient>, projetId: string | null) {
-  const viaProjet = await getProjetEmailCredentials(supabase, projetId);
-  if (viaProjet) return viaProjet;
+async function resolveSenderCredentials(
+  supabase: ReturnType<typeof createAdminClient>,
+  projetId: string | null
+): Promise<EmailCredentialsResult> {
+  if (projetId) return getProjetEmailCredentials(supabase, projetId);
 
   const profile = await getCurrentProfile();
   return getOwnerEmailCredentials(supabase, profile?.id ?? null);
@@ -31,6 +33,15 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 
   const projetId = await getCurrentProjetId();
   const supabase = createAdminClient();
+
+  let emailError: string | undefined;
+  if (email) {
+    const { credentials, error: credError } = await resolveSenderCredentials(supabase, projetId);
+    if (credError) return { error: credError };
+    const result = await sendEmail(email, "Booking Extras", corps, credentials);
+    emailError = result.error;
+  }
+
   const { error } = await supabase
     .from("figurant_messages")
     .insert({ figurant_id: figurantId, sender: "staff", corps, categorie, projet_id: projetId });
@@ -43,13 +54,6 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
     url: "/compte",
   });
 
-  let emailError: string | undefined;
-  if (email) {
-    const credentials = await resolveSenderCredentials(supabase, projetId);
-    const result = await sendEmail(email, "Booking Extras", corps, credentials);
-    emailError = result.error;
-  }
-
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true, emailError };
 }
@@ -57,14 +61,14 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 export async function notifyFigurantByEmail(figurantId: string, email: string, prenom: string, siteUrl: string) {
   const supabase = createAdminClient();
   const projetId = await getCurrentProjetId();
-  const credentials = await resolveSenderCredentials(supabase, projetId);
-  const result = await sendEmail(
+  const { credentials, error } = await resolveSenderCredentials(supabase, projetId);
+  if (error) return { error };
+  return sendEmail(
     email,
     "Booking Extras — Vous avez un message",
     `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras, merci de vous connecter très rapidement :\n${siteUrl}/compte/connexion\n\nMerci !`,
     credentials
   );
-  return result;
 }
 
 // Coché manuellement par l'équipe dans le suivi des envois — distinct du

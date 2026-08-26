@@ -2,9 +2,9 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
-import type { CastingRole } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, type CastingRole } from "@/lib/casting/types";
 
 const DEFAULT_LABELS = ["Portrait", "Pied", "Autre"];
 
@@ -51,6 +51,16 @@ export function CastingRoleForm({
           <Input type="date" name="date_tournage" defaultValue={role?.date_tournage ?? ""} />
         </Field>
       </div>
+
+      <Field label="Catégorie de cachet" required>
+        <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>
+          {Object.entries(CATEGORIE_CACHET_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+      </Field>
 
       <Field label="Nombre de vidéos demandées">
         <Input type="number" name="nb_videos" min={0} defaultValue={role?.nb_videos ?? 1} className="w-24" />
