@@ -330,7 +330,8 @@ export default function AidePage() {
         <Callout>
           <strong className="text-text">Filtres.</strong> En plus du genre, du véhicule, de l&apos;âge et du
           compte Myrole, le panneau <UI>Code postal &amp; mensurations</UI> permet de filtrer par code postal ou
-          par n&apos;importe quelle mensuration de la fiche.
+          par n&apos;importe quelle mensuration de la fiche. Si l&apos;annonce a des dates calibrées, un filtre{" "}
+          <UI>Date dispo</UI> apparaît pour ne garder que les disponibles (ou non) sur une date précise.
         </Callout>
       </GuideChapter>
 
