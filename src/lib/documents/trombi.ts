@@ -1,6 +1,7 @@
 import { formatHeureConvocation } from "./fields";
-import type { ConfirmedBooking } from "./data";
+import type { ConfirmedBooking, CovoiturageInfo } from "./data";
 import { ageBracket, type Dimension, type DocSort } from "./sort";
+import { montantCovoiturage } from "@/lib/bookings/covoiturage-messages";
 
 // Ordre d'affichage voulu sur les trombis : silhouettes, puis doublures, puis figurants en dernier.
 export const TROMBI_CACHET_ORDER = [
@@ -33,7 +34,7 @@ function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {
   return ageBracket(b.figurant.date_naissance);
 }
 
-export type TrombiItem = { booking: ConfirmedBooking; headerLabel: string | null };
+export type TrombiItem = { booking: ConfirmedBooking; headerLabel: string | null; badge?: string };
 
 // Découpe en pages en respectant les groupes (même en-tête) autant que
 // possible, plutôt qu'un simple découpage par nombre fixe — un en-tête
@@ -188,6 +189,64 @@ export function buildFixedOrderTrombiItems(bookings: ConfirmedBooking[]): Trombi
           items.push({ booking, headerLabel });
         }
       }
+    }
+  }
+
+  return items;
+}
+
+// Trombi covoiturage : un groupe par conducteur·rice (soi-même + ses
+// passagers, badge 🚗), puis le reste réparti en groupes "Sans covoiturage
+// · {code postal}" — classés par code postal croissant pour repérer d'un
+// coup d'œil qui habite dans le même coin (organiser un covoiturage
+// manuellement), chaque groupe trié par nom de famille. Un·e passager·ère
+// dont le·la conducteur·rice n'est plus dans le booking du jour retombe
+// dans "Sans covoiturage" plutôt que d'être perdu·e silencieusement.
+export function buildCovoiturageTrombiItems(
+  bookings: ConfirmedBooking[],
+  covoiturageByFigurant: Map<string, CovoiturageInfo>,
+  tarifBase: number,
+  tarifPassager: number
+): TrombiItem[] {
+  const infoOf = (b: ConfirmedBooking) => covoiturageByFigurant.get(b.figurant.id) ?? null;
+  const conducteurs = bookings.filter((b) => infoOf(b)?.covoiturage_role === "conducteur");
+
+  const items: TrombiItem[] = [];
+  const handledIds = new Set<string>();
+
+  for (const conducteur of [...conducteurs].sort(nomSort)) {
+    const info = infoOf(conducteur)!;
+    const passagers = bookings.filter((b) => infoOf(b)?.covoiturage_conducteur_id === conducteur.figurant.id);
+    const indemnite = montantCovoiturage(passagers.length, tarifBase, tarifPassager);
+    const headerLabel = `🚗 ${nomOf(conducteur)} · Départ : ${info.covoiturage_lieu_depart ?? "à confirmer"}${
+      info.covoiturage_places_disponibles !== null ? ` · ${info.covoiturage_places_disponibles} place(s)` : ""
+    } · Indemnité ${indemnite}€`;
+
+    items.push({ booking: conducteur, headerLabel, badge: "🚗" });
+    handledIds.add(conducteur.figurant.id);
+    for (const passager of [...passagers].sort(nomSort)) {
+      items.push({ booking: passager, headerLabel });
+      handledIds.add(passager.figurant.id);
+    }
+  }
+
+  const sansCovoiturage = bookings.filter((b) => !handledIds.has(b.figurant.id));
+  const byPostal = new Map<string, ConfirmedBooking[]>();
+  for (const b of sansCovoiturage) {
+    const key = b.figurant.code_postal ?? "";
+    const list = byPostal.get(key) ?? [];
+    list.push(b);
+    byPostal.set(key, list);
+  }
+  const postalGroups = Array.from(byPostal.entries()).sort(([a], [b]) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    return a.localeCompare(b);
+  });
+  for (const [postal, group] of postalGroups) {
+    const headerLabel = `Sans covoiturage · ${postal || "Code postal non renseigné"}`;
+    for (const booking of [...group].sort(nomSort)) {
+      items.push({ booking, headerLabel });
     }
   }
 

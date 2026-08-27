@@ -1,12 +1,12 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
+import { MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS, type MensurationFilters } from "@/lib/figurants/mensuration-filters";
 
 export type FigurantFilters = {
   q?: string;
   ville?: string;
   myrole?: string;
-  tag?: string;
   vehicule?: string;
-};
+} & MensurationFilters;
 
 export function buildFigurantsQuery(
   supabase: ReturnType<typeof createAdminClient>,
@@ -31,8 +31,18 @@ export function buildFigurantsQuery(
   } else if (params.myrole === "non") {
     query = query.eq("compte_myrole", false);
   }
-  if (params.tag) {
-    query = query.contains("tags", [params.tag]);
+  if (params.code_postal) {
+    query = query.ilike("code_postal", `${params.code_postal}%`);
+  }
+  for (const f of MENSURATION_RANGE_FIELDS) {
+    const min = params[`${f.key}_min`];
+    const max = params[`${f.key}_max`];
+    if (min) query = query.gte(f.column, Number(min));
+    if (max) query = query.lte(f.column, Number(max));
+  }
+  for (const f of MENSURATION_TEXT_FIELDS) {
+    const value = params[f.key];
+    if (value) query = query.ilike(f.key, `%${value}%`);
   }
   if (params.vehicule === "oui") {
     query = query.eq("a_vehicule", true);

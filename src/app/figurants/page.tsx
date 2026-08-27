@@ -8,6 +8,7 @@ import type { Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
@@ -122,7 +123,6 @@ export default async function FigurantsPage({
             <option value="oui">Avec compte Myrole</option>
             <option value="non">Sans compte Myrole</option>
           </Select>
-          <Input name="tag" placeholder="Tag" defaultValue={params.tag} />
           <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
@@ -131,6 +131,7 @@ export default async function FigurantsPage({
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>
           </Select>
+          <MensurationsFilterPanel defaultValues={filters} />
           <button
             type="submit"
             className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-1"

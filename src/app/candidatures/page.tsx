@@ -9,6 +9,12 @@ import { CandidaturesTable, type Row } from "@/components/candidatures/candidatu
 import { SortChips } from "@/components/documents/sort-chips";
 import { ONGLET_OUT_BE, type CandidatureOnglet } from "@/lib/candidatures/types";
 import { GENRES } from "@/lib/figurants/types";
+import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
+import {
+  MENSURATION_RANGE_FIELDS,
+  figurantMatchesMensurationFilters,
+  type MensurationFilters,
+} from "@/lib/figurants/mensuration-filters";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
@@ -35,7 +41,7 @@ type SearchParams = {
   question_reponse?: string;
   sort?: string | string[];
   page?: string;
-};
+} & MensurationFilters;
 
 const CANDIDATURES_PAR_PAGE = 30;
 
@@ -67,6 +73,21 @@ type CandidatureWithFilters = CandidatureRaw & {
         vehicule_velo: boolean;
         vehicule_moto: boolean;
         vehicule_scooter: boolean;
+        code_postal: string | null;
+        taille_cm: number | null;
+        poids_kg: number | null;
+        pointure: number | null;
+        tour_poitrine_cm: number | null;
+        tour_taille_cm: number | null;
+        tour_hanches_cm: number | null;
+        tour_tete_cm: number | null;
+        tour_cou_cm: number | null;
+        jambes_ext_cm: number | null;
+        jambes_int_cm: number | null;
+        carrure_cm: number | null;
+        veste: string | null;
+        pantalon: string | null;
+        gant: string | null;
       })
     | null;
 };
@@ -147,7 +168,7 @@ export default async function CandidaturesPage({
   const query = supabase
     .from("candidatures")
     .select(
-      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
     .order("created_at", { ascending: false });
@@ -207,6 +228,7 @@ export default async function CandidaturesPage({
       return true;
     });
   }
+  candidatures = candidatures.filter((c) => figurantMatchesMensurationFilters(c.figurants, params));
   if (reponsesMatch) {
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
@@ -305,38 +327,48 @@ export default async function CandidaturesPage({
   const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
   const pagedRows = rows.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
 
-  function pageHref(p: number) {
+  // Partagée par pageHref/tabHref/genreTabHref ci-dessous : les trois ne
+  // diffèrent que par onglet_id/genre/page (explicites, jamais hérités de
+  // `params` par défaut — cf. tabHref qui doit pouvoir vider l'onglet), le
+  // reste des filtres (myrole, véhicule, âge, code postal, mensurations,
+  // question, tri) est toujours repris tel quel depuis `params`.
+  function buildCandidaturesHref(
+    base: SearchParams,
+    docSortDims: Dimension[],
+    { ongletId, genre, page: pageOverride }: { ongletId?: string; genre?: string; page?: number }
+  ) {
     const sp = new URLSearchParams();
-    sp.set("annonce_id", params.annonce_id!);
-    if (params.onglet_id) sp.set("onglet_id", params.onglet_id);
-    if (params.myrole) sp.set("myrole", params.myrole);
-    if (params.genre) sp.set("genre", params.genre);
-    if (params.vehicule) sp.set("vehicule", params.vehicule);
-    if (params.age_min) sp.set("age_min", params.age_min);
-    if (params.age_max) sp.set("age_max", params.age_max);
-    if (params.question_id) sp.set("question_id", params.question_id);
-    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
-    for (const dim of docSort) sp.append("sort", dim);
-    if (p > 1) sp.set("page", String(p));
+    sp.set("annonce_id", base.annonce_id!);
+    if (ongletId) sp.set("onglet_id", ongletId);
+    if (base.myrole) sp.set("myrole", base.myrole);
+    if (genre) sp.set("genre", genre);
+    if (base.vehicule) sp.set("vehicule", base.vehicule);
+    if (base.age_min) sp.set("age_min", base.age_min);
+    if (base.age_max) sp.set("age_max", base.age_max);
+    if (base.code_postal) sp.set("code_postal", base.code_postal);
+    if (base.veste) sp.set("veste", base.veste);
+    if (base.pantalon) sp.set("pantalon", base.pantalon);
+    if (base.gant) sp.set("gant", base.gant);
+    for (const f of MENSURATION_RANGE_FIELDS) {
+      const min = base[`${f.key}_min`];
+      if (min) sp.set(`${f.key}_min`, min);
+      const max = base[`${f.key}_max`];
+      if (max) sp.set(`${f.key}_max`, max);
+    }
+    if (base.question_id) sp.set("question_id", base.question_id);
+    if (base.question_reponse) sp.set("question_reponse", base.question_reponse);
+    for (const dim of docSortDims) sp.append("sort", dim);
+    if (pageOverride && pageOverride > 1) sp.set("page", String(pageOverride));
     return `/candidatures?${sp.toString()}`;
   }
+
+  const pageHref = (p: number) =>
+    buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, page: p });
 
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];
 
-  function tabHref(ongletParam?: string) {
-    const sp = new URLSearchParams();
-    sp.set("annonce_id", params.annonce_id!);
-    if (params.myrole) sp.set("myrole", params.myrole);
-    if (params.genre) sp.set("genre", params.genre);
-    if (params.vehicule) sp.set("vehicule", params.vehicule);
-    if (params.age_min) sp.set("age_min", params.age_min);
-    if (params.age_max) sp.set("age_max", params.age_max);
-    if (params.question_id) sp.set("question_id", params.question_id);
-    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
-    if (ongletParam) sp.set("onglet_id", ongletParam);
-    for (const dim of docSort) sp.append("sort", dim);
-    return `/candidatures?${sp.toString()}`;
-  }
+  const tabHref = (ongletParam?: string) =>
+    buildCandidaturesHref(params, docSort, { ongletId: ongletParam, genre: params.genre });
 
   const tabs = [
     { key: "tous", label: "Tous", href: tabHref(), count: tabCounts.tous, danger: false },
@@ -354,20 +386,9 @@ export default async function CandidaturesPage({
   // myrole, véhicule...) — mais AVANT le filtre genre lui-même, pour que
   // les pastilles montrent la répartition réelle et pas juste 0 partout
   // une fois un genre sélectionné.
-  function genreTabHref(genreParam?: string) {
-    const sp = new URLSearchParams();
-    sp.set("annonce_id", params.annonce_id!);
-    if (params.onglet_id) sp.set("onglet_id", params.onglet_id);
-    if (params.myrole) sp.set("myrole", params.myrole);
-    if (params.vehicule) sp.set("vehicule", params.vehicule);
-    if (params.age_min) sp.set("age_min", params.age_min);
-    if (params.age_max) sp.set("age_max", params.age_max);
-    if (params.question_id) sp.set("question_id", params.question_id);
-    if (params.question_reponse) sp.set("question_reponse", params.question_reponse);
-    if (genreParam) sp.set("genre", genreParam);
-    for (const dim of docSort) sp.append("sort", dim);
-    return `/candidatures?${sp.toString()}`;
-  }
+  const genreTabHref = (genreParam?: string) =>
+    buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: genreParam });
+
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
     .filter((c) => !bookedCandidatureIds.has(c.id))
     .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
@@ -480,6 +501,16 @@ export default async function CandidaturesPage({
           vehicule: params.vehicule,
           age_min: params.age_min,
           age_max: params.age_max,
+          code_postal: params.code_postal,
+          veste: params.veste,
+          pantalon: params.pantalon,
+          gant: params.gant,
+          ...Object.fromEntries(
+            MENSURATION_RANGE_FIELDS.flatMap((f) => [
+              [`${f.key}_min`, params[`${f.key}_min`]],
+              [`${f.key}_max`, params[`${f.key}_max`]],
+            ])
+          ),
           question_id: params.question_id,
           question_reponse: params.question_reponse,
         }}
@@ -531,6 +562,7 @@ export default async function CandidaturesPage({
               min={0}
             />
           </div>
+          <MensurationsFilterPanel defaultValues={params} />
           {annonceQuestions.length > 0 && (
             <>
               <Select name="question_id" defaultValue={params.question_id ?? ""}>

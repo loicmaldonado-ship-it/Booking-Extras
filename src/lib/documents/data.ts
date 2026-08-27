@@ -39,6 +39,40 @@ export async function getConfirmedBookings(
     .sort((a, b) => (a.heure_convocation ?? "").localeCompare(b.heure_convocation ?? ""));
 }
 
+export type CovoiturageInfo = {
+  covoiturage_role: "conducteur" | "passager" | null;
+  covoiturage_lieu_depart: string | null;
+  covoiturage_places_disponibles: number | null;
+  covoiturage_conducteur_id: string | null;
+};
+
+// Champs covoiturage par figurant·e, pour la journée — vivent sur bookings
+// (voir src/lib/bookings/types.ts), pas sur ConfirmedBooking, pour ne pas
+// les charger sur tous les autres documents qui n'en ont pas besoin.
+export async function getCovoiturageByFigurant(
+  projetId: string,
+  date: string
+): Promise<Map<string, CovoiturageInfo>> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("bookings")
+    .select("figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id")
+    .eq("projet_id", projetId)
+    .eq("date", date)
+    .returns<(CovoiturageInfo & { figurant_id: string })[]>();
+
+  const map = new Map<string, CovoiturageInfo>();
+  for (const row of data ?? []) {
+    map.set(row.figurant_id, {
+      covoiturage_role: row.covoiturage_role,
+      covoiturage_lieu_depart: row.covoiturage_lieu_depart,
+      covoiturage_places_disponibles: row.covoiturage_places_disponibles,
+      covoiturage_conducteur_id: row.covoiturage_conducteur_id,
+    });
+  }
+  return map;
+}
+
 export async function getPhotosByFigurantId(figurantIds: string[]) {
   const supabase = createAdminClient();
   if (figurantIds.length === 0) return new Map<string, FigurantPhotoWithUrl[]>();

@@ -162,7 +162,7 @@ export function JourneeTabs({
               ✍️ Bordereau d&apos;émargement
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/covoiturage${query}`} variant="secondary">
-              🚗 Résumé covoiturage
+              🚗 Trombi covoiturage
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
               🕴️ Tableau silhouette

@@ -51,6 +51,7 @@ export function TrombiGrid({
                 )}
               </div>
               <span className="text-[10px] font-medium leading-tight">
+                {item.badge ? `${item.badge} ` : ""}
                 {item.booking.figurant.prenom} {item.booking.figurant.nom}
               </span>
               {selectedFields.has("ville") && item.booking.figurant.ville && (
