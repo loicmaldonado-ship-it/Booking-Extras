@@ -23,6 +23,7 @@ import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dime
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
+import { getAnnonceDates } from "@/lib/annonces/dates";
 import { getProjetSignaturesOrOwnerNames } from "@/lib/projets/signature";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { FileText } from "lucide-react";
@@ -39,6 +40,8 @@ type SearchParams = {
   age_max?: string;
   question_id?: string;
   question_reponse?: string;
+  date_id?: string;
+  disponible?: string;
   sort?: string | string[];
   page?: string;
 } & MensurationFilters;
@@ -173,13 +176,17 @@ export default async function CandidaturesPage({
     .eq("annonce_id", params.annonce_id)
     .order("created_at", { ascending: false });
 
-  const annonceQuestions = await getAnnonceQuestions(params.annonce_id);
+  const [annonceQuestions, annonceDates] = await Promise.all([
+    getAnnonceQuestions(params.annonce_id),
+    getAnnonceDates(params.annonce_id),
+  ]);
 
   const [
     { data: candidaturesRaw, error },
     { data: bookedCandidatures },
     { data: templates },
     { data: reponsesMatch },
+    { data: disposMatch },
     { data: onglets },
   ] = await Promise.all([
     query.returns<CandidatureWithFilters[]>(),
@@ -191,6 +198,13 @@ export default async function CandidaturesPage({
           .select("candidature_id")
           .eq("annonce_question_id", params.question_id)
           .eq("reponse", params.question_reponse === "oui")
+      : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
+    params.date_id && params.disponible
+      ? supabase
+          .from("candidature_disponibilites")
+          .select("candidature_id")
+          .eq("annonce_date_id", params.date_id)
+          .eq("disponible", params.disponible === "oui")
       : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
     supabase.from("candidature_onglets").select("id, nom, couleur, fixe, ordre").order("ordre").returns<CandidatureOnglet[]>(),
   ]);
@@ -231,6 +245,10 @@ export default async function CandidaturesPage({
   candidatures = candidatures.filter((c) => figurantMatchesMensurationFilters(c.figurants, params));
   if (reponsesMatch) {
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
+    candidatures = candidatures.filter((c) => matchingIds.has(c.id));
+  }
+  if (disposMatch) {
+    const matchingIds = new Set(disposMatch.map((d) => d.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
   }
 
@@ -357,6 +375,8 @@ export default async function CandidaturesPage({
     }
     if (base.question_id) sp.set("question_id", base.question_id);
     if (base.question_reponse) sp.set("question_reponse", base.question_reponse);
+    if (base.date_id) sp.set("date_id", base.date_id);
+    if (base.disponible) sp.set("disponible", base.disponible);
     for (const dim of docSortDims) sp.append("sort", dim);
     if (pageOverride && pageOverride > 1) sp.set("page", String(pageOverride));
     return `/candidatures?${sp.toString()}`;
@@ -513,6 +533,8 @@ export default async function CandidaturesPage({
           ),
           question_id: params.question_id,
           question_reponse: params.question_reponse,
+          date_id: params.date_id,
+          disponible: params.disponible,
         }}
         current={docSort}
         dimensions={CANDIDATURE_SORT_DIMENSIONS}
@@ -563,6 +585,23 @@ export default async function CandidaturesPage({
             />
           </div>
           <MensurationsFilterPanel defaultValues={params} />
+          {annonceDates.length > 0 && (
+            <>
+              <Select name="date_id" defaultValue={params.date_id ?? ""}>
+                <option value="">Date dispo (toutes)</option>
+                {annonceDates.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {formatDateShort(d.date)}
+                  </option>
+                ))}
+              </Select>
+              <Select name="disponible" defaultValue={params.disponible ?? ""}>
+                <option value="">Disponibilité (toutes)</option>
+                <option value="oui">Disponible</option>
+                <option value="non">Non disponible</option>
+              </Select>
+            </>
+          )}
           {annonceQuestions.length > 0 && (
             <>
               <Select name="question_id" defaultValue={params.question_id ?? ""}>
