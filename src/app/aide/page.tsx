@@ -410,7 +410,11 @@ export default function AidePage() {
           pour l&apos;ajouter comme passager·ère, ou classe-le·la en <strong className="text-text">PPM</strong>{" "}
           (par ses propres moyens — indemnité individuelle) ou <strong className="text-text">Transport en
           commun</strong>. Les profils restants (« Sans covoiturage ») sont groupés par code postal et triés par
-          nom de famille, pour repérer qui habite dans le même coin.
+          nom de famille, pour repérer qui habite dans le même coin. Coche plusieurs profils (case en haut à
+          gauche de chaque photo) pour les glisser tous en même temps, et utilise les icônes 📞 💬 ✉️ pour
+          joindre directement qui que ce soit. <UI>Appliquer à un autre jour</UI> recopie toute
+          l&apos;organisation vers une autre journée du même projet, pour les profils raccord (booké·es les
+          deux jours).
         </Callout>
       </GuideChapter>
 
