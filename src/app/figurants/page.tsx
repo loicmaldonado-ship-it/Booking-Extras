@@ -18,7 +18,9 @@ import { Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = FigurantFilters & { vue?: string };
+type SearchParams = FigurantFilters & { vue?: string; page?: string };
+
+const FIGURANTS_PAR_PAGE = 60;
 
 export default async function FigurantsPage({
   searchParams,
@@ -26,7 +28,7 @@ export default async function FigurantsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { vue, ...filters } = params;
+  const { vue, page: pageParam, ...filters } = params;
   const isTrombi = vue !== "liste";
   const supabase = createAdminClient();
   const profile = await getCurrentProfile();
@@ -36,9 +38,17 @@ export default async function FigurantsPage({
     ? await supabase.from("projets").select("nom").eq("id", currentProjetId).single()
     : { data: null };
 
-  const { data: figurants, error } = await buildFigurantsQuery(supabase, filters).returns<
-    Figurant[]
-  >();
+  // Pagination — le pool de figurant·es est partagé entre tous les comptes,
+  // donc potentiellement des milliers de profils : jamais tout charger (et
+  // surtout jamais générer les URL signées des photos) d'un coup. Le
+  // compte total vient du même aller-retour que la page (Content-Range),
+  // pas d'une requête séparée.
+  const pageParamNum = Math.max(1, Number(pageParam) || 1);
+  const { data: figurants, error, count: totalCount } = await buildFigurantsQuery(supabase, filters, { withCount: true })
+    .range((pageParamNum - 1) * FIGURANTS_PAR_PAGE, pageParamNum * FIGURANTS_PAR_PAGE - 1)
+    .returns<Figurant[]>();
+  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE));
+  const page = Math.min(totalPages, pageParamNum);
 
   const portraitByFigurant = isTrombi
     ? await getPhotosByFigurantId((figurants ?? []).map((f) => f.id))
@@ -51,6 +61,14 @@ export default async function FigurantsPage({
   const query = new URLSearchParams(
     Object.entries(filters).filter(([, v]) => v) as [string, string][]
   ).toString();
+
+  function pageHref(p: number) {
+    const sp = new URLSearchParams(query);
+    if (!isTrombi) sp.set("vue", "liste");
+    if (p > 1) sp.set("page", String(p));
+    const qs = sp.toString();
+    return `/figurants${qs ? `?${qs}` : ""}`;
+  }
 
   const { data: tousLesFigurants } = await supabase
     .from("figurants")
@@ -76,7 +94,7 @@ export default async function FigurantsPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Users size={28} strokeWidth={1.75} />Base Profils</h1>
           <p className="mt-1 text-text-muted">
-            {figurants?.length ?? 0} profil{(figurants?.length ?? 0) > 1 ? "s" : ""}
+            {totalCount ?? 0} profil{(totalCount ?? 0) > 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -239,6 +257,34 @@ export default async function FigurantsPage({
           </tbody>
         </table>
       </Card>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 text-sm">
+          <Link
+            href={pageHref(page - 1)}
+            aria-disabled={page <= 1}
+            className={cn(
+              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+              page <= 1 ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+            )}
+          >
+            ← Précédent
+          </Link>
+          <span className="text-text-muted">
+            Page {page} / {totalPages}
+          </span>
+          <Link
+            href={pageHref(page + 1)}
+            aria-disabled={page >= totalPages}
+            className={cn(
+              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+              page >= totalPages ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+            )}
+          >
+            Suivant →
+          </Link>
+        </div>
       )}
     </div>
   );

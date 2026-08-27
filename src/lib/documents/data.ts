@@ -84,14 +84,14 @@ export async function getPhotosByFigurantId(figurantIds: string[]) {
     .in("figurant_id", figurantIds)
     .returns<FigurantPhoto[]>();
 
-  const withUrls = await Promise.all(
-    (photos ?? []).map(async (p) => {
-      const { data } = await supabase.storage
-        .from("figurant-photos")
-        .createSignedUrl(p.storage_path, 60 * 60);
-      return { ...p, url: data?.signedUrl ?? null };
-    })
-  );
+  // Une seule requête pour signer tous les chemins d'un coup — un appel par
+  // photo ici a fait ramper des pages à des centaines de figurant·es (un
+  // aller-retour Storage par photo, tous attendus en parallèle).
+  const paths = (photos ?? []).map((p) => p.storage_path);
+  const { data: signedUrls } =
+    paths.length > 0 ? await supabase.storage.from("figurant-photos").createSignedUrls(paths, 60 * 60) : { data: [] };
+  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+  const withUrls = (photos ?? []).map((p) => ({ ...p, url: urlByPath.get(p.storage_path) ?? null }));
 
   const map = new Map<string, FigurantPhotoWithUrl[]>();
   for (const photo of withUrls) {

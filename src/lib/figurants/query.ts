@@ -22,11 +22,12 @@ function dateIlYA(annees: number): string {
 
 export function buildFigurantsQuery(
   supabase: ReturnType<typeof createAdminClient>,
-  params: FigurantFilters
+  params: FigurantFilters,
+  options?: { withCount?: boolean }
 ) {
   let query = supabase
     .from("figurants")
-    .select("*")
+    .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
     .order("nom", { ascending: true });
 

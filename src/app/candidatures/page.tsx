@@ -274,11 +274,20 @@ export default async function CandidaturesPage({
   const sortGroups = groupByDimensions(candidatures, docSort, candidatureDimLabel, candidatureNameOf);
   if (sortGroups) candidatures = sortGroups.flatMap((g) => g.items);
 
+  // Pagination — appliquée AVANT les lookups coûteux ci-dessous (photos,
+  // réponses, dispos) pour ne jamais générer d'URL signées ou de requêtes
+  // pour des centaines/milliers de candidatures qui ne seront pas
+  // affichées sur cette page. `candidatures` (non tronqué) reste
+  // disponible pour les compteurs d'onglets/genre au-dessus.
+  const totalPages = Math.max(1, Math.ceil(candidatures.length / CANDIDATURES_PAR_PAGE));
+  const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
+  const pageCandidatures = candidatures.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
+
   const portraitByFigurant = await getPhotosByFigurantId(
-    candidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
+    pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
   );
 
-  const candidatureIds = candidatures.map((c) => c.id);
+  const candidatureIds = pageCandidatures.map((c) => c.id);
   const [{ data: reponsesRaw }, { data: disposRaw }] = await Promise.all([
     candidatureIds.length > 0
       ? supabase
@@ -300,7 +309,7 @@ export default async function CandidaturesPage({
     string,
     { questions: { label: string; reponse: boolean }[]; dates: { date: string; disponible: boolean }[]; message: string | null }
   > = {};
-  for (const c of candidatures) {
+  for (const c of pageCandidatures) {
     summaries[c.id] = { questions: [], dates: [], message: c.message };
   }
   for (const r of reponsesRaw ?? []) {
@@ -318,9 +327,9 @@ export default async function CandidaturesPage({
 
   const signatureByProjet = await getProjetSignaturesOrOwnerNames(
     supabase,
-    candidatures.map((c) => c.annonces?.projet_id).filter((id): id is string => !!id)
+    pageCandidatures.map((c) => c.annonces?.projet_id).filter((id): id is string => !!id)
   );
-  const rows: Row[] = candidatures.map((c) => ({
+  const pagedRows: Row[] = pageCandidatures.map((c) => ({
     ...c,
     // La signature calibrée sur le projet prime ; sans elle, le nom de la
     // cheffe propriétaire — jamais une formule générique.
@@ -338,12 +347,6 @@ export default async function CandidaturesPage({
     portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
     photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
   }));
-
-  // Pagination — au-delà d'une trentaine de profils la page devient
-  // interminable à parcourir, surtout en trombinoscope avec les photos.
-  const totalPages = Math.max(1, Math.ceil(rows.length / CANDIDATURES_PAR_PAGE));
-  const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
-  const pagedRows = rows.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
 
   // Partagée par pageHref/tabHref/genreTabHref ci-dessous : les trois ne
   // diffèrent que par onglet_id/genre/page (explicites, jamais hérités de
@@ -441,7 +444,8 @@ export default async function CandidaturesPage({
             <h1 className="text-3xl font-semibold">{annonce?.titre ?? "Annonce"}</h1>
             <p className="mt-1 text-text-muted">
               {projetNomPublic(annonce?.projets)}
-              {annonce?.lieu ? ` · ${annonce.lieu}` : ""} · {rows.length} candidature{rows.length > 1 ? "s" : ""}
+              {annonce?.lieu ? ` · ${annonce.lieu}` : ""} · {candidatures.length} candidature
+              {candidatures.length > 1 ? "s" : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
