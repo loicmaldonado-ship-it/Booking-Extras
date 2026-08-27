@@ -21,13 +21,13 @@ const DICT = {
   // Index documents
   trombis_fiches_journee: {
     fr: "Trombis et fiches mensuration du {date} — lecture seule.",
-    en: "Contact sheet and measurement sheets for {date} — read only.",
+    en: "Head shots and measurement sheets for {date} — read only.",
   },
   trombis_fiches_par_journee: {
     fr: "Trombis et fiches mensuration par journée — lecture seule.",
-    en: "Contact sheet and measurement sheets by day — read only.",
+    en: "Head shots and measurement sheets by day — read only.",
   },
-  trombis: { fr: "Trombis", en: "Contact sheet" },
+  trombis: { fr: "Trombis", en: "Head Shot" },
   fiches_mensuration: { fr: "Fiches mensuration", en: "Measurement sheets" },
   aucune_journee: { fr: "Aucune journée pour l'instant.", en: "No day yet." },
   confirme: { fr: "confirmé·e", en: "confirmed" },
@@ -53,10 +53,10 @@ const DICT = {
   cachet_non_assigne: { fr: "Cachet non assigné", en: "Rate not assigned" },
   sans_fonction_assignee: { fr: "Sans fonction assignée", en: "No role assigned" },
   cachet_figurant: { fr: "Figurant", en: "Extra" },
-  cachet_silhouette: { fr: "Silhouette", en: "Silhouette" },
-  cachet_silhouette_parlante: { fr: "Silhouette parlante", en: "Speaking silhouette" },
-  cachet_doublure_simple: { fr: "Doublure simple", en: "Simple stand-in" },
-  cachet_doublure_polyvalente: { fr: "Doublure polyvalente", en: "Versatile stand-in" },
+  cachet_silhouette: { fr: "Silhouette", en: "Featured Extra" },
+  cachet_silhouette_parlante: { fr: "Silhouette parlante", en: "Speaking Featured Extra" },
+  cachet_doublure_simple: { fr: "Doublure simple", en: "Stand In" },
+  cachet_doublure_polyvalente: { fr: "Doublure polyvalente", en: "Photo Double" },
   cachet_role: { fr: "Rôle", en: "Role" },
 
   // Mensuration sheet

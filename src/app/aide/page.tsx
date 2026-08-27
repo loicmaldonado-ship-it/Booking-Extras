@@ -395,7 +395,8 @@ export default function AidePage() {
           items={[
             <>
               Choisis le projet puis la <strong className="text-text">journée</strong> — elle se crée
-              automatiquement dès le premier profil ajouté.
+              automatiquement dès le premier profil ajouté. Une journée vide (aucun booking) peut être
+              supprimée depuis sa carte, via le <UI>×</UI> qui apparaît en haut à droite.
             </>,
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
