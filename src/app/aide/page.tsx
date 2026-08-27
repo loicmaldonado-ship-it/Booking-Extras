@@ -405,6 +405,13 @@ export default function AidePage() {
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />
+        <Callout>
+          <strong className="text-text">Onglet Covoiturage.</strong> Glisse un profil sur un·e chauffeur·euse
+          pour l&apos;ajouter comme passager·ère, ou classe-le·la en <strong className="text-text">PPM</strong>{" "}
+          (par ses propres moyens — indemnité individuelle) ou <strong className="text-text">Transport en
+          commun</strong>. Les profils restants (« Sans covoiturage ») sont groupés par code postal et triés par
+          nom de famille, pour repérer qui habite dans le même coin.
+        </Callout>
       </GuideChapter>
 
       <GuideChapter
@@ -440,7 +447,7 @@ export default function AidePage() {
             { title: "Trombi HMC", body: "Variante pour l'équipe habillage/maquillage/coiffure." },
             {
               title: "Trombi covoiturage",
-              body: "Un groupe par conducteur·rice avec ses passagers, puis le reste trié par code postal croissant pour repérer qui habite dans le même coin. Bascule Trombi/Liste pour une version texte sans photos.",
+              body: "Un groupe par conducteur·rice avec ses passagers, un groupe PPM, un groupe Transport en commun, puis le reste trié par code postal croissant (masquable). Bascule Trombi/Liste pour une version texte sans photos.",
             },
             { title: "Liste d'appel, bordereau, vCards", body: "Depuis Bookings → Documents, un onglet par type de document." },
           ]}
