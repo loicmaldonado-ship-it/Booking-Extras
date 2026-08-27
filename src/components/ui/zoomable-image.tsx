@@ -42,7 +42,15 @@ function LightboxPortal({
   return createPortal(
     <div
       className="fixed inset-0 z-[999] flex items-center justify-center bg-black/90 p-6"
-      onClick={onClose}
+      onClick={(e) => {
+        // Le portail rend hors de l'arbre DOM (document.body), mais React
+        // fait quand même remonter l'événement à travers l'arbre JSX
+        // d'origine — sans stopPropagation, un clic ici referme bien
+        // l'aperçu mais continue vers un <Link>/onClick parent (la carte
+        // du profil) et déclenche une navigation.
+        e.stopPropagation();
+        onClose();
+      }}
     >
       <button
         type="button"
