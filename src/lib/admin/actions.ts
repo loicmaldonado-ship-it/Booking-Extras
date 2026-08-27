@@ -55,3 +55,25 @@ export async function restoreChefAccess(chefId: string) {
   revalidatePath("/admin");
   return { success: true as const };
 }
+
+// Appelle directement inviteUserByEmail plutôt que findOrInviteProfile :
+// celle-ci retombe silencieusement sur le compte existant (via listUsers)
+// dès que l'invitation initiale échoue, ce qui masquerait un renvoi qui n'a
+// en réalité rien envoyé. Ici on veut l'erreur brute si l'email n'est
+// effectivement pas reparti (ex. la personne s'est déjà connectée une
+// fois — Supabase refuse alors de renvoyer une invitation).
+export async function resendChefInvite(chefId: string) {
+  await requireOwner();
+  const admin = createAdminClient();
+  const { data: chef } = await admin.from("profiles").select("email").eq("id", chefId).single();
+  if (!chef?.email) return { error: "Email introuvable pour ce compte." };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const { error } = await admin.auth.admin.inviteUserByEmail(chef.email, {
+    redirectTo: `${siteUrl}/auth/invite`,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { success: true as const };
+}

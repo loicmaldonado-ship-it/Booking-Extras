@@ -7,6 +7,7 @@ import { isOnline } from "@/lib/auth/presence";
 import { Card, Badge } from "@/components/ui/card";
 import { InviteChefForm } from "@/components/admin/invite-chef-form";
 import { RevokeChefButton } from "@/components/admin/revoke-chef-button";
+import { ResendInviteButton } from "@/components/admin/resend-invite-button";
 import { TeamPresenceList, type PresenceMember } from "@/components/equipe/team-presence-list";
 import { formatDateTime } from "@/lib/format-date";
 import { Crown } from "lucide-react";
@@ -44,6 +45,7 @@ export default async function AdminPage() {
   const revokedById = new Map(
     (usersList?.users ?? []).map((u) => [u.id, !!u.banned_until && new Date(u.banned_until) > new Date()])
   );
+  const lastSeenById = new Map((tousLesProfils ?? []).map((p) => [p.id, p.last_seen_at]));
 
   const presenceMembers: PresenceMember[] = (tousLesProfils ?? []).map((p) => ({
     id: p.id,
@@ -127,6 +129,7 @@ export default async function AdminPage() {
         {autresChefs.map((c) => {
           const leursProjets = projetsByOwner.get(c.id) ?? [];
           const revoked = revokedById.get(c.id) ?? false;
+          const jamaisConnecte = !lastSeenById.get(c.id);
           return (
             <div key={c.id} className="rounded-xl border border-border p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -136,9 +139,11 @@ export default async function AdminPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   {revoked && <Badge tone="danger">Accès révoqué</Badge>}
+                  {!revoked && jamaisConnecte && <Badge tone="danger">Jamais connecté·e</Badge>}
                   <Badge>
                     {leursProjets.length} projet{leursProjets.length > 1 ? "s" : ""}
                   </Badge>
+                  {!revoked && jamaisConnecte && <ResendInviteButton chefId={c.id} />}
                   <RevokeChefButton chefId={c.id} revoked={revoked} />
                 </div>
               </div>
