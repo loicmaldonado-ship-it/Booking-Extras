@@ -530,6 +530,24 @@ export function CovoiturageBoard({
             </button>
           </span>
         )}
+        {selectedIds.size > 0 && (
+          <select
+            value=""
+            disabled={pending}
+            onChange={(e) => {
+              const role = e.target.value;
+              const ids = Array.from(selectedIds);
+              if (role === "conducteur") promoteToConducteur(ids);
+              else if (role === "ppm" || role === "transport_commun") setRoleForMany(ids, role);
+            }}
+            className={`${fieldClass} w-44`}
+          >
+            <option value="">Assigner à...</option>
+            <option value="conducteur">Chauffeur·se</option>
+            <option value="ppm">PPM</option>
+            <option value="transport_commun">Transport en commun</option>
+          </select>
+        )}
         {autresDates.length > 0 && (
           <Button
             type="button"
