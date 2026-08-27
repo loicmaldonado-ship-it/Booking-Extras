@@ -264,7 +264,10 @@ export default function AidePage() {
         </Callout>
         <MiniGrid
           items={[
-            { title: "Vue Liste", body: "Pour filtrer par ville, tag, véhicule ou compte Myrole." },
+            {
+              title: "Vue Liste",
+              body: "Pour filtrer par ville, véhicule ou compte Myrole — et, dans « Code postal & mensurations », par code postal ou n'importe quelle mensuration de la fiche (taille, poids, tours, veste/pantalon...).",
+            },
             { title: "Vue Trombinoscope", body: "Pour parcourir les photos rapidement, comme un book." },
           ]}
         />
@@ -324,6 +327,11 @@ export default function AidePage() {
             </>,
           ]}
         />
+        <Callout>
+          <strong className="text-text">Filtres.</strong> En plus du genre, du véhicule, de l&apos;âge et du
+          compte Myrole, le panneau <UI>Code postal &amp; mensurations</UI> permet de filtrer par code postal ou
+          par n&apos;importe quelle mensuration de la fiche.
+        </Callout>
       </GuideChapter>
 
       <GuideChapter
@@ -430,6 +438,10 @@ export default function AidePage() {
             { title: "Trombinoscope", body: "Photos + infos choisies, groupées par heure et par cachet." },
             { title: "Fiches mensuration", body: "Une fiche par personne, avec ses trois photos et ses mesures." },
             { title: "Trombi HMC", body: "Variante pour l'équipe habillage/maquillage/coiffure." },
+            {
+              title: "Trombi covoiturage",
+              body: "Un groupe par conducteur·rice avec ses passagers, puis le reste trié par code postal croissant pour repérer qui habite dans le même coin.",
+            },
             { title: "Liste d'appel, bordereau, vCards", body: "Depuis Bookings → Documents, un onglet par type de document." },
           ]}
         />
@@ -497,7 +509,12 @@ export default function AidePage() {
           <Steps
             items={[
               "Va dans Équipe, choisis le projet concerné et l'email de la personne.",
-              "Il·elle reçoit une invitation par email pour créer son compte — son accès reste limité à ce projet.",
+              "Il·elle reçoit une invitation par email pour créer son compte — son accès reste limité aux projets où iel est invité·e.",
+              <>
+                Dans la colonne <UI>Sections</UI> de sa ligne, coche les sections précises auxquelles il·elle a
+                droit (Bookings, Casting...) plutôt que tout l&apos;outil — sans rien cocher, l&apos;accès reste
+                complet.
+              </>,
             ]}
           />
         </div>
