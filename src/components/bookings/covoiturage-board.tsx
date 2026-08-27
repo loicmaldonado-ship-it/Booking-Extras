@@ -13,11 +13,12 @@ import {
   openHref,
 } from "@/lib/bookings/covoiturage-messages";
 import { cn } from "@/lib/cn";
+import { COVOITURAGE_ROLES, type CovoiturageRole } from "@/lib/bookings/types";
 
 export type CovoiturageRow = {
   id: string;
   figurant_id: string;
-  covoiturage_role: "conducteur" | "passager" | null;
+  covoiturage_role: CovoiturageRole | null;
   covoiturage_lieu_depart: string | null;
   covoiturage_places_disponibles: number | null;
   covoiturage_conducteur_id: string | null;
@@ -96,6 +97,11 @@ export function CovoiturageBoard({
     () => rows.filter((r) => r.covoiturage_role === "conducteur"),
     [rows]
   );
+  const ppm = useMemo(() => sortByNomFamille(rows.filter((r) => r.covoiturage_role === "ppm")), [rows]);
+  const transportCommun = useMemo(
+    () => sortByNomFamille(rows.filter((r) => r.covoiturage_role === "transport_commun")),
+    [rows]
+  );
   const sansCovoiturage = useMemo(() => rows.filter((r) => !r.covoiturage_role), [rows]);
   const sansCovoiturageGroups = useMemo(() => groupByCodePostal(sansCovoiturage), [sansCovoiturage]);
 
@@ -106,12 +112,18 @@ export function CovoiturageBoard({
     });
   }
 
-  function setRole(r: CovoiturageRow, role: "conducteur" | "passager" | "") {
+  function setRole(r: CovoiturageRow, role: CovoiturageRole | "") {
     update(r.id, {
       covoiturage_role: role || null,
       ...(role !== "conducteur" ? { covoiturage_lieu_depart: null, covoiturage_places_disponibles: null } : {}),
       ...(role !== "passager" ? { covoiturage_conducteur_id: null } : {}),
     });
+  }
+
+  function setRoleByFigurantId(figurantId: string, role: CovoiturageRole) {
+    const row = rows.find((r) => r.figurant_id === figurantId);
+    if (!row) return;
+    setRole(row, role);
   }
 
   function demote(r: CovoiturageRow) {
@@ -218,6 +230,8 @@ export function CovoiturageBoard({
   const groups: { label: string; rows: CovoiturageRow[] }[] = [
     { label: "Conducteurs", rows: conducteurs },
     { label: "Passagers", rows: rows.filter((r) => r.covoiturage_role === "passager") },
+    { label: "PPM (par ses propres moyens)", rows: ppm },
+    { label: "Transport en commun", rows: transportCommun },
   ];
 
   function TrombiCard({ r, onRemove, onMessage }: { r: CovoiturageRow; onRemove?: () => void; onMessage?: () => void }) {
@@ -273,12 +287,15 @@ export function CovoiturageBoard({
         <select
           value={r.covoiturage_role ?? ""}
           disabled={pending}
-          onChange={(e) => setRole(r, e.target.value as "conducteur" | "passager" | "")}
+          onChange={(e) => setRole(r, e.target.value as CovoiturageRole | "")}
           className={`${fieldClass} w-36`}
         >
           <option value="">Aucun</option>
-          <option value="conducteur">Conducteur</option>
-          <option value="passager">Passager</option>
+          {COVOITURAGE_ROLES.map((role) => (
+            <option key={role.value} value={role.value}>
+              {role.label}
+            </option>
+          ))}
         </select>
 
         {r.covoiturage_role === "conducteur" && (
@@ -424,8 +441,8 @@ export function CovoiturageBoard({
       {viewMode === "trombi" && (
         <div className="flex flex-col gap-4">
           <p className="text-xs text-text-muted">
-            Glisse un profil sur un·e chauffeur·euse pour l&apos;ajouter comme passager·ère, ou sur « + Nouveau·elle chauffeur·euse »
-            pour le·la promouvoir.
+            Glisse un profil sur un·e chauffeur·euse pour l&apos;ajouter comme passager·ère, sur « + Nouveau·elle
+            chauffeur·euse » pour le·la promouvoir, ou sur PPM / Transport en commun pour le·la classer là.
           </p>
 
           <div className="flex flex-wrap items-start gap-4">
@@ -521,6 +538,67 @@ export function CovoiturageBoard({
               )}
             >
               + Nouveau·elle chauffeur·euse
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverZone("ppm");
+              }}
+              onDragLeave={() => setDragOverZone((z) => (z === "ppm" ? null : z))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverZone(null);
+                const figurantId = e.dataTransfer.getData("text/figurant-id");
+                if (figurantId) setRoleByFigurantId(figurantId, "ppm");
+              }}
+              className={cn(
+                "flex flex-col gap-2 rounded-2xl border p-3 transition-colors",
+                dragOverZone === "ppm" ? "border-coral bg-coral/10" : "border-border bg-ink-raised"
+              )}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">PPM ({ppm.length})</h3>
+                {ppm.length > 0 && (
+                  <span className="text-[10px] text-text-muted">Indemnité : {tarifBase}€/personne</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ppm.map((r) => (
+                  <TrombiCard key={r.id} r={r} onRemove={() => unassign(r.figurant_id)} />
+                ))}
+                {ppm.length === 0 && <p className="text-[11px] text-text-muted">Glisser ici</p>}
+              </div>
+            </div>
+
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverZone("transport-commun");
+              }}
+              onDragLeave={() => setDragOverZone((z) => (z === "transport-commun" ? null : z))}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOverZone(null);
+                const figurantId = e.dataTransfer.getData("text/figurant-id");
+                if (figurantId) setRoleByFigurantId(figurantId, "transport_commun");
+              }}
+              className={cn(
+                "flex flex-col gap-2 rounded-2xl border p-3 transition-colors",
+                dragOverZone === "transport-commun" ? "border-coral bg-coral/10" : "border-border bg-ink-raised"
+              )}
+            >
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Transport en commun ({transportCommun.length})
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {transportCommun.map((r) => (
+                  <TrombiCard key={r.id} r={r} onRemove={() => unassign(r.figurant_id)} />
+                ))}
+                {transportCommun.length === 0 && <p className="text-[11px] text-text-muted">Glisser ici</p>}
+              </div>
             </div>
           </div>
 

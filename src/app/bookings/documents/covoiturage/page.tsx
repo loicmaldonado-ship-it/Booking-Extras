@@ -33,9 +33,10 @@ export default async function CovoiturageDocPage({
     fields?: string | string[];
     booking_ids?: string;
     vue?: string;
+    sans_covoiturage?: string;
   }>;
 }) {
-  const { projet_id, date, fields, booking_ids, vue } = await searchParams;
+  const { projet_id, date, fields, booking_ids, vue, sans_covoiturage } = await searchParams;
   await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
@@ -43,6 +44,7 @@ export default async function CovoiturageDocPage({
   }
 
   const isListe = vue === "liste";
+  const hideSansCovoiturage = sans_covoiturage === "masquer";
   const selectedFields = fields === undefined ? new Set(DEFAULT_FIELDS) : parseFields(fields);
   const selectedIds = parseIds(booking_ids);
 
@@ -64,10 +66,18 @@ export default async function CovoiturageDocPage({
     bookings,
     covoiturageByFigurant,
     projet?.covoiturage_tarif_base ?? 15,
-    projet?.covoiturage_tarif_passager ?? 5
+    projet?.covoiturage_tarif_passager ?? 5,
+    { hideSansCovoiturage }
   );
 
-  const baseQuery = `?projet_id=${projet_id}&date=${date}`;
+  function docHref(overrides: { vue?: "trombi" | "liste"; sansCovoiturage?: "afficher" | "masquer" }) {
+    const v = overrides.vue ?? (isListe ? "liste" : "trombi");
+    const sc = overrides.sansCovoiturage ?? (hideSansCovoiturage ? "masquer" : "afficher");
+    const sp = new URLSearchParams({ projet_id: projet_id!, date: date! });
+    if (v === "liste") sp.set("vue", "liste");
+    if (sc === "masquer") sp.set("sans_covoiturage", "masquer");
+    return `/bookings/documents/covoiturage?${sp.toString()}`;
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -87,7 +97,7 @@ export default async function CovoiturageDocPage({
       <div className="print-hide flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Vue :</span>
         <Link
-          href={`/bookings/documents/covoiturage${baseQuery}`}
+          href={docHref({ vue: "trombi" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
             !isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
@@ -96,13 +106,32 @@ export default async function CovoiturageDocPage({
           Trombi (photos)
         </Link>
         <Link
-          href={`/bookings/documents/covoiturage${baseQuery}&vue=liste`}
+          href={docHref({ vue: "liste" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
             isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
           )}
         >
           Liste (texte)
+        </Link>
+        <span className="ml-3 text-xs font-medium text-text-muted">Sans covoiturage :</span>
+        <Link
+          href={docHref({ sansCovoiturage: "afficher" })}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            !hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Afficher
+        </Link>
+        <Link
+          href={docHref({ sansCovoiturage: "masquer" })}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Masquer
         </Link>
       </div>
 

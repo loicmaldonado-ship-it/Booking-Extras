@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Figurant, FigurantPhoto } from "@/lib/figurants/types";
+import type { CovoiturageRole } from "@/lib/bookings/types";
 
 export type FigurantPhotoWithUrl = Omit<FigurantPhoto, "url"> & { url: string | null };
 
@@ -40,7 +41,7 @@ export async function getConfirmedBookings(
 }
 
 export type CovoiturageInfo = {
-  covoiturage_role: "conducteur" | "passager" | null;
+  covoiturage_role: CovoiturageRole | null;
   covoiturage_lieu_depart: string | null;
   covoiturage_places_disponibles: number | null;
   covoiturage_conducteur_id: string | null;

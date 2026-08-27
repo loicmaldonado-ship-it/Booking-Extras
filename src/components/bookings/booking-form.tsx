@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
-import { STATUTS, type Booking, type BookingStatut } from "@/lib/bookings/types";
+import { STATUTS, COVOITURAGE_ROLES, type Booking, type BookingStatut } from "@/lib/bookings/types";
 import type { BaremeCachet } from "@/lib/bareme/types";
 
 type Action = (
@@ -162,8 +162,11 @@ export function BookingForm({
               onChange={(e) => setCovoiturageRole(e.target.value)}
             >
               <option value=""></option>
-              <option value="conducteur">Conducteur</option>
-              <option value="passager">Passager</option>
+              {COVOITURAGE_ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label}
+                </option>
+              ))}
             </Select>
           </Field>
           <Field label="Lieu de départ">

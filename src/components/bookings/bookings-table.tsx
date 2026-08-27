@@ -27,7 +27,7 @@ import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
 import { toggleMessageRepondu } from "@/lib/figurants/messages-actions";
 import type { InboxReply } from "@/lib/email/inbox";
-import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
+import { STATUTS, type BookingStatut, type CovoiturageRole } from "@/lib/bookings/types";
 import { CACHETS } from "@/lib/candidatures/types";
 import { computeAge } from "@/lib/documents/fields";
 import { buildConvocationMailto, substituteTokens, type ConvocationSettings } from "@/lib/bookings/convocation";
@@ -85,7 +85,7 @@ export type Row = {
   reponse_recue: boolean;
   reponse_recue_le?: string | null;
   notes: string | null;
-  covoiturage_role?: "conducteur" | "passager" | null;
+  covoiturage_role?: CovoiturageRole | null;
   covoiturage_lieu_depart?: string | null;
   covoiturage_conducteur_id?: string | null;
   figurants: {

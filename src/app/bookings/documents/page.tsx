@@ -22,12 +22,13 @@ import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites"
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
+import type { CovoiturageRole } from "@/lib/bookings/types";
 
 export const dynamic = "force-dynamic";
 
 type BookingRow = Omit<Row, "portraitUrl"> & {
   figurant_id: string;
-  covoiturage_role: "conducteur" | "passager" | null;
+  covoiturage_role: CovoiturageRole | null;
   covoiturage_lieu_depart: string | null;
   covoiturage_places_disponibles: number | null;
   covoiturage_conducteur_id: string | null;

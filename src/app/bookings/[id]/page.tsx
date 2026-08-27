@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { deleteBooking } from "@/lib/bookings/actions";
 import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons";
 import { BackLink } from "@/components/ui/back-link";
-import { statutLabel, statutTone } from "@/lib/bookings/types";
+import { statutLabel, statutTone, covoiturageRoleLabel } from "@/lib/bookings/types";
 import { formatDateShort } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
@@ -94,7 +94,10 @@ export default async function BookingDetailPage({
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Covoiturage</h2>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div><span className="text-text-muted">Rôle : </span>{booking.covoiturage_role ?? "—"}</div>
+            <div>
+              <span className="text-text-muted">Rôle : </span>
+              {booking.covoiturage_role ? covoiturageRoleLabel(booking.covoiturage_role) : "—"}
+            </div>
             <div><span className="text-text-muted">Lieu de départ : </span>{booking.covoiturage_lieu_depart ?? "—"}</div>
             {booking.covoiturage_role === "conducteur" && (
               <div><span className="text-text-muted">Places disponibles : </span>{booking.covoiturage_places_disponibles ?? "—"}</div>

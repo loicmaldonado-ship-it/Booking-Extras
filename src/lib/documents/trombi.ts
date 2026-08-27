@@ -213,7 +213,8 @@ export function buildCovoiturageTrombiItems(
   bookings: ConfirmedBooking[],
   covoiturageByFigurant: Map<string, CovoiturageInfo>,
   tarifBase: number,
-  tarifPassager: number
+  tarifPassager: number,
+  { hideSansCovoiturage = false }: { hideSansCovoiturage?: boolean } = {}
 ): TrombiItem[] {
   const infoOf = (b: ConfirmedBooking) => covoiturageByFigurant.get(b.figurant.id) ?? null;
   const conducteurs = bookings.filter((b) => infoOf(b)?.covoiturage_role === "conducteur");
@@ -236,6 +237,30 @@ export function buildCovoiturageTrombiItems(
       handledIds.add(passager.figurant.id);
     }
   }
+
+  // PPM (par ses propres moyens) : indemnité individuelle fixe, pas
+  // partagée comme conducteur/passager — un seul groupe, tout le monde a la
+  // même indemnité, pas besoin de la répéter par personne.
+  const ppmBookings = bookings.filter((b) => infoOf(b)?.covoiturage_role === "ppm");
+  if (ppmBookings.length > 0) {
+    const headerLabel = `🚕 PPM (par ses propres moyens) · Indemnité ${tarifBase}€/personne`;
+    for (const booking of [...ppmBookings].sort(nomFamilleSort)) {
+      items.push({ booking, headerLabel, badge: "🚕" });
+      handledIds.add(booking.figurant.id);
+    }
+  }
+
+  // Transport en commun : aucune indemnité, juste une catégorisation.
+  const transportCommunBookings = bookings.filter((b) => infoOf(b)?.covoiturage_role === "transport_commun");
+  if (transportCommunBookings.length > 0) {
+    const headerLabel = "🚌 Transport en commun";
+    for (const booking of [...transportCommunBookings].sort(nomFamilleSort)) {
+      items.push({ booking, headerLabel, badge: "🚌" });
+      handledIds.add(booking.figurant.id);
+    }
+  }
+
+  if (hideSansCovoiturage) return items;
 
   const sansCovoiturage = bookings.filter((b) => !handledIds.has(b.figurant.id));
   const byPostal = new Map<string, ConfirmedBooking[]>();
