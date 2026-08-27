@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { bulkUpdateBookings, recordCovoiturageMessage } from "@/lib/bookings/actions";
+import { bulkUpdateBookings, copyCovoiturageToDate, recordCovoiturageMessage } from "@/lib/bookings/actions";
+import { formatDateShort } from "@/lib/format-date";
 import {
   buildChauffeurMessage,
   buildPassagerMessage,
   montantCovoiturage,
   contactHref,
   openHref,
+  smsConversationHref,
 } from "@/lib/bookings/covoiturage-messages";
 import { cn } from "@/lib/cn";
 import { COVOITURAGE_ROLES, type CovoiturageRole } from "@/lib/bookings/types";
@@ -78,12 +80,14 @@ export function CovoiturageBoard({
   projetId,
   tarifBase = 15,
   tarifPassager = 5,
+  autresDates = [],
 }: {
   rows: CovoiturageRow[];
   date: string;
   projetId?: string;
   tarifBase?: number;
   tarifPassager?: number;
+  autresDates?: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -92,6 +96,55 @@ export function CovoiturageBoard({
   const [bulkOpen, setBulkOpen] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
+  // Sélection multiple (cases à cocher sur les cartes) — glisser une carte
+  // cochée déplace tout le lot en un seul aller-retour serveur, plutôt que
+  // de forcer un glisser-déposer profil par profil.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function toggleSelected(figurantId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(figurantId)) next.delete(figurantId);
+      else next.add(figurantId);
+      return next;
+    });
+  }
+
+  // Copie l'organisation covoiturage de cette journée vers une autre date
+  // du même projet (utile quand les mêmes personnes sont raccord).
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copyDate, setCopyDate] = useState(autresDates[0] ?? "");
+  const [copyResult, setCopyResult] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState<string | null>(null);
+
+  function applyCopy() {
+    if (!copyDate || !projetId) return;
+    setCopyResult(null);
+    setCopyError(null);
+    startTransition(async () => {
+      const result = await copyCovoiturageToDate(projetId, date, copyDate);
+      if (result?.error) setCopyError(result.error);
+      else {
+        setCopyResult(
+          result?.applied
+            ? `Organisation appliquée à ${result.applied} booking${result.applied > 1 ? "s" : ""} du ${formatDateShort(copyDate)}.`
+            : `Personne en commun entre les deux journées.`
+        );
+        router.refresh();
+      }
+    });
+  }
+
+  function droppedFigurantIds(e: DragEvent): string[] {
+    const raw = e.dataTransfer.getData("text/figurant-ids");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+    } catch {
+      return [];
+    }
+  }
 
   const conducteurs = useMemo(
     () => rows.filter((r) => r.covoiturage_role === "conducteur"),
@@ -120,49 +173,73 @@ export function CovoiturageBoard({
     });
   }
 
-  function setRoleByFigurantId(figurantId: string, role: CovoiturageRole) {
-    const row = rows.find((r) => r.figurant_id === figurantId);
-    if (!row) return;
-    setRole(row, role);
+  function bookingIdsFor(figurantIds: string[]) {
+    const set = new Set(figurantIds);
+    return rows.filter((r) => set.has(r.figurant_id)).map((r) => r.id);
   }
 
-  function demote(r: CovoiturageRow) {
-    if (r.covoiturage_role === "conducteur") {
-      const passagerIds = rows
-        .filter((p) => p.covoiturage_conducteur_id === r.figurant_id)
-        .map((p) => p.id);
-      startTransition(async () => {
-        if (passagerIds.length > 0) {
-          await bulkUpdateBookings(passagerIds, { covoiturage_role: null, covoiturage_conducteur_id: null });
-        }
-        await bulkUpdateBookings([r.id], {
-          covoiturage_role: null,
-          covoiturage_lieu_depart: null,
-          covoiturage_places_disponibles: null,
-        });
-        router.refresh();
+  // Toutes les actions ci-dessous acceptent un lot de figurant_id (1 ou
+  // plusieurs, selon la sélection au moment du drop) et ne font qu'un seul
+  // appel serveur pour tout le lot — voir bulkUpdateBookings.
+  function assignToConducteur(figurantIds: string[], conducteurFigurantId: string) {
+    const ids = bookingIdsFor(figurantIds.filter((id) => id !== conducteurFigurantId));
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { covoiturage_role: "passager", covoiturage_conducteur_id: conducteurFigurantId });
+      router.refresh();
+    });
+    setSelectedIds(new Set());
+  }
+
+  function promoteToConducteur(figurantIds: string[]) {
+    const ids = bookingIdsFor(figurantIds);
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, { covoiturage_role: "conducteur", covoiturage_conducteur_id: null });
+      router.refresh();
+    });
+    setSelectedIds(new Set());
+  }
+
+  function setRoleForMany(figurantIds: string[], role: CovoiturageRole) {
+    const ids = bookingIdsFor(figurantIds);
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, {
+        covoiturage_role: role,
+        covoiturage_lieu_depart: null,
+        covoiturage_places_disponibles: null,
+        covoiturage_conducteur_id: null,
       });
-      return;
-    }
-    setRole(r, "");
+      router.refresh();
+    });
+    setSelectedIds(new Set());
   }
 
-  function assignToConducteur(figurantId: string, conducteurFigurantId: string) {
-    const row = rows.find((r) => r.figurant_id === figurantId);
-    if (!row || figurantId === conducteurFigurantId) return;
-    update(row.id, { covoiturage_role: "passager", covoiturage_conducteur_id: conducteurFigurantId });
-  }
-
-  function promoteToConducteur(figurantId: string) {
-    const row = rows.find((r) => r.figurant_id === figurantId);
-    if (!row) return;
-    setRole(row, "conducteur");
-  }
-
-  function unassign(figurantId: string) {
-    const row = rows.find((r) => r.figurant_id === figurantId);
-    if (!row) return;
-    demote(row);
+  // Un·e conducteur·rice qu'on désassigne libère aussi ses passager·ères
+  // (sinon ils pointent vers un conducteur_id qui n'a plus le rôle) — géré
+  // ici pour que ça marche pareil que ce soit une seule personne ou un lot.
+  function unassign(figurantIds: string[]) {
+    const set = new Set(figurantIds);
+    const directRows = rows.filter((r) => set.has(r.figurant_id));
+    const conducteurIds = new Set(
+      directRows.filter((r) => r.covoiturage_role === "conducteur").map((r) => r.figurant_id)
+    );
+    const cascadeIds = rows
+      .filter((r) => r.covoiturage_conducteur_id && conducteurIds.has(r.covoiturage_conducteur_id))
+      .map((r) => r.id);
+    const ids = Array.from(new Set([...directRows.map((r) => r.id), ...cascadeIds]));
+    if (ids.length === 0) return;
+    startTransition(async () => {
+      await bulkUpdateBookings(ids, {
+        covoiturage_role: null,
+        covoiturage_lieu_depart: null,
+        covoiturage_places_disponibles: null,
+        covoiturage_conducteur_id: null,
+      });
+      router.refresh();
+    });
+    setSelectedIds(new Set());
   }
 
   function sendCovoiturageMessage(r: CovoiturageRow) {
@@ -235,12 +312,32 @@ export function CovoiturageBoard({
   ];
 
   function TrombiCard({ r, onRemove, onMessage }: { r: CovoiturageRow; onRemove?: () => void; onMessage?: () => void }) {
+    const checked = selectedIds.has(r.figurant_id);
     return (
       <div
         draggable
-        onDragStart={(e) => e.dataTransfer.setData("text/figurant-id", r.figurant_id)}
-        className="group relative flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border border-border bg-ink p-2 text-center active:cursor-grabbing"
+        onDragStart={(e) => {
+          // Si cette carte fait partie d'une sélection multiple, on
+          // embarque tout le lot — sinon juste elle, comme avant.
+          const ids = checked && selectedIds.size > 1 ? Array.from(selectedIds) : [r.figurant_id];
+          e.dataTransfer.setData("text/figurant-ids", JSON.stringify(ids));
+        }}
+        className={cn(
+          "group relative flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border p-2 text-center active:cursor-grabbing",
+          checked ? "border-coral bg-coral/10" : "border-border bg-ink"
+        )}
       >
+        <label
+          className="absolute left-1 top-1 z-10 flex h-4 w-4 items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={() => toggleSelected(r.figurant_id)}
+            className="h-3.5 w-3.5 rounded border-border accent-coral"
+          />
+        </label>
         {onRemove && (
           <button
             type="button"
@@ -260,14 +357,46 @@ export function CovoiturageBoard({
         {lieuLabel(r) && (
           <span className="block w-full truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>
         )}
+        <ContactIcons r={r} />
         {onMessage && (r.figurants?.telephone || r.figurants?.email) && (
           <button
             type="button"
             onClick={onMessage}
             className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
           >
-            {r.figurants?.telephone ? "Texto" : "Email"}
+            Rappel {r.figurants?.telephone ? "texto" : "email"}
           </button>
+        )}
+      </div>
+    );
+  }
+
+  // Contact générique, indépendant du rôle covoiturage — pour joindre
+  // rapidement qui que ce soit (même « Sans covoiturage ») sans passer par
+  // le message de rappel covoiturage (celui-ci reste réservé aux
+  // conducteur·rices/passager·ères, voir onMessage sur TrombiCard/ListeRow).
+  function ContactIcons({ r }: { r: CovoiturageRow }) {
+    const tel = r.figurants?.telephone;
+    const email = r.figurants?.email;
+    if (!tel && !email) return null;
+    const iconClass =
+      "flex h-6 flex-1 items-center justify-center rounded-md border border-border text-xs text-text-muted hover:border-coral/60 hover:text-text";
+    return (
+      <div className="flex w-full gap-1" onClick={(e) => e.stopPropagation()}>
+        {tel && (
+          <a href={`tel:${tel.replace(/\s+/g, "")}`} className={iconClass} title="Appeler" draggable={false}>
+            📞
+          </a>
+        )}
+        {tel && (
+          <a href={smsConversationHref(tel)} className={iconClass} title="Texto" draggable={false}>
+            💬
+          </a>
+        )}
+        {email && (
+          <a href={`mailto:${email}`} className={iconClass} title="Email" draggable={false}>
+            ✉️
+          </a>
         )}
       </div>
     );
@@ -282,6 +411,10 @@ export function CovoiturageBoard({
         <div className="w-36 shrink-0">
           <div className="truncate font-medium">{r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}</div>
           {lieuLabel(r) && <div className="truncate text-[11px] text-text-muted">{lieuLabel(r)}</div>}
+        </div>
+
+        <div className="flex w-24 shrink-0 gap-1">
+          <ContactIcons r={r} />
         </div>
 
         <select
@@ -389,11 +522,33 @@ export function CovoiturageBoard({
             {v.label}
           </button>
         ))}
+        {selectedIds.size > 0 && (
+          <span className="flex items-center gap-2 rounded-full border border-coral/40 bg-coral/10 px-3 py-1 text-xs font-medium text-coral">
+            {selectedIds.size} sélectionné·e{selectedIds.size > 1 ? "s" : ""}
+            <button type="button" onClick={() => setSelectedIds(new Set())} className="hover:underline">
+              Désélectionner
+            </button>
+          </span>
+        )}
+        {autresDates.length > 0 && (
+          <Button
+            type="button"
+            variant="secondary"
+            className={eligibles.length > 0 ? "" : "ml-auto"}
+            onClick={() => {
+              setCopyOpen((v) => !v);
+              setCopyResult(null);
+              setCopyError(null);
+            }}
+          >
+            📅 Appliquer à un autre jour
+          </Button>
+        )}
         {eligibles.length > 0 && (
           <Button
             type="button"
             variant="secondary"
-            className="ml-auto"
+            className={autresDates.length > 0 ? "" : "ml-auto"}
             onClick={() => setBulkOpen((v) => !v)}
           >
             Envoyer à tous les covoiturés ({eligibles.length})
@@ -401,6 +556,40 @@ export function CovoiturageBoard({
         )}
         {pending && <span className="text-xs text-text-muted">Mise à jour...</span>}
       </div>
+
+      {copyOpen && (
+        <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Appliquer cette organisation à une autre journée</span>
+            <button type="button" onClick={() => setCopyOpen(false)} className="text-text-muted hover:text-coral">
+              Fermer
+            </button>
+          </div>
+          <p className="text-xs text-text-muted">
+            Copie le rôle (conducteur·rice/passager·ère/PPM/transport en commun), le lieu et les places de cette
+            journée vers l&apos;autre, pour les profils raccord (booké·es les deux jours) — les autres ne sont pas
+            touché·es.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={copyDate}
+              onChange={(e) => setCopyDate(e.target.value)}
+              className={`${fieldClass} w-40`}
+            >
+              {autresDates.map((d) => (
+                <option key={d} value={d}>
+                  {formatDateShort(d)}
+                </option>
+              ))}
+            </select>
+            <Button type="button" disabled={pending || !copyDate} onClick={applyCopy}>
+              {pending ? "Application..." : "Appliquer"}
+            </Button>
+          </div>
+          {copyError && <p className="text-sm text-danger">{copyError}</p>}
+          {copyResult && <p className="text-sm text-turquoise">{copyResult}</p>}
+        </div>
+      )}
 
       {bulkOpen && (
         <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
@@ -442,7 +631,8 @@ export function CovoiturageBoard({
         <div className="flex flex-col gap-4">
           <p className="text-xs text-text-muted">
             Glisse un profil sur un·e chauffeur·euse pour l&apos;ajouter comme passager·ère, sur « + Nouveau·elle
-            chauffeur·euse » pour le·la promouvoir, ou sur PPM / Transport en commun pour le·la classer là.
+            chauffeur·euse » pour le·la promouvoir, ou sur PPM / Transport en commun pour le·la classer là. Coche
+            plusieurs profils (case en haut à gauche de chaque photo) pour les glisser tous en même temps.
           </p>
 
           <div className="flex flex-wrap items-start gap-4">
@@ -460,8 +650,8 @@ export function CovoiturageBoard({
                   onDrop={(e) => {
                     e.preventDefault();
                     setDragOverZone(null);
-                    const figurantId = e.dataTransfer.getData("text/figurant-id");
-                    if (figurantId) assignToConducteur(figurantId, c.figurant_id);
+                    const ids = droppedFigurantIds(e);
+                    if (ids.length > 0) assignToConducteur(ids, c.figurant_id);
                   }}
                   className={cn(
                     "flex w-64 shrink-0 flex-col gap-3 rounded-2xl border p-3 transition-colors",
@@ -469,7 +659,7 @@ export function CovoiturageBoard({
                   )}
                 >
                   <div className="flex items-start gap-2">
-                    <TrombiCard r={c} onRemove={() => demote(c)} onMessage={() => sendCovoiturageMessage(c)} />
+                    <TrombiCard r={c} onRemove={() => unassign([c.figurant_id])} onMessage={() => sendCovoiturageMessage(c)} />
                     <div className="flex flex-1 flex-col gap-1">
                       <input
                         defaultValue={c.covoiturage_lieu_depart ?? ""}
@@ -501,7 +691,7 @@ export function CovoiturageBoard({
                       <TrombiCard
                         key={p.id}
                         r={p}
-                        onRemove={() => unassign(p.figurant_id)}
+                        onRemove={() => unassign([p.figurant_id])}
                         onMessage={() => sendCovoiturageMessage(p)}
                       />
                     ))}
@@ -529,8 +719,8 @@ export function CovoiturageBoard({
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverZone(null);
-                const figurantId = e.dataTransfer.getData("text/figurant-id");
-                if (figurantId) promoteToConducteur(figurantId);
+                const ids = droppedFigurantIds(e);
+                if (ids.length > 0) promoteToConducteur(ids);
               }}
               className={cn(
                 "flex w-40 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed p-4 text-center text-xs text-text-muted transition-colors",
@@ -551,8 +741,8 @@ export function CovoiturageBoard({
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverZone(null);
-                const figurantId = e.dataTransfer.getData("text/figurant-id");
-                if (figurantId) setRoleByFigurantId(figurantId, "ppm");
+                const ids = droppedFigurantIds(e);
+                if (ids.length > 0) setRoleForMany(ids, "ppm");
               }}
               className={cn(
                 "flex flex-col gap-2 rounded-2xl border p-3 transition-colors",
@@ -567,7 +757,7 @@ export function CovoiturageBoard({
               </div>
               <div className="flex flex-wrap gap-2">
                 {ppm.map((r) => (
-                  <TrombiCard key={r.id} r={r} onRemove={() => unassign(r.figurant_id)} />
+                  <TrombiCard key={r.id} r={r} onRemove={() => unassign([r.figurant_id])} />
                 ))}
                 {ppm.length === 0 && <p className="text-[11px] text-text-muted">Glisser ici</p>}
               </div>
@@ -582,8 +772,8 @@ export function CovoiturageBoard({
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverZone(null);
-                const figurantId = e.dataTransfer.getData("text/figurant-id");
-                if (figurantId) setRoleByFigurantId(figurantId, "transport_commun");
+                const ids = droppedFigurantIds(e);
+                if (ids.length > 0) setRoleForMany(ids, "transport_commun");
               }}
               className={cn(
                 "flex flex-col gap-2 rounded-2xl border p-3 transition-colors",
@@ -595,7 +785,7 @@ export function CovoiturageBoard({
               </h3>
               <div className="flex flex-wrap gap-2">
                 {transportCommun.map((r) => (
-                  <TrombiCard key={r.id} r={r} onRemove={() => unassign(r.figurant_id)} />
+                  <TrombiCard key={r.id} r={r} onRemove={() => unassign([r.figurant_id])} />
                 ))}
                 {transportCommun.length === 0 && <p className="text-[11px] text-text-muted">Glisser ici</p>}
               </div>
@@ -611,8 +801,8 @@ export function CovoiturageBoard({
             onDrop={(e) => {
               e.preventDefault();
               setDragOverZone(null);
-              const figurantId = e.dataTransfer.getData("text/figurant-id");
-              if (figurantId) unassign(figurantId);
+              const ids = droppedFigurantIds(e);
+              if (ids.length > 0) unassign(ids);
             }}
             className={cn(
               "flex flex-col gap-2 rounded-2xl border p-3 transition-colors",

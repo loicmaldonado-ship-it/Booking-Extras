@@ -395,6 +395,68 @@ export async function recordBookingMessage(
   return recordFigurantMessage({ figurantId, corps, categorie: "booking", email, subject, projetId, bookingId });
 }
 
+// Reprend l'organisation covoiturage (rôle, lieu, places, conducteur·rice)
+// d'une journée vers une autre du même projet — utile quand les mêmes
+// personnes sont raccord (rebookées) un autre jour et qu'on ne veut pas
+// tout refaire à la main. Ne touche que les figurant·es réellement bookés
+// les deux jours ; les autres sont ignorés silencieusement (rien à copier
+// dessus). Un seul appel par combinaison de changements identiques (tous
+// les passager·ères d'un même conducteur, par exemple) plutôt qu'un par
+// personne.
+export async function copyCovoiturageToDate(projetId: string, fromDate: string, toDate: string) {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+  if (!toDate || fromDate === toDate) return { error: "Choisis une autre date." };
+
+  const supabase = createAdminClient();
+  const [{ data: sourceRows }, { data: targetRows }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select(
+        "figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id"
+      )
+      .eq("projet_id", projetId)
+      .eq("date", fromDate)
+      .not("covoiturage_role", "is", null),
+    supabase.from("bookings").select("id, figurant_id").eq("projet_id", projetId).eq("date", toDate),
+  ]);
+
+  const targetIdByFigurant = new Map((targetRows ?? []).map((r) => [r.figurant_id, r.id]));
+
+  type Changes = {
+    covoiturage_role: string | null;
+    covoiturage_lieu_depart: string | null;
+    covoiturage_places_disponibles: number | null;
+    covoiturage_conducteur_id: string | null;
+  };
+  const groups = new Map<string, { changes: Changes; ids: string[] }>();
+  for (const row of sourceRows ?? []) {
+    const targetId = targetIdByFigurant.get(row.figurant_id);
+    if (!targetId) continue;
+    const changes: Changes = {
+      covoiturage_role: row.covoiturage_role,
+      covoiturage_lieu_depart: row.covoiturage_lieu_depart,
+      covoiturage_places_disponibles: row.covoiturage_places_disponibles,
+      covoiturage_conducteur_id: row.covoiturage_conducteur_id,
+    };
+    const key = JSON.stringify(changes);
+    const group = groups.get(key) ?? { changes, ids: [] };
+    group.ids.push(targetId);
+    groups.set(key, group);
+  }
+
+  if (groups.size === 0) return { applied: 0 };
+
+  let applied = 0;
+  for (const { changes, ids } of groups.values()) {
+    const result = await bulkUpdateBookings(ids, changes);
+    if (result.error) return { error: result.error };
+    applied += ids.length;
+  }
+
+  return { applied };
+}
+
 export async function recordCovoiturageMessage(
   figurantId: string,
   corps: string,

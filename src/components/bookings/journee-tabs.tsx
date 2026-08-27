@@ -48,6 +48,7 @@ export function JourneeTabs({
   publicOrigin,
   covoiturageTarifBase,
   covoiturageTarifPassager,
+  autresDates,
   projetIndemnites,
   baremeMajorations,
 }: {
@@ -71,6 +72,7 @@ export function JourneeTabs({
   publicOrigin: string;
   covoiturageTarifBase?: number;
   covoiturageTarifPassager?: number;
+  autresDates?: string[];
   projetIndemnites?: ProjetIndemnite[];
   baremeMajorations?: BaremeMajoration[];
 }) {
@@ -148,6 +150,7 @@ export function JourneeTabs({
             projetId={projetId}
             tarifBase={covoiturageTarifBase}
             tarifPassager={covoiturageTarifPassager}
+            autresDates={autresDates}
           />
         </div>
       )}

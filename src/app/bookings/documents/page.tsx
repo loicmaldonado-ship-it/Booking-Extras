@@ -332,6 +332,7 @@ export default async function JourneeDashboardPage({
         projetLieu={projet?.lieu ?? null}
         covoiturageTarifBase={projet?.covoiturage_tarif_base ?? 15}
         covoiturageTarifPassager={projet?.covoiturage_tarif_passager ?? 5}
+        autresDates={journees.filter((j) => j.date !== date).map((j) => j.date)}
         initialReplies={initialReplies}
         messagesByFigurant={messagesByFigurant}
         convocationSettings={{
