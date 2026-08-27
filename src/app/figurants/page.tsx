@@ -4,7 +4,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
-import type { Figurant } from "@/lib/figurants/types";
+import { GENRES, type Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
@@ -131,6 +131,18 @@ export default async function FigurantsPage({
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>
           </Select>
+          <Select name="genre" defaultValue={params.genre ?? ""}>
+            <option value="">Genre (tous)</option>
+            {GENRES.map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </Select>
+          <div className="col-span-2 flex gap-2 md:col-span-1">
+            <Input type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
+            <Input type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
+          </div>
           <MensurationsFilterPanel defaultValues={filters} />
           <button
             type="submit"

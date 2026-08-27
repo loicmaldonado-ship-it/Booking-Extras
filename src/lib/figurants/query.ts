@@ -6,7 +6,19 @@ export type FigurantFilters = {
   ville?: string;
   myrole?: string;
   vehicule?: string;
+  genre?: string;
+  age_min?: string;
+  age_max?: string;
 } & MensurationFilters;
+
+// Pas de colonne "âge" — calculé depuis date_naissance directement dans la
+// requête (plutôt qu'en mémoire après coup) pour rester filtrable côté
+// base même sur une liste de plusieurs milliers de profils.
+function dateIlYA(annees: number): string {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - annees);
+  return d.toISOString().slice(0, 10);
+}
 
 export function buildFigurantsQuery(
   supabase: ReturnType<typeof createAdminClient>,
@@ -30,6 +42,17 @@ export function buildFigurantsQuery(
     query = query.eq("compte_myrole", true);
   } else if (params.myrole === "non") {
     query = query.eq("compte_myrole", false);
+  }
+  if (params.genre) {
+    query = query.eq("genre", params.genre);
+  }
+  if (params.age_min) {
+    // Née il y a au moins age_min ans (ou avant) → au moins cet âge.
+    query = query.lte("date_naissance", dateIlYA(Number(params.age_min)));
+  }
+  if (params.age_max) {
+    // N'a pas encore atteint age_max + 1 ans → au plus cet âge.
+    query = query.gt("date_naissance", dateIlYA(Number(params.age_max) + 1));
   }
   if (params.code_postal) {
     query = query.ilike("code_postal", `${params.code_postal}%`);
