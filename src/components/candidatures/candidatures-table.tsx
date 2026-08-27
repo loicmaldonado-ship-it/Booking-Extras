@@ -14,6 +14,7 @@ import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-pic
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
@@ -27,7 +28,7 @@ export type Row = {
   onglet_id: string | null;
   fonction_assignee: string | null;
   cachet_assigne: Cachet | null;
-  figurants: { id: string; prenom: string; nom: string; ville: string | null; email: string | null; compte_myrole: boolean } | null;
+  figurants: { id: string; prenom: string; nom: string; ville: string | null; email: string | null; telephone: string | null; compte_myrole: boolean } | null;
   annonces: {
     titre: string;
     projet_id: string;
@@ -436,6 +437,7 @@ export function CandidaturesTable({
                   />
                 );
               })()}
+              <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
               <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}
@@ -478,9 +480,12 @@ export function CandidaturesTable({
                       />
                     </td>
                     <td className="px-6 py-3 font-medium">
-                      <Link href={`/candidatures/${r.id}`} className="hover:text-coral">
-                        {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/candidatures/${r.id}`} className="hover:text-coral">
+                          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                        </Link>
+                        <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+                      </div>
                     </td>
                     <td className="px-6 py-3 text-text-muted">{r.figurants?.ville ?? "—"}</td>
                     <td className="px-6 py-3">

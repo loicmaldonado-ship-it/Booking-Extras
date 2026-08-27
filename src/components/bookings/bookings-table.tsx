@@ -31,8 +31,8 @@ import { STATUTS, type BookingStatut, type CovoiturageRole } from "@/lib/booking
 import { CACHETS } from "@/lib/candidatures/types";
 import { computeAge } from "@/lib/documents/fields";
 import { buildConvocationMailto, substituteTokens, type ConvocationSettings } from "@/lib/bookings/convocation";
-import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import { projetNomPublic } from "@/lib/projets/types";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
 import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
 import type { Genre, PhotoType } from "@/lib/figurants/types";
@@ -713,12 +713,6 @@ export function BookingsTable({
     setTimeout(() => setCopiedId((id) => (id === r.id ? null : id)), 1500);
   }
 
-  async function copyEmail(email: string, key: string) {
-    await copyTextToClipboard(email);
-    setCopiedId(key);
-    setTimeout(() => setCopiedId((id) => (id === key ? null : id)), 1500);
-  }
-
   function updateRow(id: string, changes: RowChanges) {
     setRowError(null);
     startTransition(async () => {
@@ -729,37 +723,6 @@ export function BookingsTable({
         router.refresh();
       }
     });
-  }
-
-  function renderContactLinks(r: Row) {
-    if (!r.figurants?.email && !r.figurants?.telephone) return null;
-    const emailKey = `email-${r.id}`;
-    return (
-      <div className="flex flex-col gap-0.5 text-[10px]">
-        {r.figurants?.email && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              copyEmail(r.figurants!.email!, emailKey);
-            }}
-            title="Copier pour coller dans la recherche Mail"
-            className="w-fit truncate text-left text-coral hover:underline"
-          >
-            {copiedId === emailKey ? "Copié !" : r.figurants.email}
-          </button>
-        )}
-        {r.figurants?.telephone && (
-          <a
-            href={smsConversationHref(r.figurants.telephone)}
-            onClick={(e) => e.stopPropagation()}
-            className="truncate text-coral hover:underline"
-          >
-            {r.figurants.telephone}
-          </a>
-        )}
-      </div>
-    );
   }
 
   function renderMessageHistory(r: Row) {
@@ -884,7 +847,7 @@ export function BookingsTable({
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
           )}
-          {renderContactLinks(r)}
+          <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
           {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
         <td className="px-6 py-4 align-middle">
@@ -1059,7 +1022,7 @@ export function BookingsTable({
           ))}
         </Link>
         {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
-        {renderContactLinks(r)}
+        <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
         <input
           list="fonctions-suggestions"
           defaultValue={r.fonction ?? ""}

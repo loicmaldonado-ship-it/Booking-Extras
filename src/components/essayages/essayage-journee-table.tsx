@@ -7,6 +7,7 @@ import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
 import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { cn } from "@/lib/cn";
 import {
@@ -306,6 +307,7 @@ export function EssayageJourneeTable({
                 {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
               </div>
             </Link>
+            <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
             <button
               type="button"
               onClick={() => (lieuEditingId === r.id ? setLieuEditingId(null) : openLieuEditor(r))}

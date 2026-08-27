@@ -12,8 +12,8 @@ import {
   montantCovoiturage,
   contactHref,
   openHref,
-  smsConversationHref,
 } from "@/lib/bookings/covoiturage-messages";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import { cn } from "@/lib/cn";
 import { COVOITURAGE_ROLES, type CovoiturageRole } from "@/lib/bookings/types";
 
@@ -357,7 +357,7 @@ export function CovoiturageBoard({
         {lieuLabel(r) && (
           <span className="block w-full truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>
         )}
-        <ContactIcons r={r} />
+        <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
         {onMessage && (r.figurants?.telephone || r.figurants?.email) && (
           <button
             type="button"
@@ -375,32 +375,6 @@ export function CovoiturageBoard({
   // rapidement qui que ce soit (même « Sans covoiturage ») sans passer par
   // le message de rappel covoiturage (celui-ci reste réservé aux
   // conducteur·rices/passager·ères, voir onMessage sur TrombiCard/ListeRow).
-  function ContactIcons({ r }: { r: CovoiturageRow }) {
-    const tel = r.figurants?.telephone;
-    const email = r.figurants?.email;
-    if (!tel && !email) return null;
-    const iconClass =
-      "flex h-6 flex-1 items-center justify-center rounded-md border border-border text-xs text-text-muted hover:border-coral/60 hover:text-text";
-    return (
-      <div className="flex w-full gap-1" onClick={(e) => e.stopPropagation()}>
-        {tel && (
-          <a href={`tel:${tel.replace(/\s+/g, "")}`} className={iconClass} title="Appeler" draggable={false}>
-            📞
-          </a>
-        )}
-        {tel && (
-          <a href={smsConversationHref(tel)} className={iconClass} title="Texto" draggable={false}>
-            💬
-          </a>
-        )}
-        {email && (
-          <a href={`mailto:${email}`} className={iconClass} title="Email" draggable={false}>
-            ✉️
-          </a>
-        )}
-      </div>
-    );
-  }
 
   function ListeRow({ r }: { r: CovoiturageRow }) {
     return (
@@ -414,7 +388,7 @@ export function CovoiturageBoard({
         </div>
 
         <div className="flex w-24 shrink-0 gap-1">
-          <ContactIcons r={r} />
+          <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
         </div>
 
         <select

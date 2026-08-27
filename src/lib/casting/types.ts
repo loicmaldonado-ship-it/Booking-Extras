@@ -31,5 +31,5 @@ export type CastingEntry = {
   video_storage_paths: string[];
   requested_at: string;
   submitted_at: string | null;
-  figurants: { prenom: string; nom: string; email: string | null } | null;
+  figurants: { prenom: string; nom: string; email: string | null; telephone: string | null } | null;
 };

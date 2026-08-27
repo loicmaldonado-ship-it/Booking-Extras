@@ -9,6 +9,7 @@ import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
@@ -172,6 +173,8 @@ export default async function FigurantsPage({
             prenom: f.prenom,
             nom: f.nom,
             ville: f.ville,
+            telephone: f.telephone,
+            email: f.email,
             portraitUrl: pickPortrait(portraitByFigurant.get(f.id))?.url ?? null,
             photos: portraitByFigurant.get(f.id) ?? [],
           }))}
@@ -203,7 +206,10 @@ export default async function FigurantsPage({
                 </td>
                 <td className="px-6 py-3 text-text-muted">{f.ville ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
-                  {f.email ?? f.telephone ?? "—"}
+                  <div className="flex items-center gap-2">
+                    <span className="truncate">{f.email ?? f.telephone ?? "—"}</span>
+                    <ContactIcons telephone={f.telephone} email={f.email} variant="inline" />
+                  </div>
                 </td>
                 <td className="px-6 py-3">
                   {f.compte_myrole ? (

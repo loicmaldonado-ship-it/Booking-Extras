@@ -8,6 +8,7 @@ import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { Button } from "@/components/ui/button";
 import { ZoomButton } from "@/components/ui/zoomable-image";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 
@@ -16,6 +17,8 @@ type FigurantCard = {
   prenom: string;
   nom: string;
   ville: string | null;
+  telephone?: string | null;
+  email?: string | null;
   portraitUrl: string | null;
   photos?: { url: string | null; type: PhotoType }[];
 };
@@ -108,6 +111,7 @@ export function FigurantsTrombiGrid({
               </div>
               <div className="text-xs text-text-muted">{f.ville ?? "—"}</div>
             </Link>
+            <ContactIcons telephone={f.telephone} email={f.email} />
           </div>
         ))}
         {figurants.length === 0 && (

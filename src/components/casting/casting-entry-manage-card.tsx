@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
+import { ContactIcons } from "@/components/ui/contact-icons";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import {
   deleteCastingEntry,
@@ -229,6 +230,7 @@ export function CastingEntryManageCard({
         </div>
         {hasMedia && <span className="text-text-muted">{open ? "▾" : "▸"}</span>}
       </button>
+      <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">
