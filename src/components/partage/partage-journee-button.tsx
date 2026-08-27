@@ -74,6 +74,14 @@ export function PartageJourneeButton({
             <Button type="button" variant="ghost" disabled={pending} onClick={revoke}>
               Révoquer
             </Button>
+            <a
+              href={`${publicBaseUrl}/${token}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              👁️ Aperçu — ce que les autres postes verront
+            </a>
           </div>
         </div>
       ) : (

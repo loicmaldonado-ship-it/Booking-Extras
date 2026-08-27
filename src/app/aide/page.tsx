@@ -483,6 +483,10 @@ export default function AidePage() {
               <strong className="text-text">anglais</strong> via le bouton FR/EN — pratique pour une prod
               internationale.
             </>,
+            <>
+              Une fois le lien créé, <UI>Aperçu</UI> l&apos;ouvre tel quel dans un nouvel onglet — pour
+              vérifier exactement ce que costume, HMC ou régie verront avant de leur envoyer.
+            </>,
           ]}
         />
       </GuideChapter>
