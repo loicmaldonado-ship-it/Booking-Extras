@@ -21,12 +21,55 @@ export type CovoiturageRow = {
   covoiturage_lieu_depart: string | null;
   covoiturage_places_disponibles: number | null;
   covoiturage_conducteur_id: string | null;
-  figurants: { prenom: string; nom: string; telephone: string | null; email: string | null } | null;
+  figurants: {
+    prenom: string;
+    nom: string;
+    telephone: string | null;
+    email: string | null;
+    ville: string | null;
+    code_postal: string | null;
+  } | null;
   portraitUrl: string | null;
 };
 
 const fieldClass =
   "w-full rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60";
+
+function lieuLabel(r: CovoiturageRow) {
+  const { ville, code_postal } = r.figurants ?? {};
+  if (ville && code_postal) return `${ville} (${code_postal})`;
+  return ville || code_postal || null;
+}
+
+// Trié par nom de famille (pas prénom+nom) — c'est ce qui permet de repérer
+// d'un coup d'œil qui habite dans le même coin quand on regarde le groupe
+// "Sans covoiturage" pour organiser les trajets à la main.
+function sortByNomFamille(rows: CovoiturageRow[]) {
+  return [...rows].sort(
+    (a, b) =>
+      (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? "") ||
+      (a.figurants?.prenom ?? "").localeCompare(b.figurants?.prenom ?? "")
+  );
+}
+
+// Regroupe par code postal croissant (non renseigné en dernier), chaque
+// groupe trié par nom de famille — voir sortByNomFamille.
+function groupByCodePostal(rows: CovoiturageRow[]): { codePostal: string; rows: CovoiturageRow[] }[] {
+  const map = new Map<string, CovoiturageRow[]>();
+  for (const r of rows) {
+    const key = r.figurants?.code_postal ?? "";
+    const list = map.get(key) ?? [];
+    list.push(r);
+    map.set(key, list);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b);
+    })
+    .map(([codePostal, groupRows]) => ({ codePostal, rows: sortByNomFamille(groupRows) }));
+}
 
 export function CovoiturageBoard({
   rows,
@@ -53,6 +96,8 @@ export function CovoiturageBoard({
     () => rows.filter((r) => r.covoiturage_role === "conducteur"),
     [rows]
   );
+  const sansCovoiturage = useMemo(() => rows.filter((r) => !r.covoiturage_role), [rows]);
+  const sansCovoiturageGroups = useMemo(() => groupByCodePostal(sansCovoiturage), [sansCovoiturage]);
 
   function update(id: string, changes: Parameters<typeof bulkUpdateBookings>[1]) {
     startTransition(async () => {
@@ -173,7 +218,6 @@ export function CovoiturageBoard({
   const groups: { label: string; rows: CovoiturageRow[] }[] = [
     { label: "Conducteurs", rows: conducteurs },
     { label: "Passagers", rows: rows.filter((r) => r.covoiturage_role === "passager") },
-    { label: "Sans covoiturage", rows: rows.filter((r) => !r.covoiturage_role) },
   ];
 
   function TrombiCard({ r, onRemove, onMessage }: { r: CovoiturageRow; onRemove?: () => void; onMessage?: () => void }) {
@@ -199,6 +243,7 @@ export function CovoiturageBoard({
         <span className="truncate text-xs font-medium">
           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
         </span>
+        {lieuLabel(r) && <span className="truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>}
         {onMessage && (r.figurants?.telephone || r.figurants?.email) && (
           <button
             type="button"
@@ -206,6 +251,90 @@ export function CovoiturageBoard({
             className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
           >
             {r.figurants?.telephone ? "Texto" : "Email"}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  function ListeRow({ r }: { r: CovoiturageRow }) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-ink-raised px-4 py-3">
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
+          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+        </div>
+        <div className="w-36 shrink-0">
+          <div className="truncate font-medium">{r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}</div>
+          {lieuLabel(r) && <div className="truncate text-[11px] text-text-muted">{lieuLabel(r)}</div>}
+        </div>
+
+        <select
+          value={r.covoiturage_role ?? ""}
+          disabled={pending}
+          onChange={(e) => setRole(r, e.target.value as "conducteur" | "passager" | "")}
+          className={`${fieldClass} w-36`}
+        >
+          <option value="">Aucun</option>
+          <option value="conducteur">Conducteur</option>
+          <option value="passager">Passager</option>
+        </select>
+
+        {r.covoiturage_role === "conducteur" && (
+          <>
+            <input
+              defaultValue={r.covoiturage_lieu_depart ?? ""}
+              placeholder="Lieu de départ"
+              disabled={pending}
+              className={`${fieldClass} w-48`}
+              onBlur={(e) => {
+                const value = e.target.value.trim() || null;
+                if (value !== r.covoiturage_lieu_depart) update(r.id, { covoiturage_lieu_depart: value });
+              }}
+            />
+            <input
+              type="number"
+              min={0}
+              defaultValue={r.covoiturage_places_disponibles ?? ""}
+              placeholder="Places"
+              disabled={pending}
+              className={`${fieldClass} w-24`}
+              onBlur={(e) => {
+                const value = e.target.value ? Number(e.target.value) : null;
+                if (value !== r.covoiturage_places_disponibles)
+                  update(r.id, { covoiturage_places_disponibles: value });
+              }}
+            />
+          </>
+        )}
+
+        {r.covoiturage_role === "passager" && (
+          <select
+            value={r.covoiturage_conducteur_id ?? ""}
+            disabled={pending}
+            onChange={(e) => update(r.id, { covoiturage_conducteur_id: e.target.value || null })}
+            className={`${fieldClass} w-48`}
+          >
+            <option value="">Choisir un conducteur</option>
+            {conducteurs
+              .filter((c) => c.figurant_id !== r.figurant_id)
+              .map((c) => (
+                <option key={c.figurant_id} value={c.figurant_id}>
+                  {c.figurants ? `${c.figurants.prenom} ${c.figurants.nom}` : "—"}
+                  {c.covoiturage_lieu_depart ? ` · ${c.covoiturage_lieu_depart}` : ""}
+                </option>
+              ))}
+          </select>
+        )}
+
+        {(r.covoiturage_role === "conducteur" ||
+          (r.covoiturage_role === "passager" && r.covoiturage_conducteur_id)) && (
+          <button
+            type="button"
+            onClick={() => sendCovoiturageMessage(r)}
+            disabled={!r.figurants?.telephone && !r.figurants?.email}
+            className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-30"
+          >
+            {r.figurants?.telephone ? "Texto" : r.figurants?.email ? "Email" : "Pas de contact"}
           </button>
         )}
       </div>
@@ -410,19 +539,32 @@ export function CovoiturageBoard({
               dragOverZone === "sans-covoiturage" ? "border-coral bg-coral/10" : "border-border bg-ink-raised"
             )}
           >
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-              Sans covoiturage ({rows.filter((r) => !r.covoiturage_role).length})
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {rows
-                .filter((r) => !r.covoiturage_role)
-                .map((r) => (
-                  <TrombiCard key={r.id} r={r} />
-                ))}
-              {rows.filter((r) => !r.covoiturage_role).length === 0 && (
-                <p className="text-xs text-text-muted">Tout le monde a un covoiturage.</p>
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                Sans covoiturage ({sansCovoiturage.length})
+              </h3>
+              {sansCovoiturage.length > 0 && (
+                <span className="text-[10px] text-text-muted">Groupé par code postal, trié par nom</span>
               )}
             </div>
+            {sansCovoiturage.length === 0 ? (
+              <p className="text-xs text-text-muted">Tout le monde a un covoiturage.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {sansCovoiturageGroups.map((g) => (
+                  <div key={g.codePostal || "—"} className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted/80">
+                      {g.codePostal || "Code postal non renseigné"} ({g.rows.length})
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {g.rows.map((r) => (
+                        <TrombiCard key={r.id} r={r} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -439,95 +581,39 @@ export function CovoiturageBoard({
               ) : (
                 <div className="flex flex-col gap-2">
                   {g.rows.map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-ink-raised px-4 py-3"
-                    >
-                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
-                        {r.portraitUrl && (
-                          <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />
-                        )}
-                      </div>
-                      <span className="w-36 shrink-0 font-medium">
-                        {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                      </span>
-
-                      <select
-                        value={r.covoiturage_role ?? ""}
-                        disabled={pending}
-                        onChange={(e) => setRole(r, e.target.value as "conducteur" | "passager" | "")}
-                        className={`${fieldClass} w-36`}
-                      >
-                        <option value="">Aucun</option>
-                        <option value="conducteur">Conducteur</option>
-                        <option value="passager">Passager</option>
-                      </select>
-
-                      {r.covoiturage_role === "conducteur" && (
-                        <>
-                          <input
-                            defaultValue={r.covoiturage_lieu_depart ?? ""}
-                            placeholder="Lieu de départ"
-                            disabled={pending}
-                            className={`${fieldClass} w-48`}
-                            onBlur={(e) => {
-                              const value = e.target.value.trim() || null;
-                              if (value !== r.covoiturage_lieu_depart)
-                                update(r.id, { covoiturage_lieu_depart: value });
-                            }}
-                          />
-                          <input
-                            type="number"
-                            min={0}
-                            defaultValue={r.covoiturage_places_disponibles ?? ""}
-                            placeholder="Places"
-                            disabled={pending}
-                            className={`${fieldClass} w-24`}
-                            onBlur={(e) => {
-                              const value = e.target.value ? Number(e.target.value) : null;
-                              if (value !== r.covoiturage_places_disponibles)
-                                update(r.id, { covoiturage_places_disponibles: value });
-                            }}
-                          />
-                        </>
-                      )}
-
-                      {r.covoiturage_role === "passager" && (
-                        <select
-                          value={r.covoiturage_conducteur_id ?? ""}
-                          disabled={pending}
-                          onChange={(e) => update(r.id, { covoiturage_conducteur_id: e.target.value || null })}
-                          className={`${fieldClass} w-48`}
-                        >
-                          <option value="">Choisir un conducteur</option>
-                          {conducteurs
-                            .filter((c) => c.figurant_id !== r.figurant_id)
-                            .map((c) => (
-                              <option key={c.figurant_id} value={c.figurant_id}>
-                                {c.figurants ? `${c.figurants.prenom} ${c.figurants.nom}` : "—"}
-                                {c.covoiturage_lieu_depart ? ` · ${c.covoiturage_lieu_depart}` : ""}
-                              </option>
-                            ))}
-                        </select>
-                      )}
-
-                      {(r.covoiturage_role === "conducteur" ||
-                        (r.covoiturage_role === "passager" && r.covoiturage_conducteur_id)) && (
-                        <button
-                          type="button"
-                          onClick={() => sendCovoiturageMessage(r)}
-                          disabled={!r.figurants?.telephone && !r.figurants?.email}
-                          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-30"
-                        >
-                          {r.figurants?.telephone ? "Texto" : r.figurants?.email ? "Email" : "Pas de contact"}
-                        </button>
-                      )}
-                    </div>
+                    <ListeRow key={r.id} r={r} />
                   ))}
                 </div>
               )}
             </div>
           ))}
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-text-muted">Sans covoiturage ({sansCovoiturage.length})</h3>
+              {sansCovoiturage.length > 0 && (
+                <span className="text-[11px] text-text-muted">Groupé par code postal, trié par nom</span>
+              )}
+            </div>
+            {sansCovoiturage.length === 0 ? (
+              <p className="text-sm text-text-muted">—</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {sansCovoiturageGroups.map((g) => (
+                  <div key={g.codePostal || "—"} className="flex flex-col gap-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted/80">
+                      {g.codePostal || "Code postal non renseigné"} ({g.rows.length})
+                    </span>
+                    <div className="flex flex-col gap-2">
+                      {g.rows.map((r) => (
+                        <ListeRow key={r.id} r={r} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

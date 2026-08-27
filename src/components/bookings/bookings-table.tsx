@@ -92,6 +92,7 @@ export type Row = {
     prenom: string;
     nom: string;
     ville: string | null;
+    code_postal: string | null;
     email: string | null;
     telephone: string | null;
     genre: Genre | null;

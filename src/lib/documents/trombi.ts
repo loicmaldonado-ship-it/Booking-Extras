@@ -26,6 +26,13 @@ function nomSort(a: ConfirmedBooking, b: ConfirmedBooking) {
   return nomOf(a).localeCompare(nomOf(b));
 }
 
+// Nom de famille seul (pas prénom+nom comme nomSort) — utilisé par le
+// trombi covoiturage, où l'objectif est justement de trier par nom de
+// famille pour repérer les gens du même coin d'un coup d'œil.
+function nomFamilleSort(a: ConfirmedBooking, b: ConfirmedBooking) {
+  return a.figurant.nom.localeCompare(b.figurant.nom) || nomOf(a).localeCompare(nomOf(b));
+}
+
 function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {
   if (dim === "fonction") return b.fonction ?? "Sans fonction";
   if (dim === "cachet") return b.cachet ?? "Sans cachet";
@@ -214,7 +221,7 @@ export function buildCovoiturageTrombiItems(
   const items: TrombiItem[] = [];
   const handledIds = new Set<string>();
 
-  for (const conducteur of [...conducteurs].sort(nomSort)) {
+  for (const conducteur of [...conducteurs].sort(nomFamilleSort)) {
     const info = infoOf(conducteur)!;
     const passagers = bookings.filter((b) => infoOf(b)?.covoiturage_conducteur_id === conducteur.figurant.id);
     const indemnite = montantCovoiturage(passagers.length, tarifBase, tarifPassager);
@@ -224,7 +231,7 @@ export function buildCovoiturageTrombiItems(
 
     items.push({ booking: conducteur, headerLabel, badge: "🚗" });
     handledIds.add(conducteur.figurant.id);
-    for (const passager of [...passagers].sort(nomSort)) {
+    for (const passager of [...passagers].sort(nomFamilleSort)) {
       items.push({ booking: passager, headerLabel });
       handledIds.add(passager.figurant.id);
     }
@@ -245,10 +252,24 @@ export function buildCovoiturageTrombiItems(
   });
   for (const [postal, group] of postalGroups) {
     const headerLabel = `Sans covoiturage · ${postal || "Code postal non renseigné"}`;
-    for (const booking of [...group].sort(nomSort)) {
+    for (const booking of [...group].sort(nomFamilleSort)) {
       items.push({ booking, headerLabel });
     }
   }
 
   return items;
+}
+
+// Regroupe une liste d'items déjà ordonnée (comme buildCovoiturageTrombiItems
+// la produit) par headerLabel consécutif — pour un rendu texte simple
+// (liste de noms par groupe) plutôt que la grille photo.
+export function groupItemsByHeader(items: TrombiItem[]): { headerLabel: string; items: TrombiItem[] }[] {
+  const groups: { headerLabel: string; items: TrombiItem[] }[] = [];
+  for (const item of items) {
+    const label = item.headerLabel ?? "";
+    const last = groups[groups.length - 1];
+    if (last && last.headerLabel === label) last.items.push(item);
+    else groups.push({ headerLabel: label, items: [item] });
+  }
+  return groups;
 }

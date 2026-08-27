@@ -133,13 +133,23 @@ export function JourneeTabs({
       )}
 
       {tab === "covoiturage" && (
-        <CovoiturageBoard
-          rows={covoiturageRows}
-          date={date}
-          projetId={projetId}
-          tarifBase={covoiturageTarifBase}
-          tarifPassager={covoiturageTarifPassager}
-        />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href={`/bookings/documents/covoiturage${query}`} variant="secondary">
+              🚗 Trombi covoiturage
+            </ButtonLink>
+            <ButtonLink href={`/bookings/documents/covoiturage${query}&vue=liste`} variant="secondary">
+              📋 Liste covoiturage
+            </ButtonLink>
+          </div>
+          <CovoiturageBoard
+            rows={covoiturageRows}
+            date={date}
+            projetId={projetId}
+            tarifBase={covoiturageTarifBase}
+            tarifPassager={covoiturageTarifPassager}
+          />
+        </div>
       )}
 
       {tab === "documents" && (
@@ -163,6 +173,9 @@ export function JourneeTabs({
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/covoiturage${query}`} variant="secondary">
               🚗 Trombi covoiturage
+            </ButtonLink>
+            <ButtonLink href={`/bookings/documents/covoiturage${query}&vue=liste`} variant="secondary">
+              📋 Liste covoiturage
             </ButtonLink>
             <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
               🕴️ Tableau silhouette
