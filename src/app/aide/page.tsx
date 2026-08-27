@@ -266,7 +266,7 @@ export default function AidePage() {
           items={[
             {
               title: "Vue Liste",
-              body: "Pour filtrer par ville, véhicule ou compte Myrole — et, dans « Code postal & mensurations », par code postal ou n'importe quelle mensuration de la fiche (taille, poids, tours, veste/pantalon...).",
+              body: "Pour filtrer par ville, véhicule, genre, âge ou compte Myrole — et, dans « Code postal & mensurations », par code postal ou n'importe quelle mensuration de la fiche (taille, poids, tours, veste/pantalon...).",
             },
             { title: "Vue Trombinoscope", body: "Pour parcourir les photos rapidement, comme un book." },
           ]}
@@ -440,7 +440,7 @@ export default function AidePage() {
             { title: "Trombi HMC", body: "Variante pour l'équipe habillage/maquillage/coiffure." },
             {
               title: "Trombi covoiturage",
-              body: "Un groupe par conducteur·rice avec ses passagers, puis le reste trié par code postal croissant pour repérer qui habite dans le même coin.",
+              body: "Un groupe par conducteur·rice avec ses passagers, puis le reste trié par code postal croissant pour repérer qui habite dans le même coin. Bascule Trombi/Liste pour une version texte sans photos.",
             },
             { title: "Liste d'appel, bordereau, vCards", body: "Depuis Bookings → Documents, un onglet par type de document." },
           ]}
