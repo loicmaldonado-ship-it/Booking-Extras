@@ -39,9 +39,11 @@ export function TrombiGrid({
             )}
             <div className="flex w-24 flex-col items-center gap-0.5 text-center">
               {aboveLines.length > 0 && (
-                <div className="flex flex-col leading-tight text-[8px] text-gray-600">
+                <div className="flex w-24 flex-col leading-tight text-[8px] text-gray-600">
                   {aboveLines.map((line, i) => (
-                    <span key={i}>{line}</span>
+                    <span key={i} className="block w-full truncate">
+                      {line}
+                    </span>
                   ))}
                 </div>
               )}
@@ -50,18 +52,22 @@ export function TrombiGrid({
                   <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
                 )}
               </div>
-              <span className="text-[10px] font-medium leading-tight">
+              <span className="block w-24 truncate text-[10px] font-medium leading-tight">
                 {item.badge ? `${item.badge} ` : ""}
                 {item.booking.figurant.prenom} {item.booking.figurant.nom}
               </span>
               {selectedFields.has("ville") && item.booking.figurant.ville && (
-                <span className="text-[8px] leading-tight text-gray-500">{item.booking.figurant.ville}</span>
+                <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">
+                  {item.booking.figurant.ville}
+                </span>
               )}
               {selectedFields.has("telephone") && item.booking.figurant.telephone && (
-                <span className="text-[8px] leading-tight text-gray-500">{item.booking.figurant.telephone}</span>
+                <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">
+                  {item.booking.figurant.telephone}
+                </span>
               )}
               {selectedFields.has("email") && item.booking.figurant.email && (
-                <span className="max-w-24 truncate text-[8px] leading-tight text-gray-500">
+                <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">
                   {item.booking.figurant.email}
                 </span>
               )}

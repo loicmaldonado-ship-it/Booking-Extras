@@ -240,10 +240,12 @@ export function CovoiturageBoard({
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
         </div>
-        <span className="truncate text-xs font-medium">
+        <span className="block w-full truncate text-xs font-medium">
           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
         </span>
-        {lieuLabel(r) && <span className="truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>}
+        {lieuLabel(r) && (
+          <span className="block w-full truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>
+        )}
         {onMessage && (r.figurants?.telephone || r.figurants?.email) && (
           <button
             type="button"
