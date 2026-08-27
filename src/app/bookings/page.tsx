@@ -7,6 +7,7 @@ import { createJournee } from "@/lib/bookings/actions";
 import { formatDateLong } from "@/lib/format-date";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
+import { JourneeDeleteButton } from "@/components/bookings/journee-delete-button";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { BookOpen } from "lucide-react";
@@ -101,30 +102,32 @@ export default async function BookingsPage({
         </p>
         <div className="flex flex-wrap gap-3">
           {journees.map((j) => (
-            <Link
-              key={j.id}
-              href={`/bookings/documents?projet_id=${j.projet_id}&date=${j.date}`}
-              className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-3 text-center transition-colors hover:border-coral/60"
-            >
-              <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
-              <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
-              {j.total_requis ? (
-                <Badge tone={j.actifs >= j.total_requis ? "turquoise" : "yellow"}>
-                  {j.actifs}/{j.total_requis}
-                </Badge>
-              ) : (
-                <Badge tone={j.confirmes > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
-              )}
-              <div className="flex gap-1.5">
-                <Badge tone="turquoise">{j.confirmes} confirmé·e{j.confirmes > 1 ? "s" : ""}</Badge>
-                <Badge tone="yellow">{j.per} PER</Badge>
-              </div>
-              <div className="flex gap-1.5">
-                <Badge>{j.hommes} H</Badge>
-                <Badge>{j.femmes} F</Badge>
-                {j.nonBinaires > 0 && <Badge>{j.nonBinaires} NB</Badge>}
-              </div>
-            </Link>
+            <div key={j.id} className="relative">
+              {j.total === 0 && <JourneeDeleteButton journeeId={j.id} />}
+              <Link
+                href={`/bookings/documents?projet_id=${j.projet_id}&date=${j.date}`}
+                className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-3 text-center transition-colors hover:border-coral/60"
+              >
+                <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
+                <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
+                {j.total_requis ? (
+                  <Badge tone={j.actifs >= j.total_requis ? "turquoise" : "yellow"}>
+                    {j.actifs}/{j.total_requis}
+                  </Badge>
+                ) : (
+                  <Badge tone={j.confirmes > 0 ? "turquoise" : "default"}>{j.total} au total</Badge>
+                )}
+                <div className="flex gap-1.5">
+                  <Badge tone="turquoise">{j.confirmes} confirmé·e{j.confirmes > 1 ? "s" : ""}</Badge>
+                  <Badge tone="yellow">{j.per} PER</Badge>
+                </div>
+                <div className="flex gap-1.5">
+                  <Badge>{j.hommes} H</Badge>
+                  <Badge>{j.femmes} F</Badge>
+                  {j.nonBinaires > 0 && <Badge>{j.nonBinaires} NB</Badge>}
+                </div>
+              </Link>
+            </div>
           ))}
 
           <form

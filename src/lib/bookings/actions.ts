@@ -240,6 +240,32 @@ export async function createJournee(projetId: string, formData: FormData) {
   redirect(`/bookings/documents?projet_id=${projetId}&date=${date}`);
 }
 
+export async function deleteJournee(journeeId: string) {
+  const supabase = createAdminClient();
+  const { data: journee } = await supabase
+    .from("journees")
+    .select("projet_id, date")
+    .eq("id", journeeId)
+    .maybeSingle();
+  if (!journee) return { error: "Journée introuvable." };
+
+  const accessError = await checkProjetAccess(journee.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("projet_id", journee.projet_id)
+    .eq("date", journee.date);
+  if (count && count > 0) return { error: "Cette journée contient encore des bookings." };
+
+  const { error } = await supabase.from("journees").delete().eq("id", journeeId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/bookings");
+  return { ok: true };
+}
+
 export async function updateTotalJournee(journeeId: string, _prevState: unknown, formData: FormData) {
   const raw = str(formData, "total_requis");
   const total = raw ? Number(raw) : null;
