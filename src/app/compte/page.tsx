@@ -53,6 +53,17 @@ export default async function CompteCandidatPage() {
       supabase.from("figurant_photos").select("*").eq("figurant_id", session.id).returns<FigurantPhoto[]>(),
     ]);
 
+  const projetIdsAvecMessage = Array.from(
+    new Set((messages ?? []).map((m) => m.projet_id).filter((id): id is string => !!id))
+  );
+  const { data: projetsMessages } =
+    projetIdsAvecMessage.length > 0
+      ? await supabase.from("projets").select("id, nom, archive").in("id", projetIdsAvecMessage)
+      : { data: [] as { id: string; nom: string; archive: boolean }[] };
+  const projetInfoById: Record<string, { label: string; archive: boolean }> = Object.fromEntries(
+    (projetsMessages ?? []).map((p) => [p.id, { label: p.nom, archive: p.archive }])
+  );
+
   const photos = await Promise.all(
     (photosRaw ?? []).map(async (p) => {
       const { data } = await supabase.storage.from("figurant-photos").createSignedUrl(p.storage_path, 60 * 60);
@@ -156,7 +167,7 @@ export default async function CompteCandidatPage() {
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Messages</h2>
-        <MessageThread messages={messages ?? []} />
+        <MessageThread messages={messages ?? []} projetInfoById={projetInfoById} />
       </Card>
 
       <form action={logoutFigurant}>
