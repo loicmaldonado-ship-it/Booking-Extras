@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import {
   deleteCastingEntry,
@@ -178,6 +179,8 @@ export function CastingEntryManageCard({
   photos,
   selected,
   onToggleSelect,
+  previewItems,
+  previewIndex,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
@@ -186,6 +189,8 @@ export function CastingEntryManageCard({
   photos: CastingEntryPhoto[];
   selected?: boolean;
   onToggleSelect?: () => void;
+  previewItems?: PreviewItem[];
+  previewIndex?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -230,7 +235,10 @@ export function CastingEntryManageCard({
         </div>
         {hasMedia && <span className="text-text-muted">{open ? "▾" : "▸"}</span>}
       </button>
-      <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
+      <div className="flex items-center gap-1">
+        <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
+        {previewItems && previewIndex !== undefined && <PreviewButton items={previewItems} index={previewIndex} />}
+      </div>
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">

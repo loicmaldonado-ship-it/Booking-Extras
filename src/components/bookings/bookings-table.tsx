@@ -33,6 +33,7 @@ import { computeAge } from "@/lib/documents/fields";
 import { buildConvocationMailto, substituteTokens, type ConvocationSettings } from "@/lib/bookings/convocation";
 import { projetNomPublic } from "@/lib/projets/types";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
 import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
 import type { Genre, PhotoType } from "@/lib/figurants/types";
@@ -434,6 +435,20 @@ export function BookingsTable({
     if (groupDims.length === 0) return [{ label: null, rows: filteredRows }];
     return groupRows(filteredRows, groupDims);
   }, [groupDims, filteredRows]);
+
+  // Aperçu popup (bookings + échanges) — sur le même périmètre déjà filtré
+  // (fonction/cachet/statut/répondu) affiché à l'écran, pas sur `rows` en
+  // entier.
+  const previewItems: PreviewItem[] = filteredRows
+    .filter((r) => !!r.figurant_id)
+    .map((r) => ({
+      id: r.figurant_id!,
+      prenom: r.figurants?.prenom ?? "",
+      nom: r.figurants?.nom ?? "",
+      ville: r.figurants?.ville ?? null,
+      portraitUrl: r.portraitUrl,
+    }));
+  const previewIndexByBookingId = new Map(filteredRows.filter((r) => r.figurant_id).map((r, i) => [r.id, i]));
 
 
   function toggle(id: string) {
@@ -847,7 +862,12 @@ export function BookingsTable({
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
           )}
-          <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+          <div className="flex items-center gap-1">
+            <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+            {previewIndexByBookingId.has(r.id) && (
+              <PreviewButton items={previewItems} index={previewIndexByBookingId.get(r.id)!} />
+            )}
+          </div>
           {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
         <td className="px-6 py-4 align-middle">
@@ -965,6 +985,13 @@ export function BookingsTable({
           onChange={() => toggle(r.id)}
           className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
         />
+        {previewIndexByBookingId.has(r.id) && (
+          <PreviewButton
+            items={previewItems}
+            index={previewIndexByBookingId.get(r.id)!}
+            className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
+          />
+        )}
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
             {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}

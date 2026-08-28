@@ -10,6 +10,7 @@ import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
 import { defaultCastingInviteMessage } from "@/lib/casting/message-template";
 import { formatDateLong } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
+import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
 import { CATEGORIE_CACHET_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
@@ -53,6 +54,15 @@ export function CastingRoleSection({
   const [sendError, setSendError] = useState<string | null>(null);
 
   const submitted = entries.filter((e) => e.submitted_at).length;
+
+  // Aperçu popup (bookings + échanges) — un item par entrée de casting.
+  const previewItems: PreviewItem[] = entries.map((e) => ({
+    id: e.figurant_id,
+    prenom: e.figurants?.prenom ?? "",
+    nom: e.figurants?.nom ?? "",
+    ville: null,
+    portraitUrl: portraitByFigurant.get(e.figurant_id) ?? null,
+  }));
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -157,7 +167,7 @@ export function CastingRoleSection({
       />
 
       <div className="flex flex-wrap gap-3">
-        {entries.map((entry) => (
+        {entries.map((entry, i) => (
           <CastingEntryManageCard
             key={entry.id}
             entry={entry}
@@ -167,6 +177,8 @@ export function CastingRoleSection({
             photos={entryPhotosByEntry.get(entry.id) ?? []}
             selected={selected.has(entry.id)}
             onToggleSelect={() => toggleSelect(entry.id)}
+            previewItems={previewItems}
+            previewIndex={i}
           />
         ))}
         {entries.length === 0 && <p className="text-sm text-text-muted">Aucun profil dans ce rôle pour l&apos;instant.</p>}

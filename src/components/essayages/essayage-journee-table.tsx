@@ -8,6 +8,7 @@ import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { cn } from "@/lib/cn";
 import {
@@ -71,6 +72,16 @@ export function EssayageJourneeTable({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+
+  // Aperçu popup (bookings + échanges) — un item par figurant·e de cette
+  // journée d'essayage, dans l'ordre affiché.
+  const previewItems: PreviewItem[] = rows.map((r) => ({
+    id: r.figurant_id,
+    prenom: r.figurants?.prenom ?? "",
+    nom: r.figurants?.nom ?? "",
+    ville: null,
+    portraitUrl: r.portraitUrl,
+  }));
 
   const [consigne, setConsigne] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
@@ -271,7 +282,7 @@ export function EssayageJourneeTable({
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {rows.map((r) => (
+        {rows.map((r, i) => (
           <div
             key={r.id}
             className="relative flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center"
@@ -307,7 +318,10 @@ export function EssayageJourneeTable({
                 {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
               </div>
             </Link>
-            <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
+            <div className="flex items-center gap-1">
+              <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
+              <PreviewButton items={previewItems} index={i} />
+            </div>
             <button
               type="button"
               onClick={() => (lieuEditingId === r.id ? setLieuEditingId(null) : openLieuEditor(r))}

@@ -15,6 +15,7 @@ import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
@@ -86,6 +87,17 @@ export function CandidaturesTable({
   const [sendError, setSendError] = useState<string | null>(null);
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
+
+  // Items pour l'aperçu popup (bookings + échanges) — un par figurant·e
+  // avec fiche, dans l'ordre déjà filtré/trié de cette page. Un index par
+  // id de candidature plutôt que par position dans `rows`, puisque les
+  // lignes sans figurant (fiche supprimée) n'ont pas d'entrée.
+  const previewItems: PreviewItem[] = rows
+    .filter((r): r is Row & { figurants: NonNullable<Row["figurants"]> } => !!r.figurants)
+    .map((r) => ({ id: r.figurants.id, prenom: r.figurants.prenom, nom: r.figurants.nom, ville: r.figurants.ville, portraitUrl: r.portraitUrl }));
+  const previewIndexByCandidatureId = new Map(
+    rows.filter((r) => r.figurants?.id).map((r, i) => [r.id, i])
+  );
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -438,6 +450,13 @@ export function CandidaturesTable({
                 );
               })()}
               <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
+              {previewIndexByCandidatureId.has(r.id) && (
+                <PreviewButton
+                  items={previewItems}
+                  index={previewIndexByCandidatureId.get(r.id)!}
+                  className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
+                />
+              )}
               <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}
@@ -485,6 +504,9 @@ export function CandidaturesTable({
                           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                         </Link>
                         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+                        {previewIndexByCandidatureId.has(r.id) && (
+                          <PreviewButton items={previewItems} index={previewIndexByCandidatureId.get(r.id)!} />
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-3 text-text-muted">{r.figurants?.ville ?? "—"}</td>
