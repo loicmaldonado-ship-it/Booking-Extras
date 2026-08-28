@@ -262,6 +262,11 @@ export default function AidePage() {
           « Ma fiche » automatiquement ouverte en édition, avec la liste des champs obligatoires manquants —
           pratique quand tu renvoies le lien de connexion justement pour lui faire compléter une info.
         </Callout>
+        <Callout>
+          <strong className="text-text">👁️ Aperçu.</strong> Depuis une carte ou une ligne, ouvre les bookings et
+          les échanges (dont les réponses mail) sans quitter la page — <UI>‹</UI>/<UI>›</UI> font passer au
+          profil suivant sans refermer, en restant dans les résultats déjà filtrés.
+        </Callout>
         <MiniGrid
           items={[
             {
