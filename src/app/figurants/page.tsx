@@ -10,6 +10,7 @@ import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
@@ -204,6 +205,7 @@ export default async function FigurantsPage({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
+              <th className="px-6 py-3 font-medium"></th>
               <th className="px-6 py-3 font-medium">Nom</th>
               <th className="px-6 py-3 font-medium">Ville</th>
               <th className="px-6 py-3 font-medium">Contact</th>
@@ -212,11 +214,23 @@ export default async function FigurantsPage({
             </tr>
           </thead>
           <tbody>
-            {(figurants ?? []).map((f) => (
+            {(figurants ?? []).map((f, i) => (
               <tr
                 key={f.id}
                 className="border-b border-border last:border-0 hover:bg-ink-raised-2"
               >
+                <td className="px-3 py-3">
+                  <PreviewButton
+                    items={(figurants ?? []).map((g) => ({
+                      id: g.id,
+                      prenom: g.prenom,
+                      nom: g.nom,
+                      ville: g.ville,
+                      portraitUrl: null,
+                    }))}
+                    index={i}
+                  />
+                </td>
                 <td className="px-6 py-3">
                   <Link href={`/figurants/${f.id}`} className="font-medium hover:text-coral">
                     {f.prenom} {f.nom}
@@ -249,7 +263,7 @@ export default async function FigurantsPage({
             ))}
             {(figurants ?? []).length === 0 && !error && (
               <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-text-muted">
+                <td colSpan={6} className="px-6 py-10 text-center text-text-muted">
                   Aucun·e figurant·e pour l&apos;instant.
                 </td>
               </tr>
