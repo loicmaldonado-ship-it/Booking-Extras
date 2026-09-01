@@ -9,12 +9,25 @@ export const CATEGORIE_CACHET_LABELS: Record<CategorieCachet, string> = {
   doublure: "Doublure",
 };
 
+// Mode de casting par défaut du rôle — indicatif seulement : les deux
+// façons d'envoyer une sélection (lien selftape par mail, ou planning
+// présentiel) restent toujours disponibles depuis la page, pour basculer
+// au cas par cas si une personne prévue en présentiel ne peut finalement
+// pas se déplacer.
+export type CastingMode = "presentiel" | "selftape";
+
+export const CASTING_MODE_LABELS: Record<CastingMode, string> = {
+  presentiel: "Présentiel",
+  selftape: "Selftape",
+};
+
 export type CastingRole = {
   id: string;
   projet_id: string;
   nom: string;
   date_tournage: string | null;
   categorie_cachet: CategorieCachet;
+  mode: CastingMode;
   nb_videos: number;
   photo_labels: string[];
   demande_bande_demo: boolean;

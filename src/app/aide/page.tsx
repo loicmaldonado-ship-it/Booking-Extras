@@ -361,8 +361,11 @@ export default function AidePage() {
           <Steps
             items={[
               <>
-                <UI>+ Nouveau casting</UI>, donne-lui un nom et une{" "}
-                <strong className="text-text">catégorie de cachet</strong> (Rôle / Silhouette / Doublure).
+                <UI>+ Nouveau casting</UI>, donne-lui un nom, une{" "}
+                <strong className="text-text">catégorie de cachet</strong> (Rôle / Silhouette / Doublure) et un{" "}
+                <strong className="text-text">mode de casting</strong> (Présentiel / Selftape) — indicatif
+                seulement, l&apos;envoi du lien selftape et l&apos;ajout au planning présentiel restent tous les
+                deux disponibles quel que soit le mode choisi.
               </>,
               "Choisis le nombre de vidéos et les photos demandées, et la date de tournage si elle est déjà connue.",
               "Personnalise, si besoin, le corps du mail d'invitation — sinon un message par défaut est généré avec le lien.",
@@ -421,7 +424,9 @@ export default function AidePage() {
           <UI>Trombi</UI> (photos plus grandes, groupées par créneau). Le rôle de chaque profil se modifie
           directement depuis la journée, et depuis la page Casting, sélectionne des profils dans un rôle puis{" "}
           <UI>→ Planning présentiel</UI> pour les envoyer d&apos;un coup vers une journée (et un créneau si tu en
-          choisis un) sans repasser par la recherche nom par nom.
+          choisis un) sans repasser par la recherche nom par nom. Si une personne prévue en présentiel ne peut
+          finalement pas se déplacer, envoie-lui simplement le lien selftape par mail comme pour un rôle
+          classique — les deux options restent toujours ouvertes sur le même profil.
         </Callout>
         <Callout tone="yellow">
           <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du

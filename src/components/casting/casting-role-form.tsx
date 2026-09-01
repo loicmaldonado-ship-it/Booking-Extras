@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
-import { CATEGORIE_CACHET_LABELS, type CastingRole } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole } from "@/lib/casting/types";
 
 const DEFAULT_LABELS = ["Portrait", "Pied", "Autre"];
 
@@ -52,15 +52,31 @@ export function CastingRoleForm({
         </Field>
       </div>
 
-      <Field label="Catégorie de cachet" required>
-        <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>
-          {Object.entries(CATEGORIE_CACHET_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-      </Field>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <Field label="Catégorie de cachet" required>
+          <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>
+            {Object.entries(CATEGORIE_CACHET_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Mode de casting" required>
+          <Select name="mode" required defaultValue={role?.mode ?? "selftape"}>
+            {Object.entries(CASTING_MODE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
+      <p className="-mt-2 text-xs text-text-muted">
+        Indicatif — l&apos;envoi du lien selftape et l&apos;ajout au planning présentiel restent tous les deux
+        disponibles quel que soit le mode choisi (pratique si une personne prévue en présentiel ne peut pas se
+        déplacer).
+      </p>
 
       <Field label="Nombre de vidéos demandées">
         <Input type="number" name="nb_videos" min={0} defaultValue={role?.nb_videos ?? 1} className="w-24" />

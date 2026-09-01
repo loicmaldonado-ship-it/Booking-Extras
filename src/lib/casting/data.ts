@@ -6,7 +6,7 @@ export async function getCastingRoles(projetId: string): Promise<CastingRole[]> 
   const { data } = await supabase
     .from("casting_roles")
     .select(
-      "id, projet_id, nom, date_tournage, categorie_cachet, nb_videos, photo_labels, demande_bande_demo, message_corps, visible_partage, pdf_storage_path, pdf_filename, created_at"
+      "id, projet_id, nom, date_tournage, categorie_cachet, mode, nb_videos, photo_labels, demande_bande_demo, message_corps, visible_partage, pdf_storage_path, pdf_filename, created_at"
     )
     .eq("projet_id", projetId)
     .order("date_tournage", { ascending: true, nullsFirst: false })

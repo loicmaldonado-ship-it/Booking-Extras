@@ -15,7 +15,7 @@ import { CastingEntryManageCard } from "@/components/casting/casting-entry-manag
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
-import { CATEGORIE_CACHET_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 import type { PresentielJourneeAvecCreneaux } from "@/lib/casting-presentiel/journees";
@@ -178,6 +178,10 @@ export function CastingRoleSection({
           </p>
           <div className="mt-1 flex gap-1.5">
             <Badge>{CATEGORIE_CACHET_LABELS[role.categorie_cachet]}</Badge>
+            <Badge tone={role.mode === "presentiel" ? "coral" : "default"}>
+              {role.mode === "presentiel" ? "📅 " : "🎥 "}
+              {CASTING_MODE_LABELS[role.mode]}
+            </Badge>
             <Badge tone="turquoise">{submitted} envoyé{submitted > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{entries.length - submitted} en attente</Badge>
             {!role.visible_partage && <Badge tone="danger">Masqué du partage réal</Badge>}

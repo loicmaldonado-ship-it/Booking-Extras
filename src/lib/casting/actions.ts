@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import type { CategorieCachet } from "./types";
+import type { CategorieCachet, CastingMode } from "./types";
 import type { BookingStatut } from "@/lib/bookings/types";
 
 function parsePhotoLabels(formData: FormData): string[] {
@@ -17,6 +17,10 @@ function parsePhotoLabels(formData: FormData): string[] {
 function parseCategorieCachet(formData: FormData): CategorieCachet {
   const v = String(formData.get("categorie_cachet") ?? "");
   return v === "silhouette" || v === "doublure" ? v : "role";
+}
+
+function parseCastingMode(formData: FormData): CastingMode {
+  return String(formData.get("mode") ?? "") === "presentiel" ? "presentiel" : "selftape";
 }
 
 // Le PDF (ex. extrait de script) est un fichier déjà prêt qu'on upload tel
@@ -53,6 +57,7 @@ export async function createCastingRole(
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
+  const mode = parseCastingMode(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
@@ -67,6 +72,7 @@ export async function createCastingRole(
       nom,
       date_tournage: dateTournage,
       categorie_cachet: categorieCachet,
+      mode,
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
@@ -110,6 +116,7 @@ export async function updateCastingRoleCalibration(
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
+  const mode = parseCastingMode(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
@@ -137,6 +144,7 @@ export async function updateCastingRoleCalibration(
       nom,
       date_tournage: dateTournage,
       categorie_cachet: categorieCachet,
+      mode,
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
