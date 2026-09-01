@@ -240,7 +240,9 @@ export default function AidePage() {
             <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce. Identité,
               contact, genre et pronom, adresse complète (rue, code postal, ville), commune de naissance et
-              une photo portrait sont obligatoires — le reste (mensurations, véhicule) peut attendre.
+              une photo portrait sont obligatoires — le reste (mensurations, véhicule) peut attendre. Coche{" "}
+              <UI>Comédien·ne</UI> pour créer un profil minimal (juste le nom) et faire apparaître ses{" "}
+              coordonnées d&apos;<strong className="text-text">agent</strong>, rattachées à la fiche.
             </>,
             <>
               Complète les <strong className="text-text">mensurations</strong> et ajoute ses{" "}
