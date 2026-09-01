@@ -1,3 +1,6 @@
+import type { BookingStatut } from "@/lib/bookings/types";
+import type { Genre } from "@/lib/figurants/types";
+
 export type CategorieCachet = "role" | "silhouette" | "doublure";
 
 export const CATEGORIE_CACHET_LABELS: Record<CategorieCachet, string> = {
@@ -31,5 +34,21 @@ export type CastingEntry = {
   video_storage_paths: string[];
   requested_at: string;
   submitted_at: string | null;
-  figurants: { prenom: string; nom: string; email: string | null; telephone: string | null } | null;
+  agent_nom: string | null;
+  agent_email: string | null;
+  agent_telephone: string | null;
+  statut: BookingStatut;
+  figurants: {
+    prenom: string;
+    nom: string;
+    email: string | null;
+    telephone: string | null;
+    genre: Genre | null;
+    date_naissance: string | null;
+    a_vehicule: boolean | null;
+    vehicule_velo: boolean;
+    vehicule_moto: boolean;
+    vehicule_scooter: boolean;
+    compte_myrole: boolean;
+  } | null;
 };

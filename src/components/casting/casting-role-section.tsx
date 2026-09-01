@@ -179,6 +179,7 @@ export function CastingRoleSection({
             onToggleSelect={() => toggleSelect(entry.id)}
             previewItems={previewItems}
             previewIndex={i}
+            showAgent={role.categorie_cachet === "role"}
           />
         ))}
         {entries.length === 0 && <p className="text-sm text-text-muted">Aucun profil dans ce rôle pour l&apos;instant.</p>}

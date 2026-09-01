@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
@@ -97,11 +97,16 @@ export default async function CastingPage({
             {roles.length} rôle{roles.length > 1 ? "s" : ""} · {entries.length} profil{entries.length > 1 ? "s" : ""}
           </p>
         </div>
-        <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
-          <Button type="submit" variant="secondary">
-            📋 Bookings
-          </Button>
-        </form>
+        <div className="flex gap-2">
+          <ButtonLink href="/casting/trombis" variant="secondary">
+            🖼️ Trombis
+          </ButtonLink>
+          <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+            <Button type="submit" variant="secondary">
+              📋 Bookings
+            </Button>
+          </form>
+        </div>
       </div>
 
       <NewCastingRoleCard projetId={currentProjetId} />

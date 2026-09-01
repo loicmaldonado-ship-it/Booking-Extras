@@ -17,7 +17,11 @@ import {
   removeCastingVideo,
   createStaffCastingVideoSlot,
   addCastingVideo,
+  updateCastingEntryAgent,
+  updateCastingEntryStatut,
 } from "@/lib/casting/actions";
+import { StatusSelect } from "@/components/ui/status-select";
+import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntry } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 
@@ -171,6 +175,94 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   );
 }
 
+const AGENT_INPUT_CLASS =
+  "w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1 text-xs outline-none focus:border-coral";
+
+// N'a de sens que pour les rôles (categorie_cachet = "role") : les
+// figurant·es de figuration n'ont généralement pas d'agent, contrairement
+// aux comédien·nes qui tiennent un rôle nommé.
+function AgentSection({ entry }: { entry: CastingEntry }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [nom, setNom] = useState(entry.agent_nom ?? "");
+  const [email, setEmail] = useState(entry.agent_email ?? "");
+  const [telephone, setTelephone] = useState(entry.agent_telephone ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const hasAgent = !!(entry.agent_nom || entry.agent_email || entry.agent_telephone);
+
+  function save() {
+    setError(null);
+    const fd = new FormData();
+    fd.set("agent_nom", nom);
+    fd.set("agent_email", email);
+    fd.set("agent_telephone", telephone);
+    startTransition(async () => {
+      const result = await updateCastingEntryAgent(entry.id, fd);
+      if (result?.error) setError(result.error);
+      else {
+        setEditing(false);
+        router.refresh();
+      }
+    });
+  }
+
+  if (editing) {
+    return (
+      <div className="flex flex-col gap-1.5 rounded-lg border border-coral/40 bg-ink px-2.5 py-2">
+        <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom de l'agent" className={AGENT_INPUT_CLASS} />
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email de l'agent"
+          type="email"
+          className={AGENT_INPUT_CLASS}
+        />
+        <input
+          value={telephone}
+          onChange={(e) => setTelephone(e.target.value)}
+          placeholder="Téléphone de l'agent"
+          className={AGENT_INPUT_CLASS}
+        />
+        {error && <span className="text-xs text-danger">{error}</span>}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text-muted hover:text-text">
+            Annuler
+          </button>
+          <Button type="button" disabled={pending} onClick={save}>
+            {pending ? "..." : "Enregistrer"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAgent) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="w-fit rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-text-muted hover:border-coral/60 hover:text-text"
+      >
+        + Ajouter un agent
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-border bg-ink px-2.5 py-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium">🎭 Agent : {entry.agent_nom || "—"}</span>
+        <button type="button" onClick={() => setEditing(true)} className="text-xs text-coral hover:underline">
+          Modifier
+        </button>
+      </div>
+      <ContactIcons telephone={entry.agent_telephone} email={entry.agent_email} variant="inline" />
+    </div>
+  );
+}
+
 export function CastingEntryManageCard({
   entry,
   portraitUrl,
@@ -181,6 +273,7 @@ export function CastingEntryManageCard({
   onToggleSelect,
   previewItems,
   previewIndex,
+  showAgent,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
@@ -191,14 +284,23 @@ export function CastingEntryManageCard({
   onToggleSelect?: () => void;
   previewItems?: PreviewItem[];
   previewIndex?: number;
+  showAgent?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [statutPending, startStatutTransition] = useTransition();
 
   function removeEntry() {
     startTransition(async () => {
       await deleteCastingEntry(entry.id);
+      router.refresh();
+    });
+  }
+
+  function changeStatut(statut: BookingStatut) {
+    startStatutTransition(async () => {
+      await updateCastingEntryStatut(entry.id, statut);
       router.refresh();
     });
   }
@@ -226,6 +328,14 @@ export function CastingEntryManageCard({
       >
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
           {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          {entry.statut === "valide" && (
+            <span
+              className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-turquoise text-xs text-ink"
+              title="Validé"
+            >
+              ✓
+            </span>
+          )}
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-sm font-medium">
@@ -235,10 +345,23 @@ export function CastingEntryManageCard({
         </div>
         {hasMedia && <span className="text-text-muted">{open ? "▾" : "▸"}</span>}
       </button>
+      <StatusSelect
+        value={entry.statut}
+        tone={statutTone(entry.statut)}
+        disabled={statutPending}
+        onChange={(e) => changeStatut(e.target.value as BookingStatut)}
+      >
+        {STATUTS.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </StatusSelect>
       <div className="flex items-center gap-1">
         <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
         {previewItems && previewIndex !== undefined && <PreviewButton items={previewItems} index={previewIndex} />}
       </div>
+      {showAgent && <AgentSection entry={entry} />}
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">

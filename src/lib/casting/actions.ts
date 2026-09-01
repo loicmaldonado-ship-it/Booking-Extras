@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import type { CategorieCachet } from "./types";
+import type { BookingStatut } from "@/lib/bookings/types";
 
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
@@ -218,6 +219,47 @@ export async function addFigurantsToCastingRole(
 
   revalidatePath("/casting");
   return { ok, deja, echecs };
+}
+
+// Coordonnées d'agent — n'a de sens que sur les rôles (categorie_cachet =
+// "role"), pas re-vérifié ici puisque déjà masqué côté UI pour les autres
+// catégories.
+export async function updateCastingEntryAgent(
+  entryId: string,
+  formData: FormData
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const agentNom = String(formData.get("agent_nom") ?? "").trim() || null;
+  const agentEmail = String(formData.get("agent_email") ?? "").trim() || null;
+  const agentTelephone = String(formData.get("agent_telephone") ?? "").trim() || null;
+
+  const { error } = await supabase
+    .from("casting_entries")
+    .update({ agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone })
+    .eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_entries").update({ statut }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
 }
 
 export async function deleteCastingEntry(entryId: string) {
