@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { assignFigurantToCreneau } from "@/lib/essayages/actions";
 import { cn } from "@/lib/cn";
 import type { Genre } from "@/lib/figurants/types";
 import type { Creneau } from "./creneaux-panel";
@@ -20,14 +19,24 @@ function heureLabel(h: string) {
   return h.slice(0, 5);
 }
 
-export function EssayagePlanningBoard({ creneaux, rows }: { creneaux: Creneau[]; rows: PlanningRow[] }) {
+export function EssayagePlanningBoard({
+  creneaux,
+  rows,
+  assignToCreneau,
+  dragDataKey = "text/essayage-id",
+}: {
+  creneaux: Creneau[];
+  rows: PlanningRow[];
+  assignToCreneau: (entryId: string, creneauId: string | null) => unknown;
+  dragDataKey?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
 
-  function assign(essayageId: string, creneauId: string | null) {
+  function assign(entryId: string, creneauId: string | null) {
     startTransition(async () => {
-      await assignFigurantToCreneau(essayageId, creneauId);
+      await assignToCreneau(entryId, creneauId);
       router.refresh();
     });
   }
@@ -36,7 +45,7 @@ export function EssayagePlanningBoard({ creneaux, rows }: { creneaux: Creneau[];
     return (
       <div
         draggable
-        onDragStart={(e) => e.dataTransfer.setData("text/essayage-id", r.id)}
+        onDragStart={(e) => e.dataTransfer.setData(dragDataKey, r.id)}
         className="flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border border-border bg-ink p-2 text-center active:cursor-grabbing"
       >
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
@@ -77,7 +86,7 @@ export function EssayagePlanningBoard({ creneaux, rows }: { creneaux: Creneau[];
               onDrop={(e) => {
                 e.preventDefault();
                 setDragOverZone(null);
-                const essayageId = e.dataTransfer.getData("text/essayage-id");
+                const essayageId = e.dataTransfer.getData(dragDataKey);
                 if (essayageId) assign(essayageId, c.id);
               }}
               className={cn(
@@ -121,7 +130,7 @@ export function EssayagePlanningBoard({ creneaux, rows }: { creneaux: Creneau[];
         onDrop={(e) => {
           e.preventDefault();
           setDragOverZone(null);
-          const essayageId = e.dataTransfer.getData("text/essayage-id");
+          const essayageId = e.dataTransfer.getData(dragDataKey);
           if (essayageId) assign(essayageId, null);
         }}
         className={cn(

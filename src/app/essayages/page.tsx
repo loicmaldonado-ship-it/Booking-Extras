@@ -7,6 +7,7 @@ import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getEssayageJournees } from "@/lib/essayages/journees";
+import { createEssayageJournee } from "@/lib/essayages/actions";
 import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { EssayageLieuProjetPanel } from "@/components/essayages/essayage-lieu-projet-panel";
 import { AjouterJourneesForm } from "@/components/essayages/ajouter-journees-form";
@@ -119,7 +120,10 @@ export default async function EssayagesPage({
           Clique les jours voulus sur le calendrier (plusieurs à la fois, même sur des mois différents), puis
           valide une seule fois.
         </p>
-        <AjouterJourneesForm projetId={currentProjetId} existingDates={journees.map((j) => j.date)} />
+        <AjouterJourneesForm
+          action={createEssayageJournee.bind(null, currentProjetId)}
+          existingDates={journees.map((j) => j.date)}
+        />
       </Card>
 
       <PartageCard

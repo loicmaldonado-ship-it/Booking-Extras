@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { createEssayageJournee } from "@/lib/essayages/actions";
 
 const MOIS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -25,10 +24,10 @@ function startOfMonth(d: Date) {
 // plusieurs mois d'affilée) puis un seul "Créer" envoie toutes les dates
 // d'un coup. Remplace la ressaisie manuelle date par date, source d'erreurs.
 export function AjouterJourneesForm({
-  projetId,
+  action,
   existingDates,
 }: {
-  projetId: string;
+  action: (formData: FormData) => void | Promise<void>;
   existingDates: string[];
 }) {
   const today = useMemo(() => {
@@ -67,7 +66,7 @@ export function AjouterJourneesForm({
   const sortedSelected = Array.from(selected).sort();
 
   return (
-    <form action={createEssayageJournee.bind(null, projetId)} className="flex flex-col gap-3">
+    <form action={action} className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <button
           type="button"

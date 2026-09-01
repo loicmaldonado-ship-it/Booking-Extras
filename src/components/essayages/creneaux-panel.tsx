@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { addCreneau, removeCreneau, generateCreneaux } from "@/lib/essayages/actions";
 import type { Genre } from "@/lib/figurants/types";
+
+type CreneauActionState = { error?: string; success?: boolean; count?: number } | undefined;
+type CreneauAction = (prevState: CreneauActionState, formData: FormData) => Promise<CreneauActionState>;
 
 export type Creneau = {
   id: string;
@@ -20,20 +22,24 @@ function heureLabel(h: string) {
 }
 
 export function CreneauxPanel({
-  journeeId,
   creneaux,
   assignments,
+  generateCreneaux,
+  addCreneau,
+  removeCreneau,
 }: {
-  journeeId: string;
   creneaux: Creneau[];
   assignments: CreneauAssignment[];
+  generateCreneaux: CreneauAction;
+  addCreneau: CreneauAction;
+  removeCreneau: (creneauId: string) => void | Promise<void>;
 }) {
   const [mode, setMode] = useState<"none" | "generate" | "manual">("none");
 
-  const [genState, genAction, genPending] = useActionState(generateCreneaux.bind(null, journeeId), undefined);
+  const [genState, genAction, genPending] = useActionState(generateCreneaux, undefined);
   const genFormRef = useRef<HTMLFormElement>(null);
 
-  const [addState, addAction, addPending] = useActionState(addCreneau.bind(null, journeeId), undefined);
+  const [addState, addAction, addPending] = useActionState(addCreneau, undefined);
   const addFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -91,7 +97,7 @@ export function CreneauxPanel({
                   <span className="text-xs text-text-muted">
                     {counts.femmes}F · {counts.hommes}H · {counts.nb}NB
                   </span>
-                  <form action={removeCreneau.bind(null, c.id)}>
+                  <form action={() => removeCreneau(c.id)}>
                     <button type="submit" className="text-text-muted hover:text-coral" title="Supprimer ce créneau">
                       ×
                     </button>

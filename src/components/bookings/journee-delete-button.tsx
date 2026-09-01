@@ -2,9 +2,14 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteJournee } from "@/lib/bookings/actions";
 
-export function JourneeDeleteButton({ journeeId }: { journeeId: string }) {
+export function JourneeDeleteButton({
+  journeeId,
+  action,
+}: {
+  journeeId: string;
+  action: (journeeId: string) => Promise<{ error?: string; ok?: boolean } | void>;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -13,7 +18,7 @@ export function JourneeDeleteButton({ journeeId }: { journeeId: string }) {
     e.stopPropagation();
     if (!confirm("Supprimer cette journée vide ?")) return;
     startTransition(async () => {
-      const result = await deleteJournee(journeeId);
+      const result = await action(journeeId);
       if (result?.error) alert(result.error);
       else router.refresh();
     });

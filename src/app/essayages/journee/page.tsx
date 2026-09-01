@@ -5,6 +5,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { EssayageJourneeTable, type EssayageRow } from "@/components/essayages/essayage-journee-table";
 import { QuickAddFigurantEssayage } from "@/components/essayages/quick-add-figurant-essayage";
 import { CreneauxPanel, type Creneau } from "@/components/essayages/creneaux-panel";
+import { addCreneau, removeCreneau, generateCreneaux, assignFigurantToCreneau } from "@/lib/essayages/actions";
 import { EssayagePlanningBoard, type PlanningRow } from "@/components/essayages/essayage-planning-board";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { getEssayageJournees } from "@/lib/essayages/journees";
@@ -124,14 +125,20 @@ export default async function EssayageJourneePage({
       </Card>
 
       <CreneauxPanel
-        journeeId={journee.id}
         creneaux={creneaux ?? []}
         assignments={rows.map((r) => ({ creneau_id: r.creneau_id ?? null, genre: r.figurants?.genre ?? null }))}
+        generateCreneaux={generateCreneaux.bind(null, journee.id)}
+        addCreneau={addCreneau.bind(null, journee.id)}
+        removeCreneau={removeCreneau}
       />
 
       <Card>
         <h2 className="mb-3 text-sm font-semibold text-text-muted">Planning par créneaux</h2>
-        <EssayagePlanningBoard creneaux={creneaux ?? []} rows={planningRows} />
+        <EssayagePlanningBoard
+          creneaux={creneaux ?? []}
+          rows={planningRows}
+          assignToCreneau={assignFigurantToCreneau}
+        />
       </Card>
     </div>
   );

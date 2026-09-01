@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { getJournees } from "@/lib/bookings/journees";
-import { createJournee } from "@/lib/bookings/actions";
+import { createJournee, deleteJournee } from "@/lib/bookings/actions";
 import { formatDateLong } from "@/lib/format-date";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
@@ -103,7 +103,7 @@ export default async function BookingsPage({
         <div className="flex flex-wrap gap-3">
           {journees.map((j) => (
             <div key={j.id} className="relative">
-              {j.total === 0 && <JourneeDeleteButton journeeId={j.id} />}
+              {j.total === 0 && <JourneeDeleteButton journeeId={j.id} action={deleteJournee} />}
               <Link
                 href={`/bookings/documents?projet_id=${j.projet_id}&date=${j.date}`}
                 className="flex aspect-square w-52 flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-ink px-3 text-center transition-colors hover:border-coral/60"

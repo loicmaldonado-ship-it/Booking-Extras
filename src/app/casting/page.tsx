@@ -101,6 +101,9 @@ export default async function CastingPage({
           <ButtonLink href="/casting/trombis" variant="secondary">
             🖼️ Trombis
           </ButtonLink>
+          <ButtonLink href="/casting/presentiel" variant="secondary">
+            📅 Présentiel
+          </ButtonLink>
           <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
             <Button type="submit" variant="secondary">
               📋 Bookings
