@@ -533,7 +533,7 @@ export async function recordCastingMessage(
   email: string | null | undefined,
   subject: string,
   projetId: string | null | undefined,
-  opts?: { agentEmail?: string | null; rolePdfPath?: string | null; rolePdfFilename?: string | null }
+  opts?: { agentEmail?: string | null; rolePdfPath?: string | null; rolePdfFilename?: string | null; html?: string }
 ) {
   let attachments: { filename: string; content: Buffer }[] | undefined;
   if (opts?.rolePdfPath) {
@@ -550,6 +550,7 @@ export async function recordCastingMessage(
     categorie: "casting",
     email,
     cc: opts?.agentEmail,
+    html: opts?.html,
     subject,
     projetId,
     attachments,

@@ -58,9 +58,9 @@ export default async function CastingPresentielJourneePage({
     // n'importe qui de toute la base.
     supabase
       .from("casting_entries")
-      .select("figurants(id, prenom, nom)")
+      .select("role_id, figurants(id, prenom, nom)")
       .eq("projet_id", projet_id)
-      .returns<{ figurants: { id: string; prenom: string; nom: string } | null }[]>(),
+      .returns<{ role_id: string; figurants: { id: string; prenom: string; nom: string } | null }[]>(),
     supabase.from("casting_roles").select("id, nom").eq("projet_id", projet_id).order("nom"),
     supabase
       .from("casting_presentiel_creneaux")
@@ -70,11 +70,23 @@ export default async function CastingPresentielJourneePage({
       .returns<Creneau[]>(),
   ]);
 
+  // roleIds par figurant — pour que "+ Ajouter un profil" puisse proposer
+  // directement les profils d'un rôle précis une fois choisi dans le
+  // déroulant, sans devoir taper leur nom.
+  const roleIdsByFigurant = new Map<string, string[]>();
+  for (const e of castingEntriesFigurants ?? []) {
+    if (!e.figurants) continue;
+    const list = roleIdsByFigurant.get(e.figurants.id) ?? [];
+    list.push(e.role_id);
+    roleIdsByFigurant.set(e.figurants.id, list);
+  }
   const roleFigurants = Array.from(
     new Map(
       (castingEntriesFigurants ?? []).filter((e) => e.figurants).map((e) => [e.figurants!.id, e.figurants!])
     ).values()
-  ).sort((a, b) => a.nom.localeCompare(b.nom));
+  )
+    .map((f) => ({ ...f, roleIds: roleIdsByFigurant.get(f.id) ?? [] }))
+    .sort((a, b) => a.nom.localeCompare(b.nom));
 
   const figurantIds = (entriesRaw ?? []).map((e) => e.figurant_id);
   const [photosByFigurant, signature] = await Promise.all([

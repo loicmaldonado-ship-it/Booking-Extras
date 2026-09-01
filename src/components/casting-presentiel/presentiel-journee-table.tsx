@@ -8,7 +8,7 @@ import { Select, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
-import { substituteTokens } from "@/lib/bookings/convocation";
+import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocation";
 import { statutTone, type BookingStatut } from "@/lib/bookings/types";
 import {
   removePresentielEntry,
@@ -121,6 +121,7 @@ export function PresentielJourneeTable({
     return {
       prenom: r.figurants?.prenom ?? "",
       projet: projetNom ?? "",
+      role: r.casting_roles?.nom ?? "",
       lieu: lieu ?? "Lieu à confirmer",
       horaire: horaireFor(r),
       signature: signature ?? "",
@@ -132,9 +133,10 @@ export function PresentielJourneeTable({
     const tk = tokensFor(r);
     const body = substituteTokens(message, tk);
     const subj = substituteTokens(subject, tk);
+    const html = substituteTokensHtml(message, tk, { bold: ["role", "projet"], italic: ["signature"] });
     setSendError(null);
     startTransition(async () => {
-      const result = await recordCastingMessage(r.figurant_id, body, r.figurants!.email, subj, projetId);
+      const result = await recordCastingMessage(r.figurant_id, body, r.figurants!.email, subj, projetId, { html });
       if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
     });
     setSent((prev) => new Set([...prev, r.id]));

@@ -431,7 +431,10 @@ export default function AidePage() {
           <strong className="text-text">PDF</strong> (ex. extrait de script) : il part en pièce jointe à chaque
           mail envoyé depuis ce rôle. Le modèle <UI>Convocation présentiel</UI> remplit automatiquement{" "}
           {"{lieu}"} et {"{horaire}"} pour les profils déjà programmés en casting présentiel (sinon un texte à
-          confirmer s&apos;affiche) — pas besoin de retourner sur la page du planning pour convoquer.
+          confirmer s&apos;affiche) — pas besoin de retourner sur la page du planning pour convoquer. Dans les
+          mails de convocation, la signature apparaît juste après le bonjour (plus propre une fois un PDF
+          joint), et le rôle, le projet ressortent en <strong className="text-text">gras</strong>, la signature
+          en <em>italique</em>.
         </Callout>
         <Callout>
           <strong className="text-text">🖼️ Trombis.</strong> Vue photos plus grandes, rangée par rôle, avec les
@@ -457,7 +460,8 @@ export default function AidePage() {
           classique — les deux options restent toujours ouvertes sur le même profil. Le menu déroulant{" "}
           <UI>Créneau</UI> (dans « → Planning présentiel ») affiche qui est déjà calé sur chaque horaire, pour ne
           jamais en mettre deux fois. La recherche <UI>+ Ajouter un profil</UI> depuis la journée ne propose que
-          les profils déjà dans un rôle de ce projet — pas toute la base.
+          les profils déjà dans un rôle de ce projet — pas toute la base. Choisis un rôle dans le menu déroulant
+          pour voir directement tous ses profils, sans même avoir à taper un nom.
         </Callout>
         <Callout>
           <strong className="text-text">Notes.</strong> Un petit champ sous chaque profil (rôle ou casting

@@ -32,6 +32,7 @@ export async function sendEmail(
   options?: {
     cc?: string | null;
     attachments?: { filename: string; content: Buffer }[];
+    html?: string;
   }
 ): Promise<{ error?: string }> {
   const resolved = getTransporter(credentials?.user, credentials?.pass);
@@ -44,6 +45,7 @@ export async function sendEmail(
       cc: options?.cc || undefined,
       subject,
       text,
+      html: options?.html,
       attachments: options?.attachments,
     });
     return {};

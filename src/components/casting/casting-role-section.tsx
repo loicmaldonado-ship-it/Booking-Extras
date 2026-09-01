@@ -6,7 +6,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Select } from "@/components/ui/field";
-import { substituteTokens } from "@/lib/bookings/convocation";
+import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocation";
 import { deleteCastingRole, recordCastingMessage, updateCastingEntriesStatutBulk } from "@/lib/casting/actions";
 import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
@@ -119,7 +119,7 @@ export function CastingRoleSection({
 
   function applyPresentielTemplate() {
     setBulkSubject(`Convocation casting — ${role.nom}`);
-    setBulkMessage(defaultCastingPresentielMessage(role));
+    setBulkMessage(defaultCastingPresentielMessage());
   }
 
   function sendTo(entry: CastingEntry) {
@@ -127,12 +127,14 @@ export function CastingRoleSection({
     const tk = tokens(entry);
     const body = substituteTokens(bulkMessage, tk);
     const subj = substituteTokens(bulkSubject, tk);
+    const html = substituteTokensHtml(bulkMessage, tk, { bold: ["role", "projet"], italic: ["signature"] });
     setSendError(null);
     startTransition(async () => {
       const result = await recordCastingMessage(entry.figurant_id, body, entry.figurants!.email, subj, projetId, {
         agentEmail: entry.figurants?.agent_email,
         rolePdfPath: role.pdf_storage_path,
         rolePdfFilename: role.pdf_filename,
+        html,
       });
       if (result?.error) setSendError(`Échec de l'envoi à ${entry.figurants!.prenom} : ${result.error}`);
     });

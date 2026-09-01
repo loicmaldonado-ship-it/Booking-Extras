@@ -29,17 +29,48 @@ export function substitutePrenom(text: string, prenom: string) {
   return text.replaceAll("{prenom}", prenom);
 }
 
-export function substituteTokens(
-  text: string,
-  tokens: Partial<
-    Record<"prenom" | "projet" | "date" | "lieu" | "cachet" | "fonction" | "signature" | "role" | "lien", string>
-  >
-) {
+export type MessageTokenKey =
+  | "prenom"
+  | "projet"
+  | "date"
+  | "lieu"
+  | "cachet"
+  | "fonction"
+  | "signature"
+  | "role"
+  | "lien"
+  | "horaire";
+
+export function substituteTokens(text: string, tokens: Partial<Record<MessageTokenKey, string>>) {
   let result = text;
   for (const [key, value] of Object.entries(tokens)) {
     if (value !== undefined) result = result.replaceAll(`{${key}}`, value);
   }
   return result;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Comme substituteTokens, mais produit du HTML — les valeurs des tokens
+// listés dans bold/italic ressortent en gras/italique dans le mail
+// effectivement envoyé (le texte source dans le composeur reste du texte
+// brut avec les mêmes tokens littéraux, rien ne change côté saisie).
+export function substituteTokensHtml(
+  text: string,
+  tokens: Partial<Record<MessageTokenKey, string>>,
+  emphasis: { bold?: MessageTokenKey[]; italic?: MessageTokenKey[] } = {}
+): string {
+  let result = escapeHtml(text);
+  for (const [key, value] of Object.entries(tokens)) {
+    if (value === undefined) continue;
+    let htmlValue = escapeHtml(value);
+    if (emphasis.bold?.includes(key as MessageTokenKey)) htmlValue = `<strong>${htmlValue}</strong>`;
+    if (emphasis.italic?.includes(key as MessageTokenKey)) htmlValue = `<em>${htmlValue}</em>`;
+    result = result.replaceAll(`{${key}}`, htmlValue);
+  }
+  return result.replace(/\n/g, "<br>");
 }
 
 // Dernier filet de sécurité si un appelant oublie de résoudre la signature
