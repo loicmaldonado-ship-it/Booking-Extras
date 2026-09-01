@@ -402,11 +402,12 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
-          <strong className="text-text">statut</strong> — <UI>Incomplet</UI> puis <UI>Complet</UI> (se met tout
-          seul dès que le candidat a fini d&apos;envoyer ce qui était demandé, ou dès que tu marques une
-          présence en présentiel), puis la même suite que les bookings jusqu&apos;à <UI>Validé</UI> (affiche un
-          rond ✓ sur la photo). Sélectionne plusieurs profils (case en haut de chaque carte) pour changer leur
-          statut d&apos;un coup. Pour un rôle de catégorie <strong className="text-text">Rôle</strong>,{" "}
+          <strong className="text-text">statut</strong> — <UI>Incomplet</UI> puis <UI>À traiter</UI> (se met
+          tout seul dès que le candidat a fini d&apos;envoyer ce qui était demandé), et c&apos;est à toi de
+          repasser en <UI>Complet</UI> une fois le contenu relu et validé — jamais automatique. Puis la même
+          suite que les bookings jusqu&apos;à <UI>Validé</UI> (affiche un rond ✓ sur la photo). Sélectionne
+          plusieurs profils (case en haut de chaque carte) pour changer leur statut d&apos;un coup. Pour un rôle
+          de catégorie <strong className="text-text">Rôle</strong>,{" "}
           <UI>+ Ajouter un agent</UI> apparaît sous chaque profil pour garder ses coordonnées à portée de main
           (agence comprise). En tapant son nom, les agents déjà rentrés une fois (sur n&apos;importe quelle
           fiche) apparaissent en suggestion — cliquer dessus remplit agence, email et téléphone d&apos;un coup.

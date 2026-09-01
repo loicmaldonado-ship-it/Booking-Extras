@@ -99,9 +99,10 @@ export async function finalizeCastingUpload(
     await upsertFigurantLienByLabel(supabase, entry.figurant_id, LIEN_BANDE_DEMO, payload.bandeDemo.trim());
   }
 
-  // "Complet" se met tout seul dès que tout est envoyé — mais ne fait
-  // jamais régresser un statut déjà avancé à la main (ex. si le staff a
-  // déjà relancé ou validé avant un renvoi via ce même lien).
+  // "À traiter" se met tout seul dès que tout est envoyé — jamais
+  // "Complet" directement, ça reste un choix du staff une fois relu. Ne
+  // fait jamais régresser un statut déjà avancé à la main (ex. si le staff
+  // a déjà relancé ou validé avant un renvoi via ce même lien).
   const patch: { video_storage_paths: string[]; submitted_at: string; statut?: "envoyé" } = {
     video_storage_paths: payload.videoPaths,
     submitted_at: new Date().toISOString(),
