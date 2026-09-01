@@ -6,6 +6,7 @@ import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getCastingRoles, getCastingEntries, getCastingVideoUrlPairs, getCastingEntryPhotos } from "@/lib/casting/data";
+import { getPresentielJourneesWithCreneaux } from "@/lib/casting-presentiel/journees";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
@@ -48,7 +49,7 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  const [roles, entries, partageToken, partageTitre, origin, { data: allFigurants }, { data: templates }, signature] =
+  const [roles, entries, partageToken, partageTitre, origin, { data: allFigurants }, { data: templates }, signature, presentielJournees] =
     await Promise.all([
       getCastingRoles(currentProjetId),
       getCastingEntries(currentProjetId),
@@ -58,6 +59,7 @@ export default async function CastingPage({
       supabase.from("figurants").select("id, prenom, nom").order("nom"),
       supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
       getProjetSignatureOrOwnerName(supabase, currentProjetId),
+      getPresentielJourneesWithCreneaux(currentProjetId),
     ]);
 
   const figurantIds = entries.map((e) => e.figurant_id);
@@ -128,6 +130,7 @@ export default async function CastingPage({
           entryPhotosByEntry={entryPhotosByEntry}
           allFigurants={allFigurants ?? []}
           templates={templates ?? []}
+          presentielJournees={presentielJournees}
         />
       ))}
 

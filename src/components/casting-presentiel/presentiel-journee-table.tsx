@@ -4,13 +4,16 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { StatusSelect } from "@/components/ui/status-select";
+import { Select } from "@/components/ui/field";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
-import { removePresentielEntry, updatePresentielStatut } from "@/lib/casting-presentiel/actions";
+import { removePresentielEntry, updatePresentielStatut, updatePresentielEntryRole } from "@/lib/casting-presentiel/actions";
 import type { PresentielEntry } from "@/lib/casting-presentiel/types";
 
-export function PresentielJourneeTable({ rows }: { rows: PresentielEntry[] }) {
+type RoleOption = { id: string; nom: string };
+
+export function PresentielJourneeTable({ rows, roles = [] }: { rows: PresentielEntry[]; roles?: RoleOption[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -32,6 +35,13 @@ export function PresentielJourneeTable({ rows }: { rows: PresentielEntry[] }) {
   function changeStatut(id: string, statut: BookingStatut) {
     startTransition(async () => {
       await updatePresentielStatut(id, statut);
+      router.refresh();
+    });
+  }
+
+  function changeRole(id: string, roleId: string) {
+    startTransition(async () => {
+      await updatePresentielEntryRole(id, roleId || null);
       router.refresh();
     });
   }
@@ -66,7 +76,23 @@ export function PresentielJourneeTable({ rows }: { rows: PresentielEntry[] }) {
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
-          {r.casting_roles && <div className="text-[10px] text-coral">{r.casting_roles.nom}</div>}
+          {roles.length > 0 ? (
+            <Select
+              value={r.role_id ?? ""}
+              onChange={(e) => changeRole(r.id, e.target.value)}
+              disabled={pending}
+              className="w-full text-xs"
+            >
+              <option value="">Rôle (aucun)</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.nom}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            r.casting_roles && <div className="text-[10px] text-coral">{r.casting_roles.nom}</div>
+          )}
           <StatusSelect
             value={r.statut}
             tone={statutTone(r.statut)}

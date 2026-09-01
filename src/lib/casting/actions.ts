@@ -19,6 +19,27 @@ function parseCategorieCachet(formData: FormData): CategorieCachet {
   return v === "silhouette" || v === "doublure" ? v : "role";
 }
 
+// Le PDF (ex. extrait de script) est un fichier déjà prêt qu'on upload tel
+// quel — pas de génération, juste un stockage + jointure au mail à l'envoi.
+async function uploadRolePdfIfProvided(
+  supabase: ReturnType<typeof createAdminClient>,
+  roleId: string,
+  formData: FormData
+): Promise<{ error?: string; pdf_storage_path?: string; pdf_filename?: string }> {
+  const pdf = formData.get("pdf");
+  if (!(pdf instanceof File) || pdf.size === 0) return {};
+  if (pdf.type !== "application/pdf") return { error: "Le fichier joint doit être un PDF." };
+
+  const path = `${roleId}/${crypto.randomUUID()}.pdf`;
+  const { error } = await supabase.storage.from("casting-role-documents").upload(path, pdf, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) return { error: error.message };
+
+  return { pdf_storage_path: path, pdf_filename: pdf.name };
+}
+
 export async function createCastingRole(
   projetId: string,
   _prevState: unknown,
@@ -39,18 +60,31 @@ export async function createCastingRole(
   const visiblePartage = formData.get("visible_partage") === "on";
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("casting_roles").insert({
-    projet_id: projetId,
-    nom,
-    date_tournage: dateTournage,
-    categorie_cachet: categorieCachet,
-    nb_videos: nbVideos,
-    photo_labels: photoLabels,
-    demande_bande_demo: demandeBandeDemo,
-    message_corps: messageCorps,
-    visible_partage: visiblePartage,
-  });
+  const { data: inserted, error } = await supabase
+    .from("casting_roles")
+    .insert({
+      projet_id: projetId,
+      nom,
+      date_tournage: dateTournage,
+      categorie_cachet: categorieCachet,
+      nb_videos: nbVideos,
+      photo_labels: photoLabels,
+      demande_bande_demo: demandeBandeDemo,
+      message_corps: messageCorps,
+      visible_partage: visiblePartage,
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
+
+  const pdfResult = await uploadRolePdfIfProvided(supabase, inserted.id, formData);
+  if (pdfResult.error) return { error: pdfResult.error };
+  if (pdfResult.pdf_storage_path) {
+    await supabase
+      .from("casting_roles")
+      .update({ pdf_storage_path: pdfResult.pdf_storage_path, pdf_filename: pdfResult.pdf_filename })
+      .eq("id", inserted.id);
+  }
 
   revalidatePath("/casting");
   return { success: true };
@@ -62,7 +96,11 @@ export async function updateCastingRoleCalibration(
   formData: FormData
 ): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
-  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  const { data: role } = await supabase
+    .from("casting_roles")
+    .select("projet_id, pdf_storage_path")
+    .eq("id", roleId)
+    .maybeSingle();
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
@@ -78,6 +116,21 @@ export async function updateCastingRoleCalibration(
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
 
+  const removePdf = formData.get("remove_pdf") === "on";
+  const pdfResult = await uploadRolePdfIfProvided(supabase, roleId, formData);
+  if (pdfResult.error) return { error: pdfResult.error };
+
+  const pdfPatch: { pdf_storage_path?: string | null; pdf_filename?: string | null } = {};
+  if (pdfResult.pdf_storage_path) {
+    if (role.pdf_storage_path) await supabase.storage.from("casting-role-documents").remove([role.pdf_storage_path]);
+    pdfPatch.pdf_storage_path = pdfResult.pdf_storage_path;
+    pdfPatch.pdf_filename = pdfResult.pdf_filename;
+  } else if (removePdf && role.pdf_storage_path) {
+    await supabase.storage.from("casting-role-documents").remove([role.pdf_storage_path]);
+    pdfPatch.pdf_storage_path = null;
+    pdfPatch.pdf_filename = null;
+  }
+
   const { error } = await supabase
     .from("casting_roles")
     .update({
@@ -89,6 +142,7 @@ export async function updateCastingRoleCalibration(
       demande_bande_demo: demandeBandeDemo,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
+      ...pdfPatch,
     })
     .eq("id", roleId);
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
@@ -99,7 +153,11 @@ export async function updateCastingRoleCalibration(
 
 export async function deleteCastingRole(roleId: string) {
   const supabase = createAdminClient();
-  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  const { data: role } = await supabase
+    .from("casting_roles")
+    .select("projet_id, pdf_storage_path")
+    .eq("id", roleId)
+    .maybeSingle();
   if (!role) return;
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) throw new Error(accessError);
@@ -107,6 +165,7 @@ export async function deleteCastingRole(roleId: string) {
   const { data: entries } = await supabase.from("casting_entries").select("video_storage_paths").eq("role_id", roleId);
   const allPaths = (entries ?? []).flatMap((e) => e.video_storage_paths ?? []);
   if (allPaths.length > 0) await supabase.storage.from("casting-videos").remove(allPaths);
+  if (role.pdf_storage_path) await supabase.storage.from("casting-role-documents").remove([role.pdf_storage_path]);
 
   await supabase.from("casting_roles").delete().eq("id", roleId);
   revalidatePath("/casting");
@@ -392,7 +451,26 @@ export async function recordCastingMessage(
   corps: string,
   email: string | null | undefined,
   subject: string,
-  projetId: string | null | undefined
+  projetId: string | null | undefined,
+  opts?: { agentEmail?: string | null; rolePdfPath?: string | null; rolePdfFilename?: string | null }
 ) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "casting", email, subject, projetId });
+  let attachments: { filename: string; content: Buffer }[] | undefined;
+  if (opts?.rolePdfPath) {
+    const supabase = createAdminClient();
+    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
+    if (data) {
+      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
+    }
+  }
+
+  return recordFigurantMessage({
+    figurantId,
+    corps,
+    categorie: "casting",
+    email,
+    cc: opts?.agentEmail,
+    subject,
+    projetId,
+    attachments,
+  });
 }

@@ -60,6 +60,8 @@ function buildFigurantPayload(fd: FormData) {
     agent_nom: str(fd, "agent_nom"),
     agent_email: str(fd, "agent_email"),
     agent_telephone: str(fd, "agent_telephone"),
+    agent_agence: str(fd, "agent_agence"),
+    tranche_age: str(fd, "tranche_age"),
     ...buildVehiculePayload(fd),
   };
 }
@@ -180,6 +182,7 @@ export async function updateFigurantAgent(
       agent_nom: str(formData, "agent_nom"),
       agent_email: str(formData, "agent_email"),
       agent_telephone: str(formData, "agent_telephone"),
+      agent_agence: str(formData, "agent_agence"),
     })
     .eq("id", figurantId);
   if (error) return { error: error.message };

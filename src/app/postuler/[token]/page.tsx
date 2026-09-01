@@ -77,13 +77,17 @@ export default async function PostulerPage({
     pantalon: string | null;
     genre: string | null;
     pronom: string | null;
+    agent_nom?: string | null;
+    agent_email?: string | null;
+    agent_telephone?: string | null;
+    agent_agence?: string | null;
   } | undefined;
   if (session) {
     const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
       supabase
         .from("figurants")
         .select(
-          "prenom, nom, email, telephone, ville, adresse, code_postal, commune_naissance, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, genre, pronom"
+          "prenom, nom, email, telephone, ville, adresse, code_postal, commune_naissance, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, genre, pronom, agent_nom, agent_email, agent_telephone, agent_agence"
         )
         .eq("id", session.id)
         .single(),
@@ -113,6 +117,10 @@ export default async function PostulerPage({
         pantalon: figurantComplet.pantalon,
         genre: figurantComplet.genre,
         pronom: figurantComplet.pronom,
+        agent_nom: figurantComplet.agent_nom,
+        agent_email: figurantComplet.agent_email,
+        agent_telephone: figurantComplet.agent_telephone,
+        agent_agence: figurantComplet.agent_agence,
       };
     }
   }
@@ -182,6 +190,7 @@ export default async function PostulerPage({
           dates={annonceDates}
           prefill={prefill}
           bandeDemoObligatoire={annonce.bande_demo_obligatoire}
+          showAgent={annonce.types_cachet.includes("Rôle")}
         />
       ) : (
         <Card>

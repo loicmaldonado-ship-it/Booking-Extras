@@ -59,6 +59,8 @@ export type Figurant = {
   agent_nom: string | null;
   agent_email: string | null;
   agent_telephone: string | null;
+  agent_agence: string | null;
+  tranche_age: string | null;
 };
 
 export type FigurantPhoto = {

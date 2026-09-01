@@ -110,7 +110,7 @@ export default async function CastingPresentielJourneePage({
       </div>
 
       <Card>
-        <PresentielJourneeTable rows={rows} />
+        <PresentielJourneeTable rows={rows} roles={roles ?? []} />
       </Card>
 
       <CreneauxPanel

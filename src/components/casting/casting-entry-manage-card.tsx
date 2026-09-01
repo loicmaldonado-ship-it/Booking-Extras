@@ -188,11 +188,13 @@ function AgentSection({
   agentNom,
   agentEmail,
   agentTelephone,
+  agentAgence,
 }: {
   figurantId: string;
   agentNom: string | null;
   agentEmail: string | null;
   agentTelephone: string | null;
+  agentAgence: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -200,9 +202,10 @@ function AgentSection({
   const [nom, setNom] = useState(agentNom ?? "");
   const [email, setEmail] = useState(agentEmail ?? "");
   const [telephone, setTelephone] = useState(agentTelephone ?? "");
+  const [agence, setAgence] = useState(agentAgence ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const hasAgent = !!(agentNom || agentEmail || agentTelephone);
+  const hasAgent = !!(agentNom || agentEmail || agentTelephone || agentAgence);
 
   function save() {
     setError(null);
@@ -210,6 +213,7 @@ function AgentSection({
     fd.set("agent_nom", nom);
     fd.set("agent_email", email);
     fd.set("agent_telephone", telephone);
+    fd.set("agent_agence", agence);
     startTransition(async () => {
       const result = await updateFigurantAgent(figurantId, fd);
       if (result?.error) setError(result.error);
@@ -224,6 +228,7 @@ function AgentSection({
     return (
       <div className="flex flex-col gap-1.5 rounded-lg border border-coral/40 bg-ink px-2.5 py-2">
         <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom de l'agent" className={AGENT_INPUT_CLASS} />
+        <input value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -265,7 +270,10 @@ function AgentSection({
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border bg-ink px-2.5 py-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium">🎭 Agent : {agentNom || "—"}</span>
+        <span className="text-xs font-medium">
+          🎭 Agent : {agentNom || "—"}
+          {agentAgence ? ` (${agentAgence})` : ""}
+        </span>
         <button type="button" onClick={() => setEditing(true)} className="text-xs text-coral hover:underline">
           Modifier
         </button>
@@ -379,6 +387,7 @@ export function CastingEntryManageCard({
           agentNom={entry.figurants?.agent_nom ?? null}
           agentEmail={entry.figurants?.agent_email ?? null}
           agentTelephone={entry.figurants?.agent_telephone ?? null}
+          agentAgence={entry.figurants?.agent_agence ?? null}
         />
       )}
 

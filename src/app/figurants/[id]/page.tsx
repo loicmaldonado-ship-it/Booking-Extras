@@ -157,6 +157,7 @@ export default async function FigurantDetailPage({
             {figurant.ville ?? "Ville non renseignée"}
             {figurant.pronom ? ` · ${figurant.pronom}` : ""}
             {figurant.genre ? ` · ${figurant.genre}` : ""}
+            {figurant.tranche_age ? ` · ${figurant.tranche_age}` : ""}
           </p>
         </div>
         <div className="flex max-w-xl flex-wrap items-start justify-end gap-3">
@@ -184,12 +185,13 @@ export default async function FigurantDetailPage({
             <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
           )}
         </div>
-        {figurant.est_comedien && (
+        {(figurant.est_comedien || figurant.agent_nom || figurant.agent_email || figurant.agent_telephone) && (
           <FigurantAgentPanel
             figurantId={figurant.id}
             agentNom={figurant.agent_nom}
             agentEmail={figurant.agent_email}
             agentTelephone={figurant.agent_telephone}
+            agentAgence={figurant.agent_agence}
           />
         )}
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">

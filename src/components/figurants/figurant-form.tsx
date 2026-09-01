@@ -156,17 +156,26 @@ export function FigurantForm({
 
       {estComedien && (
         <Card className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Agent</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Nom de l'agent">
-              <Input name="agent_nom" defaultValue={figurant?.agent_nom ?? ""} />
-            </Field>
-            <Field label="Email de l'agent">
-              <Input type="email" name="agent_email" defaultValue={figurant?.agent_email ?? ""} />
-            </Field>
-            <Field label="Téléphone de l'agent">
-              <Input type="tel" name="agent_telephone" defaultValue={figurant?.agent_telephone ?? ""} />
-            </Field>
+          <h2 className="text-lg font-semibold">Comédien·ne</h2>
+          <Field label="Tranche d'âge (optionnel)">
+            <Input name="tranche_age" placeholder="Ex. 25-35 ans" defaultValue={figurant?.tranche_age ?? ""} />
+          </Field>
+          <div>
+            <span className="mb-1.5 block text-xs font-medium text-text-muted">Agent</span>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Nom de l'agent">
+                <Input name="agent_nom" defaultValue={figurant?.agent_nom ?? ""} />
+              </Field>
+              <Field label="Agence">
+                <Input name="agent_agence" defaultValue={figurant?.agent_agence ?? ""} />
+              </Field>
+              <Field label="Email de l'agent">
+                <Input type="email" name="agent_email" defaultValue={figurant?.agent_email ?? ""} />
+              </Field>
+              <Field label="Téléphone de l'agent">
+                <Input type="tel" name="agent_telephone" defaultValue={figurant?.agent_telephone ?? ""} />
+              </Field>
+            </div>
           </div>
         </Card>
       )}

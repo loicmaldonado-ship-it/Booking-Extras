@@ -81,6 +81,11 @@ export async function postulerAnnonce(
   const vehiculeVelo = formData.get("vehicule_velo") === "on";
   const vehiculeMoto = formData.get("vehicule_moto") === "on";
   const vehiculeScooter = formData.get("vehicule_scooter") === "on";
+  const sansAgent = formData.get("sans_agent") === "on";
+  const agentNom = str(formData, "agent_nom");
+  const agentEmail = str(formData, "agent_email");
+  const agentTelephone = str(formData, "agent_telephone");
+  const agentAgence = str(formData, "agent_agence");
 
   if (!prenom || !nom || !email || !telephone || !ville) {
     return { error: "Tous les champs de contact sont obligatoires." };
@@ -141,7 +146,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire")
+    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet")
     .eq("public_token", publicToken)
     .single();
 
@@ -156,6 +161,10 @@ export async function postulerAnnonce(
   }
   if (annonce.bande_demo_obligatoire && !lienBandeDemo) {
     return { error: "Le lien de la bande démo est obligatoire pour cette annonce." };
+  }
+  const showAgent = (annonce.types_cachet as string[]).includes("Rôle");
+  if (showAgent && !sansAgent && !agentNom) {
+    return { error: "Merci de renseigner ton agent ou de cocher « Je n'ai pas d'agent »." };
   }
   if (annonce.limite_candidatures !== null) {
     const { count } = await supabase
@@ -229,6 +238,9 @@ export async function postulerAnnonce(
         vehicule_moto: vehiculeMoto,
         vehicule_scooter: vehiculeScooter,
         vehicule_marque: vehiculeMarque,
+        ...(showAgent && !sansAgent
+          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
+          : {}),
       })
       .select("id")
       .single();
@@ -262,6 +274,9 @@ export async function postulerAnnonce(
         vehicule_moto: vehiculeMoto,
         vehicule_scooter: vehiculeScooter,
         vehicule_marque: vehiculeMarque,
+        ...(showAgent && !sansAgent
+          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
+          : {}),
       })
       .eq("id", figurantId);
   }

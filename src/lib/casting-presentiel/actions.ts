@@ -118,6 +118,61 @@ export async function addFigurantToPresentielJournee(
   return { success: true };
 }
 
+export async function updatePresentielEntryRole(entryId: string, roleId: string | null) {
+  const accessError = await checkEntryAccess(entryId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  await supabase.from("casting_presentiel_entries").update({ role_id: roleId }).eq("id", entryId);
+  revalidatePath("/casting/presentiel/journee");
+  return { success: true as const };
+}
+
+// Envoi rapide depuis le panneau d'un rôle (page /casting) : ajoute une
+// sélection de profils directement à une journée de casting présentiel, et
+// les place dans un créneau si un a été choisi — en un seul aller-retour,
+// pas de recherche nom par nom depuis la page de la journée.
+export async function sendFigurantsToPresentiel(
+  figurantIds: string[],
+  projetId: string,
+  journeeId: string,
+  creneauId: string | null,
+  roleId: string | null
+): Promise<{ error?: string; ok?: number; deja?: number }> {
+  if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  let ok = 0;
+  let deja = 0;
+  for (const figurantId of figurantIds) {
+    const { data: existing } = await supabase
+      .from("casting_presentiel_entries")
+      .select("id")
+      .eq("journee_id", journeeId)
+      .eq("figurant_id", figurantId)
+      .maybeSingle();
+    if (existing) {
+      deja += 1;
+      continue;
+    }
+    const { error } = await supabase.from("casting_presentiel_entries").insert({
+      figurant_id: figurantId,
+      projet_id: projetId,
+      journee_id: journeeId,
+      role_id: roleId,
+      creneau_id: creneauId,
+      statut: "proposé",
+    });
+    if (!error) ok += 1;
+  }
+
+  revalidatePath("/casting/presentiel/journee");
+  revalidatePath("/casting/presentiel");
+  return { ok, deja };
+}
+
 export async function removePresentielEntry(entryId: string) {
   const accessError = await checkEntryAccess(entryId);
   if (accessError) return { error: accessError };

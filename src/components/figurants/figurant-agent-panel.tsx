@@ -14,11 +14,13 @@ export function FigurantAgentPanel({
   agentNom,
   agentEmail,
   agentTelephone,
+  agentAgence,
 }: {
   figurantId: string;
   agentNom: string | null;
   agentEmail: string | null;
   agentTelephone: string | null;
+  agentAgence: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -26,9 +28,10 @@ export function FigurantAgentPanel({
   const [nom, setNom] = useState(agentNom ?? "");
   const [email, setEmail] = useState(agentEmail ?? "");
   const [telephone, setTelephone] = useState(agentTelephone ?? "");
+  const [agence, setAgence] = useState(agentAgence ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const hasAgent = !!(agentNom || agentEmail || agentTelephone);
+  const hasAgent = !!(agentNom || agentEmail || agentTelephone || agentAgence);
 
   function save() {
     setError(null);
@@ -36,6 +39,7 @@ export function FigurantAgentPanel({
     fd.set("agent_nom", nom);
     fd.set("agent_email", email);
     fd.set("agent_telephone", telephone);
+    fd.set("agent_agence", agence);
     startTransition(async () => {
       const result = await updateFigurantAgent(figurantId, fd);
       if (result?.error) setError(result.error);
@@ -49,9 +53,12 @@ export function FigurantAgentPanel({
   if (editing) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nom de l'agent">
             <Input value={nom} onChange={(e) => setNom(e.target.value)} />
+          </Field>
+          <Field label="Agence">
+            <Input value={agence} onChange={(e) => setAgence(e.target.value)} />
           </Field>
           <Field label="Email de l'agent">
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -91,6 +98,7 @@ export function FigurantAgentPanel({
         <span>
           <span className="text-text-muted">Agent : </span>
           {agentNom || "—"}
+          {agentAgence ? ` (${agentAgence})` : ""}
         </span>
         <ContactIcons telephone={agentTelephone} email={agentEmail} variant="inline" />
       </div>

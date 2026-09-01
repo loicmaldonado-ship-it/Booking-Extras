@@ -20,6 +20,8 @@ export type CastingRole = {
   demande_bande_demo: boolean;
   message_corps: string | null;
   visible_partage: boolean;
+  pdf_storage_path: string | null;
+  pdf_filename: string | null;
   created_at: string;
 };
 
@@ -51,5 +53,6 @@ export type CastingEntry = {
     agent_nom: string | null;
     agent_email: string | null;
     agent_telephone: string | null;
+    agent_agence: string | null;
   } | null;
 };

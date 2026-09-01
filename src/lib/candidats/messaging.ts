@@ -15,8 +15,10 @@ export async function recordFigurantMessage(params: {
   categorie: FigurantMessageCategorie;
   bookingId?: string | null;
   email?: string | null;
+  cc?: string | null;
   subject?: string;
   projetId?: string | null;
+  attachments?: { filename: string; content: Buffer }[];
 }) {
   // projetId ne sert qu'à choisir la boîte Gmail d'envoi — sans cette
   // vérification, n'importe quel appelant pourrait faire envoyer un message
@@ -31,7 +33,10 @@ export async function recordFigurantMessage(params: {
   if (params.email) {
     const { credentials, error } = await getProjetEmailCredentials(supabase, params.projetId);
     if (error) return { error };
-    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials);
+    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials, {
+      cc: params.cc,
+      attachments: params.attachments,
+    });
     if (result.error) return { error: result.error };
   }
 

@@ -11,6 +11,41 @@ export type PresentielJournee = {
   valides: number;
 };
 
+export type PresentielJourneeAvecCreneaux = {
+  id: string;
+  date: string;
+  creneaux: { id: string; heure_debut: string; heure_fin: string }[];
+};
+
+// Version légère (pas de comptage bookings) pour le panneau "Envoyer au
+// planning présentiel" depuis /casting — juste de quoi peupler les deux
+// menus déroulants journée puis créneau.
+export async function getPresentielJourneesWithCreneaux(projetId: string): Promise<PresentielJourneeAvecCreneaux[]> {
+  const supabase = createAdminClient();
+  const { data: journees } = await supabase
+    .from("casting_presentiel_journees")
+    .select("id, date")
+    .eq("projet_id", projetId)
+    .order("date", { ascending: true });
+  if (!journees || journees.length === 0) return [];
+
+  const { data: creneaux } = await supabase
+    .from("casting_presentiel_creneaux")
+    .select("id, journee_id, heure_debut, heure_fin")
+    .in("journee_id", journees.map((j) => j.id))
+    .order("heure_debut")
+    .returns<{ id: string; journee_id: string; heure_debut: string; heure_fin: string }[]>();
+
+  const creneauxByJournee = new Map<string, { id: string; heure_debut: string; heure_fin: string }[]>();
+  for (const c of creneaux ?? []) {
+    const list = creneauxByJournee.get(c.journee_id) ?? [];
+    list.push({ id: c.id, heure_debut: c.heure_debut, heure_fin: c.heure_fin });
+    creneauxByJournee.set(c.journee_id, list);
+  }
+
+  return journees.map((j) => ({ id: j.id, date: j.date, creneaux: creneauxByJournee.get(j.id) ?? [] }));
+}
+
 export async function getPresentielJournees(projetId?: string): Promise<PresentielJournee[]> {
   const supabase = createAdminClient();
 

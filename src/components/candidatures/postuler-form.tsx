@@ -87,6 +87,7 @@ export function PostulerForm({
   dates,
   prefill,
   bandeDemoObligatoire = false,
+  showAgent = false,
 }: {
   publicToken: string;
   questions: AnnonceQuestion[];
@@ -109,14 +110,20 @@ export function PostulerForm({
     pantalon?: string | null;
     genre?: string | null;
     pronom?: string | null;
+    agent_nom?: string | null;
+    agent_email?: string | null;
+    agent_telephone?: string | null;
+    agent_agence?: string | null;
   };
   bandeDemoObligatoire?: boolean;
+  showAgent?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     postulerAnnonce.bind(null, publicToken),
     undefined
   );
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
+  const [sansAgent, setSansAgent] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
 
   if (state?.success) {
@@ -317,6 +324,38 @@ export function PostulerForm({
           </div>
         </div>
       </Card>
+
+      {showAgent && (
+        <Card className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">Agent</h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="sans_agent"
+              checked={sansAgent}
+              onChange={(e) => setSansAgent(e.target.checked)}
+              className="h-4 w-4 rounded border-border accent-coral"
+            />
+            Je n&apos;ai pas d&apos;agent
+          </label>
+          {!sansAgent && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Nom de l'agent" required>
+                <Input name="agent_nom" required={!sansAgent} defaultValue={prefill?.agent_nom ?? undefined} />
+              </Field>
+              <Field label="Agence">
+                <Input name="agent_agence" defaultValue={prefill?.agent_agence ?? undefined} />
+              </Field>
+              <Field label="Email de l'agent">
+                <Input type="email" name="agent_email" defaultValue={prefill?.agent_email ?? undefined} />
+              </Field>
+              <Field label="Téléphone de l'agent">
+                <Input type="tel" name="agent_telephone" defaultValue={prefill?.agent_telephone ?? undefined} />
+              </Field>
+            </div>
+          )}
+        </Card>
+      )}
 
       {questions.length > 0 && (
         <Card className="flex flex-col gap-4">

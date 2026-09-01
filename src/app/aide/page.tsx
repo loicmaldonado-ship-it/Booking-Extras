@@ -241,8 +241,9 @@ export default function AidePage() {
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce. Identité,
               contact, genre et pronom, adresse complète (rue, code postal, ville), commune de naissance et
               une photo portrait sont obligatoires — le reste (mensurations, véhicule) peut attendre. Coche{" "}
-              <UI>Comédien·ne</UI> pour créer un profil minimal (juste le nom) et faire apparaître ses{" "}
-              coordonnées d&apos;<strong className="text-text">agent</strong>, rattachées à la fiche.
+              <UI>Comédien·ne</UI> pour créer un profil minimal (juste le nom) et faire apparaître sa{" "}
+              <strong className="text-text">tranche d&apos;âge</strong> et les coordonnées de son{" "}
+              <strong className="text-text">agent</strong> (nom, agence, email, téléphone), rattachées à la fiche.
             </>,
             <>
               Complète les <strong className="text-text">mensurations</strong> et ajoute ses{" "}
@@ -311,6 +312,12 @@ export default function AidePage() {
           <strong className="text-text">Espace candidat·es (/compte/connexion).</strong> Toutes les annonces
           ouvertes y sont listées publiquement (avec le nom du·de la chef·fe et les dates), et c&apos;est aussi
           là qu&apos;un·e figurant·e déjà booké·e demande son lien de connexion pour mettre à jour sa fiche.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Agent.</strong> Si l&apos;annonce coche le type{" "}
+          <UI>Rôle</UI>, le formulaire de candidature demande en plus les coordonnées de l&apos;agent (nom,
+          agence, email, téléphone) — ou <UI>Je n&apos;ai pas d&apos;agent</UI> si le·la candidat·e n&apos;en a
+          pas.
         </Callout>
       </GuideChapter>
 
@@ -390,12 +397,20 @@ export default function AidePage() {
           <strong className="text-text">statut</strong> (même progression que les bookings) — passe-le en{" "}
           <UI>Validé</UI> pour afficher un rond ✓ directement sur sa photo. Pour un rôle de catégorie{" "}
           <strong className="text-text">Rôle</strong>, <UI>+ Ajouter un agent</UI> apparaît sous chaque profil
-          pour garder ses coordonnées à portée de main.
+          pour garder ses coordonnées à portée de main (agence comprise).
+        </Callout>
+        <Callout>
+          <strong className="text-text">Mails aux profils d&apos;un rôle.</strong> Quand un profil a un agent
+          renseigné, son adresse est automatiquement mise en <strong className="text-text">copie</strong> à
+          l&apos;envoi. En calibrant le rôle, joins un{" "}
+          <strong className="text-text">PDF</strong> (ex. extrait de script) : il part en pièce jointe à chaque
+          mail envoyé depuis ce rôle.
         </Callout>
         <Callout>
           <strong className="text-text">🖼️ Trombis.</strong> Vue photos plus grandes, rangée par rôle, avec les
-          mêmes filtres que Bookings (genre, véhicule, Myrole, âge, statut) — et un raccourci{" "}
-          <UI>Validé·es uniquement</UI> pour ne montrer que les profils retenus.
+          mêmes filtres que Bookings (genre, véhicule, Myrole, âge, statut), l&apos;agent (ou « SANS AGENT ») sous
+          chaque profil, et un raccourci <UI>Validé·es uniquement</UI> pour ne montrer que les profils retenus.
+          Exportable en PDF (<UI>Télécharger le PDF</UI> ou impression).
         </Callout>
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en
@@ -403,7 +418,10 @@ export default function AidePage() {
           calendrier puis des <strong className="text-text">créneaux</strong> horaires, exactement comme pour un
           essayage — mais sans lien de partage avec l&apos;équipe. Glisse les profils sur un créneau, puis
           exporte le <UI>Planning (PDF)</UI> en mode <UI>Liste</UI> (photo, nom, rôle, téléphone, statut) ou{" "}
-          <UI>Trombi</UI> (photos plus grandes, groupées par créneau).
+          <UI>Trombi</UI> (photos plus grandes, groupées par créneau). Le rôle de chaque profil se modifie
+          directement depuis la journée, et depuis la page Casting, sélectionne des profils dans un rôle puis{" "}
+          <UI>→ Planning présentiel</UI> pour les envoyer d&apos;un coup vers une journée (et un créneau si tu en
+          choisis un) sans repasser par la recherche nom par nom.
         </Callout>
         <Callout tone="yellow">
           <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du

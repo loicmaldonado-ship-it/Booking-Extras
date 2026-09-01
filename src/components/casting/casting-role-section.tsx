@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { Select } from "@/components/ui/field";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
+import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage } from "@/lib/casting/message-template";
-import { formatDateLong } from "@/lib/format-date";
+import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
@@ -16,6 +18,7 @@ import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant
 import { CATEGORIE_CACHET_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
+import type { PresentielJourneeAvecCreneaux } from "@/lib/casting-presentiel/journees";
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
 
@@ -31,6 +34,7 @@ export function CastingRoleSection({
   entryPhotosByEntry,
   allFigurants,
   templates,
+  presentielJournees,
 }: {
   projetId: string;
   projetNom: string;
@@ -43,6 +47,7 @@ export function CastingRoleSection({
   entryPhotosByEntry: Map<string, CastingEntryPhoto[]>;
   allFigurants: { id: string; prenom: string; nom: string }[];
   templates: MessageTemplate[];
+  presentielJournees: PresentielJourneeAvecCreneaux[];
 }) {
   const router = useRouter();
   const [calibrateOpen, setCalibrateOpen] = useState(false);
@@ -52,6 +57,10 @@ export function CastingRoleSection({
   const [bulkMessage, setBulkMessage] = useState(() => defaultCastingInviteMessage(role));
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
+  const [presentielJourneeId, setPresentielJourneeId] = useState("");
+  const [presentielCreneauId, setPresentielCreneauId] = useState("");
+  const [presentielResult, setPresentielResult] = useState<string | null>(null);
+  const [presentielError, setPresentielError] = useState<string | null>(null);
 
   const submitted = entries.filter((e) => e.submitted_at).length;
 
@@ -101,7 +110,11 @@ export function CastingRoleSection({
     const subj = substituteTokens(bulkSubject, tk);
     setSendError(null);
     startTransition(async () => {
-      const result = await recordCastingMessage(entry.figurant_id, body, entry.figurants!.email, subj, projetId);
+      const result = await recordCastingMessage(entry.figurant_id, body, entry.figurants!.email, subj, projetId, {
+        agentEmail: entry.figurants?.agent_email,
+        rolePdfPath: role.pdf_storage_path,
+        rolePdfFilename: role.pdf_filename,
+      });
       if (result?.error) setSendError(`Échec de l'envoi à ${entry.figurants!.prenom} : ${result.error}`);
     });
     setSentBulk((prev) => new Set([...prev, entry.id]));
@@ -111,6 +124,32 @@ export function CastingRoleSection({
     for (const entry of entries.filter((e) => selected.has(e.id) && e.figurants?.email && !sentBulk.has(e.id))) {
       sendTo(entry);
     }
+  }
+
+  const selectedJournee = presentielJournees.find((j) => j.id === presentielJourneeId);
+
+  function sendToPresentiel() {
+    if (!presentielJourneeId) return;
+    setPresentielError(null);
+    setPresentielResult(null);
+    const figurantIds = entries.filter((e) => selected.has(e.id)).map((e) => e.figurant_id);
+    startTransition(async () => {
+      const result = await sendFigurantsToPresentiel(
+        figurantIds,
+        projetId,
+        presentielJourneeId,
+        presentielCreneauId || null,
+        role.id
+      );
+      if (result?.error) setPresentielError(result.error);
+      else {
+        setPresentielResult(
+          `${result?.ok ?? 0} ajouté${(result?.ok ?? 0) > 1 ? "s" : ""}${result?.deja ? `, ${result.deja} déjà présent(s)` : ""}.`
+        );
+        setSelected(new Set());
+        router.refresh();
+      }
+    });
   }
 
   function removeRole() {
@@ -187,6 +226,44 @@ export function CastingRoleSection({
 
       {selected.size > 0 && (
         <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          {presentielJournees.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ink px-3 py-2">
+              <span className="text-xs font-medium text-text-muted">→ Planning présentiel :</span>
+              <Select
+                value={presentielJourneeId}
+                onChange={(e) => {
+                  setPresentielJourneeId(e.target.value);
+                  setPresentielCreneauId("");
+                }}
+                className="w-40 text-xs"
+              >
+                <option value="">Journée...</option>
+                {presentielJournees.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {formatDateShort(j.date)}
+                  </option>
+                ))}
+              </Select>
+              <Select
+                value={presentielCreneauId}
+                onChange={(e) => setPresentielCreneauId(e.target.value)}
+                disabled={!selectedJournee || selectedJournee.creneaux.length === 0}
+                className="w-32 text-xs"
+              >
+                <option value="">Créneau (aucun)</option>
+                {selectedJournee?.creneaux.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.heure_debut.slice(0, 5)}–{c.heure_fin.slice(0, 5)}
+                  </option>
+                ))}
+              </Select>
+              <Button type="button" variant="secondary" disabled={pending || !presentielJourneeId} onClick={sendToPresentiel}>
+                Envoyer
+              </Button>
+              {presentielResult && <span className="text-xs text-turquoise">{presentielResult}</span>}
+              {presentielError && <span className="text-xs text-danger">{presentielError}</span>}
+            </div>
+          )}
           {sendError && <p className="text-sm text-danger">{sendError}</p>}
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">
@@ -231,6 +308,9 @@ export function CastingRoleSection({
             rows={4}
             className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
           />
+          {role.pdf_filename && (
+            <p className="text-xs text-text-muted">📎 {role.pdf_filename} sera joint automatiquement.</p>
+          )}
           <div className="flex flex-col gap-2">
             {entries
               .filter((e) => selected.has(e.id))
@@ -239,6 +319,9 @@ export function CastingRoleSection({
                   <span>
                     {e.figurants?.prenom} {e.figurants?.nom}
                     {!e.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
+                    {e.figurants?.agent_email && (
+                      <span className="ml-2 text-xs text-text-muted">— agent en copie</span>
+                    )}
                   </span>
                   <Button
                     type="button"

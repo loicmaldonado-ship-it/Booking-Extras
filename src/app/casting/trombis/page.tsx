@@ -1,16 +1,22 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { Badge } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
 import { BackLink } from "@/components/ui/back-link";
+import { PrintSheet } from "@/components/documents/print-sheet";
+import { PrintButton } from "@/components/documents/print-button";
+import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
+import { paginateGroupedItems } from "@/lib/documents/trombi";
 import { GENRES } from "@/lib/figurants/types";
-import { STATUTS, statutLabel, statutTone } from "@/lib/bookings/types";
+import { STATUTS } from "@/lib/bookings/types";
+import { Badge } from "@/components/ui/card";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { requireProjetAccess } from "@/lib/auth/session";
+import type { CastingEntry } from "@/lib/casting/types";
 
 type SearchParams = {
   genre?: string;
@@ -21,6 +27,17 @@ type SearchParams = {
   statut?: string;
   valides_uniquement?: string;
 };
+
+type TrombiItem = { entry: CastingEntry; headerLabel: string };
+
+function agentLine(entry: CastingEntry): string {
+  const f = entry.figurants;
+  if (!f) return "SANS AGENT";
+  const contact = f.agent_email || f.agent_telephone || "";
+  if (!f.agent_nom && !contact && !f.agent_agence) return "SANS AGENT";
+  const nomAgence = [f.agent_nom, f.agent_agence].filter(Boolean).join(" · ");
+  return [nomAgence || "Agent", contact].filter(Boolean).join(" — ");
+}
 
 export default async function CastingTrombisPage({
   searchParams,
@@ -79,18 +96,32 @@ export default async function CastingTrombisPage({
     list.sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""));
   }
 
+  const items: TrombiItem[] = roles.flatMap((role) =>
+    (entriesByRole.get(role.id) ?? []).map((entry) => ({ entry, headerLabel: role.nom }))
+  );
+  // Cartes un peu plus grandes que le trombi standard (w-28/h-36 au lieu de
+  // w-24/h-32) — colonnes/lignes recalibrées en conséquence pour une page
+  // paysage (1123×794).
+  const pages = paginateGroupedItems(items, (i) => i.headerLabel, { columns: 7, maxRowsPerPage: 3 });
+
   return (
     <div className="flex flex-col gap-6">
       <BackLink href="/casting" label="Casting" />
 
-      <div>
-        <h1 className="text-2xl font-semibold">Trombis — {projet?.nom}</h1>
-        <p className="mt-1 text-text-muted">
-          {filtered.length} profil{filtered.length > 1 ? "s" : ""} sur {roles.length} rôle{roles.length > 1 ? "s" : ""}
-        </p>
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Trombis — {projet?.nom}</h1>
+          <p className="mt-1 text-text-muted">
+            {filtered.length} profil{filtered.length > 1 ? "s" : ""} sur {roles.length} rôle{roles.length > 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <DownloadPdfButton filename={`trombis-casting-${projet?.nom ?? "projet"}.pdf`} orientation="landscape" />
+          <PrintButton />
+        </div>
       </div>
 
-      <form className="grid grid-cols-2 gap-3 md:grid-cols-5" method="get">
+      <form className="print-hide grid grid-cols-2 gap-3 md:grid-cols-5" method="get">
         <Select name="genre" defaultValue={params.genre ?? ""}>
           <option value="">Genre (tous)</option>
           {GENRES.map((g) => (
@@ -136,43 +167,73 @@ export default async function CastingTrombisPage({
         </Link>
       </form>
 
-      {roles.map((role) => {
-        const roleEntries = entriesByRole.get(role.id) ?? [];
-        if (roleEntries.length === 0) return null;
-        return (
-          <div key={role.id} className="flex flex-col gap-3">
-            <h2 className="text-lg font-semibold">
-              {role.nom} <span className="text-sm font-normal text-text-muted">({roleEntries.length})</span>
-            </h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {roleEntries.map((e) => {
-                const portraitUrl = pickPortrait(portraitByFigurant.get(e.figurant_id), projetId)?.url ?? null;
+      {pages.length === 0 && (
+        <PrintSheet orientation="landscape">
+          <h2 className="text-xl font-semibold text-gray-900">Trombis — {projet?.nom}</h2>
+          <p className="py-6 text-center text-gray-500">Aucun profil pour ce filtre.</p>
+        </PrintSheet>
+      )}
+
+      {pages.map((page, pageIndex) => (
+        <PrintSheet
+          key={pageIndex}
+          orientation="landscape"
+          fixedHeight
+          className="break-after-page print:break-after-page"
+          pageLabel={pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : undefined}
+        >
+          <div className="flex flex-col gap-3">
+            <h2 className="text-xl font-semibold text-gray-900">Trombis — {projet?.nom}</h2>
+            <div className="flex flex-wrap gap-x-3 gap-y-2">
+              {page.map((item, index) => {
+                const showHeader = index === 0 || item.headerLabel !== page[index - 1].headerLabel;
+                const portraitUrl = pickPortrait(portraitByFigurant.get(item.entry.figurant_id), projetId)?.url ?? null;
                 return (
-                  <div key={e.id} className="flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                      {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
-                      {e.statut === "valide" && (
-                        <span
-                          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-turquoise text-sm text-ink"
-                          title="Validé"
-                        >
-                          ✓
-                        </span>
-                      )}
+                  <Fragment key={item.entry.id}>
+                    {showHeader && (
+                      <div className="mt-1 w-full border-b border-gray-300 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 first:mt-0">
+                        {item.headerLabel}
+                      </div>
+                    )}
+                    <div className="flex w-28 flex-col items-center gap-0.5 text-center">
+                      <div className="relative h-36 w-28 overflow-hidden rounded bg-gray-100">
+                        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                        {item.entry.statut === "valide" && (
+                          <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-xs text-white">
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                      <span className="block w-28 truncate text-[10px] font-medium leading-tight text-gray-900">
+                        {item.entry.figurants?.prenom} {item.entry.figurants?.nom}
+                      </span>
+                      <span className="block w-28 truncate text-[8px] leading-tight text-gray-500">
+                        {agentLine(item.entry)}
+                      </span>
                     </div>
-                    <div className="text-sm font-medium">
-                      {e.figurants?.prenom} {e.figurants?.nom}
-                    </div>
-                    <Badge tone={statutTone(e.statut)}>{statutLabel(e.statut)}</Badge>
-                  </div>
+                  </Fragment>
                 );
               })}
             </div>
           </div>
-        );
-      })}
+        </PrintSheet>
+      ))}
 
-      {filtered.length === 0 && <p className="text-text-muted">Aucun profil pour ce filtre.</p>}
+      {pages.length > 0 && (
+        <div className="print-hide flex flex-wrap gap-2">
+          {roles.map((role) => {
+            const roleEntries = entriesByRole.get(role.id) ?? [];
+            if (roleEntries.length === 0) return null;
+            return (
+              <Badge key={role.id} tone="turquoise">
+                {role.nom} ({roleEntries.length})
+              </Badge>
+            );
+          })}
+        </div>
+      )}
+
+      {filtered.length === 0 && <p className="print-hide text-text-muted">Aucun profil pour ce filtre.</p>}
     </div>
   );
 }

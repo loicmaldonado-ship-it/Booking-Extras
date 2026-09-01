@@ -111,6 +111,23 @@ export function CastingRoleForm({
         Visible sur le lien de partage réal
       </label>
 
+      <Field label="PDF à joindre aux mails envoyés aux profils du rôle (optionnel)">
+        <div className="flex flex-col gap-1.5">
+          {role?.pdf_filename && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="remove_pdf" className="accent-coral" />
+              Retirer « {role.pdf_filename} »
+            </label>
+          )}
+          <input
+            type="file"
+            name="pdf"
+            accept="application/pdf"
+            className="w-full rounded-lg border border-border bg-ink px-3 py-1.5 text-sm outline-none file:mr-3 file:rounded-full file:border-0 file:bg-ink-raised-2 file:px-3 file:py-1 file:text-xs file:font-medium"
+          />
+        </div>
+      </Field>
+
       <Field label="Corps du mail d'invitation (optionnel)">
         <textarea
           name="message_corps"
