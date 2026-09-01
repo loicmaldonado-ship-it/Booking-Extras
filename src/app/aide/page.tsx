@@ -383,6 +383,18 @@ export default function AidePage() {
           <UI>Visible sur le lien de partage réal</UI> en calibrant un rôle pour le masquer sans le supprimer
           (utile pour une silhouette que tu ne veux plus montrer).
         </Callout>
+        <Callout>
+          <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
+          <strong className="text-text">statut</strong> (même progression que les bookings) — passe-le en{" "}
+          <UI>Validé</UI> pour afficher un rond ✓ directement sur sa photo. Pour un rôle de catégorie{" "}
+          <strong className="text-text">Rôle</strong>, <UI>+ Ajouter un agent</UI> apparaît sous chaque profil
+          pour garder ses coordonnées à portée de main.
+        </Callout>
+        <Callout>
+          <strong className="text-text">🖼️ Trombis.</strong> Vue photos plus grandes, rangée par rôle, avec les
+          mêmes filtres que Bookings (genre, véhicule, Myrole, âge, statut) — et un raccourci{" "}
+          <UI>Validé·es uniquement</UI> pour ne montrer que les profils retenus.
+        </Callout>
         <Callout tone="yellow">
           <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du
           projet si elle est calibrée (Projets → Signature), sinon par ton nom — jamais une formule générique.
