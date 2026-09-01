@@ -397,6 +397,14 @@ export default function AidePage() {
           mêmes filtres que Bookings (genre, véhicule, Myrole, âge, statut) — et un raccourci{" "}
           <UI>Validé·es uniquement</UI> pour ne montrer que les profils retenus.
         </Callout>
+        <Callout>
+          <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en
+          présentiel plutôt que par vidéo : crée des <strong className="text-text">journées</strong> sur un
+          calendrier puis des <strong className="text-text">créneaux</strong> horaires, exactement comme pour un
+          essayage — mais sans lien de partage avec l&apos;équipe. Glisse les profils sur un créneau, puis
+          exporte le <UI>Planning (PDF)</UI> en mode <UI>Liste</UI> (photo, nom, rôle, téléphone, statut) ou{" "}
+          <UI>Trombi</UI> (photos plus grandes, groupées par créneau).
+        </Callout>
         <Callout tone="yellow">
           <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du
           projet si elle est calibrée (Projets → Signature), sinon par ton nom — jamais une formule générique.
