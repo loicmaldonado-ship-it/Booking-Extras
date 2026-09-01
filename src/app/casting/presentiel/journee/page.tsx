@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { PresentielJourneeTable } from "@/components/casting-presentiel/presentiel-journee-table";
 import { QuickAddFigurantPresentiel } from "@/components/casting-presentiel/quick-add-figurant-presentiel";
+import { PresentielLieuField } from "@/components/casting-presentiel/lieu-field";
 import { CreneauxPanel, type Creneau } from "@/components/essayages/creneaux-panel";
 import { EssayagePlanningBoard, type PlanningRow } from "@/components/essayages/essayage-planning-board";
 import {
@@ -17,6 +18,7 @@ import type { PresentielEntry } from "@/lib/casting-presentiel/types";
 import { formatDateLong } from "@/lib/format-date";
 import { Users } from "lucide-react";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,10 @@ export default async function CastingPresentielJourneePage({
   ]);
 
   const figurantIds = (entriesRaw ?? []).map((e) => e.figurant_id);
-  const photosByFigurant = await getPhotosByFigurantId(figurantIds);
+  const [photosByFigurant, signature] = await Promise.all([
+    getPhotosByFigurantId(figurantIds),
+    getProjetSignatureOrOwnerName(supabase, projet_id),
+  ]);
   const rows: PresentielEntry[] = (entriesRaw ?? []).map((e) => ({
     ...e,
     portraitUrl: pickPortrait(photosByFigurant.get(e.figurant_id), projet_id)?.url ?? null,
@@ -86,9 +91,10 @@ export default async function CastingPresentielJourneePage({
             <Users size={28} strokeWidth={1.75} />
             {projet?.nom} — {formatDateLong(date)}
           </h1>
-          <p className="mt-1 text-text-muted">
-            {journee.lieu ?? "Lieu non renseigné"} · {rows.length} profil{rows.length > 1 ? "s" : ""}
-          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-text-muted">
+            <PresentielLieuField journeeId={journee.id} lieu={journee.lieu} /> · {rows.length} profil
+            {rows.length > 1 ? "s" : ""}
+          </div>
           <div className="mt-2 flex gap-2">
             <Badge tone="yellow">{rows.filter((r) => r.statut === "proposé").length} proposé·e</Badge>
             <Badge tone="coral">{rows.filter((r) => r.statut === "valide").length} validé·e</Badge>
@@ -110,7 +116,16 @@ export default async function CastingPresentielJourneePage({
       </div>
 
       <Card>
-        <PresentielJourneeTable rows={rows} roles={roles ?? []} />
+        <PresentielJourneeTable
+          rows={rows}
+          roles={roles ?? []}
+          creneaux={creneaux ?? []}
+          lieu={journee.lieu}
+          dateLabel={formatDateLong(date)}
+          projetId={projet_id}
+          projetNom={projet?.nom ?? ""}
+          signature={signature}
+        />
       </Card>
 
       <CreneauxPanel

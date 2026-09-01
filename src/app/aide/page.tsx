@@ -403,6 +403,11 @@ export default function AidePage() {
           pour garder ses coordonnées à portée de main (agence comprise).
         </Callout>
         <Callout>
+          <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du
+          mode du rôle à l&apos;ajout, mais se rebascule individuellement d&apos;un clic — pratique pour repérer
+          d&apos;un coup d&apos;œil qui doit recevoir un lien vidéo et qui doit avoir un créneau en présentiel.
+        </Callout>
+        <Callout>
           <strong className="text-text">Mails aux profils d&apos;un rôle.</strong> Quand un profil a un agent
           renseigné, son adresse est automatiquement mise en <strong className="text-text">copie</strong> à
           l&apos;envoi. En calibrant le rôle, joins un{" "}
@@ -417,10 +422,14 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en
-          présentiel plutôt que par vidéo : crée des <strong className="text-text">journées</strong> sur un
-          calendrier puis des <strong className="text-text">créneaux</strong> horaires, exactement comme pour un
-          essayage — mais sans lien de partage avec l&apos;équipe. Glisse les profils sur un créneau, puis
-          exporte le <UI>Planning (PDF)</UI> en mode <UI>Liste</UI> (photo, nom, rôle, téléphone, statut) ou{" "}
+          présentiel plutôt que par vidéo : renseigne le <strong className="text-text">lieu</strong> de la
+          journée (clique dessus, en haut de la page), crée des{" "}
+          <strong className="text-text">journées</strong> sur un calendrier puis des{" "}
+          <strong className="text-text">créneaux</strong> horaires, exactement comme pour un essayage — mais sans
+          lien de partage avec l&apos;équipe. Glisse les profils sur un créneau, sélectionne-les puis envoie une{" "}
+          <strong className="text-text">convocation</strong> : {"{lieu}"} et {"{horaire}"} sont remplis
+          automatiquement par profil (lieu de la journée, créneau assigné). Exporte le{" "}
+          <UI>Planning (PDF)</UI> en mode <UI>Liste</UI> (photo, nom, rôle, téléphone, statut) ou{" "}
           <UI>Trombi</UI> (photos plus grandes, groupées par créneau). Le rôle de chaque profil se modifie
           directement depuis la journée, et depuis la page Casting, sélectionne des profils dans un rôle puis{" "}
           <UI>→ Planning présentiel</UI> pour les envoyer d&apos;un coup vers une journée (et un créneau si tu en

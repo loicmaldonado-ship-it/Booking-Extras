@@ -10,6 +10,7 @@ import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { cn } from "@/lib/cn";
 import {
   deleteCastingEntry,
   deleteCastingPhoto,
@@ -18,11 +19,12 @@ import {
   createStaffCastingVideoSlot,
   addCastingVideo,
   updateCastingEntryStatut,
+  updateCastingEntryMode,
 } from "@/lib/casting/actions";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
-import type { CastingEntry } from "@/lib/casting/types";
+import { CASTING_MODE_LABELS, type CastingEntry, type CastingMode } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 
 function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string }) {
@@ -310,6 +312,7 @@ export function CastingEntryManageCard({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [statutPending, startStatutTransition] = useTransition();
+  const [modePending, startModeTransition] = useTransition();
 
   function removeEntry() {
     startTransition(async () => {
@@ -321,6 +324,14 @@ export function CastingEntryManageCard({
   function changeStatut(statut: BookingStatut) {
     startStatutTransition(async () => {
       await updateCastingEntryStatut(entry.id, statut);
+      router.refresh();
+    });
+  }
+
+  function changeMode(mode: CastingMode) {
+    if (mode === entry.mode) return;
+    startModeTransition(async () => {
+      await updateCastingEntryMode(entry.id, mode);
       router.refresh();
     });
   }
@@ -363,6 +374,27 @@ export function CastingEntryManageCard({
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
+      <div className="flex gap-1.5">
+        {(Object.keys(CASTING_MODE_LABELS) as CastingMode[]).map((m) => (
+          <button
+            key={m}
+            type="button"
+            disabled={modePending}
+            onClick={() => changeMode(m)}
+            className={cn(
+              "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
+              entry.mode === m
+                ? m === "presentiel"
+                  ? "border-coral bg-coral/15 text-coral"
+                  : "border-turquoise bg-turquoise/15 text-turquoise"
+                : "border-border text-text-muted hover:text-text"
+            )}
+          >
+            {m === "presentiel" ? "📅 " : "🎥 "}
+            {CASTING_MODE_LABELS[m]}
+          </button>
+        ))}
+      </div>
       <StatusSelect
         value={entry.statut}
         tone={statutTone(entry.statut)}

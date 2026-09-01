@@ -20,7 +20,7 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, requested_at, submitted_at, statut, figurants(prenom, nom, email, telephone, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence)"
+      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, requested_at, submitted_at, statut, mode, figurants(prenom, nom, email, telephone, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence)"
     )
     .eq("projet_id", projetId)
     .order("requested_at", { ascending: false })

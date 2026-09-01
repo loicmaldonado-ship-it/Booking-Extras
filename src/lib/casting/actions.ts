@@ -186,6 +186,7 @@ async function createCastingEntry(
   roleId: string,
   projetId: string,
   figurantId: string,
+  entryMode: CastingMode,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
   const supabase = createAdminClient();
@@ -212,6 +213,7 @@ async function createCastingEntry(
     projet_id: projetId,
     role_id: roleId,
     figurant_id: figurantId,
+    mode: entryMode,
     booking_id: opts?.bookingId ?? null,
     candidature_id: opts?.candidatureId ?? null,
   });
@@ -228,12 +230,12 @@ export async function addFigurantToCastingRole(
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
-  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id, mode").eq("id", roleId).maybeSingle();
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
 
-  const result = await createCastingEntry(roleId, role.projet_id, figurantId, opts);
+  const result = await createCastingEntry(roleId, role.projet_id, figurantId, role.mode as CastingMode, opts);
   if (result.error) return { error: result.error };
 
   revalidatePath("/casting");
@@ -271,7 +273,7 @@ export async function addFigurantsToCastingRole(
   if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
 
   const supabase = createAdminClient();
-  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id, mode").eq("id", roleId).maybeSingle();
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
@@ -280,7 +282,7 @@ export async function addFigurantsToCastingRole(
   let deja = 0;
   let echecs = 0;
   for (const figurantId of figurantIds) {
-    const result = await createCastingEntry(roleId, role.projet_id, figurantId);
+    const result = await createCastingEntry(roleId, role.projet_id, figurantId, role.mode as CastingMode);
     if (result.error) echecs += 1;
     else if (result.created) ok += 1;
     else deja += 1;
@@ -288,6 +290,20 @@ export async function addFigurantsToCastingRole(
 
   revalidatePath("/casting");
   return { ok, deja, echecs };
+}
+
+export async function updateCastingEntryMode(entryId: string, mode: CastingMode): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_entries").update({ mode }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
 }
 
 export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
