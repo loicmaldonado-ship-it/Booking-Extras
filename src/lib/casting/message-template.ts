@@ -40,3 +40,20 @@ export function defaultCastingInviteMessage(
     ].join("\n")
   );
 }
+
+// Convocation présentiel — {lieu} et {horaire} sont remplis automatiquement
+// par profil (lieu + créneau de sa journée de casting présentiel), voir
+// CastingRoleSection.
+export function defaultCastingPresentielMessage(role: Pick<CastingRole, "nom">): string {
+  return withSignature(
+    [
+      "Bonjour {prenom},",
+      "",
+      `Ton rendez-vous de casting pour le rôle « ${role.nom} » sur « {projet} » est confirmé :`,
+      "{horaire}",
+      "{lieu}",
+      "",
+      "Merci de te présenter à l'heure indiquée.",
+    ].join("\n")
+  );
+}

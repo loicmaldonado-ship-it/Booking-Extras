@@ -412,7 +412,9 @@ export default function AidePage() {
           renseigné, son adresse est automatiquement mise en <strong className="text-text">copie</strong> à
           l&apos;envoi. En calibrant le rôle, joins un{" "}
           <strong className="text-text">PDF</strong> (ex. extrait de script) : il part en pièce jointe à chaque
-          mail envoyé depuis ce rôle.
+          mail envoyé depuis ce rôle. Le modèle <UI>Convocation présentiel</UI> remplit automatiquement{" "}
+          {"{lieu}"} et {"{horaire}"} pour les profils déjà programmés en casting présentiel (sinon un texte à
+          confirmer s&apos;affiche) — pas besoin de retourner sur la page du planning pour convoquer.
         </Callout>
         <Callout>
           <strong className="text-text">🖼️ Trombis.</strong> Vue photos plus grandes, rangée par rôle, avec les

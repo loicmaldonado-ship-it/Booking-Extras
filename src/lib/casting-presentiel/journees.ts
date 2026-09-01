@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { formatDateLong } from "@/lib/format-date";
 
 export type PresentielJournee = {
   id: string;
@@ -44,6 +45,53 @@ export async function getPresentielJourneesWithCreneaux(projetId: string): Promi
   }
 
   return journees.map((j) => ({ id: j.id, date: j.date, creneaux: creneauxByJournee.get(j.id) ?? [] }));
+}
+
+export type PresentielAssignment = { lieu: string | null; dateLabel: string; heureLabel: string | null };
+
+// Pour le composeur de la page Casting (rôles) : retrouve, pour chaque
+// profil d'un rôle, où et quand son casting présentiel est programmé — afin
+// de remplir {lieu} et {horaire} sans repasser par la page de la journée.
+// Un seul aller-retour pour tout le projet plutôt qu'une requête par rôle.
+export async function getPresentielAssignmentsByRole(
+  projetId: string
+): Promise<Map<string, Map<string, PresentielAssignment>>> {
+  const supabase = createAdminClient();
+  const { data: entries } = await supabase
+    .from("casting_presentiel_entries")
+    .select("figurant_id, role_id, journee_id, creneau_id")
+    .eq("projet_id", projetId)
+    .not("role_id", "is", null)
+    .returns<{ figurant_id: string; role_id: string; journee_id: string; creneau_id: string | null }[]>();
+  if (!entries || entries.length === 0) return new Map();
+
+  const journeeIds = Array.from(new Set(entries.map((e) => e.journee_id)));
+  const creneauIds = Array.from(new Set(entries.map((e) => e.creneau_id).filter((id): id is string => !!id)));
+
+  const [{ data: journees }, { data: creneaux }] = await Promise.all([
+    supabase.from("casting_presentiel_journees").select("id, date, lieu").in("id", journeeIds),
+    creneauIds.length > 0
+      ? supabase.from("casting_presentiel_creneaux").select("id, heure_debut, heure_fin").in("id", creneauIds)
+      : Promise.resolve({ data: [] as { id: string; heure_debut: string; heure_fin: string }[] }),
+  ]);
+
+  const journeeById = new Map((journees ?? []).map((j) => [j.id, j]));
+  const creneauById = new Map((creneaux ?? []).map((c) => [c.id, c]));
+
+  const byRole = new Map<string, Map<string, PresentielAssignment>>();
+  for (const e of entries) {
+    const journee = journeeById.get(e.journee_id);
+    if (!journee) continue;
+    const creneau = e.creneau_id ? creneauById.get(e.creneau_id) : null;
+    const roleMap = byRole.get(e.role_id) ?? new Map<string, PresentielAssignment>();
+    roleMap.set(e.figurant_id, {
+      lieu: journee.lieu,
+      dateLabel: formatDateLong(journee.date),
+      heureLabel: creneau ? `${creneau.heure_debut.slice(0, 5)} à ${creneau.heure_fin.slice(0, 5)}` : null,
+    });
+    byRole.set(e.role_id, roleMap);
+  }
+  return byRole;
 }
 
 export async function getPresentielJournees(projetId?: string): Promise<PresentielJournee[]> {

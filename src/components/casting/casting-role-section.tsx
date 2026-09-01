@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/field";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
 import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
-import { defaultCastingInviteMessage } from "@/lib/casting/message-template";
+import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
@@ -18,7 +18,7 @@ import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant
 import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
-import type { PresentielJourneeAvecCreneaux } from "@/lib/casting-presentiel/journees";
+import type { PresentielJourneeAvecCreneaux, PresentielAssignment } from "@/lib/casting-presentiel/journees";
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
 
@@ -35,6 +35,7 @@ export function CastingRoleSection({
   allFigurants,
   templates,
   presentielJournees,
+  presentielAssignments,
 }: {
   projetId: string;
   projetNom: string;
@@ -48,6 +49,7 @@ export function CastingRoleSection({
   allFigurants: { id: string; prenom: string; nom: string }[];
   templates: MessageTemplate[];
   presentielJournees: PresentielJourneeAvecCreneaux[];
+  presentielAssignments: Map<string, PresentielAssignment>;
 }) {
   const router = useRouter();
   const [calibrateOpen, setCalibrateOpen] = useState(false);
@@ -83,6 +85,7 @@ export function CastingRoleSection({
   }
 
   function tokens(entry: CastingEntry) {
+    const assignment = presentielAssignments.get(entry.figurant_id);
     return {
       prenom: entry.figurants?.prenom ?? "",
       projet: projetNom,
@@ -90,6 +93,8 @@ export function CastingRoleSection({
       date: role.date_tournage ? formatDateLong(role.date_tournage) : "",
       signature,
       lien: `${origin}/casting/upload/${entry.request_token}`,
+      lieu: assignment?.lieu ?? "Lieu à confirmer",
+      horaire: assignment ? `${assignment.dateLabel}${assignment.heureLabel ? ` de ${assignment.heureLabel}` : " — créneau à définir"}` : "Créneau à définir",
     };
   }
 
@@ -101,6 +106,11 @@ export function CastingRoleSection({
   function applyInviteTemplate() {
     setBulkSubject(`Booking Extras — casting « ${role.nom} »`);
     setBulkMessage(defaultCastingInviteMessage(role));
+  }
+
+  function applyPresentielTemplate() {
+    setBulkSubject(`Convocation casting — ${role.nom}`);
+    setBulkMessage(defaultCastingPresentielMessage(role));
   }
 
   function sendTo(entry: CastingEntry) {
@@ -288,6 +298,13 @@ export function CastingRoleSection({
             </button>
             <button
               type="button"
+              onClick={applyPresentielTemplate}
+              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+            >
+              Convocation présentiel
+            </button>
+            <button
+              type="button"
               onClick={() => applyTemplate()}
               className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
             >
@@ -325,6 +342,14 @@ export function CastingRoleSection({
                     {!e.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
                     {e.figurants?.agent_email && (
                       <span className="ml-2 text-xs text-text-muted">— agent en copie</span>
+                    )}
+                    {presentielAssignments.get(e.figurant_id) && (
+                      <span className="ml-2 text-xs text-text-muted">
+                        — {presentielAssignments.get(e.figurant_id)!.dateLabel}
+                        {presentielAssignments.get(e.figurant_id)!.heureLabel
+                          ? ` ${presentielAssignments.get(e.figurant_id)!.heureLabel}`
+                          : ""}
+                      </span>
                     )}
                   </span>
                   <Button
