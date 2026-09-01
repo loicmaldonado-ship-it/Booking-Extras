@@ -39,7 +39,8 @@ export type MessageTokenKey =
   | "signature"
   | "role"
   | "lien"
-  | "horaire";
+  | "horaire"
+  | "deadline";
 
 export function substituteTokens(text: string, tokens: Partial<Record<MessageTokenKey, string>>) {
   let result = text;

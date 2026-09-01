@@ -56,6 +56,7 @@ export async function createCastingRole(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const dateLimiteEnvoi = String(formData.get("date_limite_envoi") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
   const mode = parseCastingMode(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
@@ -71,6 +72,7 @@ export async function createCastingRole(
       projet_id: projetId,
       nom,
       date_tournage: dateTournage,
+      date_limite_envoi: dateLimiteEnvoi,
       categorie_cachet: categorieCachet,
       mode,
       nb_videos: nbVideos,
@@ -115,6 +117,7 @@ export async function updateCastingRoleCalibration(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const dateLimiteEnvoi = String(formData.get("date_limite_envoi") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
   const mode = parseCastingMode(formData);
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
@@ -143,6 +146,7 @@ export async function updateCastingRoleCalibration(
     .update({
       nom,
       date_tournage: dateTournage,
+      date_limite_envoi: dateLimiteEnvoi,
       categorie_cachet: categorieCachet,
       mode,
       nb_videos: nbVideos,

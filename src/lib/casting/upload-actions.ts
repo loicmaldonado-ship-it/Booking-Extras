@@ -11,7 +11,13 @@ type EntryWithRole = {
   projet_id: string;
   figurant_id: string;
   statut: string;
-  casting_roles: { nom: string; nb_videos: number; photo_labels: string[]; demande_bande_demo: boolean } | null;
+  casting_roles: {
+    nom: string;
+    nb_videos: number;
+    photo_labels: string[];
+    demande_bande_demo: boolean;
+    date_limite_envoi: string | null;
+  } | null;
   figurants: { prenom: string; nom: string } | null;
 };
 
@@ -20,11 +26,20 @@ async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo), figurants(prenom, nom)"
+      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi), figurants(prenom, nom)"
     )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
   return data;
+}
+
+// Vérifié à chaque étape (préparation d'un slot d'upload ET finalisation) —
+// pas seulement affiché côté page, qui peut être restée ouverte depuis
+// avant la deadline ou contournée directement via les Server Actions.
+function deadlinePassed(role: EntryWithRole["casting_roles"]): boolean {
+  const dateLimite = role?.date_limite_envoi;
+  if (!dateLimite) return false;
+  return dateLimite < new Date().toISOString().slice(0, 10);
 }
 
 // Génère une URL d'upload signée pour UN fichier précis (une vidéo n°X, ou
@@ -41,6 +56,7 @@ export async function createCastingUploadSlot(
 ): Promise<{ bucket?: string; path?: string; token?: string; error?: string }> {
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
+  if (deadlinePassed(entry.casting_roles)) return { error: "La date limite d'envoi est passée." };
 
   const role = entry.casting_roles;
   if (kind === "video") {
@@ -75,6 +91,7 @@ export async function finalizeCastingUpload(
 ): Promise<{ error?: string; success?: boolean }> {
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
+  if (deadlinePassed(entry.casting_roles)) return { error: "La date limite d'envoi est passée." };
 
   const role = entry.casting_roles;
   if ((role?.nb_videos ?? 1) > 0 && payload.videoPaths.length === 0) {

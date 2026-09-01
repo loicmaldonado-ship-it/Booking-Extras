@@ -52,6 +52,10 @@ export function CastingRoleForm({
         </Field>
       </div>
 
+      <Field label="Date limite d'envoi des selftapes (optionnel)">
+        <Input type="date" name="date_limite_envoi" defaultValue={role?.date_limite_envoi ?? ""} />
+      </Field>
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Field label="Catégorie de cachet" required>
           <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>

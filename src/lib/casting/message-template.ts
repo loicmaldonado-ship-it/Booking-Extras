@@ -16,7 +16,10 @@ function withSignature(body: string): string {
 }
 
 export function defaultCastingInviteMessage(
-  role: Pick<CastingRole, "nom" | "date_tournage" | "nb_videos" | "photo_labels" | "demande_bande_demo" | "message_corps">
+  role: Pick<
+    CastingRole,
+    "nom" | "date_tournage" | "date_limite_envoi" | "nb_videos" | "photo_labels" | "demande_bande_demo" | "message_corps"
+  >
 ): string {
   if (role.message_corps) return withSignature(role.message_corps);
 
@@ -38,6 +41,7 @@ export function defaultCastingInviteMessage(
     "",
     besoin.length > 0 ? `Merci de nous envoyer, via ce lien : ${besoin.join(", ")}.` : "Merci de tout envoyer via ce lien : {lien}",
     ...(besoin.length > 0 ? ["", "{lien}"] : []),
+    ...(role.date_limite_envoi ? ["", "Merci de nous répondre avant le {deadline}."] : []),
     "",
     "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
   ].join("\n");

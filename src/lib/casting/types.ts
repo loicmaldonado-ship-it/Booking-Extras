@@ -48,6 +48,7 @@ export type CastingRole = {
   projet_id: string;
   nom: string;
   date_tournage: string | null;
+  date_limite_envoi: string | null;
   categorie_cachet: CategorieCachet;
   mode: CastingMode;
   nb_videos: number;

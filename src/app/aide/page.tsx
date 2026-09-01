@@ -373,6 +373,11 @@ export default function AidePage() {
                 deux disponibles quel que soit le mode choisi.
               </>,
               "Choisis le nombre de vidéos et les photos demandées, et la date de tournage si elle est déjà connue.",
+              <>
+                Calibre une <strong className="text-text">date limite d&apos;envoi</strong> (optionnel) : elle
+                s&apos;affiche sur la carte de chaque profil et dans le mail d&apos;invitation, et bloque
+                l&apos;envoi côté candidat une fois passée.
+              </>,
               "Personnalise, si besoin, le corps du mail d'invitation — sinon un message par défaut est généré avec le lien.",
             ]}
           />

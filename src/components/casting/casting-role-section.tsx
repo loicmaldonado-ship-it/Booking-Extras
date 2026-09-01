@@ -100,6 +100,7 @@ export function CastingRoleSection({
       projet: projetNom,
       role: role.nom,
       date: role.date_tournage ? formatDateLong(role.date_tournage) : "",
+      deadline: role.date_limite_envoi ? formatDateLong(role.date_limite_envoi) : "",
       signature,
       lien: `${origin}/casting/upload/${entry.request_token}`,
       lieu: assignment?.lieu ?? "Lieu à confirmer",
@@ -202,6 +203,8 @@ export function CastingRoleSection({
     .filter(Boolean)
     .join(" · ");
 
+  const deadlinePassed = !!role.date_limite_envoi && role.date_limite_envoi < new Date().toISOString().slice(0, 10);
+
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -209,6 +212,7 @@ export function CastingRoleSection({
           <h2 className="text-lg font-semibold">{role.nom}</h2>
           <p className="text-xs text-text-muted">
             {role.date_tournage ? formatDateLong(role.date_tournage) : "Date de tournage non définie"}
+            {role.date_limite_envoi ? ` · Envoi avant le ${formatDateLong(role.date_limite_envoi)}` : ""}
             {calibrationSummary ? ` · ${calibrationSummary}` : ""}
           </p>
           <div className="mt-1 flex gap-1.5">
@@ -220,6 +224,7 @@ export function CastingRoleSection({
             <Badge tone="turquoise">{submitted} envoyé{submitted > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{entries.length - submitted} en attente</Badge>
             {!role.visible_partage && <Badge tone="danger">Masqué du partage réal</Badge>}
+            {deadlinePassed && <Badge tone="danger">Envoi clos</Badge>}
           </div>
         </div>
         <div className="flex gap-2">
@@ -258,6 +263,7 @@ export function CastingRoleSection({
             previewItems={previewItems}
             previewIndex={i}
             showAgent={role.categorie_cachet === "role"}
+            dateLimiteEnvoi={role.date_limite_envoi}
           />
         ))}
         {entries.length === 0 && <p className="text-sm text-text-muted">Aucun profil dans ce rôle pour l&apos;instant.</p>}

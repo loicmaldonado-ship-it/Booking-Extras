@@ -29,6 +29,7 @@ import { StatusSelect } from "@/components/ui/status-select";
 import { statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { CASTING_MODE_LABELS, CASTING_STATUTS, type CastingEntry, type CastingMode } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
+import { formatDateLong } from "@/lib/format-date";
 
 function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string }) {
   const router = useRouter();
@@ -310,6 +311,7 @@ export function CastingEntryManageCard({
   previewItems,
   previewIndex,
   showAgent,
+  dateLimiteEnvoi,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
@@ -321,6 +323,7 @@ export function CastingEntryManageCard({
   previewItems?: PreviewItem[];
   previewIndex?: number;
   showAgent?: boolean;
+  dateLimiteEnvoi?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -328,6 +331,7 @@ export function CastingEntryManageCard({
   const [statutPending, startStatutTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
   const [visiblePending, startVisibleTransition] = useTransition();
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   function removeEntry() {
     startTransition(async () => {
@@ -396,6 +400,12 @@ export function CastingEntryManageCard({
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
+      {dateLimiteEnvoi && !entry.submitted_at && (
+        <p className={cn("text-xs", dateLimiteEnvoi < todayIso ? "font-medium text-danger" : "text-text-muted")}>
+          {dateLimiteEnvoi < todayIso ? "Envoi clos depuis le " : "Envoi avant le "}
+          {formatDateLong(dateLimiteEnvoi)}
+        </p>
+      )}
       <div className="flex gap-1.5">
         {(Object.keys(CASTING_MODE_LABELS) as CastingMode[]).map((m) => (
           <button
