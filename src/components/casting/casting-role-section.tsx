@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Select } from "@/components/ui/field";
 import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocation";
-import { deleteCastingRole, recordCastingMessage, updateCastingEntriesStatutBulk } from "@/lib/casting/actions";
+import {
+  deleteCastingRole,
+  recordCastingMessage,
+  updateCastingEntriesStatutBulk,
+  updateCastingRoleVisiblePartage,
+} from "@/lib/casting/actions";
+import { cn } from "@/lib/cn";
 import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
@@ -195,6 +201,14 @@ export function CastingRoleSection({
     });
   }
 
+  function changeRoleVisible(visible: boolean) {
+    if (visible === role.visible_partage) return;
+    startTransition(async () => {
+      await updateCastingRoleVisiblePartage(role.id, visible);
+      router.refresh();
+    });
+  }
+
   const calibrationSummary = [
     role.nb_videos > 0 ? `${role.nb_videos} vidéo${role.nb_videos > 1 ? "s" : ""}` : null,
     role.photo_labels.length > 0 ? `${role.photo_labels.length} photo${role.photo_labels.length > 1 ? "s" : ""}` : null,
@@ -215,15 +229,44 @@ export function CastingRoleSection({
             {role.date_limite_envoi ? ` · Envoi avant le ${formatDateLong(role.date_limite_envoi)}` : ""}
             {calibrationSummary ? ` · ${calibrationSummary}` : ""}
           </p>
-          <div className="mt-1 flex gap-1.5">
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <Badge>{CATEGORIE_CACHET_LABELS[role.categorie_cachet]}</Badge>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => changeRoleVisible(true)}
+                title="Rôle visible sur le lien de partage réal"
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
+                  role.visible_partage
+                    ? "border-turquoise bg-turquoise/15 text-turquoise"
+                    : "border-border text-text-muted hover:text-text"
+                )}
+              >
+                👁️ Visible
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => changeRoleVisible(false)}
+                title="Rôle masqué du lien de partage réal"
+                className={cn(
+                  "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
+                  !role.visible_partage
+                    ? "border-danger bg-danger/15 text-danger"
+                    : "border-border text-text-muted hover:text-text"
+                )}
+              >
+                🙈 Invisible
+              </button>
+            </div>
             <Badge tone={role.mode === "presentiel" ? "coral" : "default"}>
               {role.mode === "presentiel" ? "📅 " : "🎥 "}
               {CASTING_MODE_LABELS[role.mode]}
             </Badge>
             <Badge tone="turquoise">{submitted} envoyé{submitted > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{entries.length - submitted} en attente</Badge>
-            {!role.visible_partage && <Badge tone="danger">Masqué du partage réal</Badge>}
             {deadlinePassed && <Badge tone="danger">Envoi clos</Badge>}
           </div>
         </div>

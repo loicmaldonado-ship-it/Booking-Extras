@@ -344,6 +344,26 @@ export async function updateCastingEntryVisiblePartage(
   return { success: true };
 }
 
+// Bascule rapide, indépendante du reste du calibrage — pour ne pas rouvrir
+// tout le formulaire "Calibrer" juste pour montrer/cacher un rôle entier
+// sur le lien de partage réal.
+export async function updateCastingRoleVisiblePartage(
+  roleId: string,
+  visible: boolean
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  if (!role) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(role.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_roles").update({ visible_partage: visible }).eq("id", roleId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 // Changement de statut groupé — depuis une sélection multiple sur la page
 // Casting, plutôt que profil par profil.
 export async function updateCastingEntriesStatutBulk(

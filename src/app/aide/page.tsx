@@ -400,10 +400,11 @@ export default function AidePage() {
         </div>
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
-          <UI>Partage réal — Casting</UI> montre au réalisateur·ice uniquement les profils ayant déjà envoyé
-          leur vidéo, classés par rôle — jamais les infos de contact. Décoche{" "}
-          <UI>Visible sur le lien de partage réal</UI> en calibrant un rôle pour le masquer sans le supprimer
-          (utile pour une silhouette que tu ne veux plus montrer).
+          <UI>Partage réal — Casting</UI> montre au réalisateur·ice les rôles et profils que tu as
+          explicitement marqués visibles — classés par rôle, jamais les infos de contact. Les boutons{" "}
+          <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
+          montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une
+          silhouette que tu ne veux plus montrer.
         </Callout>
         <Callout>
           <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
