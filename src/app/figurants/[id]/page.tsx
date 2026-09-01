@@ -9,6 +9,7 @@ import { AvailabilityCalendar } from "@/components/figurants/availability-calend
 import { PhotoDropzones } from "@/components/figurants/photo-dropzones";
 import { BackLink } from "@/components/ui/back-link";
 import { MessageriePanel } from "@/components/figurants/messagerie-panel";
+import { FigurantAgentPanel } from "@/components/figurants/figurant-agent-panel";
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
 import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
@@ -147,9 +148,10 @@ export default async function FigurantDetailPage({
 
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-semibold">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold">
             {figurant.civilite ? `${figurant.civilite} ` : ""}
             {figurant.prenom} {figurant.nom}
+            {figurant.est_comedien && <Badge tone="coral">Comédien·ne</Badge>}
           </h1>
           <p className="mt-1 text-text-muted">
             {figurant.ville ?? "Ville non renseignée"}
@@ -182,6 +184,14 @@ export default async function FigurantDetailPage({
             <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
           )}
         </div>
+        {figurant.est_comedien && (
+          <FigurantAgentPanel
+            figurantId={figurant.id}
+            agentNom={figurant.agent_nom}
+            agentEmail={figurant.agent_email}
+            agentTelephone={figurant.agent_telephone}
+          />
+        )}
         <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-text-muted">Email : </span>

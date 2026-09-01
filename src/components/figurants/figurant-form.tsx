@@ -22,6 +22,7 @@ export function FigurantForm({
   liens?: FigurantLien[];
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [estComedien, setEstComedien] = useState(figurant?.est_comedien ?? false);
   const [aVehicule, setAVehicule] = useState<boolean | null>(figurant?.a_vehicule ?? null);
   const [lienRows, setLienRows] = useState(
     liens.length > 0 ? liens.map((l) => ({ label: l.label, url: l.url })) : [{ label: "", url: "" }]
@@ -49,6 +50,23 @@ export function FigurantForm({
         </div>
       )}
 
+      <Card className="flex flex-col gap-2">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="est_comedien"
+            checked={estComedien}
+            onChange={(e) => setEstComedien(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-coral"
+          />
+          Comédien·ne
+        </label>
+        <p className="text-xs text-text-muted">
+          Seul le nom est obligatoire — pratique pour créer vite un profil depuis un book ou une fiche d&apos;agence,
+          avant d&apos;avoir ses coordonnées directes.
+        </p>
+      </Card>
+
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Identité</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -70,8 +88,8 @@ export function FigurantForm({
               ))}
             </Select>
           </Field>
-          <Field label="Pronom" required>
-            <Select name="pronom" defaultValue={figurant?.pronom ?? ""} required>
+          <Field label="Pronom" required={!estComedien}>
+            <Select name="pronom" defaultValue={figurant?.pronom ?? ""} required={!estComedien}>
               <option value=""></option>
               {PRONOMS.map((p) => (
                 <option key={p} value={p}>
@@ -80,8 +98,8 @@ export function FigurantForm({
               ))}
             </Select>
           </Field>
-          <Field label="Genre" required>
-            <Select name="genre" defaultValue={figurant?.genre ?? ""} required>
+          <Field label="Genre" required={!estComedien}>
+            <Select name="genre" defaultValue={figurant?.genre ?? ""} required={!estComedien}>
               <option value=""></option>
               {GENRES.map((g) => (
                 <option key={g} value={g}>
@@ -95,23 +113,23 @@ export function FigurantForm({
           <Field label="Date de naissance">
             <Input type="date" name="date_naissance" defaultValue={figurant?.date_naissance ?? ""} />
           </Field>
-          <Field label="Commune de naissance" required>
-            <Input name="commune_naissance" defaultValue={figurant?.commune_naissance ?? ""} required />
+          <Field label="Commune de naissance" required={!estComedien}>
+            <Input name="commune_naissance" defaultValue={figurant?.commune_naissance ?? ""} required={!estComedien} />
           </Field>
         </div>
         <div>
           <span className="mb-1.5 block text-xs font-medium text-text-muted">Adresse de résidence</span>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="md:col-span-2">
-              <Field label="Rue et numéro" required>
-                <Input name="adresse" defaultValue={figurant?.adresse ?? ""} required />
+              <Field label="Rue et numéro" required={!estComedien}>
+                <Input name="adresse" defaultValue={figurant?.adresse ?? ""} required={!estComedien} />
               </Field>
             </div>
-            <Field label="Code postal" required>
-              <Input name="code_postal" defaultValue={figurant?.code_postal ?? ""} required />
+            <Field label="Code postal" required={!estComedien}>
+              <Input name="code_postal" defaultValue={figurant?.code_postal ?? ""} required={!estComedien} />
             </Field>
-            <Field label="Ville" required>
-              <Input name="ville" defaultValue={figurant?.ville ?? ""} required />
+            <Field label="Ville" required={!estComedien}>
+              <Input name="ville" defaultValue={figurant?.ville ?? ""} required={!estComedien} />
             </Field>
           </div>
         </div>
@@ -120,11 +138,11 @@ export function FigurantForm({
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Contact</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Email" required>
-            <Input type="email" name="email" defaultValue={figurant?.email ?? ""} required />
+          <Field label="Email" required={!estComedien}>
+            <Input type="email" name="email" defaultValue={figurant?.email ?? ""} required={!estComedien} />
           </Field>
-          <Field label="Téléphone" required>
-            <Input type="tel" name="telephone" defaultValue={figurant?.telephone ?? ""} required />
+          <Field label="Téléphone" required={!estComedien}>
+            <Input type="tel" name="telephone" defaultValue={figurant?.telephone ?? ""} required={!estComedien} />
           </Field>
         </div>
         <Field label="Où peut-il·elle loger en France ? (option)">
@@ -135,6 +153,23 @@ export function FigurantForm({
           />
         </Field>
       </Card>
+
+      {estComedien && (
+        <Card className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">Agent</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="Nom de l'agent">
+              <Input name="agent_nom" defaultValue={figurant?.agent_nom ?? ""} />
+            </Field>
+            <Field label="Email de l'agent">
+              <Input type="email" name="agent_email" defaultValue={figurant?.agent_email ?? ""} />
+            </Field>
+            <Field label="Téléphone de l'agent">
+              <Input type="tel" name="agent_telephone" defaultValue={figurant?.agent_telephone ?? ""} />
+            </Field>
+          </div>
+        </Card>
+      )}
 
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Mensurations</h2>
@@ -278,12 +313,12 @@ export function FigurantForm({
       ) : (
         <Card className="flex flex-col gap-2">
           <h2 className="text-lg font-semibold">Photo</h2>
-          <Field label="Portrait" required>
+          <Field label="Portrait" required={!estComedien}>
             <input
               type="file"
               name="photo_portrait"
               accept="image/*"
-              required
+              required={!estComedien}
               className="text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
             />
           </Field>

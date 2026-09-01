@@ -55,6 +55,10 @@ export type Figurant = {
   last_seen_at: string | null;
   created_at: string;
   updated_at: string;
+  est_comedien: boolean;
+  agent_nom: string | null;
+  agent_email: string | null;
+  agent_telephone: string | null;
 };
 
 export type FigurantPhoto = {

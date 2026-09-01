@@ -56,6 +56,10 @@ function buildFigurantPayload(fd: FormData) {
       .map((t) => t.trim())
       .filter(Boolean),
     notes_internes: str(fd, "notes_internes"),
+    est_comedien: fd.get("est_comedien") === "on",
+    agent_nom: str(fd, "agent_nom"),
+    agent_email: str(fd, "agent_email"),
+    agent_telephone: str(fd, "agent_telephone"),
     ...buildVehiculePayload(fd),
   };
 }
@@ -75,9 +79,17 @@ function buildVehiculePayload(fd: FormData) {
 // complète (obligatoire à la candidature comme à la création, pour ne
 // jamais se retrouver avec un profil sans coordonnées exploitables) et un
 // portrait — le reste (mensurations, véhicule) se complète plus tard.
+//
+// Un profil comédien·ne saute toute cette liste — seul le nom est
+// obligatoire : souvent créé vite depuis un book/une fiche d'agence, avant
+// même d'avoir ses coordonnées directes (l'agent fait l'intermédiaire).
 function requireBaseFields(payload: ReturnType<typeof buildFigurantPayload>): string | null {
-  if (!payload.prenom || !payload.nom || !payload.email || !payload.telephone) {
-    return "Prénom, nom, email et téléphone sont obligatoires.";
+  if (!payload.prenom || !payload.nom) {
+    return "Prénom et nom sont obligatoires.";
+  }
+  if (payload.est_comedien) return null;
+  if (!payload.email || !payload.telephone) {
+    return "Email et téléphone sont obligatoires.";
   }
   if (!payload.adresse || !payload.code_postal || !payload.ville) {
     return "L'adresse de résidence complète (rue, code postal, ville) est obligatoire.";
@@ -97,7 +109,8 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   if (fieldsError) return { error: fieldsError };
 
   const portrait = formData.get("photo_portrait");
-  if (!(portrait instanceof File) || portrait.size === 0) {
+  const hasPortrait = portrait instanceof File && portrait.size > 0;
+  if (!payload.est_comedien && !hasPortrait) {
     return { error: "Une photo portrait est obligatoire." };
   }
 
@@ -115,8 +128,10 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
     return { error: error.message };
   }
 
-  const { error: photoError } = await insertFigurantPhoto(supabase, data.id, "portrait", portrait);
-  if (photoError) return { error: photoError };
+  if (hasPortrait) {
+    const { error: photoError } = await insertFigurantPhoto(supabase, data.id, "portrait", portrait);
+    if (photoError) return { error: photoError };
+  }
 
   await handleLiens(formData, data.id);
 
@@ -148,6 +163,31 @@ export async function updateFigurant(
   revalidatePath("/figurants");
   revalidatePath(`/figurants/${id}`);
   redirect(`/figurants/${id}`);
+}
+
+// Édition rapide de l'agent depuis n'importe où (ex. la carte casting) —
+// sans repasser par le grand formulaire /modifier. L'agent est rattaché à
+// la fiche, pas à une entrée de casting précise : le modifier ici le met à
+// jour partout où ce profil apparaît.
+export async function updateFigurantAgent(
+  figurantId: string,
+  formData: FormData
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("figurants")
+    .update({
+      agent_nom: str(formData, "agent_nom"),
+      agent_email: str(formData, "agent_email"),
+      agent_telephone: str(formData, "agent_telephone"),
+    })
+    .eq("id", figurantId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/figurants");
+  revalidatePath(`/figurants/${figurantId}`);
+  revalidatePath("/casting");
+  return { success: true };
 }
 
 export async function deleteFigurant(id: string) {

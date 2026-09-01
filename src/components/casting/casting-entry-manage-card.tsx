@@ -17,9 +17,9 @@ import {
   removeCastingVideo,
   createStaffCastingVideoSlot,
   addCastingVideo,
-  updateCastingEntryAgent,
   updateCastingEntryStatut,
 } from "@/lib/casting/actions";
+import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntry } from "@/lib/casting/types";
@@ -180,17 +180,29 @@ const AGENT_INPUT_CLASS =
 
 // N'a de sens que pour les rôles (categorie_cachet = "role") : les
 // figurant·es de figuration n'ont généralement pas d'agent, contrairement
-// aux comédien·nes qui tiennent un rôle nommé.
-function AgentSection({ entry }: { entry: CastingEntry }) {
+// aux comédien·nes qui tiennent un rôle nommé. L'agent est rattaché à la
+// fiche du·de la comédien·ne (pas à cette entrée de casting précise) — le
+// modifier ici le met à jour partout où ce profil apparaît.
+function AgentSection({
+  figurantId,
+  agentNom,
+  agentEmail,
+  agentTelephone,
+}: {
+  figurantId: string;
+  agentNom: string | null;
+  agentEmail: string | null;
+  agentTelephone: string | null;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [nom, setNom] = useState(entry.agent_nom ?? "");
-  const [email, setEmail] = useState(entry.agent_email ?? "");
-  const [telephone, setTelephone] = useState(entry.agent_telephone ?? "");
+  const [nom, setNom] = useState(agentNom ?? "");
+  const [email, setEmail] = useState(agentEmail ?? "");
+  const [telephone, setTelephone] = useState(agentTelephone ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const hasAgent = !!(entry.agent_nom || entry.agent_email || entry.agent_telephone);
+  const hasAgent = !!(agentNom || agentEmail || agentTelephone);
 
   function save() {
     setError(null);
@@ -199,7 +211,7 @@ function AgentSection({ entry }: { entry: CastingEntry }) {
     fd.set("agent_email", email);
     fd.set("agent_telephone", telephone);
     startTransition(async () => {
-      const result = await updateCastingEntryAgent(entry.id, fd);
+      const result = await updateFigurantAgent(figurantId, fd);
       if (result?.error) setError(result.error);
       else {
         setEditing(false);
@@ -253,12 +265,12 @@ function AgentSection({ entry }: { entry: CastingEntry }) {
   return (
     <div className="flex flex-col gap-1 rounded-lg border border-border bg-ink px-2.5 py-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium">🎭 Agent : {entry.agent_nom || "—"}</span>
+        <span className="text-xs font-medium">🎭 Agent : {agentNom || "—"}</span>
         <button type="button" onClick={() => setEditing(true)} className="text-xs text-coral hover:underline">
           Modifier
         </button>
       </div>
-      <ContactIcons telephone={entry.agent_telephone} email={entry.agent_email} variant="inline" />
+      <ContactIcons telephone={agentTelephone} email={agentEmail} variant="inline" />
     </div>
   );
 }
@@ -361,7 +373,14 @@ export function CastingEntryManageCard({
         <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
         {previewItems && previewIndex !== undefined && <PreviewButton items={previewItems} index={previewIndex} />}
       </div>
-      {showAgent && <AgentSection entry={entry} />}
+      {showAgent && (
+        <AgentSection
+          figurantId={entry.figurant_id}
+          agentNom={entry.figurants?.agent_nom ?? null}
+          agentEmail={entry.figurants?.agent_email ?? null}
+          agentTelephone={entry.figurants?.agent_telephone ?? null}
+        />
+      )}
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">

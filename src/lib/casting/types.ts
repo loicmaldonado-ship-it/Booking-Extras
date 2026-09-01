@@ -34,9 +34,6 @@ export type CastingEntry = {
   video_storage_paths: string[];
   requested_at: string;
   submitted_at: string | null;
-  agent_nom: string | null;
-  agent_email: string | null;
-  agent_telephone: string | null;
   statut: BookingStatut;
   figurants: {
     prenom: string;
@@ -50,5 +47,9 @@ export type CastingEntry = {
     vehicule_moto: boolean;
     vehicule_scooter: boolean;
     compte_myrole: boolean;
+    est_comedien: boolean;
+    agent_nom: string | null;
+    agent_email: string | null;
+    agent_telephone: string | null;
   } | null;
 };
