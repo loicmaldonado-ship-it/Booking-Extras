@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countFigurantPhotos, insertFigurantPhoto, MAX_PHOTOS_PAR_FIGURANT } from "./photos";
+import { upsertAgent } from "@/lib/agents/actions";
 import type { Civilite, Genre, PhotoType, Pronom } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -135,6 +136,15 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
     if (photoError) return { error: photoError };
   }
 
+  if (payload.agent_nom) {
+    await upsertAgent({
+      nom: payload.agent_nom,
+      agence: payload.agent_agence,
+      email: payload.agent_email,
+      telephone: payload.agent_telephone,
+    });
+  }
+
   await handleLiens(formData, data.id);
 
   revalidatePath("/figurants");
@@ -160,6 +170,15 @@ export async function updateFigurant(
     return { error: error.message };
   }
 
+  if (payload.agent_nom) {
+    await upsertAgent({
+      nom: payload.agent_nom,
+      agence: payload.agent_agence,
+      email: payload.agent_email,
+      telephone: payload.agent_telephone,
+    });
+  }
+
   await handleLiens(formData, id);
 
   revalidatePath("/figurants");
@@ -175,17 +194,26 @@ export async function updateFigurantAgent(
   figurantId: string,
   formData: FormData
 ): Promise<{ error?: string; success?: true }> {
+  const agentNom = str(formData, "agent_nom");
+  const agentAgence = str(formData, "agent_agence");
+  const agentEmail = str(formData, "agent_email");
+  const agentTelephone = str(formData, "agent_telephone");
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("figurants")
     .update({
-      agent_nom: str(formData, "agent_nom"),
-      agent_email: str(formData, "agent_email"),
-      agent_telephone: str(formData, "agent_telephone"),
-      agent_agence: str(formData, "agent_agence"),
+      agent_nom: agentNom,
+      agent_email: agentEmail,
+      agent_telephone: agentTelephone,
+      agent_agence: agentAgence,
     })
     .eq("id", figurantId);
   if (error) return { error: error.message };
+
+  if (agentNom) {
+    await upsertAgent({ nom: agentNom, agence: agentAgence, email: agentEmail, telephone: agentTelephone });
+  }
 
   revalidatePath("/figurants");
   revalidatePath(`/figurants/${figurantId}`);

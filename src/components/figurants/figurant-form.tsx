@@ -4,8 +4,12 @@ import { useActionState, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { CIVILITES, GENRES, PRONOMS, type Figurant, type FigurantLien } from "@/lib/figurants/types";
 import { addIndisponibilite } from "@/lib/figurants/disponibilites";
+
+const AGENT_NOM_CLASS =
+  "w-full rounded-xl border border-border bg-ink px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted/60 outline-none transition-colors focus:border-coral";
 
 type Action = (
   prevState: unknown,
@@ -24,6 +28,10 @@ export function FigurantForm({
   const [state, formAction, pending] = useActionState(action, undefined);
   const [estComedien, setEstComedien] = useState(figurant?.est_comedien ?? false);
   const [aVehicule, setAVehicule] = useState<boolean | null>(figurant?.a_vehicule ?? null);
+  const [agentNom, setAgentNom] = useState(figurant?.agent_nom ?? "");
+  const [agentAgence, setAgentAgence] = useState(figurant?.agent_agence ?? "");
+  const [agentEmail, setAgentEmail] = useState(figurant?.agent_email ?? "");
+  const [agentTelephone, setAgentTelephone] = useState(figurant?.agent_telephone ?? "");
   const [lienRows, setLienRows] = useState(
     liens.length > 0 ? liens.map((l) => ({ label: l.label, url: l.url })) : [{ label: "", url: "" }]
   );
@@ -164,16 +172,37 @@ export function FigurantForm({
             <span className="mb-1.5 block text-xs font-medium text-text-muted">Agent</span>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Nom de l'agent">
-                <Input name="agent_nom" defaultValue={figurant?.agent_nom ?? ""} />
+                <AgentNomInput
+                  name="agent_nom"
+                  value={agentNom}
+                  onChange={setAgentNom}
+                  onSelect={(a) => {
+                    setAgentNom(a.nom);
+                    setAgentAgence(a.agence ?? "");
+                    setAgentEmail(a.email ?? "");
+                    setAgentTelephone(a.telephone ?? "");
+                  }}
+                  className={AGENT_NOM_CLASS}
+                />
               </Field>
               <Field label="Agence">
-                <Input name="agent_agence" defaultValue={figurant?.agent_agence ?? ""} />
+                <Input name="agent_agence" value={agentAgence} onChange={(e) => setAgentAgence(e.target.value)} />
               </Field>
               <Field label="Email de l'agent">
-                <Input type="email" name="agent_email" defaultValue={figurant?.agent_email ?? ""} />
+                <Input
+                  type="email"
+                  name="agent_email"
+                  value={agentEmail}
+                  onChange={(e) => setAgentEmail(e.target.value)}
+                />
               </Field>
               <Field label="Téléphone de l'agent">
-                <Input type="tel" name="agent_telephone" defaultValue={figurant?.agent_telephone ?? ""} />
+                <Input
+                  type="tel"
+                  name="agent_telephone"
+                  value={agentTelephone}
+                  onChange={(e) => setAgentTelephone(e.target.value)}
+                />
               </Field>
             </div>
           </div>

@@ -81,6 +81,21 @@ export default async function AdminPage() {
         </p>
       </div>
 
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Base Agents</h2>
+          <p className="text-sm text-text-muted">
+            Liste, modifie ou supprime les agents mémorisés depuis les fiches et le casting.
+          </p>
+        </div>
+        <Link
+          href="/admin/agents"
+          className="rounded-full bg-ink-raised-2 px-4 py-2 text-sm font-medium hover:border hover:border-coral/60"
+        >
+          Gérer les agents →
+        </Link>
+      </Card>
+
       <TeamPresenceList title="Qui est connecté·e (toute l'agence)" members={presenceMembers} />
 
       <Card className="flex flex-col gap-3">

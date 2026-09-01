@@ -400,7 +400,10 @@ export default function AidePage() {
           <strong className="text-text">statut</strong> (même progression que les bookings) — passe-le en{" "}
           <UI>Validé</UI> pour afficher un rond ✓ directement sur sa photo. Pour un rôle de catégorie{" "}
           <strong className="text-text">Rôle</strong>, <UI>+ Ajouter un agent</UI> apparaît sous chaque profil
-          pour garder ses coordonnées à portée de main (agence comprise).
+          pour garder ses coordonnées à portée de main (agence comprise). En tapant son nom, les agents déjà
+          rentrés une fois (sur n&apos;importe quelle fiche) apparaissent en suggestion — cliquer dessus remplit
+          agence, email et téléphone d&apos;un coup. La base complète (Admin → Base Agents) reste réservée au
+          compte propriétaire.
         </Callout>
         <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du

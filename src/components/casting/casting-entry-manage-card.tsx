@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/cn";
@@ -229,7 +230,18 @@ function AgentSection({
   if (editing) {
     return (
       <div className="flex flex-col gap-1.5 rounded-lg border border-coral/40 bg-ink px-2.5 py-2">
-        <input value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Nom de l'agent" className={AGENT_INPUT_CLASS} />
+        <AgentNomInput
+          value={nom}
+          onChange={setNom}
+          onSelect={(a) => {
+            setNom(a.nom);
+            setAgence(a.agence ?? "");
+            setEmail(a.email ?? "");
+            setTelephone(a.telephone ?? "");
+          }}
+          placeholder="Nom de l'agent"
+          className={AGENT_INPUT_CLASS}
+        />
         <input value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
         <input
           value={email}

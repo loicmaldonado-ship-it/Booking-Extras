@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { ContactIcons } from "@/components/ui/contact-icons";
+import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
+
+const AGENT_NOM_CLASS =
+  "w-full rounded-xl border border-border bg-ink px-3.5 py-2.5 text-sm text-text placeholder:text-text-muted/60 outline-none transition-colors focus:border-coral";
 
 // Rattaché à la fiche (pas à une entrée de casting précise) — visible et
 // modifiable ici comme dans la carte casting, qui partage la même donnée.
@@ -55,7 +59,17 @@ export function FigurantAgentPanel({
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Nom de l'agent">
-            <Input value={nom} onChange={(e) => setNom(e.target.value)} />
+            <AgentNomInput
+              value={nom}
+              onChange={setNom}
+              onSelect={(a) => {
+                setNom(a.nom);
+                setAgence(a.agence ?? "");
+                setEmail(a.email ?? "");
+                setTelephone(a.telephone ?? "");
+              }}
+              className={AGENT_NOM_CLASS}
+            />
           </Field>
           <Field label="Agence">
             <Input value={agence} onChange={(e) => setAgence(e.target.value)} />
