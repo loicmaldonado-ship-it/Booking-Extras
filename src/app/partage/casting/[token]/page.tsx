@@ -34,24 +34,28 @@ export default async function PartageCastingPage({
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
   ]);
-  const submitted = entries.filter((e) => e.submitted_at && e.visible_partage);
+  // Le staff décide seul de la visibilité — dès qu'un profil ou un rôle est
+  // coché visible, il apparaît, même sans vidéo envoyée ou sans aucun
+  // profil dedans pour l'instant (pas de condition automatique en plus du
+  // choix du staff).
+  const visibleEntries = entries.filter((e) => e.visible_partage);
 
-  const submittedByRole = new Map<string, typeof submitted>();
-  for (const e of submitted) {
-    const list = submittedByRole.get(e.role_id) ?? [];
+  const entriesByRole = new Map<string, typeof visibleEntries>();
+  for (const e of visibleEntries) {
+    const list = entriesByRole.get(e.role_id) ?? [];
     list.push(e);
-    submittedByRole.set(e.role_id, list);
+    entriesByRole.set(e.role_id, list);
   }
-  const rolesAvecProfils = roles.filter((r) => r.visible_partage && (submittedByRole.get(r.id) ?? []).length > 0);
+  const rolesAvecProfils = roles.filter((r) => r.visible_partage);
 
-  const entryIds = submitted.map((e) => e.id);
-  const figurantIds = submitted.map((e) => e.figurant_id);
+  const entryIds = visibleEntries.map((e) => e.id);
+  const figurantIds = visibleEntries.map((e) => e.figurant_id);
   const [photosByFigurant, videoUrlsList, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    Promise.all(submitted.map((e) => getCastingVideoUrls(e.video_storage_paths))),
+    Promise.all(visibleEntries.map((e) => getCastingVideoUrls(e.video_storage_paths))),
     getCastingEntryPhotos(entryIds),
   ]);
-  const videoUrlsByEntry = new Map(submitted.map((e, i) => [e.id, videoUrlsList[i]]));
+  const videoUrlsByEntry = new Map(visibleEntries.map((e, i) => [e.id, videoUrlsList[i]]));
 
   return (
     <div className="flex flex-col gap-8">
@@ -65,7 +69,7 @@ export default async function PartageCastingPage({
       </div>
 
       {rolesAvecProfils.map((role) => {
-        const roleEntries = submittedByRole.get(role.id) ?? [];
+        const roleEntries = entriesByRole.get(role.id) ?? [];
         return (
           <Card key={role.id} className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -84,6 +88,9 @@ export default async function PartageCastingPage({
                   lang={lang}
                 />
               ))}
+              {roleEntries.length === 0 && (
+                <p className="text-sm text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
+              )}
             </div>
           </Card>
         );

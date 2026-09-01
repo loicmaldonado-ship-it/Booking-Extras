@@ -71,7 +71,12 @@ export function substituteTokensHtml(
     if (emphasis.italic?.includes(key as MessageTokenKey)) htmlValue = `<em>${htmlValue}</em>`;
     result = result.replaceAll(`{${key}}`, htmlValue);
   }
-  return result.replace(/\n/g, "<br>");
+  // Bloc pleine largeur, jamais juste du texte + <br> à plat : sans ça,
+  // Gmail peut positionner l'aperçu de pièce jointe à côté de la dernière
+  // ligne au lieu d'en dessous (le corps n'occupant pas toute la largeur
+  // disponible). Les deux <br> finaux forcent un peu d'espace après le
+  // texte, avant que la pièce jointe ne s'affiche.
+  return `<div style="display:block;width:100%">${result.replace(/\n/g, "<br>")}<br><br></div>`;
 }
 
 // Dernier filet de sécurité si un appelant oublie de résoudre la signature

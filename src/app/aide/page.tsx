@@ -420,10 +420,12 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">👁️ Visible / 🙈 Invisible.</strong> Un profil qui a envoyé sa vidéo
-          n&apos;apparaît plus automatiquement au réal — passe-le en <UI>Visible</UI> une fois son contenu
-          relu, pour garder la main avant exposition. <UI>Invisible</UI> le retire du lien sans rien supprimer.
-          Même logique au niveau du rôle entier (<UI>Visible sur le lien de partage réal</UI> en calibrant) :
-          un rôle invisible reste caché du réal même si des profils dedans sont marqués visibles.
+          n&apos;apparaît plus automatiquement au réal — passe-le en <UI>Visible</UI> pour qu&apos;il
+          apparaisse sur le lien, même avant d&apos;avoir tout reçu : c&apos;est toi qui décides, pas un
+          critère automatique. <UI>Invisible</UI> le retire du lien sans rien supprimer. Même logique au
+          niveau du rôle entier (<UI>Visible sur le lien de partage réal</UI> en calibrant) : coche-la et le
+          rôle apparaît tout de suite, même sans aucun profil visible dedans pour l&apos;instant — décoche-la
+          et le rôle reste caché du réal, quels que soient les profils marqués visibles dedans.
         </Callout>
         <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du
