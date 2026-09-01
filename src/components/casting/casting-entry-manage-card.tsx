@@ -328,7 +328,6 @@ export function CastingEntryManageCard({
   const gallery: GalleryPhoto[] = photos.map((p) => ({ src: p.url, alt: p.label }));
   const photoByLabel = new Map(photos.map((p) => [p.label, p]));
   const extraPhotos = photos.filter((p) => !photoLabels.includes(p.label));
-  const hasMedia = videoUrls.length > 0 || photos.length > 0;
 
   return (
     <div className="relative flex w-full max-w-xs flex-col gap-2 rounded-xl border border-border bg-ink-raised p-3">
@@ -342,9 +341,8 @@ export function CastingEntryManageCard({
       )}
       <button
         type="button"
-        onClick={() => hasMedia && setOpen((v) => !v)}
-        disabled={!hasMedia}
-        className="flex items-center gap-3 text-left disabled:cursor-default"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-3 text-left"
       >
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
           {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
@@ -363,7 +361,7 @@ export function CastingEntryManageCard({
           </span>
           {entry.submitted_at ? <Badge tone="turquoise">Envoyé</Badge> : <Badge tone="yellow">En attente</Badge>}
         </div>
-        {hasMedia && <span className="text-text-muted">{open ? "▾" : "▸"}</span>}
+        <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
       <StatusSelect
         value={entry.statut}
