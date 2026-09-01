@@ -10,6 +10,7 @@ import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocati
 import {
   deleteCastingRole,
   recordCastingMessage,
+  updateAllCastingEntriesVisiblePartage,
   updateCastingEntriesStatutBulk,
   updateCastingRoleVisiblePartage,
 } from "@/lib/casting/actions";
@@ -209,6 +210,13 @@ export function CastingRoleSection({
     });
   }
 
+  function changeAllEntriesVisible(visible: boolean) {
+    startTransition(async () => {
+      await updateAllCastingEntriesVisiblePartage(role.id, visible);
+      router.refresh();
+    });
+  }
+
   const calibrationSummary = [
     role.nb_videos > 0 ? `${role.nb_videos} vidéo${role.nb_videos > 1 ? "s" : ""}` : null,
     role.photo_labels.length > 0 ? `${role.photo_labels.length} photo${role.photo_labels.length > 1 ? "s" : ""}` : null,
@@ -291,6 +299,28 @@ export function CastingRoleSection({
         figurants={allFigurants}
         alreadyAddedIds={entries.map((e) => e.figurant_id)}
       />
+
+      {entries.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-text-muted">Profils du rôle sur le lien réal :</span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => changeAllEntriesVisible(true)}
+            className="rounded-full border border-turquoise/60 bg-turquoise/10 px-2 py-0.5 text-[11px] font-medium text-turquoise transition-colors hover:bg-turquoise/20 disabled:opacity-60"
+          >
+            👁️ Tous visibles
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => changeAllEntriesVisible(false)}
+            className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-60"
+          >
+            🙈 Tous invisibles
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         {entries.map((entry, i) => (

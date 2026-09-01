@@ -427,7 +427,9 @@ export default function AidePage() {
           critère automatique. <UI>Invisible</UI> le retire du lien sans rien supprimer. Même logique au
           niveau du rôle entier (<UI>Visible sur le lien de partage réal</UI> en calibrant) : coche-la et le
           rôle apparaît tout de suite, même sans aucun profil visible dedans pour l&apos;instant — décoche-la
-          et le rôle reste caché du réal, quels que soient les profils marqués visibles dedans.
+          et le rôle reste caché du réal, quels que soient les profils marqués visibles dedans.{" "}
+          <UI>👁️ Tous visibles</UI> / <UI>🙈 Tous invisibles</UI>, au-dessus de la liste des profils, bascule
+          d&apos;un coup tous les profils de ce rôle (pas les autres rôles du casting).
         </Callout>
         <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du

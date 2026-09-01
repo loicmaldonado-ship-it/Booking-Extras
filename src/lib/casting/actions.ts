@@ -364,6 +364,26 @@ export async function updateCastingRoleVisiblePartage(
   return { success: true };
 }
 
+// Rend visible (ou invisible) tous les profils d'un rôle en un clic — sans
+// avoir à les sélectionner un par un, pour un rôle où tout est prêt à
+// montrer au réal d'un coup.
+export async function updateAllCastingEntriesVisiblePartage(
+  roleId: string,
+  visible: boolean
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  if (!role) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(role.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_entries").update({ visible_partage: visible }).eq("role_id", roleId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 // Changement de statut groupé — depuis une sélection multiple sur la page
 // Casting, plutôt que profil par profil.
 export async function updateCastingEntriesStatutBulk(
