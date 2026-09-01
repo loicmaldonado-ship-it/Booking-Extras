@@ -34,7 +34,7 @@ export default async function PartageCastingPage({
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
   ]);
-  const submitted = entries.filter((e) => e.submitted_at);
+  const submitted = entries.filter((e) => e.submitted_at && e.visible_partage);
 
   const submittedByRole = new Map<string, typeof submitted>();
   for (const e of submitted) {

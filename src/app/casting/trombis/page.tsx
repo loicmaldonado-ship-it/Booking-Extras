@@ -12,7 +12,7 @@ import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { paginateGroupedItems } from "@/lib/documents/trombi";
 import { GENRES } from "@/lib/figurants/types";
-import { STATUTS } from "@/lib/bookings/types";
+import { CASTING_STATUTS } from "@/lib/casting/types";
 import { Badge } from "@/components/ui/card";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -145,7 +145,7 @@ export default async function CastingTrombisPage({
         </Select>
         <Select name="statut" defaultValue={params.statut ?? ""}>
           <option value="">Statut (tous)</option>
-          {STATUTS.map((s) => (
+          {CASTING_STATUTS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.label}
             </option>

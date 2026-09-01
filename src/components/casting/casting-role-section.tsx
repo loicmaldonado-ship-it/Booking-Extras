@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Select } from "@/components/ui/field";
 import { substituteTokens } from "@/lib/bookings/convocation";
-import { deleteCastingRole, recordCastingMessage } from "@/lib/casting/actions";
+import { deleteCastingRole, recordCastingMessage, updateCastingEntriesStatutBulk } from "@/lib/casting/actions";
 import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
@@ -15,7 +15,14 @@ import { CastingEntryManageCard } from "@/components/casting/casting-entry-manag
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
-import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole, type CastingEntry } from "@/lib/casting/types";
+import {
+  CATEGORIE_CACHET_LABELS,
+  CASTING_MODE_LABELS,
+  CASTING_STATUTS,
+  type CastingRole,
+  type CastingEntry,
+} from "@/lib/casting/types";
+import type { BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 import type { PresentielJourneeAvecCreneaux, PresentielAssignment } from "@/lib/casting-presentiel/journees";
@@ -63,6 +70,8 @@ export function CastingRoleSection({
   const [presentielCreneauId, setPresentielCreneauId] = useState("");
   const [presentielResult, setPresentielResult] = useState<string | null>(null);
   const [presentielError, setPresentielError] = useState<string | null>(null);
+  const [bulkStatut, setBulkStatut] = useState<BookingStatut | "">("");
+  const [bulkStatutError, setBulkStatutError] = useState<string | null>(null);
 
   const submitted = entries.filter((e) => e.submitted_at).length;
 
@@ -162,6 +171,20 @@ export function CastingRoleSection({
     });
   }
 
+  function applyBulkStatut() {
+    if (!bulkStatut) return;
+    setBulkStatutError(null);
+    const entryIds = entries.filter((e) => selected.has(e.id)).map((e) => e.id);
+    startTransition(async () => {
+      const result = await updateCastingEntriesStatutBulk(entryIds, bulkStatut);
+      if (result?.error) setBulkStatutError(result.error);
+      else {
+        setSelected(new Set());
+        router.refresh();
+      }
+    });
+  }
+
   function removeRole() {
     startTransition(async () => {
       await deleteCastingRole(role.id);
@@ -240,6 +263,25 @@ export function CastingRoleSection({
 
       {selected.size > 0 && (
         <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ink px-3 py-2">
+            <span className="text-xs font-medium text-text-muted">Statut :</span>
+            <Select
+              value={bulkStatut}
+              onChange={(e) => setBulkStatut(e.target.value as BookingStatut)}
+              className="w-44 text-xs"
+            >
+              <option value="">Choisir...</option>
+              {CASTING_STATUTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+            <Button type="button" variant="secondary" disabled={pending || !bulkStatut} onClick={applyBulkStatut}>
+              Appliquer à {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
+            </Button>
+            {bulkStatutError && <span className="text-xs text-danger">{bulkStatutError}</span>}
+          </div>
           {presentielJournees.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ink px-3 py-2">
               <span className="text-xs font-medium text-text-muted">→ Planning présentiel :</span>

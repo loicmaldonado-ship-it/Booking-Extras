@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
@@ -23,11 +22,12 @@ import {
   updateCastingEntryStatut,
   updateCastingEntryMode,
   updateCastingEntryNotes,
+  updateCastingEntryVisiblePartage,
 } from "@/lib/casting/actions";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
-import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
-import { CASTING_MODE_LABELS, type CastingEntry, type CastingMode } from "@/lib/casting/types";
+import { statutTone, type BookingStatut } from "@/lib/bookings/types";
+import { CASTING_MODE_LABELS, CASTING_STATUTS, type CastingEntry, type CastingMode } from "@/lib/casting/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 
 function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string }) {
@@ -327,6 +327,7 @@ export function CastingEntryManageCard({
   const [pending, startTransition] = useTransition();
   const [statutPending, startStatutTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
+  const [visiblePending, startVisibleTransition] = useTransition();
 
   function removeEntry() {
     startTransition(async () => {
@@ -346,6 +347,14 @@ export function CastingEntryManageCard({
     if (mode === entry.mode) return;
     startModeTransition(async () => {
       await updateCastingEntryMode(entry.id, mode);
+      router.refresh();
+    });
+  }
+
+  function changeVisible(visible: boolean) {
+    if (visible === entry.visible_partage) return;
+    startVisibleTransition(async () => {
+      await updateCastingEntryVisiblePartage(entry.id, visible);
       router.refresh();
     });
   }
@@ -384,7 +393,6 @@ export function CastingEntryManageCard({
           <span className="text-sm font-medium">
             {entry.figurants?.prenom} {entry.figurants?.nom}
           </span>
-          {entry.submitted_at ? <Badge tone="turquoise">Envoyé</Badge> : <Badge tone="yellow">En attente</Badge>}
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
@@ -409,13 +417,39 @@ export function CastingEntryManageCard({
           </button>
         ))}
       </div>
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          disabled={visiblePending}
+          onClick={() => changeVisible(true)}
+          title="Visible sur le lien de partage réal"
+          className={cn(
+            "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
+            entry.visible_partage ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          👁️ Visible
+        </button>
+        <button
+          type="button"
+          disabled={visiblePending}
+          onClick={() => changeVisible(false)}
+          title="Masqué du lien de partage réal"
+          className={cn(
+            "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
+            !entry.visible_partage ? "border-danger bg-danger/15 text-danger" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          🙈 Invisible
+        </button>
+      </div>
       <StatusSelect
         value={entry.statut}
         tone={statutTone(entry.statut)}
         disabled={statutPending}
         onChange={(e) => changeStatut(e.target.value as BookingStatut)}
       >
-        {STATUTS.map((s) => (
+        {CASTING_STATUTS.map((s) => (
           <option key={s.value} value={s.value}>
             {s.label}
           </option>

@@ -402,13 +402,22 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
-          <strong className="text-text">statut</strong> (même progression que les bookings) — passe-le en{" "}
-          <UI>Validé</UI> pour afficher un rond ✓ directement sur sa photo. Pour un rôle de catégorie{" "}
-          <strong className="text-text">Rôle</strong>, <UI>+ Ajouter un agent</UI> apparaît sous chaque profil
-          pour garder ses coordonnées à portée de main (agence comprise). En tapant son nom, les agents déjà
-          rentrés une fois (sur n&apos;importe quelle fiche) apparaissent en suggestion — cliquer dessus remplit
-          agence, email et téléphone d&apos;un coup. La base complète (Admin → Base Agents) reste réservée au
-          compte propriétaire.
+          <strong className="text-text">statut</strong> — <UI>Incomplet</UI> puis <UI>Complet</UI> (se met tout
+          seul dès que le candidat a fini d&apos;envoyer ce qui était demandé, ou dès que tu marques une
+          présence en présentiel), puis la même suite que les bookings jusqu&apos;à <UI>Validé</UI> (affiche un
+          rond ✓ sur la photo). Sélectionne plusieurs profils (case en haut de chaque carte) pour changer leur
+          statut d&apos;un coup. Pour un rôle de catégorie <strong className="text-text">Rôle</strong>,{" "}
+          <UI>+ Ajouter un agent</UI> apparaît sous chaque profil pour garder ses coordonnées à portée de main
+          (agence comprise). En tapant son nom, les agents déjà rentrés une fois (sur n&apos;importe quelle
+          fiche) apparaissent en suggestion — cliquer dessus remplit agence, email et téléphone d&apos;un coup.
+          La base complète (Admin → Base Agents) reste réservée au compte propriétaire.
+        </Callout>
+        <Callout>
+          <strong className="text-text">👁️ Visible / 🙈 Invisible.</strong> Un profil qui a envoyé sa vidéo
+          n&apos;apparaît plus automatiquement au réal — passe-le en <UI>Visible</UI> une fois son contenu
+          relu, pour garder la main avant exposition. <UI>Invisible</UI> le retire du lien sans rien supprimer.
+          Même logique au niveau du rôle entier (<UI>Visible sur le lien de partage réal</UI> en calibrant) :
+          un rôle invisible reste caché du réal même si des profils dedans sont marqués visibles.
         </Callout>
         <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du

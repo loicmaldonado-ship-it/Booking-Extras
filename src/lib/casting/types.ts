@@ -1,5 +1,25 @@
-import type { BookingStatut } from "@/lib/bookings/types";
+import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
 import type { Genre } from "@/lib/figurants/types";
+
+// En casting, "Proposé" / "PER (pas encore de réponse)" ne veulent rien
+// dire — ce qui compte c'est si la personne a fini d'envoyer ce qui était
+// demandé (vidéos/photos en selftape, présence en présentiel). Mêmes
+// valeurs de statut que les bookings (partagées en base), juste relabellisées
+// pour ce contexte — "Complet" se met tout seul dès que le candidat a tout
+// envoyé (voir finalizeCastingUpload), pas besoin de le cocher à la main.
+const CASTING_STATUT_LABELS: Partial<Record<BookingStatut, string>> = {
+  proposé: "Incomplet",
+  envoyé: "Complet",
+};
+
+export const CASTING_STATUTS = STATUTS.map((s) => ({
+  ...s,
+  label: CASTING_STATUT_LABELS[s.value] ?? s.label,
+}));
+
+export function castingStatutLabel(v: BookingStatut): string {
+  return CASTING_STATUTS.find((s) => s.value === v)?.label ?? v;
+}
 
 export type CategorieCachet = "role" | "silhouette" | "doublure";
 
@@ -52,6 +72,7 @@ export type CastingEntry = {
   statut: BookingStatut;
   mode: CastingMode;
   notes: string | null;
+  visible_partage: boolean;
   figurants: {
     prenom: string;
     nom: string;

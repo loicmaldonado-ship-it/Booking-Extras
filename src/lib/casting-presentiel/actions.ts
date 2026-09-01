@@ -201,6 +201,29 @@ export async function updatePresentielStatut(entryId: string, statut: BookingSta
   revalidatePath("/casting/presentiel/journee");
 }
 
+// Changement de statut groupé — depuis une sélection multiple sur la
+// journée, plutôt que profil par profil.
+export async function updatePresentielStatutBulk(
+  entryIds: string[],
+  statut: BookingStatut
+): Promise<{ error?: string; ok?: number }> {
+  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+
+  const supabase = createAdminClient();
+  const { data: entries } = await supabase.from("casting_presentiel_entries").select("id, projet_id").in("id", entryIds);
+  const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
+  for (const projetId of projetIds) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
+  }
+
+  const { error } = await supabase.from("casting_presentiel_entries").update({ statut }).in("id", entryIds);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting/presentiel/journee");
+  return { ok: entryIds.length };
+}
+
 export async function addPresentielCreneau(journeeId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkJourneeAccess(journeeId);
   if (accessError) return { error: accessError };

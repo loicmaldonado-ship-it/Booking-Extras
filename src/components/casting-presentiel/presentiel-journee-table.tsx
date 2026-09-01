@@ -9,16 +9,18 @@ import { Button } from "@/components/ui/button";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { substituteTokens } from "@/lib/bookings/convocation";
-import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
+import { statutTone, type BookingStatut } from "@/lib/bookings/types";
 import {
   removePresentielEntry,
   updatePresentielStatut,
+  updatePresentielStatutBulk,
   updatePresentielEntryRole,
   updatePresentielEntryNotes,
 } from "@/lib/casting-presentiel/actions";
 import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { recordCastingMessage } from "@/lib/casting/actions";
 import { defaultPresentielConvocationMessage } from "@/lib/casting-presentiel/message-template";
+import { CASTING_STATUTS } from "@/lib/casting/types";
 import type { PresentielEntry } from "@/lib/casting-presentiel/types";
 import type { Creneau } from "@/components/essayages/creneaux-panel";
 
@@ -54,6 +56,8 @@ export function PresentielJourneeTable({
   const [message, setMessage] = useState(defaultPresentielConvocationMessage());
   const [sent, setSent] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
+  const [bulkStatut, setBulkStatut] = useState<BookingStatut | "">("");
+  const [bulkStatutError, setBulkStatutError] = useState<string | null>(null);
 
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
@@ -74,6 +78,20 @@ export function PresentielJourneeTable({
     startTransition(async () => {
       await updatePresentielStatut(id, statut);
       router.refresh();
+    });
+  }
+
+  function applyBulkStatut() {
+    if (!bulkStatut) return;
+    setBulkStatutError(null);
+    const entryIds = rows.filter((r) => selected.has(r.id)).map((r) => r.id);
+    startTransition(async () => {
+      const result = await updatePresentielStatutBulk(entryIds, bulkStatut);
+      if (result?.error) setBulkStatutError(result.error);
+      else {
+        setSelected(new Set());
+        router.refresh();
+      }
     });
   }
 
@@ -188,7 +206,7 @@ export function PresentielJourneeTable({
               disabled={pending}
               onChange={(e) => changeStatut(r.id, e.target.value as BookingStatut)}
             >
-              {STATUTS.map((s) => (
+              {CASTING_STATUTS.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -208,6 +226,25 @@ export function PresentielJourneeTable({
 
       {selected.size > 0 && (
         <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-ink px-3 py-2">
+            <span className="text-xs font-medium text-text-muted">Statut :</span>
+            <Select
+              value={bulkStatut}
+              onChange={(e) => setBulkStatut(e.target.value as BookingStatut)}
+              className="w-44 text-xs"
+            >
+              <option value="">Choisir...</option>
+              {CASTING_STATUTS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+            <Button type="button" variant="secondary" disabled={pending || !bulkStatut} onClick={applyBulkStatut}>
+              Appliquer à {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
+            </Button>
+            {bulkStatutError && <span className="text-xs text-danger">{bulkStatutError}</span>}
+          </div>
           {sendError && <p className="text-sm text-danger">{sendError}</p>}
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">

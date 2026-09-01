@@ -10,6 +10,7 @@ type EntryWithRole = {
   id: string;
   projet_id: string;
   figurant_id: string;
+  statut: string;
   casting_roles: { nom: string; nb_videos: number; photo_labels: string[]; demande_bande_demo: boolean } | null;
   figurants: { prenom: string; nom: string } | null;
 };
@@ -19,7 +20,7 @@ async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, figurant_id, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo), figurants(prenom, nom)"
+      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo), figurants(prenom, nom)"
     )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
@@ -98,10 +99,16 @@ export async function finalizeCastingUpload(
     await upsertFigurantLienByLabel(supabase, entry.figurant_id, LIEN_BANDE_DEMO, payload.bandeDemo.trim());
   }
 
-  const { error } = await supabase
-    .from("casting_entries")
-    .update({ video_storage_paths: payload.videoPaths, submitted_at: new Date().toISOString() })
-    .eq("id", entry.id);
+  // "Complet" se met tout seul dès que tout est envoyé — mais ne fait
+  // jamais régresser un statut déjà avancé à la main (ex. si le staff a
+  // déjà relancé ou validé avant un renvoi via ce même lien).
+  const patch: { video_storage_paths: string[]; submitted_at: string; statut?: "envoyé" } = {
+    video_storage_paths: payload.videoPaths,
+    submitted_at: new Date().toISOString(),
+  };
+  if (entry.statut === "proposé") patch.statut = "envoyé";
+
+  const { error } = await supabase.from("casting_entries").update(patch).eq("id", entry.id);
   if (error) return { error: error.message };
 
   if (entry.figurants) {

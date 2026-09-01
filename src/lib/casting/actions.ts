@@ -320,6 +320,49 @@ export async function updateCastingEntryNotes(entryId: string, notes: string): P
   return { success: true };
 }
 
+// Interrupteur indépendant du statut : "le réal peut voir ce profil sur le
+// lien de partage" — jamais activé automatiquement à l'envoi, pour laisser
+// le temps d'une relecture (voir finalizeCastingUpload).
+export async function updateCastingEntryVisiblePartage(
+  entryId: string,
+  visible: boolean
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_entries").update({ visible_partage: visible }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Changement de statut groupé — depuis une sélection multiple sur la page
+// Casting, plutôt que profil par profil.
+export async function updateCastingEntriesStatutBulk(
+  entryIds: string[],
+  statut: BookingStatut
+): Promise<{ error?: string; ok?: number }> {
+  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+
+  const supabase = createAdminClient();
+  const { data: entries } = await supabase.from("casting_entries").select("id, projet_id").in("id", entryIds);
+  const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
+  for (const projetId of projetIds) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
+  }
+
+  const { error } = await supabase.from("casting_entries").update({ statut }).in("id", entryIds);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { ok: entryIds.length };
+}
+
 export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
   const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
