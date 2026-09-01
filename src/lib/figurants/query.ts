@@ -9,6 +9,7 @@ export type FigurantFilters = {
   genre?: string;
   age_min?: string;
   age_max?: string;
+  profil?: string;
 } & MensurationFilters;
 
 // Pas de colonne "âge" — calculé depuis date_naissance directement dans la
@@ -30,6 +31,13 @@ export function buildFigurantsQuery(
     .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
     .order("nom", { ascending: true });
+
+  // Séparation figurant·es de figuration / comédien·nes (profils "rôle") —
+  // deux pools distincts, jamais mélangés dans une même liste : les
+  // comédien·nes ont souvent des fiches minimales (juste le nom) qui
+  // noieraient les filtres pensés pour la figuration (mensurations,
+  // véhicule...), et inversement.
+  query = query.eq("est_comedien", params.profil === "comediens");
 
   if (params.q) {
     query = query.or(

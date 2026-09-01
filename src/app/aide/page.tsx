@@ -261,6 +261,11 @@ export default function AidePage() {
           ]}
         />
         <Callout>
+          <strong className="text-text">Profil : Figurant·es / Comédien·nes.</strong> Les deux pools sont
+          toujours séparés — bascule d&apos;un clic en haut de la page. Coche <UI>Comédien·ne</UI> sur un profil
+          pour qu&apos;il apparaisse dans le second, jamais mélangé avec la figuration.
+        </Callout>
+        <Callout>
           <strong className="text-text">Fiche incomplète.</strong> Depuis son espace, le·la figurant·e voit
           « Ma fiche » automatiquement ouverte en édition, avec la liste des champs obligatoires manquants —
           pratique quand tu renvoies le lien de connexion justement pour lui faire compléter une info.
@@ -440,7 +445,14 @@ export default function AidePage() {
           <UI>→ Planning présentiel</UI> pour les envoyer d&apos;un coup vers une journée (et un créneau si tu en
           choisis un) sans repasser par la recherche nom par nom. Si une personne prévue en présentiel ne peut
           finalement pas se déplacer, envoie-lui simplement le lien selftape par mail comme pour un rôle
-          classique — les deux options restent toujours ouvertes sur le même profil.
+          classique — les deux options restent toujours ouvertes sur le même profil. Le menu déroulant{" "}
+          <UI>Créneau</UI> (dans « → Planning présentiel ») affiche qui est déjà calé sur chaque horaire, pour ne
+          jamais en mettre deux fois. La recherche <UI>+ Ajouter un profil</UI> depuis la journée ne propose que
+          les profils déjà dans un rôle de ce projet — pas toute la base.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Notes.</strong> Un petit champ sous chaque profil (rôle ou casting
+          présentiel) pour noter une spécificité repérée — se sauvegarde tout seul en quittant le champ.
         </Callout>
         <Callout tone="yellow">
           <strong className="text-text">Signature.</strong> Chaque message envoyé se termine par la signature du

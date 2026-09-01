@@ -63,6 +63,16 @@ export default async function FigurantsPage({
     Object.entries(filters).filter(([, v]) => v) as [string, string][]
   ).toString();
 
+  const isComediens = filters.profil === "comediens";
+  function profilHref(profil: "figurants" | "comediens") {
+    const sp = new URLSearchParams(query);
+    if (profil === "comediens") sp.set("profil", "comediens");
+    else sp.delete("profil");
+    if (!isTrombi) sp.set("vue", "liste");
+    const qs = sp.toString();
+    return `/figurants${qs ? `?${qs}` : ""}`;
+  }
+
   function pageHref(p: number) {
     const sp = new URLSearchParams(query);
     if (!isTrombi) sp.set("vue", "liste");
@@ -95,7 +105,8 @@ export default async function FigurantsPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Users size={28} strokeWidth={1.75} />Base Profils</h1>
           <p className="mt-1 text-text-muted">
-            {totalCount ?? 0} profil{(totalCount ?? 0) > 1 ? "s" : ""}
+            {totalCount ?? 0} {isComediens ? "comédien·ne" : "figurant·e"}
+            {(totalCount ?? 0) > 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -111,6 +122,28 @@ export default async function FigurantsPage({
       </div>
 
       <DoublonsPanel groupes={doublons} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium text-text-muted">Profil :</span>
+        <Link
+          href={profilHref("figurants")}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            !isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Figurant·es
+        </Link>
+        <Link
+          href={profilHref("comediens")}
+          className={cn(
+            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+            isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+          )}
+        >
+          Comédien·nes
+        </Link>
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Vue :</span>
@@ -136,6 +169,8 @@ export default async function FigurantsPage({
 
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
+          {isComediens && <input type="hidden" name="profil" value="comediens" />}
+          {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
           <Input name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
           <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
           <Select name="myrole" defaultValue={params.myrole ?? ""}>

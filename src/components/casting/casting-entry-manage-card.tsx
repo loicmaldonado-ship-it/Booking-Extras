@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { AgentNomInput } from "@/components/agents/agent-nom-input";
+import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { cn } from "@/lib/cn";
@@ -21,6 +22,7 @@ import {
   addCastingVideo,
   updateCastingEntryStatut,
   updateCastingEntryMode,
+  updateCastingEntryNotes,
 } from "@/lib/casting/actions";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
@@ -476,6 +478,8 @@ export function CastingEntryManageCard({
           → Voir le booking
         </Link>
       )}
+
+      <EntryNotesField initialValue={entry.notes} onSave={(notes) => updateCastingEntryNotes(entry.id, notes)} />
 
       <Button type="button" variant="ghost" disabled={pending} onClick={removeEntry}>
         Retirer du rôle

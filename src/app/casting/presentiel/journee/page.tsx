@@ -45,7 +45,7 @@ export default async function CastingPresentielJourneePage({
     return <p className="text-text-muted">Cette journée de casting présentiel n&apos;existe pas.</p>;
   }
 
-  const [{ data: entriesRaw }, { data: allFigurants }, { data: roles }, { data: creneaux }] = await Promise.all([
+  const [{ data: entriesRaw }, { data: castingEntriesFigurants }, { data: roles }, { data: creneaux }] = await Promise.all([
     supabase
       .from("casting_presentiel_entries")
       .select(
@@ -53,7 +53,14 @@ export default async function CastingPresentielJourneePage({
       )
       .eq("journee_id", journee.id)
       .returns<Omit<PresentielEntry, "portraitUrl">[]>(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    // Seulement les profils déjà ajoutés à un rôle de ce projet — le
+    // casting présentiel programme des gens déjà en cours de casting, pas
+    // n'importe qui de toute la base.
+    supabase
+      .from("casting_entries")
+      .select("figurants(id, prenom, nom)")
+      .eq("projet_id", projet_id)
+      .returns<{ figurants: { id: string; prenom: string; nom: string } | null }[]>(),
     supabase.from("casting_roles").select("id, nom").eq("projet_id", projet_id).order("nom"),
     supabase
       .from("casting_presentiel_creneaux")
@@ -62,6 +69,12 @@ export default async function CastingPresentielJourneePage({
       .order("heure_debut")
       .returns<Creneau[]>(),
   ]);
+
+  const roleFigurants = Array.from(
+    new Map(
+      (castingEntriesFigurants ?? []).filter((e) => e.figurants).map((e) => [e.figurants!.id, e.figurants!])
+    ).values()
+  ).sort((a, b) => a.nom.localeCompare(b.nom));
 
   const figurantIds = (entriesRaw ?? []).map((e) => e.figurant_id);
   const [photosByFigurant, signature] = await Promise.all([
@@ -108,7 +121,7 @@ export default async function CastingPresentielJourneePage({
           <QuickAddFigurantPresentiel
             journeeId={journee.id}
             projetId={projet_id}
-            figurants={allFigurants ?? []}
+            figurants={roleFigurants}
             roles={roles ?? []}
             alreadyAddedIds={figurantIds}
           />

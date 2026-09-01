@@ -10,7 +10,13 @@ import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
-import { removePresentielEntry, updatePresentielStatut, updatePresentielEntryRole } from "@/lib/casting-presentiel/actions";
+import {
+  removePresentielEntry,
+  updatePresentielStatut,
+  updatePresentielEntryRole,
+  updatePresentielEntryNotes,
+} from "@/lib/casting-presentiel/actions";
+import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { recordCastingMessage } from "@/lib/casting/actions";
 import { defaultPresentielConvocationMessage } from "@/lib/casting-presentiel/message-template";
 import type { PresentielEntry } from "@/lib/casting-presentiel/types";
@@ -192,6 +198,7 @@ export function PresentielJourneeTable({
               <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
               <PreviewButton items={previewItems} index={i} />
             </div>
+            <EntryNotesField initialValue={r.notes} onSave={(notes) => updatePresentielEntryNotes(r.id, notes)} />
           </div>
         ))}
         {rows.length === 0 && (

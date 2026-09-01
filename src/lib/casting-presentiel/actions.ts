@@ -128,6 +128,16 @@ export async function updatePresentielEntryRole(entryId: string, roleId: string 
   return { success: true as const };
 }
 
+export async function updatePresentielEntryNotes(entryId: string, notes: string) {
+  const accessError = await checkEntryAccess(entryId);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  await supabase.from("casting_presentiel_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  revalidatePath("/casting/presentiel/journee");
+  return { success: true as const };
+}
+
 // Envoi rapide depuis le panneau d'un rôle (page /casting) : ajoute une
 // sélection de profils directement à une journée de casting présentiel, et
 // les place dans un créneau si un a été choisi — en un seul aller-retour,

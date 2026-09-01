@@ -51,6 +51,7 @@ export type CastingEntry = {
   submitted_at: string | null;
   statut: BookingStatut;
   mode: CastingMode;
+  notes: string | null;
   figurants: {
     prenom: string;
     nom: string;

@@ -12,15 +12,24 @@ export type PresentielJournee = {
   valides: number;
 };
 
+export type PresentielCreneauAvecOccupants = {
+  id: string;
+  heure_debut: string;
+  heure_fin: string;
+  capacite: number;
+  occupants: string[];
+};
+
 export type PresentielJourneeAvecCreneaux = {
   id: string;
   date: string;
-  creneaux: { id: string; heure_debut: string; heure_fin: string }[];
+  creneaux: PresentielCreneauAvecOccupants[];
 };
 
 // Version légère (pas de comptage bookings) pour le panneau "Envoyer au
 // planning présentiel" depuis /casting — juste de quoi peupler les deux
-// menus déroulants journée puis créneau.
+// menus déroulants journée puis créneau, occupants compris pour repérer qui
+// est déjà calé sur un créneau avant d'y en ajouter un·e de plus.
 export async function getPresentielJourneesWithCreneaux(projetId: string): Promise<PresentielJourneeAvecCreneaux[]> {
   const supabase = createAdminClient();
   const { data: journees } = await supabase
@@ -30,17 +39,40 @@ export async function getPresentielJourneesWithCreneaux(projetId: string): Promi
     .order("date", { ascending: true });
   if (!journees || journees.length === 0) return [];
 
-  const { data: creneaux } = await supabase
-    .from("casting_presentiel_creneaux")
-    .select("id, journee_id, heure_debut, heure_fin")
-    .in("journee_id", journees.map((j) => j.id))
-    .order("heure_debut")
-    .returns<{ id: string; journee_id: string; heure_debut: string; heure_fin: string }[]>();
+  const journeeIds = journees.map((j) => j.id);
+  const [{ data: creneaux }, { data: entries }] = await Promise.all([
+    supabase
+      .from("casting_presentiel_creneaux")
+      .select("id, journee_id, heure_debut, heure_fin, capacite")
+      .in("journee_id", journeeIds)
+      .order("heure_debut")
+      .returns<{ id: string; journee_id: string; heure_debut: string; heure_fin: string; capacite: number }[]>(),
+    supabase
+      .from("casting_presentiel_entries")
+      .select("creneau_id, figurants(prenom, nom)")
+      .in("journee_id", journeeIds)
+      .not("creneau_id", "is", null)
+      .returns<{ creneau_id: string | null; figurants: { prenom: string; nom: string } | null }[]>(),
+  ]);
 
-  const creneauxByJournee = new Map<string, { id: string; heure_debut: string; heure_fin: string }[]>();
+  const occupantsByCreneau = new Map<string, string[]>();
+  for (const e of entries ?? []) {
+    if (!e.creneau_id || !e.figurants) continue;
+    const list = occupantsByCreneau.get(e.creneau_id) ?? [];
+    list.push(`${e.figurants.prenom} ${e.figurants.nom}`);
+    occupantsByCreneau.set(e.creneau_id, list);
+  }
+
+  const creneauxByJournee = new Map<string, PresentielCreneauAvecOccupants[]>();
   for (const c of creneaux ?? []) {
     const list = creneauxByJournee.get(c.journee_id) ?? [];
-    list.push({ id: c.id, heure_debut: c.heure_debut, heure_fin: c.heure_fin });
+    list.push({
+      id: c.id,
+      heure_debut: c.heure_debut,
+      heure_fin: c.heure_fin,
+      capacite: c.capacite,
+      occupants: occupantsByCreneau.get(c.id) ?? [],
+    });
     creneauxByJournee.set(c.journee_id, list);
   }
 

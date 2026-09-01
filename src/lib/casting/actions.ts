@@ -306,6 +306,20 @@ export async function updateCastingEntryMode(entryId: string, mode: CastingMode)
   return { success: true };
 }
 
+export async function updateCastingEntryNotes(entryId: string, notes: string): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("casting_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
   const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();

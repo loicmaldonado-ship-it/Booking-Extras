@@ -262,12 +262,13 @@ export function CastingRoleSection({
                 value={presentielCreneauId}
                 onChange={(e) => setPresentielCreneauId(e.target.value)}
                 disabled={!selectedJournee || selectedJournee.creneaux.length === 0}
-                className="w-32 text-xs"
+                className="w-64 text-xs"
               >
                 <option value="">Créneau (aucun)</option>
                 {selectedJournee?.creneaux.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.heure_debut.slice(0, 5)}–{c.heure_fin.slice(0, 5)}
+                    {c.heure_debut.slice(0, 5)}–{c.heure_fin.slice(0, 5)} ({c.occupants.length}/{c.capacite})
+                    {c.occupants.length > 0 ? ` — ${c.occupants.join(", ")}` : ""}
                   </option>
                 ))}
               </Select>
