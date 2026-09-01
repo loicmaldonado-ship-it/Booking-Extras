@@ -77,7 +77,7 @@ export default async function PartageCastingPage({
               {role.date_tournage && <Badge>{formatDateLong(role.date_tournage)}</Badge>}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            <div className="flex flex-col gap-3">
               {roleEntries.map((entry) => (
                 <CastingRealEntryCard
                   key={entry.id}
@@ -89,7 +89,7 @@ export default async function PartageCastingPage({
                 />
               ))}
               {roleEntries.length === 0 && (
-                <p className="col-span-full text-sm text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
+                <p className="text-sm text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
               )}
             </div>
           </Card>

@@ -404,8 +404,7 @@ export default function AidePage() {
           explicitement marqués visibles — classés par rôle, jamais les infos de contact. Les boutons{" "}
           <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
           montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une
-          silhouette que tu ne veux plus montrer. Les profils visibles d&apos;un même rôle s&apos;affichent côte à
-          côte en grille (jusqu&apos;à 5 par ligne), pour parcourir le rôle d&apos;un coup d&apos;œil.
+          silhouette que tu ne veux plus montrer.
         </Callout>
         <Callout>
           <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
