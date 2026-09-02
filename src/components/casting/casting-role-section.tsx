@@ -100,6 +100,12 @@ export function CastingRoleSection({
     });
   }
 
+  const allSelected = entries.length > 0 && selected.size === entries.length;
+
+  function toggleSelectAll() {
+    setSelected(allSelected ? new Set() : new Set(entries.map((e) => e.id)));
+  }
+
   function tokens(entry: CastingEntry) {
     const assignment = presentielAssignments.get(entry.figurant_id);
     return {
@@ -299,6 +305,18 @@ export function CastingRoleSection({
         figurants={allFigurants}
         alreadyAddedIds={entries.map((e) => e.figurant_id)}
       />
+
+      {entries.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="rounded-full border border-coral/60 bg-coral/10 px-2 py-0.5 text-[11px] font-medium text-coral transition-colors hover:bg-coral/20"
+          >
+            {allSelected ? "Tout désélectionner" : `Tout sélectionner (${entries.length})`}
+          </button>
+        </div>
+      )}
 
       {entries.length > 0 && (
         <div className="flex items-center gap-1.5">

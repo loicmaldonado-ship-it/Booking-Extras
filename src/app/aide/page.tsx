@@ -412,7 +412,8 @@ export default function AidePage() {
           tout seul dès que le candidat a fini d&apos;envoyer ce qui était demandé), et c&apos;est à toi de
           repasser en <UI>Complet</UI> une fois le contenu relu et validé — jamais automatique. Puis la même
           suite que les bookings jusqu&apos;à <UI>Validé</UI> (affiche un rond ✓ sur la photo). Sélectionne
-          plusieurs profils (case en haut de chaque carte) pour changer leur statut d&apos;un coup. Pour un rôle
+          plusieurs profils (case en haut de chaque carte), ou <UI>Tout sélectionner</UI> au-dessus de la liste
+          pour tous les prendre d&apos;un coup, pour changer leur statut ou envoyer un message groupé. Pour un rôle
           de catégorie <strong className="text-text">Rôle</strong>,{" "}
           <UI>+ Ajouter un agent</UI> apparaît sous chaque profil pour garder ses coordonnées à portée de main
           (agence comprise). En tapant son nom, les agents déjà rentrés une fois (sur n&apos;importe quelle
