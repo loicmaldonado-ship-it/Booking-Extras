@@ -142,7 +142,7 @@ export default async function PartageEssayagesPage({
                         <td className="py-2 pr-4">
                           <div className="relative h-12 w-9 overflow-hidden rounded bg-ink-raised-2">
                             {portrait?.url && (
-                              <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                              <Image src={portrait.url} alt="" fill className="object-cover" />
                             )}
                           </div>
                         </td>

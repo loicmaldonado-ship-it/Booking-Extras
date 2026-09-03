@@ -349,7 +349,7 @@ export function CovoiturageBoard({
           </button>
         )}
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
         </div>
         <span className="block w-full truncate text-xs font-medium">
           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
@@ -380,7 +380,7 @@ export function CovoiturageBoard({
     return (
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-ink-raised px-4 py-3">
         <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
-          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
         </div>
         <div className="w-36 shrink-0">
           <div className="truncate font-medium">{r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}</div>

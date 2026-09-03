@@ -304,7 +304,7 @@ export function EssayageJourneeTable({
             </button>
             <Link href={`/figurants/${r.figurant_id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
                 {r.portraitUrl && (() => {
                   const gallery = toGalleryPhotos(r.photos);
                   return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;

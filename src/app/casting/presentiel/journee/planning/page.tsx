@@ -74,7 +74,7 @@ export default async function CastingPresentielPlanningPage({
       <div className="flex w-24 flex-col items-center gap-0.5 text-center">
         <div className="relative h-32 w-24 overflow-hidden rounded bg-gray-100">
           {portraitUrl(r.figurant_id) && (
-            <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" unoptimized />
+            <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" />
           )}
         </div>
         <span className="block w-24 truncate text-[10px] font-medium leading-tight">
@@ -152,7 +152,7 @@ export default async function CastingPresentielPlanningPage({
                               <td className="w-10 py-1">
                                 <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gray-100">
                                   {portraitUrl(r.figurant_id) && (
-                                    <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" unoptimized />
+                                    <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" />
                                   )}
                                 </div>
                               </td>
@@ -192,7 +192,7 @@ export default async function CastingPresentielPlanningPage({
                         <td className="w-10 py-1">
                           <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gray-100">
                             {portraitUrl(r.figurant_id) && (
-                              <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" unoptimized />
+                              <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" />
                             )}
                           </div>
                         </td>

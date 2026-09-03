@@ -27,7 +27,14 @@ export function MyAvatarMenu({
   return (
     <div className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} aria-label="Ma photo">
-        <AvatarPresence avatarUrl={preview ?? profile.avatarUrl} nom={profile.nom} email={profile.email} online={false} size={36} />
+        <AvatarPresence
+          avatarUrl={preview ?? profile.avatarUrl}
+          nom={profile.nom}
+          email={profile.email}
+          online={false}
+          size={36}
+          previewIsLocal={!!preview}
+        />
       </button>
 
       {open && (

@@ -19,6 +19,10 @@ export function AvatarPresence({
   // "dot-always" : pastille verte OU rouge, pour un bandeau où l'absence de
   // pastille serait ambiguë (connecté ? pas encore chargé ?).
   variant = "dot-when-online",
+  // true quand avatarUrl est un aperçu local (blob: avant envoi du
+  // formulaire) plutôt qu'une URL du stockage — l'optimiseur d'images de
+  // Next ne sait pas traiter un blob:, donc on le court-circuite.
+  previewIsLocal = false,
 }: {
   avatarUrl: string | null;
   nom: string | null;
@@ -26,12 +30,13 @@ export function AvatarPresence({
   online: boolean;
   size?: number;
   variant?: "dot-when-online" | "dot-always";
+  previewIsLocal?: boolean;
 }) {
   const showDot = variant === "dot-always" || online;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {avatarUrl ? (
-        <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" unoptimized />
+        <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" unoptimized={previewIsLocal} />
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-full bg-ink-raised-2 text-xs font-semibold text-text-muted">
           {initials(nom, email)}

@@ -1,5 +1,10 @@
 import { resolvePartageToken, getPartageTitreByToken } from "@/lib/partage/data";
-import { getCastingRoles, getCastingEntries, getCastingVideoUrls, getCastingEntryPhotos } from "@/lib/casting/data";
+import {
+  getCastingRoles,
+  getCastingEntries,
+  getCastingVideoUrlPairsByEntries,
+  getCastingEntryPhotos,
+} from "@/lib/casting/data";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
@@ -50,12 +55,14 @@ export default async function PartageCastingPage({
 
   const entryIds = visibleEntries.map((e) => e.id);
   const figurantIds = visibleEntries.map((e) => e.figurant_id);
-  const [photosByFigurant, videoUrlsList, entryPhotosByEntry] = await Promise.all([
+  const [photosByFigurant, videoPairsByEntry, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    Promise.all(visibleEntries.map((e) => getCastingVideoUrls(e.video_storage_paths))),
+    getCastingVideoUrlPairsByEntries(visibleEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths }))),
     getCastingEntryPhotos(entryIds),
   ]);
-  const videoUrlsByEntry = new Map(visibleEntries.map((e, i) => [e.id, videoUrlsList[i]]));
+  const videoUrlsByEntry = new Map(
+    visibleEntries.map((e) => [e.id, (videoPairsByEntry.get(e.id) ?? []).map((p) => p.url)])
+  );
 
   return (
     <div className="flex flex-col gap-8">

@@ -49,7 +49,7 @@ export function TrombiGrid({
               )}
               <div className="relative h-32 w-24 overflow-hidden rounded bg-gray-100">
                 {portrait?.url && (
-                  <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                  <Image src={portrait.url} alt="" fill className="object-cover" />
                 )}
               </div>
               <span className="block w-24 truncate text-[10px] font-medium leading-tight">

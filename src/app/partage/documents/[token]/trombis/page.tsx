@@ -211,7 +211,7 @@ export default async function PartageTrombisPage({
                     <div className="flex w-24 flex-col items-center gap-0.5 text-center">
                       <div className="relative h-32 w-24 overflow-hidden rounded bg-gray-100">
                         {portrait?.url && (
-                          <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                          <Image src={portrait.url} alt="" fill className="object-cover" />
                         )}
                       </div>
                       <span className="text-[10px] font-medium leading-tight">

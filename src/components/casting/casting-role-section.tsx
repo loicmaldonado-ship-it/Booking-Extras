@@ -10,6 +10,7 @@ import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocati
 import {
   deleteCastingRole,
   recordCastingMessage,
+  recordCastingMessagesBulk,
   updateAllCastingEntriesVisiblePartage,
   updateCastingEntriesStatutBulk,
   updateCastingRoleVisiblePartage,
@@ -156,9 +157,32 @@ export function CastingRoleSection({
   }
 
   function sendToAll() {
-    for (const entry of entries.filter((e) => selected.has(e.id) && e.figurants?.email && !sentBulk.has(e.id))) {
-      sendTo(entry);
-    }
+    const targets = entries.filter((e) => selected.has(e.id) && e.figurants?.email && !sentBulk.has(e.id));
+    if (targets.length === 0 || !bulkMessage.trim()) return;
+
+    const payload = targets.map((entry) => {
+      const tk = tokens(entry);
+      return {
+        figurantId: entry.figurant_id,
+        email: entry.figurants!.email!,
+        agentEmail: entry.figurants?.agent_email,
+        subject: substituteTokens(bulkSubject, tk),
+        corps: substituteTokens(bulkMessage, tk),
+        html: substituteTokensHtml(bulkMessage, tk, { bold: ["role", "projet"], italic: ["signature"] }),
+      };
+    });
+    setSendError(null);
+    startTransition(async () => {
+      const { results } = await recordCastingMessagesBulk(payload, projetId, {
+        rolePdfPath: role.pdf_storage_path,
+        rolePdfFilename: role.pdf_filename,
+      });
+      const errors = results.filter((r) => r.error);
+      if (errors.length > 0) {
+        setSendError(`Échec de l'envoi pour ${errors.length} profil${errors.length > 1 ? "s" : ""}.`);
+      }
+    });
+    setSentBulk((prev) => new Set([...prev, ...targets.map((e) => e.id)]));
   }
 
   const selectedJournee = presentielJournees.find((j) => j.id === presentielJourneeId);

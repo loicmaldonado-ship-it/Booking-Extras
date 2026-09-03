@@ -172,7 +172,7 @@ export function PresentielJourneeTable({
               ×
             </button>
             <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-              {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+              {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
               {r.statut === "valide" && (
                 <span
                   className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-turquoise text-xs text-ink"

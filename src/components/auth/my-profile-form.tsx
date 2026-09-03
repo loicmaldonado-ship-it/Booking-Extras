@@ -51,6 +51,7 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
               email={profile.email}
               online={false}
               size={64}
+              previewIsLocal={!!preview}
             />
           </button>
           <div className="flex flex-col gap-1">

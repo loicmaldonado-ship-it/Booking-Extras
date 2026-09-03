@@ -104,7 +104,7 @@ export default async function SilhouettesPage({
                   <tr key={f.id} className="border-b border-gray-300">
                     <td className="py-1.5 pr-3">
                       <div className="relative h-16 w-12 overflow-hidden rounded bg-gray-100">
-                        {portrait?.url && <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />}
+                        {portrait?.url && <Image src={portrait.url} alt="" fill className="object-cover" />}
                       </div>
                     </td>
                     <td className="py-1.5 pr-3 font-medium">

@@ -266,7 +266,7 @@ export function CandidaturesTable({
                           const gallery = toGalleryPhotos(r.photos);
                           return (
                             <>
-                              <Image src={r.portraitUrl!} alt="" fill className="object-cover" unoptimized />
+                              <Image src={r.portraitUrl!} alt="" fill className="object-cover" />
                               <ZoomButton
                                 src={r.portraitUrl!}
                                 gallery={gallery}
@@ -391,7 +391,7 @@ export function CandidaturesTable({
                     href={`/candidatures/${r.id}`}
                     className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                   >
-                    {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                    {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
                   </Link>
                   <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-2 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     {(() => {

@@ -93,7 +93,7 @@ export function MensurationSheet({
           {mainPhotos.map((p) => (
             <div key={p.id} className="relative h-80 flex-1 min-w-0 overflow-hidden rounded bg-gray-100">
               {p.url && (
-                <Image src={p.url} alt={p.type} fill className="object-contain" unoptimized />
+                <Image src={p.url} alt={p.type} fill className="object-contain" />
               )}
             </div>
           ))}

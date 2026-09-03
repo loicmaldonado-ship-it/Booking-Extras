@@ -34,7 +34,7 @@ export function CastingRealEntryCard({
         className="flex w-full items-center gap-4 px-4 py-3 text-left disabled:cursor-default"
       >
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-          {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <span className="font-medium">{nom}</span>
@@ -62,7 +62,7 @@ export function CastingRealEntryCard({
               {photos.map((p, i) => (
                 <div key={p.url} className="relative flex flex-col gap-1">
                   <div className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
-                    <Image src={p.url} alt={p.label} fill className="object-cover" unoptimized />
+                    <Image src={p.url} alt={p.label} fill className="object-cover" />
                     <ZoomButton src={p.url} alt={p.label} gallery={gallery} index={i} />
                   </div>
                   <span className="text-center text-[11px] text-text-muted">{p.label}</span>

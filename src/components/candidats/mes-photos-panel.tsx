@@ -70,7 +70,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
           {photos.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
-              {p.url && <Image src={p.url} alt={TYPE_LABELS[p.type]} fill className="object-cover" unoptimized />}
+              {p.url && <Image src={p.url} alt={TYPE_LABELS[p.type]} fill className="object-cover" />}
               {p.url && (
                 <ZoomButton src={p.url} alt={TYPE_LABELS[p.type]} gallery={gallery} index={galleryIndex(p.id)} />
               )}

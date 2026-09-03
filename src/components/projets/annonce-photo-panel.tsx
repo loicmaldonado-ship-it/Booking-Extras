@@ -62,7 +62,7 @@ export function AnnoncePhotoPanel({ projetId, photoUrl }: { projetId: string; ph
         <div className="flex items-center gap-3">
           {photoUrl ? (
             <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-ink-raised-2">
-              <Image src={photoUrl} alt="Photo annonces" fill className="object-cover" unoptimized />
+              <Image src={photoUrl} alt="Photo annonces" fill className="object-cover" />
             </div>
           ) : (
             <p className="text-sm text-text-muted">Aucune photo pour l&apos;instant.</p>
@@ -79,7 +79,7 @@ export function AnnoncePhotoPanel({ projetId, photoUrl }: { projetId: string; ph
               className="relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-border bg-ink-raised-2"
             >
               {preview || photoUrl ? (
-                <Image src={preview ?? photoUrl!} alt="Photo annonces" fill className="object-cover" unoptimized />
+                <Image src={preview ?? photoUrl!} alt="Photo annonces" fill className="object-cover" unoptimized={!!preview} />
               ) : (
                 <span className="text-center text-xs text-text-muted">+ Photo</span>
               )}

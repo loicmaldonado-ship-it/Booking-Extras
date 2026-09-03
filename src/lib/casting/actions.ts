@@ -600,3 +600,45 @@ export async function recordCastingMessage(
     attachments,
   });
 }
+
+// Version groupée de recordCastingMessage : télécharge le PDF du rôle une
+// seule fois pour tout l'envoi, au lieu d'un téléchargement par destinataire
+// (gros contributeur d'egress inutile sur les envois à un rôle entier).
+export async function recordCastingMessagesBulk(
+  entries: {
+    figurantId: string;
+    email: string;
+    agentEmail?: string | null;
+    subject: string;
+    corps: string;
+    html?: string;
+  }[],
+  projetId: string | null | undefined,
+  opts?: { rolePdfPath?: string | null; rolePdfFilename?: string | null }
+): Promise<{ results: { figurantId: string; error?: string }[] }> {
+  let attachments: { filename: string; content: Buffer }[] | undefined;
+  if (opts?.rolePdfPath) {
+    const supabase = createAdminClient();
+    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
+    if (data) {
+      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
+    }
+  }
+
+  const results: { figurantId: string; error?: string }[] = [];
+  for (const e of entries) {
+    const result = await recordFigurantMessage({
+      figurantId: e.figurantId,
+      corps: e.corps,
+      categorie: "casting",
+      email: e.email,
+      cc: e.agentEmail,
+      html: e.html,
+      subject: e.subject,
+      projetId,
+      attachments,
+    });
+    results.push({ figurantId: e.figurantId, error: result?.error });
+  }
+  return { results };
+}

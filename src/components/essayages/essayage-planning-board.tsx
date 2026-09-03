@@ -49,7 +49,7 @@ export function EssayagePlanningBoard({
         className="flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border border-border bg-ink p-2 text-center active:cursor-grabbing"
       >
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" unoptimized />}
+          {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
         </div>
         <span className="truncate text-xs font-medium">
           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}

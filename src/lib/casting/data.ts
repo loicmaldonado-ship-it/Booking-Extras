@@ -29,23 +29,30 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
   return data ?? [];
 }
 
-export async function getCastingVideoUrls(storagePaths: string[]): Promise<string[]> {
-  return (await getCastingVideoUrlPairs(storagePaths)).map((p) => p.url);
-}
+// Signe toutes les vidéos de tous les profils passés en une seule requête
+// Storage, au lieu d'un appel createSignedUrl par vidéo par profil — voir
+// getPhotosByFigurantId pour le même principe côté photos.
+export async function getCastingVideoUrlPairsByEntries(
+  entries: { id: string; video_storage_paths: string[] }[]
+): Promise<Map<string, { path: string; url: string }[]>> {
+  const map = new Map<string, { path: string; url: string }[]>();
+  const allPaths = entries.flatMap((e) => e.video_storage_paths);
+  if (allPaths.length === 0) return map;
 
-// Comme getCastingVideoUrls, mais garde le chemin de stockage d'origine
-// associé à chaque URL — nécessaire côté staff pour pouvoir retirer une
-// vidéo précise (removeCastingVideo prend le chemin, pas l'URL signée).
-export async function getCastingVideoUrlPairs(storagePaths: string[]): Promise<{ path: string; url: string }[]> {
-  if (storagePaths.length === 0) return [];
   const supabase = createAdminClient();
-  const pairs = await Promise.all(
-    storagePaths.map(async (path) => {
-      const { data } = await supabase.storage.from("casting-videos").createSignedUrl(path, 60 * 60);
-      return data?.signedUrl ? { path, url: data.signedUrl } : null;
-    })
-  );
-  return pairs.filter((p): p is { path: string; url: string } => !!p);
+  const { data: signedUrls } = await supabase.storage.from("casting-videos").createSignedUrls(allPaths, 60 * 60);
+  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+
+  for (const entry of entries) {
+    const pairs = entry.video_storage_paths
+      .map((path) => {
+        const url = urlByPath.get(path);
+        return url ? { path, url } : null;
+      })
+      .filter((p): p is { path: string; url: string } => !!p);
+    if (pairs.length > 0) map.set(entry.id, pairs);
+  }
+  return map;
 }
 
 export type CastingEntryPhoto = { id: string; label: string; url: string };
@@ -65,15 +72,22 @@ export async function getCastingEntryPhotos(
     .in("casting_entry_id", entryIds)
     .returns<{ id: string; casting_entry_id: string | null; label: string | null; storage_path: string }[]>();
 
-  for (const photo of data ?? []) {
-    if (!photo.casting_entry_id) continue;
-    const { data: signed } = await supabase.storage
-      .from("figurant-photos")
-      .createSignedUrl(photo.storage_path, 60 * 60);
-    if (!signed?.signedUrl) continue;
-    const list = map.get(photo.casting_entry_id) ?? [];
-    list.push({ id: photo.id, label: photo.label ?? "Photo", url: signed.signedUrl });
-    map.set(photo.casting_entry_id, list);
+  const photos = (data ?? []).filter((p) => p.casting_entry_id);
+
+  // Une seule requête pour signer tous les chemins d'un coup, comme
+  // getPhotosByFigurantId — un aller-retour Storage par photo ici faisait
+  // ramper les rôles à beaucoup de profils.
+  const paths = photos.map((p) => p.storage_path);
+  const { data: signedUrls } =
+    paths.length > 0 ? await supabase.storage.from("figurant-photos").createSignedUrls(paths, 60 * 60) : { data: [] };
+  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+
+  for (const photo of photos) {
+    const url = urlByPath.get(photo.storage_path);
+    if (!url) continue;
+    const list = map.get(photo.casting_entry_id!) ?? [];
+    list.push({ id: photo.id, label: photo.label ?? "Photo", url });
+    map.set(photo.casting_entry_id!, list);
   }
 
   return map;

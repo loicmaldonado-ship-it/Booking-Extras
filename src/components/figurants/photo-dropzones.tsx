@@ -104,7 +104,7 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
                 )}
               >
                 {photo?.url ? (
-                  <Image src={photo.url} alt={slot.label} fill className="object-cover" unoptimized />
+                  <Image src={photo.url} alt={slot.label} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-xs text-text-muted">
                     <span className="text-lg">+</span>
@@ -158,7 +158,7 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
             {extraPhotos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-ink">
-                {p.url && <Image src={p.url} alt="" fill className="object-cover" unoptimized />}
+                {p.url && <Image src={p.url} alt="" fill className="object-cover" />}
                 {p.url && <ZoomButton src={p.url} gallery={gallery} index={galleryIndex(p.id)} />}
                 <button
                   type="button"

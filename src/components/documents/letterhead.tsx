@@ -26,7 +26,7 @@ export function DocumentLetterhead({
       <div className="flex items-center gap-3">
         {logoUrl && (
           <div className="relative h-10 w-20 shrink-0">
-            <Image src={logoUrl} alt="" fill className="object-contain object-left" unoptimized />
+            <Image src={logoUrl} alt="" fill className="object-contain object-left" />
           </div>
         )}
         <div className="text-xs font-semibold uppercase text-gray-700">{societe}</div>

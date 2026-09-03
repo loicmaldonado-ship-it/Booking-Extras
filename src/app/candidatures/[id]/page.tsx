@@ -106,7 +106,7 @@ export default async function CandidatureDetailPage({
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ink-raised-2">
             {portrait?.url && (
               <>
-                <Image src={portrait.url} alt="" fill className="object-cover" unoptimized />
+                <Image src={portrait.url} alt="" fill className="object-cover" />
                 <ZoomButton src={portrait.url} gallery={gallery} index={galleryIndex(portrait.id)} />
               </>
             )}
@@ -287,7 +287,7 @@ export default async function CandidatureDetailPage({
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
                 {p.url && (
                   <>
-                    <Image src={p.url} alt={p.type} fill className="object-cover" unoptimized />
+                    <Image src={p.url} alt={p.type} fill className="object-cover" />
                     <ZoomButton src={p.url} alt={p.type} gallery={gallery} index={galleryIndex(p.id)} />
                   </>
                 )}

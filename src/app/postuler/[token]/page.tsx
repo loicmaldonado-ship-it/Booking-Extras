@@ -135,7 +135,7 @@ export default async function PostulerPage({
         <div className="flex items-center gap-3">
           {photoUrl && (
             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-              <Image src={photoUrl} alt="" fill className="object-cover" unoptimized />
+              <Image src={photoUrl} alt="" fill className="object-cover" />
             </div>
           )}
           <h1 className="text-2xl font-semibold">{annonce.titre}</h1>
@@ -173,7 +173,7 @@ export default async function PostulerPage({
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {moodboardPhotos.map((p) => (
             <div key={p.id} className="relative aspect-square overflow-hidden rounded-xl bg-ink-raised-2">
-              <Image src={p.url} alt="" fill className="object-cover" unoptimized />
+              <Image src={p.url} alt="" fill className="object-cover" />
             </div>
           ))}
         </div>

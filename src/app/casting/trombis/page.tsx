@@ -197,7 +197,7 @@ export default async function CastingTrombisPage({
                     )}
                     <div className="flex w-28 flex-col items-center gap-0.5 text-center">
                       <div className="relative h-36 w-28 overflow-hidden rounded bg-gray-100">
-                        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" unoptimized />}
+                        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
                         {item.entry.statut === "valide" && (
                           <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-xs text-white">
                             ✓
