@@ -98,7 +98,7 @@ export default async function CastingPage({
   const [photosByFigurant, videoPairsByEntry, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
     getCastingVideoUrlPairsByEntries(
-      filteredEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths }))
+      filteredEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths, video_labels: e.video_labels }))
     ),
     getCastingEntryPhotos(entryIds),
   ]);

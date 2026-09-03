@@ -21,7 +21,7 @@ export function FicheRoleValideSheet({
         <h2 className="text-2xl font-bold uppercase text-gray-900">{role.nom}</h2>
       </div>
 
-      <div className="relative w-full flex-1 overflow-hidden rounded-lg bg-gray-100" style={{ minHeight: 520 }}>
+      <div className="relative w-full overflow-hidden rounded-lg bg-gray-100" style={{ height: 480 }}>
         {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
       </div>
 

@@ -20,7 +20,7 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, requested_at, submitted_at, statut, mode, notes, visible_partage, figurants(prenom, nom, email, telephone, adresse, code_postal, ville, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence)"
+      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, video_labels, requested_at, submitted_at, statut, mode, notes, visible_partage, figurants(prenom, nom, email, telephone, adresse, code_postal, ville, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence)"
     )
     .eq("projet_id", projetId)
     .order("requested_at", { ascending: false })
@@ -33,9 +33,9 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
 // Storage, au lieu d'un appel createSignedUrl par vidéo par profil — voir
 // getPhotosByFigurantId pour le même principe côté photos.
 export async function getCastingVideoUrlPairsByEntries(
-  entries: { id: string; video_storage_paths: string[] }[]
-): Promise<Map<string, { path: string; url: string }[]>> {
-  const map = new Map<string, { path: string; url: string }[]>();
+  entries: { id: string; video_storage_paths: string[]; video_labels?: string[] }[]
+): Promise<Map<string, { path: string; url: string; label: string }[]>> {
+  const map = new Map<string, { path: string; url: string; label: string }[]>();
   const allPaths = entries.flatMap((e) => e.video_storage_paths);
   if (allPaths.length === 0) return map;
 
@@ -45,11 +45,11 @@ export async function getCastingVideoUrlPairsByEntries(
 
   for (const entry of entries) {
     const pairs = entry.video_storage_paths
-      .map((path) => {
+      .map((path, i) => {
         const url = urlByPath.get(path);
-        return url ? { path, url } : null;
+        return url ? { path, url, label: entry.video_labels?.[i] || `Vidéo ${i + 1}` } : null;
       })
-      .filter((p): p is { path: string; url: string } => !!p);
+      .filter((p): p is { path: string; url: string; label: string } => !!p);
     if (pairs.length > 0) map.set(entry.id, pairs);
   }
   return map;

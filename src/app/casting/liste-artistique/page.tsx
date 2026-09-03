@@ -52,19 +52,20 @@ export default async function ListeArtistiquePage() {
           <AnchorButton href={`/casting/liste-artistique/export?projet_id=${projetId}`} variant="secondary">
             Télécharger Excel
           </AnchorButton>
-          <DownloadPdfButton filename={`liste-artistique-${projet?.nom ?? "projet"}.pdf`} />
+          <DownloadPdfButton filename={`liste-artistique-${projet?.nom ?? "projet"}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>
       </div>
 
       {items.length === 0 ? (
-        <PrintSheet>
+        <PrintSheet orientation="landscape">
           <p className="py-6 text-center text-gray-500">Aucun rôle validé pour l&apos;instant.</p>
         </PrintSheet>
       ) : (
         pages.map((page, pageIndex) => (
           <PrintSheet
             key={pageIndex}
+            orientation="landscape"
             className="break-after-page print:break-after-page"
             pageLabel={pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : undefined}
           >

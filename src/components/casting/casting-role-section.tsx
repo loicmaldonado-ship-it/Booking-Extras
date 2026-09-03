@@ -63,7 +63,7 @@ export function CastingRoleSection({
   role: CastingRole;
   entries: CastingEntry[];
   portraitByFigurant: Map<string, string | null>;
-  videoUrlsByEntry: Map<string, { path: string; url: string }[]>;
+  videoUrlsByEntry: Map<string, { path: string; url: string; label: string }[]>;
   entryPhotosByEntry: Map<string, CastingEntryPhoto[]>;
   allFigurants: { id: string; prenom: string; nom: string }[];
   templates: MessageTemplate[];

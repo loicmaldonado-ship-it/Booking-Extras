@@ -82,6 +82,37 @@ export async function compressVideo(
   video.volume = 0;
 
   let intervalId = 0;
+  const audioCtxRef: { current: AudioContext | null } = { current: null };
+
+  // Piste audio à recombiner avec le canvas — calculée une seule fois et
+  // réutilisée sur les deux passes (createMediaElementSource ne peut être
+  // appelé qu'une fois par <video>, sinon le navigateur lève une erreur).
+  function getAudioTracks(): MediaStreamTrack[] {
+    const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
+    const nativeTracks = videoWithCapture.captureStream?.().getAudioTracks() ?? [];
+    if (nativeTracks.length > 0) return nativeTracks;
+
+    // Safari ne supporte pas HTMLMediaElement.captureStream (même sur les
+    // versions récentes) — on tape l'audio décodé via Web Audio API à la
+    // place, qui fonctionne partout. .muted n'empêche pas la capture ici :
+    // une fois relié au graphe Web Audio, l'élément arrête de sortir
+    // directement vers les haut-parleurs (rien à couper côté audible),
+    // seul ce qu'on connecte explicitement (ici rien) est entendu.
+    try {
+      const AudioContextCtor =
+        window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextCtor) return [];
+      audioCtxRef.current = new AudioContextCtor();
+      const source = audioCtxRef.current.createMediaElementSource(video);
+      const dest = audioCtxRef.current.createMediaStreamDestination();
+      source.connect(dest);
+      console.warn("[compressVideo] video.captureStream indisponible (Safari ?) — repli Web Audio API pour la piste audio.");
+      return dest.stream.getAudioTracks();
+    } catch (audioErr) {
+      console.warn("[compressVideo] Repli audio Web Audio API a échoué — compression sans son.", audioErr);
+      return [];
+    }
+  }
 
   // Une passe d'enregistrement complète (rejoue la vidéo du début à la
   // fin) à une résolution/un débit donnés — appelée une ou deux fois.
@@ -89,6 +120,7 @@ export async function compressVideo(
     width: number,
     height: number,
     videoBitsPerSecond: number,
+    audioTracks: MediaStreamTrack[],
     reportProgress: boolean
   ): Promise<Blob | null> {
     const canvas = document.createElement("canvas");
@@ -101,14 +133,9 @@ export async function compressVideo(
     }
 
     const canvasStream = canvas.captureStream(30);
-    // Safari ne supporte pas (encore) HTMLMediaElement.captureStream — dans
-    // ce cas audioTracks reste vide et on ré-enregistre juste sans son
-    // plutôt que d'abandonner toute la compression.
-    const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
-    const audioTracks = videoWithCapture.captureStream?.().getAudioTracks() ?? [];
     const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
     if (audioTracks.length === 0) {
-      console.warn("[compressVideo] video.captureStream indisponible (Safari ?) — compression sans piste audio.");
+      console.warn("[compressVideo] Aucune piste audio disponible — compression sans son.");
     }
 
     // Liste large de variantes, plusieurs navigateurs (Safari en tête)
@@ -195,7 +222,9 @@ export async function compressVideo(
     const width = Math.round(video.videoWidth * scale);
     const height = Math.round(video.videoHeight * scale);
 
-    let blob = await recordPass(width, height, videoBitsPerSecond, true);
+    const audioTracks = getAudioTracks();
+
+    let blob = await recordPass(width, height, videoBitsPerSecond, audioTracks, true);
     if (!blob) return file;
 
     // Deuxième passe si le navigateur n'a pas respecté le débit demandé —
@@ -208,6 +237,7 @@ export async function compressVideo(
         Math.max(320, Math.round(width / 2)),
         Math.max(180, Math.round(height / 2)),
         Math.round(videoBitsPerSecond / 3),
+        audioTracks,
         false
       );
       if (retryBlob && retryBlob.size < blob.size) blob = retryBlob;
@@ -230,5 +260,6 @@ export async function compressVideo(
   } finally {
     clearInterval(intervalId);
     URL.revokeObjectURL(url);
+    audioCtxRef.current?.close();
   }
 }

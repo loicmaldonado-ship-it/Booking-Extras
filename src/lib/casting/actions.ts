@@ -583,7 +583,7 @@ export async function removeCastingVideo(entryId: string, path: string) {
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
-    .select("projet_id, video_storage_paths")
+    .select("projet_id, video_storage_paths, video_labels")
     .eq("id", entryId)
     .maybeSingle();
   if (!entry) return;
@@ -591,8 +591,15 @@ export async function removeCastingVideo(entryId: string, path: string) {
   if (accessError) throw new Error(accessError);
 
   await supabase.storage.from("casting-videos").remove([path]);
-  const remaining = (entry.video_storage_paths ?? []).filter((p: string) => p !== path);
-  await supabase.from("casting_entries").update({ video_storage_paths: remaining }).eq("id", entryId);
+  const paths: string[] = entry.video_storage_paths ?? [];
+  const labels: string[] = entry.video_labels ?? [];
+  const index = paths.indexOf(path);
+  const remainingPaths = paths.filter((p) => p !== path);
+  const remainingLabels = index === -1 ? labels : labels.filter((_, i) => i !== index);
+  await supabase
+    .from("casting_entries")
+    .update({ video_storage_paths: remainingPaths, video_labels: remainingLabels })
+    .eq("id", entryId);
   revalidatePath("/casting");
 }
 
@@ -622,11 +629,15 @@ export async function createStaffCastingVideoSlot(
 
 // Finalise l'ajout de la vidéo une fois le fichier envoyé à Storage via le
 // slot signé ci-dessus.
-export async function addCastingVideo(entryId: string, path: string): Promise<{ error?: string; success?: true }> {
+export async function addCastingVideo(
+  entryId: string,
+  path: string,
+  label?: string
+): Promise<{ error?: string; success?: true }> {
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
-    .select("projet_id, video_storage_paths")
+    .select("projet_id, video_storage_paths, video_labels")
     .eq("id", entryId)
     .maybeSingle();
   if (!entry) return { error: "Introuvable." };
@@ -634,7 +645,11 @@ export async function addCastingVideo(entryId: string, path: string): Promise<{ 
   if (accessError) return { error: accessError };
 
   const paths = [...(entry.video_storage_paths ?? []), path];
-  const { error } = await supabase.from("casting_entries").update({ video_storage_paths: paths }).eq("id", entryId);
+  const labels = [...(entry.video_labels ?? []), label?.trim() || `Vidéo ${paths.length}`];
+  const { error } = await supabase
+    .from("casting_entries")
+    .update({ video_storage_paths: paths, video_labels: labels })
+    .eq("id", entryId);
   if (error) return { error: error.message };
 
   revalidatePath("/casting");

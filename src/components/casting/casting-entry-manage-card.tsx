@@ -111,7 +111,17 @@ function ExistingPhoto({ photo, gallery, index }: { photo: CastingEntryPhoto; ga
   );
 }
 
-function VideoWithRemove({ entryId, url, path }: { entryId: string; url: string; path: string }) {
+function VideoWithRemove({
+  entryId,
+  url,
+  path,
+  label,
+}: {
+  entryId: string;
+  url: string;
+  path: string;
+  label: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -124,6 +134,7 @@ function VideoWithRemove({ entryId, url, path }: { entryId: string; url: string;
 
   return (
     <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-text-muted">{label}</span>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
         <source src={url} />
@@ -138,6 +149,7 @@ function VideoWithRemove({ entryId, url, path }: { entryId: string; url: string;
 function AddVideoButton({ entryId }: { entryId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [label, setLabel] = useState("");
   const [pending, setPending] = useState(false);
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -159,8 +171,9 @@ function AddVideoButton({ entryId }: { entryId: string }) {
         .from(slot.bucket)
         .uploadToSignedUrl(slot.path, slot.token, compressed, { contentType: compressed.type });
       if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
-      const result = await addCastingVideo(entryId, slot.path);
+      const result = await addCastingVideo(entryId, slot.path, label);
       if (result?.error) throw new Error(result.error);
+      setLabel("");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Échec de l'envoi.");
@@ -172,6 +185,13 @@ function AddVideoButton({ entryId }: { entryId: string }) {
 
   return (
     <div className="flex flex-col gap-1">
+      <input
+        value={label}
+        onChange={(e) => setLabel(e.target.value)}
+        disabled={pending}
+        placeholder="Nom de la vidéo (ex: Essai 1)"
+        className="w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
+      />
       <Button type="button" variant="secondary" disabled={pending} onClick={() => inputRef.current?.click()}>
         {pending ? (step ?? "Envoi...") : "+ Ajouter une vidéo"}
       </Button>
@@ -325,7 +345,7 @@ export function CastingEntryManageCard({
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
-  videoUrls: { url: string; path: string }[];
+  videoUrls: { url: string; path: string; label: string }[];
   photoLabels: string[];
   photos: CastingEntryPhoto[];
   selected?: boolean;
@@ -492,7 +512,7 @@ export function CastingEntryManageCard({
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">
           {videoUrls.map((v) => (
-            <VideoWithRemove key={v.path} entryId={entry.id} url={v.url} path={v.path} />
+            <VideoWithRemove key={v.path} entryId={entry.id} url={v.url} path={v.path} label={v.label} />
           ))}
           <AddVideoButton entryId={entry.id} />
 

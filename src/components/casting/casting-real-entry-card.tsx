@@ -19,7 +19,7 @@ export function CastingRealEntryCard({
   portraitUrl: string | null;
   roleLabel?: string | null;
   valide: boolean;
-  videoUrls: string[];
+  videoUrls: { url: string; label: string }[];
   photos: { label: string; url: string }[];
   lang?: Lang;
 }) {
@@ -57,10 +57,13 @@ export function CastingRealEntryCard({
 
       {open && (
         <div className="flex flex-col gap-4 border-t border-border px-4 py-4">
-          {videoUrls.map((url) => (
-            <video key={url} controls preload="metadata" className="w-full rounded-lg bg-black">
-              <source src={url} />
-            </video>
+          {videoUrls.map((v) => (
+            <div key={v.url} className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-text-muted">{v.label}</span>
+              <video controls preload="metadata" className="w-full rounded-lg bg-black">
+                <source src={v.url} />
+              </video>
+            </div>
           ))}
           {photos.length > 0 && (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">

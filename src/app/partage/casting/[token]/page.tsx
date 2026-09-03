@@ -58,11 +58,13 @@ export default async function PartageCastingPage({
   const figurantIds = visibleEntries.map((e) => e.figurant_id);
   const [photosByFigurant, videoPairsByEntry, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    getCastingVideoUrlPairsByEntries(visibleEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths }))),
+    getCastingVideoUrlPairsByEntries(
+      visibleEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths, video_labels: e.video_labels }))
+    ),
     getCastingEntryPhotos(entryIds),
   ]);
   const videoUrlsByEntry = new Map(
-    visibleEntries.map((e) => [e.id, (videoPairsByEntry.get(e.id) ?? []).map((p) => p.url)])
+    visibleEntries.map((e) => [e.id, (videoPairsByEntry.get(e.id) ?? []).map((p) => ({ url: p.url, label: p.label }))])
   );
 
   return (

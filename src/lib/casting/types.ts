@@ -90,6 +90,7 @@ export type CastingEntry = {
   candidature_id: string | null;
   request_token: string;
   video_storage_paths: string[];
+  video_labels: string[];
   requested_at: string;
   submitted_at: string | null;
   statut: BookingStatut;

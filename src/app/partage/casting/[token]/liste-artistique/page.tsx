@@ -50,19 +50,20 @@ export default async function PartageListeArtistiquePage({ params }: { params: P
           <AnchorButton href={`/partage/casting/${token}/liste-artistique/export`} variant="secondary">
             Télécharger Excel
           </AnchorButton>
-          <DownloadPdfButton filename={`liste-artistique-${nom}.pdf`} />
+          <DownloadPdfButton filename={`liste-artistique-${nom}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>
       </div>
 
       {items.length === 0 ? (
-        <PrintSheet>
+        <PrintSheet orientation="landscape">
           <p className="py-6 text-center text-gray-500">Aucun rôle validé pour l&apos;instant.</p>
         </PrintSheet>
       ) : (
         pages.map((page, pageIndex) => (
           <PrintSheet
             key={pageIndex}
+            orientation="landscape"
             className="break-after-page print:break-after-page"
             pageLabel={pages.length > 1 ? `${pageIndex + 1} / ${pages.length}` : undefined}
           >
