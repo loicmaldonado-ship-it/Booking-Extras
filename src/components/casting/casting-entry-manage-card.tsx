@@ -169,6 +169,7 @@ function VideoWithRemove({
 function AddVideoButton({ entryId }: { entryId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [label, setLabel] = useState("");
   const [pending, setPending] = useState(false);
   const [step, setStep] = useState<string | null>(null);
@@ -177,14 +178,18 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   async function upload(file: File) {
     setError(null);
     setPending(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const compressed = await compressVideo(file, {
+        signal: controller.signal,
         onProgress: (pct, secondsRemaining, pass) => {
           const phase = pass === 2 ? "Compression (2e passe)" : "Compression";
           const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
           setStep(`${phase}... ${pct}%${eta}`);
         },
       });
+      if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
       setStep("Envoi...");
       const slot = await createStaffCastingVideoSlot(entryId);
       if (slot.error || !slot.bucket || !slot.path || !slot.token) {
@@ -195,15 +200,22 @@ function AddVideoButton({ entryId }: { entryId: string }) {
         .from(slot.bucket)
         .uploadToSignedUrl(slot.path, slot.token, compressed, { contentType: compressed.type });
       if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
+      // Envoi déjà terminé côté réseau à ce stade — l'annulation ne peut
+      // plus empêcher le fichier d'atterrir dans le stockage, mais on
+      // évite au moins de le rattacher au profil si on a demandé d'arrêter.
+      if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
       const result = await addCastingVideo(entryId, slot.path, label);
       if (result?.error) throw new Error(result.error);
       setLabel("");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      }
     } finally {
       setPending(false);
       setStep(null);
+      abortRef.current = null;
     }
   }
 
@@ -216,9 +228,22 @@ function AddVideoButton({ entryId }: { entryId: string }) {
         placeholder="Nom de la vidéo (ex: Essai 1)"
         className="w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
       />
-      <Button type="button" variant="secondary" disabled={pending} onClick={() => inputRef.current?.click()}>
-        {pending ? (step ?? "Envoi...") : "+ Ajouter une vidéo"}
-      </Button>
+      <div className="flex gap-1.5">
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          onClick={() => inputRef.current?.click()}
+          className="flex-1"
+        >
+          {pending ? (step ?? "Envoi...") : "+ Ajouter une vidéo"}
+        </Button>
+        {pending && (
+          <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
+            Annuler
+          </Button>
+        )}
+      </div>
       <input
         ref={inputRef}
         type="file"

@@ -28,10 +28,12 @@ export async function compressVideoWebCodecs(
     maxDurationSeconds: number;
     audioBitsPerSecond: number;
     onProgress?: (pct: number, secondsRemaining?: number) => void;
+    signal?: AbortSignal;
   }
 ): Promise<File | null> {
   if (typeof VideoEncoder === "undefined" || typeof VideoDecoder === "undefined") return null;
   if (!/^video\/(mp4|quicktime)/.test(file.type) && !/\.(mp4|mov|m4v)$/i.test(file.name)) return null;
+  if (opts.signal?.aborted) throw new DOMException("Annulé", "AbortError");
 
   try {
     const [{ createFile, DataStream, Endianness, MP4BoxBuffer }, { Muxer, ArrayBufferTarget }] = await Promise.all([
@@ -94,6 +96,9 @@ export async function compressVideoWebCodecs(
     await Promise.race([
       ready,
       new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Timeout lecture moov")), 10_000)),
+      new Promise<void>((_, reject) => {
+        opts.signal?.addEventListener("abort", () => reject(new DOMException("Annulé", "AbortError")), { once: true });
+      }),
     ]);
 
     const videoTrack = state.videoTrack;
@@ -220,6 +225,7 @@ export async function compressVideoWebCodecs(
     // suit celui du décodage, donc les nourrir dans l'ordre suffit.
     const decodeAndFlush = async () => {
       for (let i = 0; i < state.videoSamples.length; i++) {
+        if (opts.signal?.aborted) throw new DOMException("Annulé", "AbortError");
         videoDecoder.decode(sampleToVideoChunk(state.videoSamples[i]));
         if (i % 10 === 0 || i === state.videoSamples.length - 1) {
           const pct = Math.min(99, Math.round(((i + 1) / totalVideoSamples) * 100));
@@ -255,17 +261,27 @@ export async function compressVideoWebCodecs(
     // plus longtemps que ne prendrait la méthode temps réel elle-même
     // n'aurait aucun sens.
     const timeoutMs = Math.min(Math.max(15_000, duration * 1_000), 90_000);
-    let timedOut = false;
+    let stoppedEarly = false;
     await Promise.race([
       decodeAndFlush(),
       new Promise<void>((_, reject) =>
         setTimeout(() => {
-          timedOut = true;
+          stoppedEarly = true;
           reject(new Error("Timeout décodage/encodage WebCodecs"));
         }, timeoutMs)
       ),
+      new Promise<void>((_, reject) => {
+        opts.signal?.addEventListener(
+          "abort",
+          () => {
+            stoppedEarly = true;
+            reject(new DOMException("Annulé", "AbortError"));
+          },
+          { once: true }
+        );
+      }),
     ]).finally(() => {
-      if (timedOut) {
+      if (stoppedEarly) {
         try {
           videoDecoder.close();
         } catch {}
@@ -281,12 +297,10 @@ export async function compressVideoWebCodecs(
       }
     });
 
-    if (!timedOut) {
-      videoDecoder.close();
-      videoEncoder.close();
-      audioDecoder?.close();
-      audioEncoder?.close();
-    }
+    videoDecoder.close();
+    videoEncoder.close();
+    audioDecoder?.close();
+    audioEncoder?.close();
 
     muxer.finalize();
     opts.onProgress?.(100);
@@ -295,6 +309,9 @@ export async function compressVideoWebCodecs(
     if (blob.size === 0 || blob.size >= file.size) return null;
     return new File([blob], file.name.replace(/\.\w+$/, ".mp4"), { type: "video/mp4" });
   } catch (e) {
+    // Une annulation explicite ne doit jamais se replier sur la méthode
+    // temps réel — l'utilisateur a demandé d'arrêter, pas de continuer.
+    if (e instanceof DOMException && e.name === "AbortError") throw e;
     console.warn("[compressVideoWebCodecs] Échec de la voie rapide — repli sur la méthode temps réel.", e);
     return null;
   }

@@ -86,6 +86,7 @@ export function CastingUploadForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [pending, setPending] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   async function uploadOne(kind: "video" | "photo", slot: string, file: File) {
     const target = await createCastingUploadSlot(token, kind, slot);
@@ -107,24 +108,29 @@ export function CastingUploadForm({
       return;
     }
     setPending(true);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const videoPaths: string[] = [];
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
         if (!file) continue;
         const compressed = await compressVideo(file, {
+          signal: controller.signal,
           onProgress: (pct, secondsRemaining, pass) => {
             const phase = pass === 2 ? " (2e passe)" : "";
             const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
             setStep(`Compression de la vidéo ${i + 1}${phase}... ${pct}%${eta}`);
           },
         });
+        if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
         setStep(`Envoi de la vidéo ${i + 1}...`);
         videoPaths.push(await uploadOne("video", String(i), compressed));
       }
 
       const uploadedPhotos: { label: string; path: string }[] = [];
       for (const label of photoLabels) {
+        if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
         const file = photos[label];
         if (!file) continue;
         setStep(`Compression de la photo « ${label} »...`);
@@ -133,6 +139,7 @@ export function CastingUploadForm({
         uploadedPhotos.push({ label, path: await uploadOne("photo", label, compressed) });
       }
 
+      if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
       setStep("Finalisation...");
       const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo });
       if (result?.error) {
@@ -142,10 +149,13 @@ export function CastingUploadForm({
       }
       setSuccess(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      if (!(e instanceof DOMException && e.name === "AbortError")) {
+        setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      }
       setStep(null);
     } finally {
       setPending(false);
+      abortRef.current = null;
     }
   }
 
@@ -199,9 +209,16 @@ export function CastingUploadForm({
         </Card>
       )}
 
-      <Button type="button" disabled={pending} onClick={submit}>
-        {pending ? step ?? "Envoi..." : "Envoyer"}
-      </Button>
+      <div className="flex gap-2">
+        <Button type="button" disabled={pending} onClick={submit} className="flex-1">
+          {pending ? step ?? "Envoi..." : "Envoyer"}
+        </Button>
+        {pending && (
+          <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
+            Annuler
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

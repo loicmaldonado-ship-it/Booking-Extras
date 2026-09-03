@@ -20,6 +20,11 @@ type CompressVideoOpts = {
   // utile pour afficher un temps d'attente plutôt qu'un pourcentage
   // abstrait. `pass` ne concerne que la méthode temps réel (1 ou 2 passes).
   onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
+  // Permet d'annuler une compression en cours (bouton "Annuler" côté
+  // appelant) — lève une DOMException("AbortError") plutôt que de replier
+  // silencieusement sur le fichier d'origine : une annulation explicite de
+  // l'utilisateur ne doit jamais se retrouver à envoyer quand même.
+  signal?: AbortSignal;
 };
 
 // Tente d'abord la voie rapide (WebCodecs, voir webcodecs-compress-video.ts)
@@ -32,6 +37,7 @@ type CompressVideoOpts = {
 // vitesse dans les cas où la voie rapide ne s'applique pas.
 export async function compressVideo(file: File, opts?: CompressVideoOpts): Promise<File> {
   if (!file.type.startsWith("video/")) return file;
+  if (opts?.signal?.aborted) throw new DOMException("Annulé", "AbortError");
 
   const resolvedOpts = {
     maxWidth: opts?.maxWidth ?? 1152,
@@ -42,6 +48,7 @@ export async function compressVideo(file: File, opts?: CompressVideoOpts): Promi
     maxDurationSeconds: opts?.maxDurationSeconds ?? 1800,
     audioBitsPerSecond: 96_000,
     onProgress: opts?.onProgress,
+    signal: opts?.signal,
   };
 
   const fast = await compressVideoWebCodecs(file, resolvedOpts);
@@ -60,8 +67,10 @@ async function compressVideoRealtime(
     minBitsPerSecond?: number;
     maxDurationSeconds?: number;
     onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
+    signal?: AbortSignal;
   }
 ): Promise<File> {
+  if (opts?.signal?.aborted) throw new DOMException("Annulé", "AbortError");
   if (typeof MediaRecorder === "undefined") {
     console.warn("[compressVideo] MediaRecorder indisponible sur ce navigateur — envoi du fichier original.");
     return file;
@@ -221,11 +230,16 @@ async function compressVideoRealtime(
     await video.play();
     intervalId = window.setInterval(drawFrame, 1000 / 30);
 
-    await new Promise<void>((resolve) => {
-      video.onended = () => resolve();
-    });
-    clearInterval(intervalId);
-    recorder.stop();
+    try {
+      await new Promise<void>((resolve, reject) => {
+        video.onended = () => resolve();
+        opts?.signal?.addEventListener("abort", () => reject(new DOMException("Annulé", "AbortError")), { once: true });
+      });
+    } finally {
+      clearInterval(intervalId);
+      video.pause();
+      if (recorder.state !== "inactive") recorder.stop();
+    }
 
     const blob = await recordingDone;
     return blob.size > 0 ? blob : null;
@@ -297,6 +311,10 @@ async function compressVideoRealtime(
     const ext = blob.type.includes("mp4") ? "mp4" : "webm";
     return new File([blob], file.name.replace(/\.\w+$/, `.${ext}`), { type: blob.type });
   } catch (e) {
+    // Une annulation explicite ne doit jamais se replier sur l'envoi du
+    // fichier d'origine — l'utilisateur a demandé d'arrêter, pas de
+    // continuer sans compression.
+    if (e instanceof DOMException && e.name === "AbortError") throw e;
     console.warn("[compressVideo] Erreur pendant la compression — envoi du fichier original.", e);
     return file;
   } finally {
