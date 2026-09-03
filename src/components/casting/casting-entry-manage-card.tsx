@@ -23,6 +23,7 @@ import {
   createStaffCastingVideoSlot,
   addCastingVideo,
   updateCastingVideoLabel,
+  setCastingVideoPosition,
   updateCastingEntryStatut,
   updateCastingEntryMode,
   updateCastingEntryNotes,
@@ -132,15 +133,18 @@ function VideoWithRemove({
   url,
   path,
   label,
+  position,
 }: {
   entryId: string;
   url: string;
   path: string;
   label: string;
+  position: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [renamePending, startRenameTransition] = useTransition();
+  const [positionPending, startPositionTransition] = useTransition();
 
   function remove() {
     startTransition(async () => {
@@ -157,19 +161,43 @@ function VideoWithRemove({
     });
   }
 
+  function changePosition(value: string) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === position) return;
+    startPositionTransition(async () => {
+      await setCastingVideoPosition(entryId, path, n);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
-      <input
-        key={label}
-        defaultValue={label}
-        disabled={renamePending}
-        onBlur={(e) => rename(e.currentTarget.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-        placeholder="Nom de la vidéo"
-        className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
-      />
+      <div className="flex items-center gap-1.5">
+        <input
+          key={position}
+          type="number"
+          min={1}
+          disabled={positionPending}
+          defaultValue={position}
+          onBlur={(e) => changePosition(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          title="N° d'ordre — change ce chiffre pour déplacer la vidéo"
+          className="w-10 shrink-0 rounded-lg border border-border bg-ink px-1 py-1 text-center text-xs font-semibold outline-none focus:border-coral disabled:opacity-50"
+        />
+        <input
+          key={label}
+          defaultValue={label}
+          disabled={renamePending}
+          onBlur={(e) => rename(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          placeholder="Nom de la vidéo"
+          className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
+        />
+      </div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
         <source src={url} />
@@ -634,8 +662,8 @@ export function CastingEntryManageCard({
 
       {open && (
         <div className="flex flex-col gap-3 border-t border-border pt-3">
-          {videoUrls.map((v) => (
-            <VideoWithRemove key={v.path} entryId={entry.id} url={v.url} path={v.path} label={v.label} />
+          {videoUrls.map((v, i) => (
+            <VideoWithRemove key={v.path} entryId={entry.id} url={v.url} path={v.path} label={v.label} position={i + 1} />
           ))}
           <AddVideoButton entryId={entry.id} />
 

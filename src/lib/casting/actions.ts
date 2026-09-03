@@ -685,6 +685,46 @@ export async function updateCastingVideoLabel(
   return { success: true };
 }
 
+// Réordonne une vidéo (numéro saisi par le staff) — déplace le path ET le
+// label ensemble pour rester alignés par index (même principe que
+// setCastingRolePosition pour l'ordre des rôles).
+export async function setCastingVideoPosition(
+  entryId: string,
+  path: string,
+  position: number
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, video_storage_paths, video_labels")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const paths: string[] = [...(entry.video_storage_paths ?? [])];
+  const labels: string[] = [...(entry.video_labels ?? [])];
+  const currentIndex = paths.indexOf(path);
+  if (currentIndex === -1) return { error: "Vidéo introuvable." };
+  const targetIndex = Math.min(Math.max(Math.trunc(position) - 1, 0), paths.length - 1);
+  if (targetIndex === currentIndex) return { success: true };
+
+  const [movedPath] = paths.splice(currentIndex, 1);
+  paths.splice(targetIndex, 0, movedPath);
+  const [movedLabel] = labels.splice(currentIndex, 1);
+  labels.splice(targetIndex, 0, movedLabel ?? "");
+
+  const { error } = await supabase
+    .from("casting_entries")
+    .update({ video_storage_paths: paths, video_labels: labels })
+    .eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 export async function recordCastingMessage(
   figurantId: string,
   corps: string,
