@@ -13,7 +13,12 @@
 // durée) plutôt que fixé une fois pour toutes : une vidéo de 10-15 min
 // avec un débit fixe dépasserait quand même la limite de stockage, alors
 // qu'un débit adapté à sa durée reste dans le budget quelle que soit la
-// longueur.
+// longueur. Mais certains navigateurs (Safari en tête) ne respectent
+// qu'approximativement le débit demandé à MediaRecorder — la première
+// passe peut donc rester au-dessus de la cible malgré le calcul. Une
+// deuxième passe, à résolution divisée par deux et débit largement revu à
+// la baisse, rattrape ce cas plutôt que d'envoyer un fichier toujours
+// trop gros.
 //
 // Toujours "fail-open" : navigateur trop ancien, format non supporté,
 // vidéo aberrante (plusieurs heures), ou n'importe quelle erreur en cours
@@ -24,6 +29,7 @@ export async function compressVideo(
   opts?: {
     maxWidth?: number;
     targetBytes?: number;
+    hardCapBytes?: number;
     maxBitsPerSecond?: number;
     minBitsPerSecond?: number;
     maxDurationSeconds?: number;
@@ -40,16 +46,22 @@ export async function compressVideo(
     return file;
   }
 
-  const maxWidth = opts?.maxWidth ?? 1280;
-  // Marge sous la limite de 50 Mo du stockage (variations de l'encodeur
-  // selon le navigateur) — voir aussi le budget audio réservé plus bas.
-  const targetBytes = opts?.targetBytes ?? 30_000_000;
-  const maxBitsPerSecond = opts?.maxBitsPerSecond ?? 2_500_000;
+  const maxWidth = opts?.maxWidth ?? 1152;
+  // Marge sous la limite réelle du stockage (~50 Mo, vérifié) — volontai-
+  // rement large car certains navigateurs ne respectent qu'à peu près le
+  // débit demandé (voir deuxième passe plus bas, filet de sécurité final).
+  const targetBytes = opts?.targetBytes ?? 18_000_000;
+  // Plafond dur : si même la deuxième passe dépasse ça, on considère que
+  // ce navigateur ne sait pas piloter sa taille de sortie et on tente
+  // quand même l'envoi avec ce qu'on a (toujours bien plus petit que
+  // l'original) plutôt que de boucler indéfiniment.
+  const hardCapBytes = opts?.hardCapBytes ?? 40_000_000;
+  const maxBitsPerSecond = opts?.maxBitsPerSecond ?? 1_800_000;
   // Plancher volontairement bas : avec la piste audio réservée en plus,
   // ce plancher garantit qu'une vidéo même à la durée maximale autorisée
   // reste sous la limite de stockage (quitte à perdre en qualité plutôt
   // qu'en échec d'envoi).
-  const minBitsPerSecond = opts?.minBitsPerSecond ?? 90_000;
+  const minBitsPerSecond = opts?.minBitsPerSecond ?? 80_000;
   const audioBitsPerSecond = 96_000;
   // Filet de sécurité contre une sélection aberrante (film entier par
   // erreur) plutôt qu'une vraie limite métier — un selftape, même long,
@@ -70,6 +82,89 @@ export async function compressVideo(
   video.volume = 0;
 
   let intervalId = 0;
+
+  // Une passe d'enregistrement complète (rejoue la vidéo du début à la
+  // fin) à une résolution/un débit donnés — appelée une ou deux fois.
+  async function recordPass(
+    width: number,
+    height: number,
+    videoBitsPerSecond: number,
+    reportProgress: boolean
+  ): Promise<Blob | null> {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.warn("[compressVideo] Contexte canvas 2D indisponible.");
+      return null;
+    }
+
+    const canvasStream = canvas.captureStream(30);
+    // Safari ne supporte pas (encore) HTMLMediaElement.captureStream — dans
+    // ce cas audioTracks reste vide et on ré-enregistre juste sans son
+    // plutôt que d'abandonner toute la compression.
+    const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
+    const audioTracks = videoWithCapture.captureStream?.().getAudioTracks() ?? [];
+    const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+    if (audioTracks.length === 0) {
+      console.warn("[compressVideo] video.captureStream indisponible (Safari ?) — compression sans piste audio.");
+    }
+
+    // Liste large de variantes, plusieurs navigateurs (Safari en tête)
+    // n'acceptent qu'une écriture précise du mimeType pour isTypeSupported.
+    const mimeType = [
+      "video/mp4;codecs=avc1",
+      "video/mp4;codecs=h264",
+      "video/mp4",
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm;codecs=h264",
+      "video/webm",
+    ].find((t) => MediaRecorder.isTypeSupported(t));
+    if (!mimeType) {
+      console.warn("[compressVideo] Aucun format d'enregistrement supporté par MediaRecorder.");
+      return null;
+    }
+
+    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond, audioBitsPerSecond });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    const recordingDone = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+    });
+
+    // setInterval plutôt que requestAnimationFrame : sur mobile, l'appli
+    // passe souvent en arrière-plan pendant une compression de plusieurs
+    // minutes (verrouillage d'écran, changement d'appli) — rAF s'arrête
+    // alors complètement (image figée), setInterval continue à tourner
+    // (au pire ralenti), donc la vidéo produite reste correcte.
+    function drawFrame() {
+      if (video.paused || video.ended) return;
+      ctx!.drawImage(video, 0, 0, width, height);
+    }
+    if (reportProgress) {
+      video.ontimeupdate = () => {
+        if (video.duration) opts?.onProgress?.(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
+      };
+    }
+
+    video.currentTime = 0;
+    recorder.start();
+    await video.play();
+    intervalId = window.setInterval(drawFrame, 1000 / 30);
+
+    await new Promise<void>((resolve) => {
+      video.onended = () => resolve();
+    });
+    clearInterval(intervalId);
+    recorder.stop();
+
+    const blob = await recordingDone;
+    return blob.size > 0 ? blob : null;
+  }
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -100,87 +195,35 @@ export async function compressVideo(
     const width = Math.round(video.videoWidth * scale);
     const height = Math.round(video.videoHeight * scale);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      console.warn("[compressVideo] Contexte canvas 2D indisponible — envoi du fichier original.");
-      return file;
+    let blob = await recordPass(width, height, videoBitsPerSecond, true);
+    if (!blob) return file;
+
+    // Deuxième passe si le navigateur n'a pas respecté le débit demandé —
+    // résolution divisée par deux et débit largement revu à la baisse.
+    if (blob.size > hardCapBytes) {
+      console.warn(
+        `[compressVideo] Première passe encore trop lourde (${blob.size}o) — deuxième passe à résolution réduite.`
+      );
+      const retryBlob = await recordPass(
+        Math.max(320, Math.round(width / 2)),
+        Math.max(180, Math.round(height / 2)),
+        Math.round(videoBitsPerSecond / 3),
+        false
+      );
+      if (retryBlob && retryBlob.size < blob.size) blob = retryBlob;
     }
 
-    const canvasStream = canvas.captureStream(30);
-    // Safari ne supporte pas (encore) HTMLMediaElement.captureStream — dans
-    // ce cas audioTracks reste vide et on ré-enregistre juste sans son
-    // plutôt que d'abandonner toute la compression.
-    const videoWithCapture = video as HTMLVideoElement & { captureStream?: () => MediaStream };
-    const audioTracks = videoWithCapture.captureStream?.().getAudioTracks() ?? [];
-    const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
-    if (audioTracks.length === 0) {
-      console.warn("[compressVideo] video.captureStream indisponible (Safari ?) — compression sans piste audio.");
-    }
-
-    // Liste large de variantes, plusieurs navigateurs (Safari en tête)
-    // n'acceptent qu'une écriture précise du mimeType pour isTypeSupported.
-    const mimeType = [
-      "video/mp4;codecs=avc1",
-      "video/mp4;codecs=h264",
-      "video/mp4",
-      "video/webm;codecs=vp9",
-      "video/webm;codecs=vp8",
-      "video/webm;codecs=h264",
-      "video/webm",
-    ].find((t) => MediaRecorder.isTypeSupported(t));
-    if (!mimeType) {
-      console.warn("[compressVideo] Aucun format d'enregistrement supporté par MediaRecorder — envoi du fichier original.");
-      return file;
-    }
-
-    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond, audioBitsPerSecond });
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-    const recordingDone = new Promise<Blob>((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
-    });
-
-    // setInterval plutôt que requestAnimationFrame : sur mobile, l'appli
-    // passe souvent en arrière-plan pendant une compression de plusieurs
-    // minutes (verrouillage d'écran, changement d'appli) — rAF s'arrête
-    // alors complètement (image figée), setInterval continue à tourner
-    // (au pire ralenti), donc la vidéo produite reste correcte.
-    function drawFrame() {
-      if (video.paused || video.ended) return;
-      ctx!.drawImage(video, 0, 0, width, height);
-    }
-    video.ontimeupdate = () => {
-      if (video.duration) opts?.onProgress?.(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
-    };
-
-    recorder.start();
-    await video.play();
-    intervalId = window.setInterval(drawFrame, 1000 / 30);
-
-    await new Promise<void>((resolve) => {
-      video.onended = () => resolve();
-    });
-    clearInterval(intervalId);
-    recorder.stop();
-
-    const blob = await recordingDone;
     opts?.onProgress?.(100);
-    if (blob.size === 0) {
-      console.warn("[compressVideo] Sortie vide (0 octet) — envoi du fichier original.");
-      return file;
-    }
     if (blob.size >= file.size) {
       console.warn(`[compressVideo] Sortie (${blob.size}o) pas plus légère que l'original (${file.size}o) — envoi du fichier original.`);
       return file;
     }
+    if (blob.size > hardCapBytes) {
+      console.warn(`[compressVideo] Sortie encore volumineuse (${blob.size}o) malgré la deuxième passe — envoi quand même.`);
+    }
 
-    const ext = mimeType.includes("mp4") ? "mp4" : "webm";
-    return new File([blob], file.name.replace(/\.\w+$/, `.${ext}`), { type: mimeType });
+    const ext = blob.type.includes("mp4") ? "mp4" : "webm";
+    return new File([blob], file.name.replace(/\.\w+$/, `.${ext}`), { type: blob.type });
   } catch (e) {
     console.warn("[compressVideo] Erreur pendant la compression — envoi du fichier original.", e);
     return file;
