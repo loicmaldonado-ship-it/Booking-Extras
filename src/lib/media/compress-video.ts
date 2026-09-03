@@ -3,19 +3,29 @@
 // Réduit une vidéo côté navigateur avant l'envoi, sans service payant ni
 // librairie lourde (pas de ffmpeg.wasm) : on rejoue la vidéo dans un
 // <video> caché, on redessine chaque image sur un canvas à une résolution
-// plus raisonnable, et MediaRecorder réenregistre le tout à un débit plus
-// faible — piste audio d'origine recombinée au passage. Ça prend le temps
-// de la vidéo elle-même (compression en temps réel), d'où le callback de
-// progression pour afficher un état d'attente clair.
+// plus raisonnable, et MediaRecorder réenregistre le tout à un débit
+// calculé pour tenir sous une taille cible — piste audio d'origine
+// recombinée au passage. Ça prend le temps de la vidéo elle-même
+// (compression en temps réel), d'où le callback de progression pour
+// afficher un état d'attente clair.
+//
+// Le débit vidéo est calculé à partir de la durée réelle (taille cible ÷
+// durée) plutôt que fixé une fois pour toutes : une vidéo de 10-15 min
+// avec un débit fixe dépasserait quand même la limite de stockage, alors
+// qu'un débit adapté à sa durée reste dans le budget quelle que soit la
+// longueur.
 //
 // Toujours "fail-open" : navigateur trop ancien, format non supporté,
-// vidéo trop longue, ou n'importe quelle erreur en cours de route -> on
-// renvoie le fichier d'origine plutôt que de bloquer l'envoi.
+// vidéo aberrante (plusieurs heures), ou n'importe quelle erreur en cours
+// de route -> on renvoie le fichier d'origine plutôt que de bloquer
+// l'envoi.
 export async function compressVideo(
   file: File,
   opts?: {
     maxWidth?: number;
-    videoBitsPerSecond?: number;
+    targetBytes?: number;
+    maxBitsPerSecond?: number;
+    minBitsPerSecond?: number;
     maxDurationSeconds?: number;
     onProgress?: (pct: number) => void;
   }
@@ -25,14 +35,28 @@ export async function compressVideo(
   if (typeof HTMLCanvasElement === "undefined" || !("captureStream" in HTMLCanvasElement.prototype)) return file;
 
   const maxWidth = opts?.maxWidth ?? 1280;
-  const videoBitsPerSecond = opts?.videoBitsPerSecond ?? 2_000_000;
-  const maxDurationSeconds = opts?.maxDurationSeconds ?? 360;
+  // Marge sous la limite de 50 Mo du stockage (variations de l'encodeur
+  // selon le navigateur) — voir aussi le budget audio réservé plus bas.
+  const targetBytes = opts?.targetBytes ?? 30_000_000;
+  const maxBitsPerSecond = opts?.maxBitsPerSecond ?? 2_500_000;
+  // Plancher volontairement bas : avec la piste audio réservée en plus,
+  // ce plancher garantit qu'une vidéo même à la durée maximale autorisée
+  // reste sous la limite de stockage (quitte à perdre en qualité plutôt
+  // qu'en échec d'envoi).
+  const minBitsPerSecond = opts?.minBitsPerSecond ?? 90_000;
+  const audioBitsPerSecond = 96_000;
+  // Filet de sécurité contre une sélection aberrante (film entier par
+  // erreur) plutôt qu'une vraie limite métier — un selftape, même long,
+  // reste très en dessous.
+  const maxDurationSeconds = opts?.maxDurationSeconds ?? 1800;
 
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
   video.src = url;
   video.playsInline = true;
   video.volume = 0;
+
+  let intervalId = 0;
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -45,10 +69,19 @@ export async function compressVideo(
     }
     if (!video.videoWidth || !video.videoHeight) return file;
 
-    const scale = Math.min(1, maxWidth / video.videoWidth);
+    if (file.size <= targetBytes && video.videoWidth <= maxWidth) return file; // déjà dans le budget
+
+    // Débit calculé pour tenir dans la taille cible sur toute la durée —
+    // pas un chiffre fixe qui exploserait sur une vidéo longue.
+    const rawVideoBitrate = (targetBytes * 8) / video.duration - audioBitsPerSecond;
+    const videoBitsPerSecond = Math.round(Math.min(maxBitsPerSecond, Math.max(minBitsPerSecond, rawVideoBitrate)));
+    // À très faible débit (vidéo longue), une résolution plus modeste
+    // donne un meilleur rendu qu'une haute résolution trop compressée.
+    const effectiveMaxWidth = videoBitsPerSecond <= 700_000 ? Math.min(maxWidth, 854) : maxWidth;
+
+    const scale = Math.min(1, effectiveMaxWidth / video.videoWidth);
     const width = Math.round(video.videoWidth * scale);
     const height = Math.round(video.videoHeight * scale);
-    if (scale >= 1 && file.size < 8_000_000) return file; // déjà petite et déjà à la bonne taille
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -69,7 +102,7 @@ export async function compressVideo(
     ].find((t) => MediaRecorder.isTypeSupported(t));
     if (!mimeType) return file;
 
-    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond });
+    const recorder = new MediaRecorder(combinedStream, { mimeType, videoBitsPerSecond, audioBitsPerSecond });
     const chunks: Blob[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
@@ -78,11 +111,14 @@ export async function compressVideo(
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
 
-    let raf = 0;
+    // setInterval plutôt que requestAnimationFrame : sur mobile, l'appli
+    // passe souvent en arrière-plan pendant une compression de plusieurs
+    // minutes (verrouillage d'écran, changement d'appli) — rAF s'arrête
+    // alors complètement (image figée), setInterval continue à tourner
+    // (au pire ralenti), donc la vidéo produite reste correcte.
     function drawFrame() {
       if (video.paused || video.ended) return;
       ctx!.drawImage(video, 0, 0, width, height);
-      raf = requestAnimationFrame(drawFrame);
     }
     video.ontimeupdate = () => {
       if (video.duration) opts?.onProgress?.(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
@@ -90,12 +126,12 @@ export async function compressVideo(
 
     recorder.start();
     await video.play();
-    drawFrame();
+    intervalId = window.setInterval(drawFrame, 1000 / 30);
 
     await new Promise<void>((resolve) => {
       video.onended = () => resolve();
     });
-    cancelAnimationFrame(raf);
+    clearInterval(intervalId);
     recorder.stop();
 
     const blob = await recordingDone;
@@ -107,6 +143,7 @@ export async function compressVideo(
   } catch {
     return file;
   } finally {
+    clearInterval(intervalId);
     URL.revokeObjectURL(url);
   }
 }

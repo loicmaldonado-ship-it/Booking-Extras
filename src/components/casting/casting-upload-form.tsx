@@ -95,7 +95,18 @@ export function CastingUploadForm({
     const { error: uploadError } = await supabase.storage
       .from(target.bucket)
       .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-    if (uploadError) throw new Error(uploadError.message);
+    if (uploadError) {
+      // Message Supabase brut en anglais, peu clair pour un candidat — la
+      // compression automatique gère déjà la grande majorité des cas ;
+      // celui-ci ne devrait arriver que sur un navigateur qui ne sait pas
+      // compresser (très ancien) avec un fichier resté volumineux.
+      if (/exceeded the maximum allowed size/i.test(uploadError.message)) {
+        throw new Error(
+          "Ce fichier est trop volumineux même après réduction automatique. Essaie une vidéo plus courte, ou depuis un autre navigateur/appareil."
+        );
+      }
+      throw new Error(uploadError.message);
+    }
     return target.path;
   }
 
