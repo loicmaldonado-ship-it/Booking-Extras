@@ -185,19 +185,58 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // File d'attente traitée séquentiellement (une compression à la fois —
+  // plus sûr en mémoire, et de toute façon pas plus lent que l'attente
+  // active qu'on cherche justement à éviter) : on peut sélectionner ou
+  // glisser plusieurs vidéos d'un coup et les laisser s'envoyer les unes
+  // après les autres sans avoir à revenir cliquer entre chacune.
+  const queueRef = useRef<{ file: File; label: string }[]>([]);
+  const processingRef = useRef(false);
   const [label, setLabel] = useState("");
   const [pending, setPending] = useState(false);
+  const [currentLabel, setCurrentLabel] = useState<string | null>(null);
+  const [queueCount, setQueueCount] = useState(0);
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  async function upload(file: File) {
-    setError(null);
+  function defaultLabelFor(file: File): string {
+    return file.name.replace(/\.\w+$/, "");
+  }
+
+  function enqueue(files: File[]) {
+    const videoFiles = files.filter((f) => f.type.startsWith("video/"));
+    if (videoFiles.length === 0) return;
+    // Le nom saisi ne s'applique que pour un envoi à la fois — pour
+    // plusieurs fichiers d'un coup, chacun prend son propre nom de fichier
+    // (modifiable ensuite comme n'importe quelle vidéo déjà envoyée).
+    const items = videoFiles.map((file) => ({
+      file,
+      label: videoFiles.length === 1 && label.trim() ? label.trim() : defaultLabelFor(file),
+    }));
+    queueRef.current.push(...items);
+    setQueueCount(queueRef.current.length);
+    setLabel("");
+    if (!processingRef.current) processNext();
+  }
+
+  async function processNext() {
+    const next = queueRef.current.shift();
+    setQueueCount(queueRef.current.length);
+    if (!next) {
+      processingRef.current = false;
+      setPending(false);
+      setCurrentLabel(null);
+      return;
+    }
+    processingRef.current = true;
     setPending(true);
+    setCurrentLabel(next.label);
+    setError(null);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const compressed = await compressVideo(file, {
+      const compressed = await compressVideo(next.file, {
         signal: controller.signal,
         onProgress: (pct, secondsRemaining, pass) => {
           const phase = pass === 2 ? "Compression (2e passe)" : "Compression";
@@ -220,18 +259,20 @@ function AddVideoButton({ entryId }: { entryId: string }) {
       // plus empêcher le fichier d'atterrir dans le stockage, mais on
       // évite au moins de le rattacher au profil si on a demandé d'arrêter.
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
-      const result = await addCastingVideo(entryId, slot.path, label);
+      const result = await addCastingVideo(entryId, slot.path, next.label);
       if (result?.error) throw new Error(result.error);
-      setLabel("");
       router.refresh();
     } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError")) {
-        setError(e instanceof Error ? e.message : "Échec de l'envoi.");
+      if (e instanceof DOMException && e.name === "AbortError") {
+        // Annuler arrête tout le lot en cours, pas juste la vidéo active.
+        queueRef.current = [];
+      } else {
+        setError(`« ${next.label} » : ${e instanceof Error ? e.message : "Échec de l'envoi."}`);
       }
     } finally {
-      setPending(false);
-      setStep(null);
       abortRef.current = null;
+      setStep(null);
+      await processNext();
     }
   }
 
@@ -245,8 +286,7 @@ function AddVideoButton({ entryId }: { entryId: string }) {
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file && !pending) upload(file);
+        enqueue(Array.from(e.dataTransfer.files ?? []));
       }}
       className={cn(
         "flex flex-col gap-1 rounded-lg border-2 border-dashed p-1.5 transition-colors",
@@ -268,7 +308,9 @@ function AddVideoButton({ entryId }: { entryId: string }) {
           onClick={() => inputRef.current?.click()}
           className="flex-1"
         >
-          {pending ? (step ?? "Envoi...") : "+ Ajouter ou glisser une vidéo"}
+          {pending
+            ? `${currentLabel ? `« ${currentLabel} » — ` : ""}${step ?? "Envoi..."}${queueCount > 0 ? ` (+${queueCount} en attente)` : ""}`
+            : "+ Ajouter ou glisser des vidéos"}
         </Button>
         {pending && (
           <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
@@ -280,10 +322,10 @@ function AddVideoButton({ entryId }: { entryId: string }) {
         ref={inputRef}
         type="file"
         accept="video/*"
+        multiple
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) upload(file);
+          enqueue(Array.from(e.target.files ?? []));
           e.target.value = "";
         }}
       />
