@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateCastingDocVisible } from "@/lib/partage/actions";
+import { updateCastingDocVisible, updateFichesRolesMasquerContact } from "@/lib/partage/actions";
 import { cn } from "@/lib/cn";
 
 export function CastingDocsVisibilityToggle({
@@ -10,11 +10,13 @@ export function CastingDocsVisibilityToggle({
   listeArtistique,
   fichesRoles,
   distribution,
+  fichesRolesMasquerContact,
 }: {
   projetId: string;
   listeArtistique: boolean;
   fichesRoles: boolean;
   distribution: boolean;
+  fichesRolesMasquerContact: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -22,6 +24,13 @@ export function CastingDocsVisibilityToggle({
   function toggle(doc: "liste_artistique" | "fiches_roles" | "distribution", visible: boolean) {
     startTransition(async () => {
       await updateCastingDocVisible(projetId, doc, visible);
+      router.refresh();
+    });
+  }
+
+  function toggleMasquerContact(masquer: boolean) {
+    startTransition(async () => {
+      await updateFichesRolesMasquerContact(projetId, masquer);
       router.refresh();
     });
   }
@@ -49,6 +58,18 @@ export function CastingDocsVisibilityToggle({
         />
         Fiches rôles validés
       </label>
+      {fichesRoles && (
+        <label className={cn("ml-6 flex items-center gap-2 text-xs text-text-muted", pending && "opacity-60")}>
+          <input
+            type="checkbox"
+            checked={fichesRolesMasquerContact}
+            disabled={pending}
+            onChange={(e) => toggleMasquerContact(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-turquoise"
+          />
+          Masquer les coordonnées (téléphone/email)
+        </label>
+      )}
       <label className={cn("flex items-center gap-2 text-xs font-medium", pending && "opacity-60")}>
         <input
           type="checkbox"

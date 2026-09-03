@@ -67,6 +67,7 @@ export default async function PartageFichesRolesPage({ params }: { params: Promi
             role={role}
             entry={entry}
             portraitUrl={pickPortrait(portraitByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
+            hideContact={visibility.fichesRolesMasquerContact}
           />
         </PrintSheet>
       ))}

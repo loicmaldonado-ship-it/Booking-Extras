@@ -5,10 +5,15 @@ export function FicheRoleValideSheet({
   role,
   entry,
   portraitUrl,
+  hideContact,
 }: {
   role: CastingRole;
   entry: CastingEntry;
   portraitUrl: string | null;
+  // Masque téléphone/email (comédien·ne et agent) — pour le lien réal
+  // quand le staff préfère que tout contact passe par lui plutôt que
+  // directement par le·la réalisateur·ice.
+  hideContact?: boolean;
 }) {
   const f = entry.figurants;
   const adresse = [f?.adresse, [f?.code_postal, f?.ville].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -21,7 +26,7 @@ export function FicheRoleValideSheet({
         <h2 className="text-2xl font-bold uppercase text-gray-900">{role.nom}</h2>
       </div>
 
-      <div className="relative w-full overflow-hidden rounded-lg bg-gray-100" style={{ height: 480 }}>
+      <div className="relative w-full flex-1 overflow-hidden rounded-lg bg-gray-100">
         {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-contain" />}
       </div>
 
@@ -31,9 +36,13 @@ export function FicheRoleValideSheet({
           <p className="text-lg font-semibold text-gray-900">
             {f?.prenom} {f?.nom}
           </p>
-          {f?.telephone && <p className="text-gray-700">{f.telephone}</p>}
-          {f?.email && <p className="text-gray-700">{f.email}</p>}
-          {adresse && <p className="text-gray-700">{adresse}</p>}
+          {!hideContact && (
+            <>
+              {f?.telephone && <p className="text-gray-700">{f.telephone}</p>}
+              {f?.email && <p className="text-gray-700">{f.email}</p>}
+              {adresse && <p className="text-gray-700">{adresse}</p>}
+            </>
+          )}
         </div>
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Agent</p>
@@ -44,8 +53,12 @@ export function FicheRoleValideSheet({
                   {[f?.agent_nom, f?.agent_agence].filter(Boolean).join(" — ")}
                 </p>
               )}
-              {f?.agent_telephone && <p className="text-gray-700">{f.agent_telephone}</p>}
-              {f?.agent_email && <p className="text-gray-700">{f.agent_email}</p>}
+              {!hideContact && (
+                <>
+                  {f?.agent_telephone && <p className="text-gray-700">{f.agent_telephone}</p>}
+                  {f?.agent_email && <p className="text-gray-700">{f.agent_email}</p>}
+                </>
+              )}
             </>
           ) : (
             <p className="text-gray-500">Sans agent</p>

@@ -231,6 +231,7 @@ export default async function CastingPage({
           listeArtistique={docsVisibility.listeArtistique}
           fichesRoles={docsVisibility.fichesRoles}
           distribution={docsVisibility.distribution}
+          fichesRolesMasquerContact={docsVisibility.fichesRolesMasquerContact}
         />
       </PartageCard>
     </div>

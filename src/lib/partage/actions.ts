@@ -89,6 +89,20 @@ export async function updateCastingDocVisible(
   revalidatePath("/casting");
 }
 
+// Masque téléphone/email sur les fiches rôles validés du lien réal, sans
+// toucher à la visibilité du document lui-même.
+export async function updateFichesRolesMasquerContact(projetId: string, masquer: boolean) {
+  await requireAccessOrThrow(projetId);
+
+  const supabase = createAdminClient();
+  await supabase
+    .from("partage_liens")
+    .update({ fiches_roles_masquer_contact: masquer })
+    .eq("projet_id", projetId)
+    .eq("type", "casting");
+  revalidatePath("/casting");
+}
+
 export async function revokePartageLien(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
 

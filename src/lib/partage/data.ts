@@ -35,13 +35,18 @@ export async function getPartageTitreByToken(token: string, type: PartageType) {
   return data?.titre ?? null;
 }
 
-export type CastingDocsVisibility = { listeArtistique: boolean; fichesRoles: boolean; distribution: boolean };
+export type CastingDocsVisibility = {
+  listeArtistique: boolean;
+  fichesRoles: boolean;
+  distribution: boolean;
+  fichesRolesMasquerContact: boolean;
+};
 
 export async function getCastingDocsVisibility(projetId: string): Promise<CastingDocsVisibility> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
-    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible")
+    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible, fiches_roles_masquer_contact")
     .eq("projet_id", projetId)
     .eq("type", "casting")
     .maybeSingle();
@@ -49,6 +54,7 @@ export async function getCastingDocsVisibility(projetId: string): Promise<Castin
     listeArtistique: data?.liste_artistique_visible ?? false,
     fichesRoles: data?.fiches_roles_visible ?? false,
     distribution: data?.distribution_visible ?? false,
+    fichesRolesMasquerContact: data?.fiches_roles_masquer_contact ?? false,
   };
 }
 
@@ -56,7 +62,7 @@ export async function getCastingDocsVisibilityByToken(token: string): Promise<Ca
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
-    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible")
+    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible, fiches_roles_masquer_contact")
     .eq("token", token)
     .eq("type", "casting")
     .maybeSingle();
@@ -64,6 +70,7 @@ export async function getCastingDocsVisibilityByToken(token: string): Promise<Ca
     listeArtistique: data?.liste_artistique_visible ?? false,
     fichesRoles: data?.fiches_roles_visible ?? false,
     distribution: data?.distribution_visible ?? false,
+    fichesRolesMasquerContact: data?.fiches_roles_masquer_contact ?? false,
   };
 }
 
