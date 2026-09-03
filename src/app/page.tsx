@@ -40,7 +40,7 @@ type DashboardAnnonce = {
   lieu: string | null;
   date_recherchee: string | null;
   projet_id: string;
-  projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
+  projets: { nom: string; confidentiel: boolean; nom_code: string | null; archive: boolean } | null;
 };
 
 const SECTIONS: { label: string; href: string; description: string; icon: LucideIcon; chefOnly?: boolean }[] = [
@@ -66,21 +66,26 @@ export default async function Home() {
   let projetsQuery = supabase
     .from("projets")
     .select("id, nom, confidentiel, nom_code, lieu, date_debut, date_fin")
+    .eq("archive", false)
     .or(`date_fin.is.null,date_fin.gte.${today}`)
     .order("date_debut", { ascending: true, nullsFirst: false });
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
   let annoncesQuery = supabase
     .from("annonces")
-    .select("id, titre, lieu, date_recherchee, projet_id, projets(nom, confidentiel, nom_code)")
+    .select("id, titre, lieu, date_recherchee, projet_id, projets(nom, confidentiel, nom_code, archive)")
     .eq("statut", "ouverte")
     .order("date_recherchee", { ascending: true, nullsFirst: false });
   if (accessibleIds !== null) annoncesQuery = annoncesQuery.in("projet_id", idsOrNone(accessibleIds));
 
-  const [{ data: projets }, { data: annonces }] = await Promise.all([
+  const [{ data: projets }, { data: annoncesRaw }] = await Promise.all([
     projetsQuery.returns<DashboardProjet[]>(),
     annoncesQuery.returns<DashboardAnnonce[]>(),
   ]);
+  // Le projet peut être archivé après coup sans que l'annonce elle-même
+  // change de statut — filtré ici plutôt que dans la requête (jointure
+  // embarquée, plus simple à exclure côté JS qu'en syntaxe PostgREST).
+  const annonces = (annoncesRaw ?? []).filter((a) => !a.projets?.archive);
 
   const annonceIds = (annonces ?? []).map((a) => a.id);
   const { data: candidaturesRaw } =
