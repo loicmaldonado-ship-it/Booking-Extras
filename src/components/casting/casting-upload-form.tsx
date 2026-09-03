@@ -9,6 +9,7 @@ import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { compressImage } from "@/lib/media/compress-image";
 import { compressVideo } from "@/lib/media/compress-video";
+import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 
 function FileSlot({
   label,
@@ -95,18 +96,7 @@ export function CastingUploadForm({
     const { error: uploadError } = await supabase.storage
       .from(target.bucket)
       .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-    if (uploadError) {
-      // Message Supabase brut en anglais, peu clair pour un candidat — la
-      // compression automatique gère déjà la grande majorité des cas ;
-      // celui-ci ne devrait arriver que sur un navigateur qui ne sait pas
-      // compresser (très ancien) avec un fichier resté volumineux.
-      if (/exceeded the maximum allowed size/i.test(uploadError.message)) {
-        throw new Error(
-          "Ce fichier est trop volumineux même après réduction automatique. Essaie une vidéo plus courte, ou depuis un autre navigateur/appareil."
-        );
-      }
-      throw new Error(uploadError.message);
-    }
+    if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
     return target.path;
   }
 

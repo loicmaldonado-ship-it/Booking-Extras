@@ -11,6 +11,9 @@ import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { compressImage } from "@/lib/media/compress-image";
+import { compressVideo } from "@/lib/media/compress-video";
+import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
 import {
   deleteCastingEntry,
@@ -39,9 +42,10 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
 
   function upload(file: File) {
     setError(null);
-    const fd = new FormData();
-    fd.set("photo", file);
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.set("photo", compressed);
       const result = await addCastingPhoto(entryId, label, fd);
       if (result?.error) setError(result.error);
       else router.refresh();
@@ -135,12 +139,17 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
+  const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function upload(file: File) {
     setError(null);
     setPending(true);
     try {
+      const compressed = await compressVideo(file, {
+        onProgress: (pct) => setStep(`Compression... ${pct}%`),
+      });
+      setStep("Envoi...");
       const slot = await createStaffCastingVideoSlot(entryId);
       if (slot.error || !slot.bucket || !slot.path || !slot.token) {
         throw new Error(slot.error ?? "Impossible de préparer l'envoi.");
@@ -148,8 +157,8 @@ function AddVideoButton({ entryId }: { entryId: string }) {
       const supabase = createBrowserSupabaseClient();
       const { error: uploadError } = await supabase.storage
         .from(slot.bucket)
-        .uploadToSignedUrl(slot.path, slot.token, file, { contentType: file.type });
-      if (uploadError) throw new Error(uploadError.message);
+        .uploadToSignedUrl(slot.path, slot.token, compressed, { contentType: compressed.type });
+      if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
       const result = await addCastingVideo(entryId, slot.path);
       if (result?.error) throw new Error(result.error);
       router.refresh();
@@ -157,13 +166,14 @@ function AddVideoButton({ entryId }: { entryId: string }) {
       setError(e instanceof Error ? e.message : "Échec de l'envoi.");
     } finally {
       setPending(false);
+      setStep(null);
     }
   }
 
   return (
     <div className="flex flex-col gap-1">
       <Button type="button" variant="secondary" disabled={pending} onClick={() => inputRef.current?.click()}>
-        {pending ? "Envoi..." : "+ Ajouter une vidéo"}
+        {pending ? (step ?? "Envoi...") : "+ Ajouter une vidéo"}
       </Button>
       <input
         ref={inputRef}
