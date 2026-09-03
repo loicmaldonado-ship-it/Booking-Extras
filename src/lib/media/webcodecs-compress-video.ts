@@ -89,7 +89,12 @@ export async function compressVideoWebCodecs(
     const mp4boxBuffer = MP4BoxBuffer.fromArrayBuffer(arrayBuffer, 0);
     mp4boxFile.appendBuffer(mp4boxBuffer);
     mp4boxFile.flush();
-    await ready;
+    // Filet de sécurité : un MP4/MOV à la structure inhabituelle (moov
+    // fragmenté ou mal formé) pourrait ne jamais déclencher onReady.
+    await Promise.race([
+      ready,
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Timeout lecture moov")), 10_000)),
+    ]);
 
     const videoTrack = state.videoTrack;
     let audioTrack = state.audioTrack;
@@ -213,36 +218,75 @@ export async function compressVideoWebCodecs(
     // faire passer par décodeur -> encodeur -> muxeur. decode() met en
     // interne en file d'attente ; l'ordre d'arrivée dans le flux de sortie
     // suit celui du décodage, donc les nourrir dans l'ordre suffit.
-    for (let i = 0; i < state.videoSamples.length; i++) {
-      videoDecoder.decode(sampleToVideoChunk(state.videoSamples[i]));
-      if (i % 10 === 0 || i === state.videoSamples.length - 1) {
-        const pct = Math.min(99, Math.round(((i + 1) / totalVideoSamples) * 100));
-        const elapsed = (Date.now() - passStart) / 1000;
-        const secondsRemaining = pct > 0 ? Math.max(0, Math.round((elapsed / pct) * (100 - pct))) : undefined;
-        opts.onProgress?.(pct, secondsRemaining);
+    const decodeAndFlush = async () => {
+      for (let i = 0; i < state.videoSamples.length; i++) {
+        videoDecoder.decode(sampleToVideoChunk(state.videoSamples[i]));
+        if (i % 10 === 0 || i === state.videoSamples.length - 1) {
+          const pct = Math.min(99, Math.round(((i + 1) / totalVideoSamples) * 100));
+          const elapsed = (Date.now() - passStart) / 1000;
+          const secondsRemaining = pct > 0 ? Math.max(0, Math.round((elapsed / pct) * (100 - pct))) : undefined;
+          opts.onProgress?.(pct, secondsRemaining);
+        }
+        if (failed) throw failed;
+      }
+      if (audioDecoder) {
+        for (const s of state.audioSamples) {
+          audioDecoder.decode(sampleToAudioChunk(s));
+        }
       }
       if (failed) throw failed;
-    }
-    if (audioDecoder) {
-      for (const s of state.audioSamples) {
-        audioDecoder.decode(sampleToAudioChunk(s));
+
+      await videoDecoder.flush();
+      await videoEncoder.flush();
+      if (audioDecoder && audioEncoder) {
+        await audioDecoder.flush();
+        await audioEncoder.flush();
       }
+      if (failed) throw failed;
+    };
+
+    // Filet de sécurité : sur un appareil réel (matériel plus faible,
+    // vidéo avec des particularités d'encodage que le test en local n'a
+    // pas couvertes), le décodeur/encodeur peut rester bloqué sans jamais
+    // rejeter — sans ce timeout, ça reste figé indéfiniment côté UI (déjà
+    // vu en usage réel) au lieu de retomber sur la méthode temps réel.
+    // Plafonné à la durée réelle de la vidéo (+ une marge minimale) plutôt
+    // qu'un multiple : si la voie rapide doit finalement échouer, attendre
+    // plus longtemps que ne prendrait la méthode temps réel elle-même
+    // n'aurait aucun sens.
+    const timeoutMs = Math.min(Math.max(15_000, duration * 1_000), 90_000);
+    let timedOut = false;
+    await Promise.race([
+      decodeAndFlush(),
+      new Promise<void>((_, reject) =>
+        setTimeout(() => {
+          timedOut = true;
+          reject(new Error("Timeout décodage/encodage WebCodecs"));
+        }, timeoutMs)
+      ),
+    ]).finally(() => {
+      if (timedOut) {
+        try {
+          videoDecoder.close();
+        } catch {}
+        try {
+          videoEncoder.close();
+        } catch {}
+        try {
+          audioDecoder?.close();
+        } catch {}
+        try {
+          audioEncoder?.close();
+        } catch {}
+      }
+    });
+
+    if (!timedOut) {
+      videoDecoder.close();
+      videoEncoder.close();
+      audioDecoder?.close();
+      audioEncoder?.close();
     }
-
-    if (failed) throw failed;
-
-    await videoDecoder.flush();
-    await videoEncoder.flush();
-    if (audioDecoder && audioEncoder) {
-      await audioDecoder.flush();
-      await audioEncoder.flush();
-    }
-    if (failed) throw failed;
-
-    videoDecoder.close();
-    videoEncoder.close();
-    audioDecoder?.close();
-    audioEncoder?.close();
 
     muxer.finalize();
     opts.onProgress?.(100);
