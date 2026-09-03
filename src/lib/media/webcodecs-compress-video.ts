@@ -218,6 +218,13 @@ export async function compressVideoWebCodecs(
 
     const totalVideoSamples = videoTrack.nb_samples;
     const passStart = Date.now();
+    // Seuil de file d'attente au-delà duquel on marque une pause — sans
+    // ça, tout est poussé au décodeur/encodeur d'un coup sans jamais
+    // attendre qu'il traite quoi que ce soit. Chrome absorbe ça sans
+    // broncher, mais Safari peut rester figé bien avant la fin (vu en
+    // usage réel) sous la pression d'une file illimitée — c'est le motif
+    // de contre-pression documenté par les exemples WebCodecs eux-mêmes.
+    const QUEUE_LIMIT = 4;
 
     // Échantillons déjà extraits (voir onReady plus haut) — reste à les
     // faire passer par décodeur -> encodeur -> muxeur. decode() met en
@@ -226,6 +233,8 @@ export async function compressVideoWebCodecs(
     const decodeAndFlush = async () => {
       for (let i = 0; i < state.videoSamples.length; i++) {
         if (opts.signal?.aborted) throw new DOMException("Annulé", "AbortError");
+        await waitForQueueBelow(videoDecoder, () => videoDecoder.decodeQueueSize, QUEUE_LIMIT);
+        await waitForQueueBelow(videoEncoder, () => videoEncoder.encodeQueueSize, QUEUE_LIMIT);
         videoDecoder.decode(sampleToVideoChunk(state.videoSamples[i]));
         if (i % 10 === 0 || i === state.videoSamples.length - 1) {
           const pct = Math.min(99, Math.round(((i + 1) / totalVideoSamples) * 100));
@@ -235,8 +244,11 @@ export async function compressVideoWebCodecs(
         }
         if (failed) throw failed;
       }
-      if (audioDecoder) {
+      if (audioDecoder && audioEncoder) {
         for (const s of state.audioSamples) {
+          if (opts.signal?.aborted) throw new DOMException("Annulé", "AbortError");
+          await waitForQueueBelow(audioDecoder, () => audioDecoder!.decodeQueueSize, QUEUE_LIMIT);
+          await waitForQueueBelow(audioEncoder, () => audioEncoder!.encodeQueueSize, QUEUE_LIMIT);
           audioDecoder.decode(sampleToAudioChunk(s));
         }
       }
@@ -315,6 +327,22 @@ export async function compressVideoWebCodecs(
     console.warn("[compressVideoWebCodecs] Échec de la voie rapide — repli sur la méthode temps réel.", e);
     return null;
   }
+}
+
+// Contre-pression : n'ajoute rien de plus à la file d'un decoder/encoder
+// tant qu'elle dépasse le seuil — attend l'événement "dequeue" (prévu par
+// WebCodecs pour exactement ce cas) plutôt qu'un sondage.
+function waitForQueueBelow(target: EventTarget, getSize: () => number, threshold: number): Promise<void> {
+  if (getSize() <= threshold) return Promise.resolve();
+  return new Promise((resolve) => {
+    const onDequeue = () => {
+      if (getSize() <= threshold) {
+        target.removeEventListener("dequeue", onDequeue);
+        resolve();
+      }
+    };
+    target.addEventListener("dequeue", onDequeue);
+  });
 }
 
 function sampleToVideoChunk(sample: Sample): EncodedVideoChunk {
