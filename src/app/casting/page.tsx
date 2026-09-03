@@ -134,12 +134,18 @@ export default async function CastingPage({
             {entriesFiltered ? ` sur ${entries.length}` : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <ButtonLink href="/casting/trombis" variant="secondary">
             🖼️ Trombis
           </ButtonLink>
           <ButtonLink href="/casting/presentiel" variant="secondary">
             📅 Présentiel
+          </ButtonLink>
+          <ButtonLink href="/casting/liste-artistique" variant="secondary">
+            📋 Liste artistique
+          </ButtonLink>
+          <ButtonLink href="/casting/fiches-roles" variant="secondary">
+            🪪 Fiches rôles validés
           </ButtonLink>
           <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
             <Button type="submit" variant="secondary">

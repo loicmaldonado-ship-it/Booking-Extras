@@ -1,5 +1,11 @@
 "use client";
 
+export function formatSecondsRemaining(seconds: number): string {
+  if (seconds < 60) return `~${Math.max(1, seconds)}s`;
+  const minutes = Math.round(seconds / 60);
+  return `~${minutes}min`;
+}
+
 // Réduit une vidéo côté navigateur avant l'envoi, sans service payant ni
 // librairie lourde (pas de ffmpeg.wasm) : on rejoue la vidéo dans un
 // <video> caché, on redessine chaque image sur un canvas à une résolution
@@ -33,7 +39,10 @@ export async function compressVideo(
     maxBitsPerSecond?: number;
     minBitsPerSecond?: number;
     maxDurationSeconds?: number;
-    onProgress?: (pct: number) => void;
+    // secondsRemaining est une estimation (basée sur la position de lecture
+    // dans la passe en cours, à vitesse 1x) — utile pour afficher un temps
+    // d'attente plutôt qu'un pourcentage abstrait.
+    onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
   }
 ): Promise<File> {
   if (!file.type.startsWith("video/")) return file;
@@ -81,6 +90,15 @@ export async function compressVideo(
   video.muted = true;
   video.volume = 0;
 
+  // Safari ne respecte qu'approximativement le débit demandé à
+  // MediaRecorder (voir deuxième passe plus bas) — dépasser largement la
+  // cible dès la première passe y est fréquent, et la deuxième passe double
+  // alors l'attente (toute la vidéo est rejouée une deuxième fois). En
+  // visant délibérément plus bas dès la première passe sur ce navigateur,
+  // on évite la plupart de ces deuxièmes passes — Chrome/Firefox, dont le
+  // débit de sortie est fiable, gardent la pleine qualité calculée.
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
   let intervalId = 0;
   const audioCtxRef: { current: AudioContext | null } = { current: null };
 
@@ -121,7 +139,7 @@ export async function compressVideo(
     height: number,
     videoBitsPerSecond: number,
     audioTracks: MediaStreamTrack[],
-    reportProgress: boolean
+    passIndex: 1 | 2
   ): Promise<Blob | null> {
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -172,11 +190,15 @@ export async function compressVideo(
       if (video.paused || video.ended) return;
       ctx!.drawImage(video, 0, 0, width, height);
     }
-    if (reportProgress) {
-      video.ontimeupdate = () => {
-        if (video.duration) opts?.onProgress?.(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
-      };
-    }
+    // Toujours rapporté (les deux passes) — laisser la deuxième passe sans
+    // retour, comme avant, donnait l'impression que la compression était
+    // bloquée pendant plusieurs minutes alors qu'elle tournait toujours.
+    video.ontimeupdate = () => {
+      if (!video.duration) return;
+      const pct = Math.min(99, Math.round((video.currentTime / video.duration) * 100));
+      const secondsRemaining = Math.max(0, Math.round(video.duration - video.currentTime));
+      opts?.onProgress?.(pct, secondsRemaining, passIndex);
+    };
 
     video.currentTime = 0;
     recorder.start();
@@ -213,7 +235,11 @@ export async function compressVideo(
     // Débit calculé pour tenir dans la taille cible sur toute la durée —
     // pas un chiffre fixe qui exploserait sur une vidéo longue.
     const rawVideoBitrate = (targetBytes * 8) / video.duration - audioBitsPerSecond;
-    const videoBitsPerSecond = Math.round(Math.min(maxBitsPerSecond, Math.max(minBitsPerSecond, rawVideoBitrate)));
+    let videoBitsPerSecond = Math.round(Math.min(maxBitsPerSecond, Math.max(minBitsPerSecond, rawVideoBitrate)));
+    // Vise 40% plus bas dès le départ sur Safari, pour éviter dans la
+    // plupart des cas la deuxième passe (qui rejoue toute la vidéo une
+    // deuxième fois — voir plus haut).
+    if (isSafari) videoBitsPerSecond = Math.max(minBitsPerSecond, Math.round(videoBitsPerSecond * 0.6));
     // À très faible débit (vidéo longue), une résolution plus modeste
     // donne un meilleur rendu qu'une haute résolution trop compressée.
     const effectiveMaxWidth = videoBitsPerSecond <= 700_000 ? Math.min(maxWidth, 854) : maxWidth;
@@ -224,7 +250,7 @@ export async function compressVideo(
 
     const audioTracks = getAudioTracks();
 
-    let blob = await recordPass(width, height, videoBitsPerSecond, audioTracks, true);
+    let blob = await recordPass(width, height, videoBitsPerSecond, audioTracks, 1);
     if (!blob) return file;
 
     // Deuxième passe si le navigateur n'a pas respecté le débit demandé —
@@ -238,7 +264,7 @@ export async function compressVideo(
         Math.max(180, Math.round(height / 2)),
         Math.round(videoBitsPerSecond / 3),
         audioTracks,
-        false
+        2
       );
       if (retryBlob && retryBlob.size < blob.size) blob = retryBlob;
     }

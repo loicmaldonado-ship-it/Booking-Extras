@@ -12,7 +12,7 @@ import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/media/compress-image";
-import { compressVideo } from "@/lib/media/compress-video";
+import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
 import {
@@ -159,7 +159,11 @@ function AddVideoButton({ entryId }: { entryId: string }) {
     setPending(true);
     try {
       const compressed = await compressVideo(file, {
-        onProgress: (pct) => setStep(`Compression... ${pct}%`),
+        onProgress: (pct, secondsRemaining, pass) => {
+          const phase = pass === 2 ? "Compression (2e passe)" : "Compression";
+          const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
+          setStep(`${phase}... ${pct}%${eta}`);
+        },
       });
       setStep("Envoi...");
       const slot = await createStaffCastingVideoSlot(entryId);

@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/field";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { compressImage } from "@/lib/media/compress-image";
-import { compressVideo } from "@/lib/media/compress-video";
+import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 
 function FileSlot({
@@ -113,7 +113,11 @@ export function CastingUploadForm({
         const file = videos[i];
         if (!file) continue;
         const compressed = await compressVideo(file, {
-          onProgress: (pct) => setStep(`Compression de la vidéo ${i + 1}... ${pct}%`),
+          onProgress: (pct, secondsRemaining, pass) => {
+            const phase = pass === 2 ? " (2e passe)" : "";
+            const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
+            setStep(`Compression de la vidéo ${i + 1}${phase}... ${pct}%${eta}`);
+          },
         });
         setStep(`Envoi de la vidéo ${i + 1}...`);
         videoPaths.push(await uploadOne("video", String(i), compressed));
