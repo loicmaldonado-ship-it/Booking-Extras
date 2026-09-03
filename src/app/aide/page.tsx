@@ -411,9 +411,8 @@ export default function AidePage() {
           <UI>Validé·e</UI> ou <UI>À valider</UI> selon son statut. Les boutons{" "}
           <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
           montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une
-          silhouette que tu ne veux plus montrer. Les flèches <UI>▲</UI> <UI>▼</UI> à côté du nom du rôle
-          changent son ordre d&apos;affichage (ici comme sur le lien réal) — utile pour mettre les rôles
-          principaux en premier plutôt que dans l&apos;ordre de création.
+          silhouette que tu ne veux plus montrer. Le numéro à côté du nom du rôle est sa position (ici comme
+          sur le lien réal) — change-le pour déplacer le rôle à cette place, les autres se décalent tout seuls.
         </Callout>
         <Callout>
           <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les

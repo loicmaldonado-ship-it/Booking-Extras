@@ -194,8 +194,7 @@ export default async function CastingPage({
           templates={templates ?? []}
           presentielJournees={presentielJournees}
           presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
-          isFirst={i === 0}
-          isLast={i === roles.length - 1}
+          position={i + 1}
         />
       ))}
 

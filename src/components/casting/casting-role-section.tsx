@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/field";
 import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocation";
 import {
   deleteCastingRole,
-  moveCastingRole,
+  setCastingRolePosition,
   recordCastingMessage,
   recordCastingMessagesBulk,
   updateAllCastingEntriesVisiblePartage,
@@ -54,8 +54,7 @@ export function CastingRoleSection({
   templates,
   presentielJournees,
   presentielAssignments,
-  isFirst,
-  isLast,
+  position,
 }: {
   projetId: string;
   projetNom: string;
@@ -70,8 +69,10 @@ export function CastingRoleSection({
   templates: MessageTemplate[];
   presentielJournees: PresentielJourneeAvecCreneaux[];
   presentielAssignments: Map<string, PresentielAssignment>;
-  isFirst: boolean;
-  isLast: boolean;
+  // Position 1-indexée dans l'ordre d'affichage actuel du projet — pas
+  // juste role.ordre brut (qui peut être décalé/non contigu) : ce que le
+  // champ numéro doit montrer et permettre de changer directement.
+  position: number;
 }) {
   const router = useRouter();
   const [calibrateOpen, setCalibrateOpen] = useState(false);
@@ -254,9 +255,11 @@ export function CastingRoleSection({
     });
   }
 
-  function move(direction: "up" | "down") {
+  function changePosition(value: string) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === position) return;
     startTransition(async () => {
-      await moveCastingRole(role.id, direction);
+      await setCastingRolePosition(role.id, n);
       router.refresh();
     });
   }
@@ -275,27 +278,20 @@ export function CastingRoleSection({
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5">
-            <div className="flex flex-col">
-              <button
-                type="button"
-                disabled={pending || isFirst}
-                onClick={() => move("up")}
-                title="Remonter ce rôle"
-                className="leading-none text-text-muted hover:text-text disabled:opacity-30"
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                disabled={pending || isLast}
-                onClick={() => move("down")}
-                title="Descendre ce rôle"
-                className="leading-none text-text-muted hover:text-text disabled:opacity-30"
-              >
-                ▼
-              </button>
-            </div>
+          <div className="flex items-center gap-2">
+            <input
+              key={position}
+              type="number"
+              min={1}
+              disabled={pending}
+              defaultValue={position}
+              onBlur={(e) => changePosition(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") e.currentTarget.blur();
+              }}
+              title="N° d'ordre — change ce chiffre pour déplacer le rôle"
+              className="w-12 rounded-lg border border-border bg-ink px-1.5 py-1 text-center text-sm font-semibold outline-none focus:border-coral disabled:opacity-50"
+            />
             <h2 className="text-lg font-semibold">{role.nom}</h2>
           </div>
           <p className="text-xs text-text-muted">
