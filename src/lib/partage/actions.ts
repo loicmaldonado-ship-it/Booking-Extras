@@ -66,6 +66,24 @@ export async function createPartageLien(projetId: string, type: PartageType) {
   return token;
 }
 
+// Visibilité des deux documents casting (liste artistique, fiches rôles
+// validés) sur le lien réal — indépendante des profils/rôles marqués
+// visibles un par un, puisque ces docs résument l'ensemble du casting
+// plutôt qu'un profil précis. Sans effet tant qu'aucun lien casting n'a été
+// créé (rien à mettre à jour).
+export async function updateCastingDocVisible(
+  projetId: string,
+  doc: "liste_artistique" | "fiches_roles",
+  visible: boolean
+) {
+  await requireAccessOrThrow(projetId);
+
+  const supabase = createAdminClient();
+  const column = doc === "liste_artistique" ? "liste_artistique_visible" : "fiches_roles_visible";
+  await supabase.from("partage_liens").update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting");
+  revalidatePath("/casting");
+}
+
 export async function revokePartageLien(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
 

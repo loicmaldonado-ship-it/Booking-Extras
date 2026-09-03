@@ -1,4 +1,4 @@
-import { resolvePartageToken, getPartageTitreByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -34,10 +34,11 @@ export default async function PartageCastingPage({
     );
   }
 
-  const [roles, entries, titre] = await Promise.all([
+  const [roles, entries, titre, docsVisibility] = await Promise.all([
     getCastingRoles(projet.id),
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
+    getCastingDocsVisibilityByToken(token),
   ]);
   // Le staff décide seul de la visibilité — dès qu'un profil ou un rôle est
   // coché visible, il apparaît, même sans vidéo envoyée ou sans aucun
@@ -73,6 +74,30 @@ export default async function PartageCastingPage({
         </div>
         <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
         <p className="mt-1 text-sm text-text-muted">{t(lang, "clique_profil")}</p>
+        {(docsVisibility.listeArtistique || docsVisibility.fichesRoles) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {docsVisibility.listeArtistique && (
+              <a
+                href={`/partage/casting/${token}/liste-artistique`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+              >
+                📋 Liste artistique
+              </a>
+            )}
+            {docsVisibility.fichesRoles && (
+              <a
+                href={`/partage/casting/${token}/fiches-roles`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+              >
+                🪪 Fiches rôles validés
+              </a>
+            )}
+          </div>
+        )}
       </div>
 
       {rolesAvecProfils.map((role) => {
@@ -89,6 +114,7 @@ export default async function PartageCastingPage({
                 <CastingRealEntryCard
                   key={entry.id}
                   nom={`${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim()}
+                  valide={entry.statut === "valide"}
                   portraitUrl={pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
                   videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
                   photos={entryPhotosByEntry.get(entry.id) ?? []}

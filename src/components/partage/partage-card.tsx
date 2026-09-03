@@ -16,6 +16,7 @@ export function PartageCard({
   publicBaseUrl,
   titre,
   titrePlaceholder,
+  children,
 }: {
   projetId: string;
   type: PartageType;
@@ -27,6 +28,9 @@ export function PartageCard({
   // personnalisable (ex. Casting) — absent ailleurs (documents, essayages).
   titre?: string | null;
   titrePlaceholder?: string;
+  // Options propres à un type de lien précis (ex. visibilité des documents
+  // casting) — rendu seulement une fois le lien créé, comme le titre.
+  children?: React.ReactNode;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -89,6 +93,7 @@ export function PartageCard({
               Révoquer
             </Button>
           </div>
+          {children}
         </div>
       ) : (
         <Button type="button" variant="secondary" disabled={pending} onClick={create}>

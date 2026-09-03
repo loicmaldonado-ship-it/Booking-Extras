@@ -401,10 +401,19 @@ export default function AidePage() {
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
           <UI>Partage réal — Casting</UI> montre au réalisateur·ice les rôles et profils que tu as
-          explicitement marqués visibles — classés par rôle, jamais les infos de contact. Les boutons{" "}
+          explicitement marqués visibles — classés par rôle, jamais les infos de contact. Chaque profil affiche{" "}
+          <UI>Validé·e</UI> ou <UI>À valider</UI> selon son statut. Les boutons{" "}
           <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
           montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une
-          silhouette que tu ne veux plus montrer.
+          silhouette que tu ne veux plus montrer. Les flèches <UI>▲</UI> <UI>▼</UI> à côté du nom du rôle
+          changent son ordre d&apos;affichage (ici comme sur le lien réal) — utile pour mettre les rôles
+          principaux en premier plutôt que dans l&apos;ordre de création.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les
+          profils du casting par <UI>Mode</UI> (Selftape / Présentiel) et/ou par <UI>Statut</UI> — pratique pour
+          repérer d&apos;un coup d&apos;œil, par exemple, tout ce qui reste <UI>Incomplet</UI> quel que soit le
+          rôle.
         </Callout>
         <Callout>
           <strong className="text-text">Statut &amp; agent.</strong> Chaque profil a un{" "}
@@ -452,6 +461,15 @@ export default function AidePage() {
           mêmes filtres que Bookings (genre, véhicule, Myrole, âge, statut), l&apos;agent (ou « SANS AGENT ») sous
           chaque profil, et un raccourci <UI>Validé·es uniquement</UI> pour ne montrer que les profils retenus.
           Exportable en PDF (<UI>Télécharger le PDF</UI> ou impression).
+        </Callout>
+        <Callout>
+          <strong className="text-text">📋 Liste artistique / 🪪 Fiches rôles validés.</strong> Deux documents
+          exportables en PDF, sous la liste des rôles. La <UI>Liste artistique</UI> reprend tous les rôles dans
+          leur ordre d&apos;affichage, avec le comédien retenu (ou le plus avancé si personne n&apos;est encore
+          validé) et son agent — vert si validé, jaune sinon, gris si annulé ou sans candidat. Les{" "}
+          <UI>Fiches rôles validés</UI> ne gardent que les rôles avec un comédien validé, une fiche par rôle
+          (grande photo, coordonnées, agent). Rends-les visibles et téléchargeables sur le lien réal via les
+          cases à cocher sous <UI>Partage réal</UI>, en bas de la page.
         </Callout>
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en

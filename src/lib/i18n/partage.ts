@@ -92,6 +92,8 @@ const DICT = {
   videos: { fr: "vidéos", en: "videos" },
   photo: { fr: "photo", en: "photo" },
   photos: { fr: "photos", en: "photos" },
+  valide: { fr: "Validé·e", en: "Approved" },
+  a_valider: { fr: "À valider", en: "Pending approval" },
 
   // Essayages
   planning_essayages_jour: { fr: "Planning des essayages par jour — lecture seule.", en: "Fitting schedule by day — read only." },

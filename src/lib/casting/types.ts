@@ -23,6 +23,31 @@ export function castingStatutLabel(v: BookingStatut): string {
   return CASTING_STATUTS.find((s) => s.value === v)?.label ?? v;
 }
 
+// Pour les documents qui résument un rôle par un seul comédien (liste
+// artistique, fiches rôles validés) — priorité au profil validé, sinon au
+// plus avancé dans le circuit, en écartant les annulés s'il reste une autre
+// option.
+const ROLE_ENTRY_PRIORITY: BookingStatut[] = [
+  "confirmé",
+  "valide",
+  "attente_validation",
+  "doit_rappeler",
+  "a_relancer",
+  "envoyé",
+  "proposé",
+  "indisponible",
+  "annulé",
+];
+
+export function bestEntryForRole<T extends { statut: BookingStatut }>(entries: T[]): T | null {
+  const active = entries.filter((e) => e.statut !== "annulé");
+  const pool = active.length > 0 ? active : entries;
+  if (pool.length === 0) return null;
+  return pool.reduce((best, e) =>
+    ROLE_ENTRY_PRIORITY.indexOf(e.statut) < ROLE_ENTRY_PRIORITY.indexOf(best.statut) ? e : best
+  );
+}
+
 export type CategorieCachet = "role" | "silhouette" | "doublure";
 
 export const CATEGORIE_CACHET_LABELS: Record<CategorieCachet, string> = {
@@ -50,6 +75,7 @@ export type CastingRole = {
   date_tournage: string | null;
   date_limite_envoi: string | null;
   categorie_cachet: CategorieCachet;
+  ordre: number;
   mode: CastingMode;
   nb_videos: number;
   photo_labels: string[];
@@ -81,6 +107,9 @@ export type CastingEntry = {
     nom: string;
     email: string | null;
     telephone: string | null;
+    adresse: string | null;
+    code_postal: string | null;
+    ville: string | null;
     genre: Genre | null;
     date_naissance: string | null;
     a_vehicule: boolean | null;

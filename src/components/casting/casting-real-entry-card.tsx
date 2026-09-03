@@ -10,6 +10,7 @@ export function CastingRealEntryCard({
   nom,
   portraitUrl,
   roleLabel,
+  valide,
   videoUrls,
   photos,
   lang = DEFAULT_LANG,
@@ -17,6 +18,7 @@ export function CastingRealEntryCard({
   nom: string;
   portraitUrl: string | null;
   roleLabel?: string | null;
+  valide: boolean;
   videoUrls: string[];
   photos: { label: string; url: string }[];
   lang?: Lang;
@@ -38,7 +40,10 @@ export function CastingRealEntryCard({
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <span className="font-medium">{nom}</span>
-          {roleLabel && <Badge>{roleLabel}</Badge>}
+          <div className="flex flex-wrap gap-1.5">
+            {roleLabel && <Badge>{roleLabel}</Badge>}
+            <Badge tone={valide ? "turquoise" : "yellow"}>{t(lang, valide ? "valide" : "a_valider")}</Badge>
+          </div>
         </div>
         {hasMedia && (
           <span className="text-xs text-text-muted">

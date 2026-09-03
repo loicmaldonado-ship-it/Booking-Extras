@@ -66,6 +66,17 @@ export async function createCastingRole(
   const visiblePartage = formData.get("visible_partage") === "on";
 
   const supabase = createAdminClient();
+  // Nouveau rôle toujours en dernier dans l'ordre d'affichage — le staff
+  // réordonne ensuite à la main si besoin (voir moveCastingRole).
+  const { data: maxOrdreRow } = await supabase
+    .from("casting_roles")
+    .select("ordre")
+    .eq("projet_id", projetId)
+    .order("ordre", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const ordre = (maxOrdreRow?.ordre ?? -1) + 1;
+
   const { data: inserted, error } = await supabase
     .from("casting_roles")
     .insert({
@@ -74,6 +85,7 @@ export async function createCastingRole(
       date_tournage: dateTournage,
       date_limite_envoi: dateLimiteEnvoi,
       categorie_cachet: categorieCachet,
+      ordre,
       mode,
       nb_videos: nbVideos,
       photo_labels: photoLabels,
@@ -359,6 +371,45 @@ export async function updateCastingRoleVisiblePartage(
 
   const { error } = await supabase.from("casting_roles").update({ visible_partage: visible }).eq("id", roleId);
   if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Fait remonter/descendre un rôle d'un cran dans l'ordre d'affichage — en
+// échangeant simplement sa valeur "ordre" avec celle du voisin, plutôt que
+// de renuméroter tout le projet à chaque clic.
+export async function moveCastingRole(
+  roleId: string,
+  direction: "up" | "down"
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: role } = await supabase
+    .from("casting_roles")
+    .select("projet_id, ordre")
+    .eq("id", roleId)
+    .maybeSingle();
+  if (!role) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(role.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { data: roles } = await supabase
+    .from("casting_roles")
+    .select("id, ordre")
+    .eq("projet_id", role.projet_id)
+    .order("ordre", { ascending: true });
+  const list = roles ?? [];
+  const index = list.findIndex((r) => r.id === roleId);
+  const targetIndex = direction === "up" ? index - 1 : index + 1;
+  if (index === -1 || targetIndex < 0 || targetIndex >= list.length) return { success: true };
+
+  const current = list[index];
+  const target = list[targetIndex];
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    supabase.from("casting_roles").update({ ordre: target.ordre }).eq("id", current.id),
+    supabase.from("casting_roles").update({ ordre: current.ordre }).eq("id", target.id),
+  ]);
+  if (e1 || e2) return { error: (e1 ?? e2)!.message };
 
   revalidatePath("/casting");
   return { success: true };

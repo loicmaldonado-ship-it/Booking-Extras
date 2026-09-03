@@ -108,7 +108,12 @@ export default async function CastingPresentielJourneePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <BackLink href="/casting/presentiel" label="Casting présentiel" />
+      <div className="flex items-center justify-between gap-3">
+        <BackLink href="/casting/presentiel" label="Casting présentiel" />
+        <ButtonLink href="/casting" variant="ghost">
+          🎬 Casting
+        </ButtonLink>
+      </div>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>

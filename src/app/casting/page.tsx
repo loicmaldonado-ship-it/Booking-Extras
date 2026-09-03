@@ -4,7 +4,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
-import { getSiteOrigin } from "@/lib/partage/data";
+import { getSiteOrigin, getCastingDocsVisibility } from "@/lib/partage/data";
+import { CastingDocsVisibilityToggle } from "@/components/casting/casting-docs-visibility-toggle";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -19,6 +20,9 @@ import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
+import { CASTING_MODE_LABELS, CASTING_STATUTS } from "@/lib/casting/types";
+import { Select } from "@/components/ui/field";
+import Link from "next/link";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { Video } from "lucide-react";
 
@@ -27,7 +31,7 @@ export const dynamic = "force-dynamic";
 export default async function CastingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ switch?: string }>;
+  searchParams: Promise<{ switch?: string; mode?: string; statut?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createAdminClient();
@@ -59,6 +63,7 @@ export default async function CastingPage({
     entries,
     partageToken,
     partageTitre,
+    docsVisibility,
     origin,
     { data: allFigurants },
     { data: templates },
@@ -70,6 +75,7 @@ export default async function CastingPage({
     getCastingEntries(currentProjetId),
     getPartageToken(currentProjetId, "casting"),
     getPartageTitre(currentProjetId, "casting"),
+    getCastingDocsVisibility(currentProjetId),
     getSiteOrigin(),
     supabase.from("figurants").select("id, prenom, nom").order("nom"),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
@@ -78,20 +84,31 @@ export default async function CastingPage({
     getPresentielAssignmentsByRole(currentProjetId),
   ]);
 
-  const figurantIds = entries.map((e) => e.figurant_id);
-  const entryIds = entries.map((e) => e.id);
+  // Filtre appliqué avant même de récupérer photos/vidéos des entrées
+  // écartées — pas la peine de les signer si elles ne s'affichent pas.
+  let filteredEntries = entries;
+  if (params.mode === "selftape" || params.mode === "presentiel") {
+    filteredEntries = filteredEntries.filter((e) => e.mode === params.mode);
+  }
+  if (params.statut) filteredEntries = filteredEntries.filter((e) => e.statut === params.statut);
+  const entriesFiltered = params.mode || params.statut;
+
+  const figurantIds = filteredEntries.map((e) => e.figurant_id);
+  const entryIds = filteredEntries.map((e) => e.id);
   const [photosByFigurant, videoPairsByEntry, entryPhotosByEntry] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
-    getCastingVideoUrlPairsByEntries(entries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths }))),
+    getCastingVideoUrlPairsByEntries(
+      filteredEntries.map((e) => ({ id: e.id, video_storage_paths: e.video_storage_paths }))
+    ),
     getCastingEntryPhotos(entryIds),
   ]);
   const portraitByFigurant = new Map(
     figurantIds.map((id) => [id, pickPortrait(photosByFigurant.get(id), currentProjetId)?.url ?? null])
   );
-  const videoUrlsByEntry = new Map(entries.map((e) => [e.id, videoPairsByEntry.get(e.id) ?? []]));
+  const videoUrlsByEntry = new Map(filteredEntries.map((e) => [e.id, videoPairsByEntry.get(e.id) ?? []]));
 
-  const entriesByRole = new Map<string, typeof entries>();
-  for (const e of entries) {
+  const entriesByRole = new Map<string, typeof filteredEntries>();
+  for (const e of filteredEntries) {
     const list = entriesByRole.get(e.role_id) ?? [];
     list.push(e);
     entriesByRole.set(e.role_id, list);
@@ -112,7 +129,9 @@ export default async function CastingPage({
             {projet.nom}
           </h1>
           <p className="mt-1 text-text-muted">
-            {roles.length} rôle{roles.length > 1 ? "s" : ""} · {entries.length} profil{entries.length > 1 ? "s" : ""}
+            {roles.length} rôle{roles.length > 1 ? "s" : ""} · {filteredEntries.length} profil
+            {filteredEntries.length > 1 ? "s" : ""}
+            {entriesFiltered ? ` sur ${entries.length}` : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -130,9 +149,36 @@ export default async function CastingPage({
         </div>
       </div>
 
+      <form className="flex flex-wrap items-center gap-2" method="get">
+        <Select name="mode" defaultValue={params.mode ?? ""} className="w-44">
+          <option value="">Mode (tous)</option>
+          <option value="selftape">{CASTING_MODE_LABELS.selftape}</option>
+          <option value="presentiel">{CASTING_MODE_LABELS.presentiel}</option>
+        </Select>
+        <Select name="statut" defaultValue={params.statut ?? ""} className="w-44">
+          <option value="">Statut (tous)</option>
+          {CASTING_STATUTS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </Select>
+        <button
+          type="submit"
+          className="rounded-full bg-ink-raised-2 px-4 py-2 text-sm font-medium hover:border hover:border-coral/60"
+        >
+          Filtrer
+        </button>
+        {entriesFiltered && (
+          <Link href="/casting" className="text-sm font-medium text-text-muted hover:text-text">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
+
       <NewCastingRoleCard projetId={currentProjetId} />
 
-      {roles.map((role) => (
+      {roles.map((role, i) => (
         <CastingRoleSection
           key={role.id}
           projetId={currentProjetId}
@@ -148,6 +194,8 @@ export default async function CastingPage({
           templates={templates ?? []}
           presentielJournees={presentielJournees}
           presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
+          isFirst={i === 0}
+          isLast={i === roles.length - 1}
         />
       ))}
 
@@ -160,6 +208,15 @@ export default async function CastingPage({
         </Card>
       )}
 
+      <div className="flex flex-wrap gap-2">
+        <ButtonLink href="/casting/liste-artistique" variant="secondary">
+          📋 Liste artistique
+        </ButtonLink>
+        <ButtonLink href="/casting/fiches-roles" variant="secondary">
+          🪪 Fiches rôles validés
+        </ButtonLink>
+      </div>
+
       <PartageCard
         projetId={currentProjetId}
         type="casting"
@@ -169,7 +226,13 @@ export default async function CastingPage({
         publicBaseUrl={`${origin}/partage/casting`}
         titre={partageTitre}
         titrePlaceholder={`Casting — ${projet.nom}`}
-      />
+      >
+        <CastingDocsVisibilityToggle
+          projetId={currentProjetId}
+          listeArtistique={docsVisibility.listeArtistique}
+          fichesRoles={docsVisibility.fichesRoles}
+        />
+      </PartageCard>
     </div>
   );
 }

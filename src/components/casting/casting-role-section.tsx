@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/field";
 import { substituteTokens, substituteTokensHtml } from "@/lib/bookings/convocation";
 import {
   deleteCastingRole,
+  moveCastingRole,
   recordCastingMessage,
   recordCastingMessagesBulk,
   updateAllCastingEntriesVisiblePartage,
@@ -51,6 +52,8 @@ export function CastingRoleSection({
   templates,
   presentielJournees,
   presentielAssignments,
+  isFirst,
+  isLast,
 }: {
   projetId: string;
   projetNom: string;
@@ -65,6 +68,8 @@ export function CastingRoleSection({
   templates: MessageTemplate[];
   presentielJournees: PresentielJourneeAvecCreneaux[];
   presentielAssignments: Map<string, PresentielAssignment>;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const router = useRouter();
   const [calibrateOpen, setCalibrateOpen] = useState(false);
@@ -247,6 +252,13 @@ export function CastingRoleSection({
     });
   }
 
+  function move(direction: "up" | "down") {
+    startTransition(async () => {
+      await moveCastingRole(role.id, direction);
+      router.refresh();
+    });
+  }
+
   const calibrationSummary = [
     role.nb_videos > 0 ? `${role.nb_videos} vidéo${role.nb_videos > 1 ? "s" : ""}` : null,
     role.photo_labels.length > 0 ? `${role.photo_labels.length} photo${role.photo_labels.length > 1 ? "s" : ""}` : null,
@@ -261,7 +273,29 @@ export function CastingRoleSection({
     <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">{role.nom}</h2>
+          <div className="flex items-center gap-1.5">
+            <div className="flex flex-col">
+              <button
+                type="button"
+                disabled={pending || isFirst}
+                onClick={() => move("up")}
+                title="Remonter ce rôle"
+                className="leading-none text-text-muted hover:text-text disabled:opacity-30"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                disabled={pending || isLast}
+                onClick={() => move("down")}
+                title="Descendre ce rôle"
+                className="leading-none text-text-muted hover:text-text disabled:opacity-30"
+              >
+                ▼
+              </button>
+            </div>
+            <h2 className="text-lg font-semibold">{role.nom}</h2>
+          </div>
           <p className="text-xs text-text-muted">
             {role.date_tournage ? formatDateLong(role.date_tournage) : "Date de tournage non définie"}
             {role.date_limite_envoi ? ` · Envoi avant le ${formatDateLong(role.date_limite_envoi)}` : ""}
