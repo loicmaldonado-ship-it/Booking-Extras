@@ -10,6 +10,7 @@ import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/up
 import { compressImage } from "@/lib/media/compress-image";
 import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
+import { cn } from "@/lib/cn";
 
 function FileSlot({
   label,
@@ -24,6 +25,17 @@ function FileSlot({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<{ name: string; isImage: boolean; url: string | null } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  function selectFile(file: File | null) {
+    onSelect(file);
+    if (!file) {
+      setPreview(null);
+      return;
+    }
+    const isImage = file.type.startsWith("image/");
+    setPreview({ name: file.name, isImage, url: isImage ? URL.createObjectURL(file) : null });
+  }
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -33,7 +45,21 @@ function FileSlot({
       </span>
       <div
         onClick={() => inputRef.current?.click()}
-        className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed border-border bg-ink-raised-2 px-4 text-center transition-colors hover:border-coral/60"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) selectFile(file);
+        }}
+        className={cn(
+          "relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 px-4 text-center transition-colors",
+          dragOver ? "border-coral bg-coral/10" : "border-border hover:border-coral/60"
+        )}
       >
         {preview ? (
           preview.isImage && preview.url ? (
@@ -44,7 +70,7 @@ function FileSlot({
         ) : (
           <>
             <span className="text-lg">+</span>
-            <span className="text-xs text-text-muted">Choisir</span>
+            <span className="text-xs text-text-muted">Choisir ou glisser</span>
           </>
         )}
       </div>
@@ -53,16 +79,7 @@ function FileSlot({
         type="file"
         accept={accept}
         className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0] ?? null;
-          onSelect(file);
-          if (!file) {
-            setPreview(null);
-            return;
-          }
-          const isImage = file.type.startsWith("image/");
-          setPreview({ name: file.name, isImage, url: isImage ? URL.createObjectURL(file) : null });
-        }}
+        onChange={(e) => selectFile(e.target.files?.[0] ?? null)}
       />
     </div>
   );

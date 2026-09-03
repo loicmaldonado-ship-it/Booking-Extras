@@ -40,6 +40,7 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   function upload(file: File) {
     setError(null);
@@ -58,8 +59,22 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files?.[0];
+          if (file) upload(file);
+        }}
         disabled={pending}
-        className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-ink-raised-2 text-xs text-text-muted transition-colors hover:border-coral/60 disabled:opacity-60"
+        className={cn(
+          "flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-xs text-text-muted transition-colors disabled:opacity-60",
+          dragOver ? "border-coral bg-coral/10" : "border-border bg-ink-raised-2 hover:border-coral/60"
+        )}
       >
         <span className="text-lg">+</span>
         {pending ? "Envoi..." : "Ajouter"}
@@ -174,6 +189,7 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   const [pending, setPending] = useState(false);
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   async function upload(file: File) {
     setError(null);
@@ -220,13 +236,29 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragOver(true);
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file && !pending) upload(file);
+      }}
+      className={cn(
+        "flex flex-col gap-1 rounded-lg border-2 border-dashed p-1.5 transition-colors",
+        dragOver ? "border-coral bg-coral/10" : "border-transparent"
+      )}
+    >
       <input
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         disabled={pending}
         placeholder="Nom de la vidéo (ex: Essai 1)"
-        className="w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
+        className="w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-50"
       />
       <div className="flex gap-1.5">
         <Button
@@ -236,7 +268,7 @@ function AddVideoButton({ entryId }: { entryId: string }) {
           onClick={() => inputRef.current?.click()}
           className="flex-1"
         >
-          {pending ? (step ?? "Envoi...") : "+ Ajouter une vidéo"}
+          {pending ? (step ?? "Envoi...") : "+ Ajouter ou glisser une vidéo"}
         </Button>
         {pending && (
           <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
