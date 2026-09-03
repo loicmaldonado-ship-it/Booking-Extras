@@ -292,6 +292,22 @@ async function compressVideoRealtime(
     const width = Math.round(video.videoWidth * scale);
     const height = Math.round(video.videoHeight * scale);
 
+    // Essai de lecture "à vide" avant de créer le graphe Web Audio (voir
+    // getAudioTracks juste après) : sur Safari, brancher l'élément à un
+    // AudioContext avant sa toute première lecture réussie fait perdre
+    // l'exemption "lecture automatique autorisée si muet" — .play() est
+    // ensuite refusé (NotAllowedError) pour les passes d'enregistrement
+    // qui suivent. Une première lecture réussie AVANT de toucher au Web
+    // Audio API évite ce piège.
+    try {
+      await video.play();
+      video.pause();
+      video.currentTime = 0;
+    } catch (playErr) {
+      console.warn("[compressVideo] Lecture initiale refusée par le navigateur — envoi du fichier original.", playErr);
+      return file;
+    }
+
     const audioTracks = getAudioTracks();
 
     let blob = await recordPass(width, height, videoBitsPerSecond, audioTracks, 1);
