@@ -476,12 +476,12 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">📋 Liste artistique / 🪪 Fiches rôles validés.</strong> Deux documents
-          exportables en PDF, sous la liste des rôles. La <UI>Liste artistique</UI> reprend tous les rôles dans
-          leur ordre d&apos;affichage, avec le comédien retenu (ou le plus avancé si personne n&apos;est encore
-          validé) et son agent — vert si validé, jaune sinon, gris si annulé ou sans candidat. Les{" "}
-          <UI>Fiches rôles validés</UI> ne gardent que les rôles avec un comédien validé, une fiche par rôle
-          (grande photo, coordonnées, agent). Rends-les visibles et téléchargeables sur le lien réal via les
-          cases à cocher sous <UI>Partage réal</UI>, en bas de la page.
+          exportables en PDF et en Excel, sous la liste des rôles — tous deux ne gardent que les rôles avec un
+          comédien validé (les rôles pas encore tranchés n&apos;y apparaissent pas). La{" "}
+          <UI>Liste artistique</UI> reprend ces rôles dans leur ordre d&apos;affichage, avec la photo du
+          comédien et son agent. Les <UI>Fiches rôles validés</UI> font une fiche par rôle (grande photo,
+          coordonnées, agent). Rends-les visibles et téléchargeables sur le lien réal via les cases à cocher
+          sous <UI>Partage réal</UI>, en bas de la page.
         </Callout>
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en

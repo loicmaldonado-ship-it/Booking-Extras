@@ -24,22 +24,6 @@ export function castingStatutLabel(v: BookingStatut): string {
   return CASTING_STATUTS.find((s) => s.value === v)?.label ?? v;
 }
 
-// Pour les documents qui résument un rôle par un seul comédien (liste
-// artistique, fiches rôles validés) — priorité au profil validé, sinon au
-// plus avancé dans le circuit, en écartant les annulés s'il reste une autre
-// option.
-const ROLE_ENTRY_PRIORITY: BookingStatut[] = [
-  "confirmé",
-  "valide",
-  "attente_validation",
-  "doit_rappeler",
-  "a_relancer",
-  "envoyé",
-  "proposé",
-  "indisponible",
-  "annulé",
-];
-
 // Libellé autonome (badge, en-tête de rôle) — date unique inchangée, sinon
 // "Du X au Y" pour une période encore approximative (tournage pas encore
 // calé sur un jour précis).
@@ -55,15 +39,6 @@ export function formatTournageClause(debut: string | null, fin: string | null): 
   if (!debut) return "";
   if (fin && fin !== debut) return `entre le ${formatDateShort(debut)} et le ${formatDateShort(fin)}`;
   return `le ${formatDateLong(debut)}`;
-}
-
-export function bestEntryForRole<T extends { statut: BookingStatut }>(entries: T[]): T | null {
-  const active = entries.filter((e) => e.statut !== "annulé");
-  const pool = active.length > 0 ? active : entries;
-  if (pool.length === 0) return null;
-  return pool.reduce((best, e) =>
-    ROLE_ENTRY_PRIORITY.indexOf(e.statut) < ROLE_ENTRY_PRIORITY.indexOf(best.statut) ? e : best
-  );
 }
 
 export type CategorieCachet = "role" | "silhouette" | "doublure";
