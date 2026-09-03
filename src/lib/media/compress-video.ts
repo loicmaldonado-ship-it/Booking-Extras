@@ -35,24 +35,38 @@ type CompressVideoOpts = {
 // retombe sur la méthode temps réel ci-dessous (canvas + MediaRecorder),
 // déjà éprouvée sur Safari — jamais de régression, seulement une perte de
 // vitesse dans les cas où la voie rapide ne s'applique pas.
+//
+// Désactivée sur Safari pour l'instant : plusieurs signalements réels de
+// blocage (99%, puis 0% après le correctif de contre-pression) malgré
+// plusieurs correctifs successifs — le décodeur semble tout simplement ne
+// jamais produire de sortie sur certaines vidéos, avant même le filet de
+// sécurité (timeout). Plutôt que de continuer à corriger à l'aveugle sans
+// accès à Safari pour déboguer, on retombe directement sur la méthode
+// temps réel (plus lente mais fiable) pour ce navigateur — jamais essayé,
+// jamais bloqué.
+const isSafari =
+  typeof navigator !== "undefined" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export async function compressVideo(file: File, opts?: CompressVideoOpts): Promise<File> {
   if (!file.type.startsWith("video/")) return file;
   if (opts?.signal?.aborted) throw new DOMException("Annulé", "AbortError");
 
-  const resolvedOpts = {
-    maxWidth: opts?.maxWidth ?? 1152,
-    targetBytes: opts?.targetBytes ?? 18_000_000,
-    hardCapBytes: opts?.hardCapBytes ?? 40_000_000,
-    maxBitsPerSecond: opts?.maxBitsPerSecond ?? 1_800_000,
-    minBitsPerSecond: opts?.minBitsPerSecond ?? 80_000,
-    maxDurationSeconds: opts?.maxDurationSeconds ?? 1800,
-    audioBitsPerSecond: 96_000,
-    onProgress: opts?.onProgress,
-    signal: opts?.signal,
-  };
+  if (!isSafari) {
+    const resolvedOpts = {
+      maxWidth: opts?.maxWidth ?? 1152,
+      targetBytes: opts?.targetBytes ?? 18_000_000,
+      hardCapBytes: opts?.hardCapBytes ?? 40_000_000,
+      maxBitsPerSecond: opts?.maxBitsPerSecond ?? 1_800_000,
+      minBitsPerSecond: opts?.minBitsPerSecond ?? 80_000,
+      maxDurationSeconds: opts?.maxDurationSeconds ?? 1800,
+      audioBitsPerSecond: 96_000,
+      onProgress: opts?.onProgress,
+      signal: opts?.signal,
+    };
 
-  const fast = await compressVideoWebCodecs(file, resolvedOpts);
-  if (fast) return fast;
+    const fast = await compressVideoWebCodecs(file, resolvedOpts);
+    if (fast) return fast;
+  }
 
   return compressVideoRealtime(file, opts);
 }
@@ -122,7 +136,7 @@ async function compressVideoRealtime(
   // visant délibérément plus bas dès la première passe sur ce navigateur,
   // on évite la plupart de ces deuxièmes passes — Chrome/Firefox, dont le
   // débit de sortie est fiable, gardent la pleine qualité calculée.
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  // (isSafari est défini plus haut dans le fichier, réutilisé ici.)
 
   let intervalId = 0;
   const audioCtxRef: { current: AudioContext | null } = { current: null };
