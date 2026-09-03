@@ -372,7 +372,13 @@ export default function AidePage() {
                 seulement, l&apos;envoi du lien selftape et l&apos;ajout au planning présentiel restent tous les
                 deux disponibles quel que soit le mode choisi.
               </>,
-              "Choisis le nombre de vidéos et les photos demandées, et la date de tournage si elle est déjà connue.",
+              <>
+                Choisis le nombre de vidéos et les photos demandées, et la date de tournage si elle est déjà
+                connue. Renseigne aussi <strong className="text-text">« Jusqu&apos;au »</strong> si tu n&apos;as
+                encore qu&apos;une période (« un ou deux jours de tournage entre le X et le Y ») plutôt qu&apos;une
+                date précise — ça s&apos;affiche « Du X au Y » partout et se glisse automatiquement dans le mail
+                d&apos;invitation.
+              </>,
               <>
                 Calibre une <strong className="text-text">date limite d&apos;envoi</strong> (optionnel) : elle
                 s&apos;affiche sur la carte de chaque profil et dans le mail d&apos;invitation, et bloque
@@ -474,7 +480,8 @@ export default function AidePage() {
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en
           présentiel plutôt que par vidéo : renseigne le <strong className="text-text">lieu</strong> de la
-          journée (clique dessus, en haut de la page), crée des{" "}
+          journée (clique dessus, en haut de la page). Les flèches de part et d&apos;autre de la date, en haut,
+          passent à la journée précédente/suivante sans repasser par la liste. Crée des{" "}
           <strong className="text-text">journées</strong> sur un calendrier puis des{" "}
           <strong className="text-text">créneaux</strong> horaires, exactement comme pour un essayage — mais sans
           lien de partage avec l&apos;équipe. Glisse les profils sur un créneau, sélectionne-les puis envoie une{" "}

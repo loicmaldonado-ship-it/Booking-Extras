@@ -33,7 +33,7 @@ export function defaultCastingInviteMessage(
       "Bonjour {prenom},",
       "",
       `L'équipe de casting du projet « {projet} » vous propose pour le rôle « {role} »` +
-        (role.date_tournage ? " (tournage le {date})" : "") +
+        (role.date_tournage ? " (tournage {date})" : "") +
         ".",
       "",
       besoin.length > 0 ? `Merci de nous envoyer, via ce lien : ${besoin.join(", ")}.` : "Merci de tout envoyer via ce lien : {lien}",

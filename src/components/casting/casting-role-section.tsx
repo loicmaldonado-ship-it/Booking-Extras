@@ -28,6 +28,8 @@ import {
   CATEGORIE_CACHET_LABELS,
   CASTING_MODE_LABELS,
   CASTING_STATUTS,
+  formatTournageLabel,
+  formatTournageClause,
   type CastingRole,
   type CastingEntry,
 } from "@/lib/casting/types";
@@ -118,7 +120,7 @@ export function CastingRoleSection({
       prenom: entry.figurants?.prenom ?? "",
       projet: projetNom,
       role: role.nom,
-      date: role.date_tournage ? formatDateLong(role.date_tournage) : "",
+      date: formatTournageClause(role.date_tournage, role.date_tournage_fin),
       deadline: role.date_limite_envoi ? formatDateLong(role.date_limite_envoi) : "",
       signature,
       lien: `${origin}/casting/upload/${entry.request_token}`,
@@ -297,7 +299,7 @@ export function CastingRoleSection({
             <h2 className="text-lg font-semibold">{role.nom}</h2>
           </div>
           <p className="text-xs text-text-muted">
-            {role.date_tournage ? formatDateLong(role.date_tournage) : "Date de tournage non définie"}
+            {formatTournageLabel(role.date_tournage, role.date_tournage_fin) ?? "Date de tournage non définie"}
             {role.date_limite_envoi ? ` · Envoi avant le ${formatDateLong(role.date_limite_envoi)}` : ""}
             {calibrationSummary ? ` · ${calibrationSummary}` : ""}
           </p>

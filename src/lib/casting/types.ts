@@ -1,5 +1,6 @@
 import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
 import type { Genre } from "@/lib/figurants/types";
+import { formatDateShort, formatDateLong } from "@/lib/format-date";
 
 // En casting, "Proposé" / "PER (pas encore de réponse)" ne veulent rien
 // dire — ce qui compte c'est où en est la personne : rien envoyé, envoyé
@@ -39,6 +40,23 @@ const ROLE_ENTRY_PRIORITY: BookingStatut[] = [
   "annulé",
 ];
 
+// Libellé autonome (badge, en-tête de rôle) — date unique inchangée, sinon
+// "Du X au Y" pour une période encore approximative (tournage pas encore
+// calé sur un jour précis).
+export function formatTournageLabel(debut: string | null, fin: string | null): string | null {
+  if (!debut) return null;
+  if (fin && fin !== debut) return `Du ${formatDateShort(debut)} au ${formatDateShort(fin)}`;
+  return formatDateLong(debut);
+}
+
+// Membre de phrase ("tournage {clause}") pour les mails — mêmes deux cas,
+// raccordé grammaticalement ("le" / "entre... et...").
+export function formatTournageClause(debut: string | null, fin: string | null): string {
+  if (!debut) return "";
+  if (fin && fin !== debut) return `entre le ${formatDateShort(debut)} et le ${formatDateShort(fin)}`;
+  return `le ${formatDateLong(debut)}`;
+}
+
 export function bestEntryForRole<T extends { statut: BookingStatut }>(entries: T[]): T | null {
   const active = entries.filter((e) => e.statut !== "annulé");
   const pool = active.length > 0 ? active : entries;
@@ -73,6 +91,7 @@ export type CastingRole = {
   projet_id: string;
   nom: string;
   date_tournage: string | null;
+  date_tournage_fin: string | null;
   date_limite_envoi: string | null;
   categorie_cachet: CategorieCachet;
   ordre: number;

@@ -1,6 +1,30 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateLong } from "@/lib/format-date";
 
+// Journée précédente/suivante (dans l'ordre chronologique des journées
+// existantes du projet, pas juste date - 1 / date + 1) — pour la flèche de
+// navigation sur la page d'une journée présentielle.
+export async function getAdjacentPresentielDates(
+  projetId: string,
+  date: string
+): Promise<{ prev: string | null; next: string | null }> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("casting_presentiel_journees")
+    .select("date")
+    .eq("projet_id", projetId)
+    .order("date", { ascending: true })
+    .returns<{ date: string }[]>();
+
+  const dates = data ?? [];
+  const index = dates.findIndex((d) => d.date === date);
+  if (index === -1) return { prev: null, next: null };
+  return {
+    prev: index > 0 ? dates[index - 1].date : null,
+    next: index < dates.length - 1 ? dates[index + 1].date : null,
+  };
+}
+
 export type PresentielJournee = {
   id: string;
   projet_id: string;

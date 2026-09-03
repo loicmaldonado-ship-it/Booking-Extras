@@ -23,6 +23,15 @@ function parseCastingMode(formData: FormData): CastingMode {
   return String(formData.get("mode") ?? "") === "presentiel" ? "presentiel" : "selftape";
 }
 
+// Date de fin optionnelle (période plutôt qu'un jour précis) — sans intérêt
+// sans date de début, et jamais avant elle.
+function parseDateTournageFin(formData: FormData, dateTournage: string | null): { value: string | null; error?: string } {
+  const dateTournageFin = String(formData.get("date_tournage_fin") ?? "").trim() || null;
+  if (!dateTournageFin || !dateTournage) return { value: null };
+  if (dateTournageFin < dateTournage) return { value: null, error: "La date de fin doit être après la date de début." };
+  return { value: dateTournageFin };
+}
+
 // Le PDF (ex. extrait de script) est un fichier déjà prêt qu'on upload tel
 // quel — pas de génération, juste un stockage + jointure au mail à l'envoi.
 async function uploadRolePdfIfProvided(
@@ -56,6 +65,8 @@ export async function createCastingRole(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const dateTournageFin = parseDateTournageFin(formData, dateTournage);
+  if (dateTournageFin.error) return { error: dateTournageFin.error };
   const dateLimiteEnvoi = String(formData.get("date_limite_envoi") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
   const mode = parseCastingMode(formData);
@@ -83,6 +94,7 @@ export async function createCastingRole(
       projet_id: projetId,
       nom,
       date_tournage: dateTournage,
+      date_tournage_fin: dateTournageFin.value,
       date_limite_envoi: dateLimiteEnvoi,
       categorie_cachet: categorieCachet,
       ordre,
@@ -129,6 +141,8 @@ export async function updateCastingRoleCalibration(
   if (!nom) return { error: "Le nom du rôle est obligatoire." };
 
   const dateTournage = String(formData.get("date_tournage") ?? "").trim() || null;
+  const dateTournageFin = parseDateTournageFin(formData, dateTournage);
+  if (dateTournageFin.error) return { error: dateTournageFin.error };
   const dateLimiteEnvoi = String(formData.get("date_limite_envoi") ?? "").trim() || null;
   const categorieCachet = parseCategorieCachet(formData);
   const mode = parseCastingMode(formData);
@@ -158,6 +172,7 @@ export async function updateCastingRoleCalibration(
     .update({
       nom,
       date_tournage: dateTournage,
+      date_tournage_fin: dateTournageFin.value,
       date_limite_envoi: dateLimiteEnvoi,
       categorie_cachet: categorieCachet,
       mode,

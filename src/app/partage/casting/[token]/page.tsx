@@ -11,7 +11,7 @@ import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard } from "@/components/casting/casting-real-entry-card";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
-import { formatDateLong } from "@/lib/format-date";
+import { formatTournageLabel } from "@/lib/casting/types";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export default async function PartageCastingPage({
@@ -106,7 +106,9 @@ export default async function PartageCastingPage({
           <Card key={role.id} className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold">{role.nom}</h2>
-              {role.date_tournage && <Badge>{formatDateLong(role.date_tournage)}</Badge>}
+              {formatTournageLabel(role.date_tournage, role.date_tournage_fin) && (
+                <Badge>{formatTournageLabel(role.date_tournage, role.date_tournage_fin)}</Badge>
+              )}
             </div>
 
             <div className="flex flex-col gap-3">

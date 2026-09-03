@@ -47,8 +47,11 @@ export function CastingRoleForm({
         <Field label="Nom du rôle" required>
           <Input name="nom" required defaultValue={role?.nom} placeholder="Boulanger, Silhouettes marché..." />
         </Field>
-        <Field label="Journée de tournage (optionnel)">
+        <Field label="Date de tournage (optionnel)">
           <Input type="date" name="date_tournage" defaultValue={role?.date_tournage ?? ""} />
+        </Field>
+        <Field label="Jusqu'au (optionnel, si période ou plusieurs dates)">
+          <Input type="date" name="date_tournage_fin" defaultValue={role?.date_tournage_fin ?? ""} />
         </Field>
       </div>
 
@@ -154,7 +157,9 @@ export function CastingRoleForm({
           defaultValue={role?.message_corps ?? ""}
           rows={5}
           placeholder={
-            "Vide = message généré automatiquement. Sinon, utilise {prenom}, {role}, {projet}, {date} et " +
+            "Vide = message généré automatiquement. Sinon, utilise {prenom}, {role}, {projet}, {date} " +
+            "(devient « le 12 septembre 2026 » ou « entre le 12/09/2026 et le 15/09/2026 » si tu as mis une " +
+            "date de fin — pense à retirer le « le » avant si tu l'as écrit toi-même) et " +
             "{lien} (obligatoire, c'est le lien d'envoi) — ex. « Bonjour {prenom}, le rôle {role} vous intéresse ? " +
             "Envoyez-nous ça via {lien} »"
           }

@@ -16,9 +16,10 @@ import {
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import type { PresentielEntry } from "@/lib/casting-presentiel/types";
 import { formatDateLong } from "@/lib/format-date";
-import { Users } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
+import { getAdjacentPresentielDates } from "@/lib/casting-presentiel/journees";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export default async function CastingPresentielJourneePage({
   if (!journee) {
     return <p className="text-text-muted">Cette journée de casting présentiel n&apos;existe pas.</p>;
   }
+
+  const adjacentDates = await getAdjacentPresentielDates(projet_id, date);
 
   const [{ data: entriesRaw }, { data: castingEntriesFigurants }, { data: roles }, { data: creneaux }] = await Promise.all([
     supabase
@@ -119,7 +122,35 @@ export default async function CastingPresentielJourneePage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold">
             <Users size={28} strokeWidth={1.75} />
+            {adjacentDates.prev ? (
+              <ButtonLink
+                href={`/casting/presentiel/journee?projet_id=${projet_id}&date=${adjacentDates.prev}`}
+                variant="ghost"
+                title="Journée précédente"
+                className="px-1.5 py-1.5"
+              >
+                <ChevronLeft size={20} />
+              </ButtonLink>
+            ) : (
+              <span className="px-1.5 py-1.5 text-text-muted opacity-30">
+                <ChevronLeft size={20} />
+              </span>
+            )}
             {projet?.nom} — {formatDateLong(date)}
+            {adjacentDates.next ? (
+              <ButtonLink
+                href={`/casting/presentiel/journee?projet_id=${projet_id}&date=${adjacentDates.next}`}
+                variant="ghost"
+                title="Journée suivante"
+                className="px-1.5 py-1.5"
+              >
+                <ChevronRight size={20} />
+              </ButtonLink>
+            ) : (
+              <span className="px-1.5 py-1.5 text-text-muted opacity-30">
+                <ChevronRight size={20} />
+              </span>
+            )}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-1 text-text-muted">
             <PresentielLieuField journeeId={journee.id} lieu={journee.lieu} /> · {rows.length} profil
