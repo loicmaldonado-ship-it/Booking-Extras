@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
+import { compressImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
 import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import { GENRES, PRONOMS } from "@/lib/figurants/types";
@@ -67,9 +68,23 @@ function PhotoSlot({
           accept="image/*"
           required={required}
           className="hidden"
-          onChange={(e) => {
+          onChange={async (e) => {
             const file = e.target.files?.[0];
-            setPreview(file ? URL.createObjectURL(file) : null);
+            if (!file) {
+              setPreview(null);
+              return;
+            }
+            // Compresse puis remplace le fichier de l'input lui-même (via
+            // DataTransfer) — la soumission native du formulaire envoie
+            // alors directement le fichier réduit, sans rien changer au
+            // reste du flux (server action classique, pas d'upload à part).
+            const compressed = await compressImage(file);
+            if (compressed !== file && inputRef.current) {
+              const dt = new DataTransfer();
+              dt.items.add(compressed);
+              inputRef.current.files = dt.files;
+            }
+            setPreview(URL.createObjectURL(compressed));
           }}
         />
       </div>

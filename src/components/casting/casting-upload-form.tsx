@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
+import { compressImage } from "@/lib/media/compress-image";
+import { compressVideo } from "@/lib/media/compress-video";
 
 function FileSlot({
   label,
@@ -109,16 +111,21 @@ export function CastingUploadForm({
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
         if (!file) continue;
+        const compressed = await compressVideo(file, {
+          onProgress: (pct) => setStep(`Compression de la vidéo ${i + 1}... ${pct}%`),
+        });
         setStep(`Envoi de la vidéo ${i + 1}...`);
-        videoPaths.push(await uploadOne("video", String(i), file));
+        videoPaths.push(await uploadOne("video", String(i), compressed));
       }
 
       const uploadedPhotos: { label: string; path: string }[] = [];
       for (const label of photoLabels) {
         const file = photos[label];
         if (!file) continue;
+        setStep(`Compression de la photo « ${label} »...`);
+        const compressed = await compressImage(file);
         setStep(`Envoi de la photo « ${label} »...`);
-        uploadedPhotos.push({ label, path: await uploadOne("photo", label, file) });
+        uploadedPhotos.push({ label, path: await uploadOne("photo", label, compressed) });
       }
 
       setStep("Finalisation...");

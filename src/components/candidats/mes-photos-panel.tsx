@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { uploadMaPhoto, deleteMaPhoto } from "@/lib/candidats/actions";
 import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
+import { compressImage } from "@/lib/media/compress-image";
 
 type PhotoWithUrl = { id: string; type: PhotoType; url?: string };
 
@@ -39,10 +40,11 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
   function upload(file: File) {
     setError(null);
     setBusy(true);
-    const fd = new FormData();
-    fd.set("type", type);
-    fd.set("photo", file);
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.set("type", type);
+      fd.set("photo", compressed);
       const result = await uploadMaPhoto(undefined, fd);
       setBusy(false);
       if (result?.error) setError(result.error);

@@ -405,6 +405,13 @@ export default function AidePage() {
           />
         </div>
         <Callout>
+          <strong className="text-text">Compression automatique.</strong> Les photos et vidéos envoyées par les
+          candidat·es sont réduites automatiquement dans leur navigateur avant l&apos;envoi (résolution et débit
+          plus raisonnables, sans perte visible à l&apos;écran) — ça évite les échecs d&apos;envoi liés à la
+          taille et allège le stockage. Rien à faire de ton côté ; si un fichier est déjà petit ou dans un format
+          non pris en charge par le navigateur du candidat, il part tel quel.
+        </Callout>
+        <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
           <UI>Partage réal — Casting</UI> montre au réalisateur·ice les rôles et profils que tu as
           explicitement marqués visibles — classés par rôle, jamais les infos de contact. Chaque profil affiche{" "}

@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { uploadFigurantPhoto, deletePhoto } from "@/lib/figurants/actions";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
+import { compressImage } from "@/lib/media/compress-image";
 
 type PhotoWithUrl = { id: string; type: PhotoType; url?: string };
 
@@ -56,10 +57,11 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
   function upload(key: string, type: PhotoType, file: File) {
     setError(null);
     setBusyKey(key);
-    const fd = new FormData();
-    fd.set("type", type);
-    fd.set("photo", file);
     startTransition(async () => {
+      const compressed = await compressImage(file);
+      const fd = new FormData();
+      fd.set("type", type);
+      fd.set("photo", compressed);
       const result = await uploadFigurantPhoto(figurantId, undefined, fd);
       setBusyKey(null);
       if (result?.error) setError(result.error);
