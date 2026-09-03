@@ -76,7 +76,7 @@ export default async function PartageCastingPage({
         </div>
         <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
         <p className="mt-1 text-sm text-text-muted">{t(lang, "clique_profil")}</p>
-        {(docsVisibility.listeArtistique || docsVisibility.fichesRoles) && (
+        {(docsVisibility.listeArtistique || docsVisibility.fichesRoles || docsVisibility.distribution) && (
           <div className="mt-3 flex flex-wrap gap-2">
             {docsVisibility.listeArtistique && (
               <a
@@ -96,6 +96,16 @@ export default async function PartageCastingPage({
                 className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
               >
                 🪪 Fiches rôles validés
+              </a>
+            )}
+            {docsVisibility.distribution && (
+              <a
+                href={`/partage/casting/${token}/distribution`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+              >
+                🎬 Distribution
               </a>
             )}
           </div>

@@ -9,15 +9,17 @@ export function CastingDocsVisibilityToggle({
   projetId,
   listeArtistique,
   fichesRoles,
+  distribution,
 }: {
   projetId: string;
   listeArtistique: boolean;
   fichesRoles: boolean;
+  distribution: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function toggle(doc: "liste_artistique" | "fiches_roles", visible: boolean) {
+  function toggle(doc: "liste_artistique" | "fiches_roles" | "distribution", visible: boolean) {
     startTransition(async () => {
       await updateCastingDocVisible(projetId, doc, visible);
       router.refresh();
@@ -46,6 +48,16 @@ export function CastingDocsVisibilityToggle({
           className="h-4 w-4 rounded border-border accent-turquoise"
         />
         Fiches rôles validés
+      </label>
+      <label className={cn("flex items-center gap-2 text-xs font-medium", pending && "opacity-60")}>
+        <input
+          type="checkbox"
+          checked={distribution}
+          disabled={pending}
+          onChange={(e) => toggle("distribution", e.target.checked)}
+          className="h-4 w-4 rounded border-border accent-turquoise"
+        />
+        Distribution
       </label>
     </div>
   );

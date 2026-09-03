@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { ListeArtistiqueItem } from "@/lib/casting/liste-artistique";
 import type { CastingEntry } from "@/lib/casting/types";
 
-function comedienLines(entry: CastingEntry): string[] {
+export function comedienLines(entry: CastingEntry): string[] {
   const f = entry.figurants;
   if (!f) return ["—"];
   const lines = [`${f.prenom} ${f.nom}`];
@@ -11,7 +11,7 @@ function comedienLines(entry: CastingEntry): string[] {
   return lines;
 }
 
-function agentLines(entry: CastingEntry): string[] {
+export function agentLines(entry: CastingEntry): string[] {
   const f = entry.figurants;
   if (!f || (!f.agent_nom && !f.agent_agence && !f.agent_email && !f.agent_telephone)) return ["Sans agent"];
   const lines: string[] = [];

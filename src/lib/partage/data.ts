@@ -35,28 +35,36 @@ export async function getPartageTitreByToken(token: string, type: PartageType) {
   return data?.titre ?? null;
 }
 
-export type CastingDocsVisibility = { listeArtistique: boolean; fichesRoles: boolean };
+export type CastingDocsVisibility = { listeArtistique: boolean; fichesRoles: boolean; distribution: boolean };
 
 export async function getCastingDocsVisibility(projetId: string): Promise<CastingDocsVisibility> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
-    .select("liste_artistique_visible, fiches_roles_visible")
+    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible")
     .eq("projet_id", projetId)
     .eq("type", "casting")
     .maybeSingle();
-  return { listeArtistique: data?.liste_artistique_visible ?? false, fichesRoles: data?.fiches_roles_visible ?? false };
+  return {
+    listeArtistique: data?.liste_artistique_visible ?? false,
+    fichesRoles: data?.fiches_roles_visible ?? false,
+    distribution: data?.distribution_visible ?? false,
+  };
 }
 
 export async function getCastingDocsVisibilityByToken(token: string): Promise<CastingDocsVisibility> {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
-    .select("liste_artistique_visible, fiches_roles_visible")
+    .select("liste_artistique_visible, fiches_roles_visible, distribution_visible")
     .eq("token", token)
     .eq("type", "casting")
     .maybeSingle();
-  return { listeArtistique: data?.liste_artistique_visible ?? false, fichesRoles: data?.fiches_roles_visible ?? false };
+  return {
+    listeArtistique: data?.liste_artistique_visible ?? false,
+    fichesRoles: data?.fiches_roles_visible ?? false,
+    distribution: data?.distribution_visible ?? false,
+  };
 }
 
 type ProjetPublic = {

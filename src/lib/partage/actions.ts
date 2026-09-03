@@ -73,13 +73,18 @@ export async function createPartageLien(projetId: string, type: PartageType) {
 // créé (rien à mettre à jour).
 export async function updateCastingDocVisible(
   projetId: string,
-  doc: "liste_artistique" | "fiches_roles",
+  doc: "liste_artistique" | "fiches_roles" | "distribution",
   visible: boolean
 ) {
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  const column = doc === "liste_artistique" ? "liste_artistique_visible" : "fiches_roles_visible";
+  const column =
+    doc === "liste_artistique"
+      ? "liste_artistique_visible"
+      : doc === "fiches_roles"
+        ? "fiches_roles_visible"
+        : "distribution_visible";
   await supabase.from("partage_liens").update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting");
   revalidatePath("/casting");
 }

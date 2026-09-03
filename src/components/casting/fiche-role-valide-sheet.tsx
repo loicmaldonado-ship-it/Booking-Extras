@@ -22,7 +22,7 @@ export function FicheRoleValideSheet({
       </div>
 
       <div className="relative w-full overflow-hidden rounded-lg bg-gray-100" style={{ height: 480 }}>
-        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
+        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-contain" />}
       </div>
 
       <div className="grid grid-cols-2 gap-6 text-sm">
