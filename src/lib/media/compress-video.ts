@@ -189,7 +189,15 @@ async function compressVideoRealtime(
       return null;
     }
 
-    const canvasStream = canvas.captureStream(30);
+    // 15 im/s sur Safari (au lieu de 30) : dessiner le canvas ET encoder
+    // deux fois moins souvent réduit d'autant la charge processeur pendant
+    // toute la passe — un utilisateur a eu le navigateur entier figé
+    // (page entièrement bloquée, même le bouton Annuler) sur une vidéo
+    // réelle de 108s, probablement la vraie vidéo/le vrai codec saturant
+    // le fil principal là où nos clips de test synthétiques ne le
+    // faisaient pas.
+    const fps = isSafari ? 15 : 30;
+    const canvasStream = canvas.captureStream(fps);
     const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
     if (audioTracks.length === 0) {
       console.warn("[compressVideo] Aucune piste audio disponible — compression sans son.");
@@ -242,12 +250,17 @@ async function compressVideoRealtime(
     video.currentTime = 0;
     recorder.start();
     await video.play();
-    intervalId = window.setInterval(drawFrame, 1000 / 30);
+    intervalId = window.setInterval(drawFrame, 1000 / fps);
 
     try {
       await new Promise<void>((resolve, reject) => {
         video.onended = () => resolve();
         opts?.signal?.addEventListener("abort", () => reject(new DOMException("Annulé", "AbortError")), { once: true });
+        // Filet de sécurité : sur une vidéo réelle, currentTime peut
+        // parfois rester bloqué juste avant duration sans jamais
+        // déclencher "ended" — on considère la passe terminée après la
+        // durée attendue + une marge plutôt que d'attendre indéfiniment.
+        setTimeout(resolve, (video.duration + 5) * 1000);
       });
     } finally {
       clearInterval(intervalId);
@@ -286,7 +299,15 @@ async function compressVideoRealtime(
     if (isSafari) videoBitsPerSecond = Math.max(minBitsPerSecond, Math.round(videoBitsPerSecond * 0.6));
     // À très faible débit (vidéo longue), une résolution plus modeste
     // donne un meilleur rendu qu'une haute résolution trop compressée.
-    const effectiveMaxWidth = videoBitsPerSecond <= 700_000 ? Math.min(maxWidth, 854) : maxWidth;
+    // Sur Safari, plafond de résolution systématique en plus (pas
+    // seulement à faible débit) — dessiner/encoder moins de pixels par
+    // image réduit directement la charge processeur, indépendamment du
+    // débit visé (voir fps plus bas pour la même raison).
+    const effectiveMaxWidth = isSafari
+      ? Math.min(maxWidth, 960)
+      : videoBitsPerSecond <= 700_000
+        ? Math.min(maxWidth, 854)
+        : maxWidth;
 
     const scale = Math.min(1, effectiveMaxWidth / video.videoWidth);
     const width = Math.round(video.videoWidth * scale);
