@@ -22,6 +22,7 @@ import {
   removeCastingVideo,
   createStaffCastingVideoSlot,
   addCastingVideo,
+  updateCastingVideoLabel,
   updateCastingEntryStatut,
   updateCastingEntryMode,
   updateCastingEntryNotes,
@@ -124,6 +125,7 @@ function VideoWithRemove({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [renamePending, startRenameTransition] = useTransition();
 
   function remove() {
     startTransition(async () => {
@@ -132,9 +134,27 @@ function VideoWithRemove({
     });
   }
 
+  function rename(value: string) {
+    if (value.trim() === label) return;
+    startRenameTransition(async () => {
+      await updateCastingVideoLabel(entryId, path, value);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-text-muted">{label}</span>
+      <input
+        key={label}
+        defaultValue={label}
+        disabled={renamePending}
+        onBlur={(e) => rename(e.currentTarget.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+        placeholder="Nom de la vidéo"
+        className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
+      />
       {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
         <source src={url} />

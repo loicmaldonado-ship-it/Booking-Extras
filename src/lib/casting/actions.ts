@@ -656,6 +656,35 @@ export async function addCastingVideo(
   return { success: true };
 }
 
+// Renomme une vidéo déjà envoyée (le nom saisi à l'ajout n'est pas figé —
+// même logique d'index aligné sur video_storage_paths que addCastingVideo).
+export async function updateCastingVideoLabel(
+  entryId: string,
+  path: string,
+  label: string
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, video_storage_paths, video_labels")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const paths: string[] = entry.video_storage_paths ?? [];
+  const index = paths.indexOf(path);
+  if (index === -1) return { error: "Vidéo introuvable." };
+  const labels = [...(entry.video_labels ?? [])];
+  labels[index] = label.trim() || `Vidéo ${index + 1}`;
+  const { error } = await supabase.from("casting_entries").update({ video_labels: labels }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 export async function recordCastingMessage(
   figurantId: string,
   corps: string,
