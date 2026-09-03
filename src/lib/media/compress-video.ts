@@ -1,36 +1,56 @@
 "use client";
 
+import { compressVideoWebCodecs } from "./webcodecs-compress-video";
+
 export function formatSecondsRemaining(seconds: number): string {
   if (seconds < 60) return `~${Math.max(1, seconds)}s`;
   const minutes = Math.round(seconds / 60);
   return `~${minutes}min`;
 }
 
-// Réduit une vidéo côté navigateur avant l'envoi, sans service payant ni
-// librairie lourde (pas de ffmpeg.wasm) : on rejoue la vidéo dans un
-// <video> caché, on redessine chaque image sur un canvas à une résolution
-// plus raisonnable, et MediaRecorder réenregistre le tout à un débit
-// calculé pour tenir sous une taille cible — piste audio d'origine
-// recombinée au passage. Ça prend le temps de la vidéo elle-même
-// (compression en temps réel), d'où le callback de progression pour
-// afficher un état d'attente clair.
-//
-// Le débit vidéo est calculé à partir de la durée réelle (taille cible ÷
-// durée) plutôt que fixé une fois pour toutes : une vidéo de 10-15 min
-// avec un débit fixe dépasserait quand même la limite de stockage, alors
-// qu'un débit adapté à sa durée reste dans le budget quelle que soit la
-// longueur. Mais certains navigateurs (Safari en tête) ne respectent
-// qu'approximativement le débit demandé à MediaRecorder — la première
-// passe peut donc rester au-dessus de la cible malgré le calcul. Une
-// deuxième passe, à résolution divisée par deux et débit largement revu à
-// la baisse, rattrape ce cas plutôt que d'envoyer un fichier toujours
-// trop gros.
-//
-// Toujours "fail-open" : navigateur trop ancien, format non supporté,
-// vidéo aberrante (plusieurs heures), ou n'importe quelle erreur en cours
-// de route -> on renvoie le fichier d'origine plutôt que de bloquer
-// l'envoi.
-export async function compressVideo(
+type CompressVideoOpts = {
+  maxWidth?: number;
+  targetBytes?: number;
+  hardCapBytes?: number;
+  maxBitsPerSecond?: number;
+  minBitsPerSecond?: number;
+  maxDurationSeconds?: number;
+  // secondsRemaining est une estimation (basée sur la position de lecture
+  // dans la passe en cours, à vitesse 1x pour la méthode temps réel) —
+  // utile pour afficher un temps d'attente plutôt qu'un pourcentage
+  // abstrait. `pass` ne concerne que la méthode temps réel (1 ou 2 passes).
+  onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
+};
+
+// Tente d'abord la voie rapide (WebCodecs, voir webcodecs-compress-video.ts)
+// qui décode/réencode directement sans être bridée à la durée réelle de la
+// vidéo — mais seulement pour un MP4/MOV, sur un navigateur qui supporte
+// WebCodecs, avec des pistes dont la config s'extrait proprement. Dès que
+// l'une de ces conditions manque (ou que quoi que ce soit y échoue), on
+// retombe sur la méthode temps réel ci-dessous (canvas + MediaRecorder),
+// déjà éprouvée sur Safari — jamais de régression, seulement une perte de
+// vitesse dans les cas où la voie rapide ne s'applique pas.
+export async function compressVideo(file: File, opts?: CompressVideoOpts): Promise<File> {
+  if (!file.type.startsWith("video/")) return file;
+
+  const resolvedOpts = {
+    maxWidth: opts?.maxWidth ?? 1152,
+    targetBytes: opts?.targetBytes ?? 18_000_000,
+    hardCapBytes: opts?.hardCapBytes ?? 40_000_000,
+    maxBitsPerSecond: opts?.maxBitsPerSecond ?? 1_800_000,
+    minBitsPerSecond: opts?.minBitsPerSecond ?? 80_000,
+    maxDurationSeconds: opts?.maxDurationSeconds ?? 1800,
+    audioBitsPerSecond: 96_000,
+    onProgress: opts?.onProgress,
+  };
+
+  const fast = await compressVideoWebCodecs(file, resolvedOpts);
+  if (fast) return fast;
+
+  return compressVideoRealtime(file, opts);
+}
+
+async function compressVideoRealtime(
   file: File,
   opts?: {
     maxWidth?: number;
@@ -39,13 +59,9 @@ export async function compressVideo(
     maxBitsPerSecond?: number;
     minBitsPerSecond?: number;
     maxDurationSeconds?: number;
-    // secondsRemaining est une estimation (basée sur la position de lecture
-    // dans la passe en cours, à vitesse 1x) — utile pour afficher un temps
-    // d'attente plutôt qu'un pourcentage abstrait.
     onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
   }
 ): Promise<File> {
-  if (!file.type.startsWith("video/")) return file;
   if (typeof MediaRecorder === "undefined") {
     console.warn("[compressVideo] MediaRecorder indisponible sur ce navigateur — envoi du fichier original.");
     return file;
