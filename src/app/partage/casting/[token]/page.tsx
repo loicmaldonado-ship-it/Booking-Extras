@@ -123,7 +123,7 @@ export default async function PartageCastingPage({
               )}
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {(() => {
                 const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
                   id: entry.id,

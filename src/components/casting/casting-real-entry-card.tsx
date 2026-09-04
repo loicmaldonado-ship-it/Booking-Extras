@@ -53,6 +53,26 @@ function CastingRealMediaModal({
     }
   }
 
+  // Chaque vidéo repliée par défaut, dévoilée au clic sur son nom — plus
+  // rangé qu'un empilement de plusieurs lecteurs affichés d'un coup.
+  // Réinitialisé à chaque changement de profil (précédent/suivant) — ajusté
+  // pendant le rendu plutôt que dans un effet (pattern React recommandé
+  // pour "réinitialiser un état quand une prop change").
+  const [openVideos, setOpenVideos] = useState<Set<string>>(new Set());
+  const [openVideosItemId, setOpenVideosItemId] = useState(item?.id);
+  if (item?.id !== openVideosItemId) {
+    setOpenVideosItemId(item?.id);
+    setOpenVideos(new Set());
+  }
+  function toggleVideo(url: string) {
+    setOpenVideos((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }
+
   const goPrev = useCallback(
     () => onIndexChange((index - 1 + items.length) % items.length),
     [index, items.length, onIndexChange]
@@ -119,24 +139,37 @@ function CastingRealMediaModal({
           </div>
         </div>
 
-        {item.videoUrls.map((v) => (
-          <div key={v.url} className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-text-muted">{v.label}</span>
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
-            <video
-              ref={(el) => {
-                if (el) videoRefs.current.set(v.url, el);
-                else videoRefs.current.delete(v.url);
-              }}
-              controls
-              preload="metadata"
-              onPlay={(e) => pauseOthers(e.currentTarget)}
-              className="w-full rounded-lg bg-black"
-            >
-              <source src={v.url} />
-            </video>
-          </div>
-        ))}
+        {item.videoUrls.map((v) => {
+          const isOpen = openVideos.has(v.url);
+          return (
+            <div key={v.url} className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={() => toggleVideo(v.url)}
+                className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-left text-xs font-medium text-text-muted hover:bg-ink-raised-2 hover:text-text"
+              >
+                <span className={isOpen ? "transition-transform" : "-rotate-90 transition-transform"}>▾</span>
+                {v.label}
+              </button>
+              {isOpen && (
+                // eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir
+                <video
+                  ref={(el) => {
+                    if (el) videoRefs.current.set(v.url, el);
+                    else videoRefs.current.delete(v.url);
+                  }}
+                  controls
+                  autoPlay
+                  preload="metadata"
+                  onPlay={(e) => pauseOthers(e.currentTarget)}
+                  className="w-full rounded-lg bg-black"
+                >
+                  <source src={v.url} />
+                </video>
+              )}
+            </div>
+          );
+        })}
 
         {item.photos.length > 0 && (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -177,10 +210,11 @@ function CastingRealMediaModal({
   );
 }
 
-// Une ligne compacte par profil (au lieu du bloc déplié d'avant) — le clic
-// ouvre une fenêtre dédiée à ce profil, avec précédent/suivant pour
-// parcourir les autres profils du même rôle sans fermer/rouvrir à chaque
-// fois.
+// Une carte "trombi" (grande photo, nom en dessous) au lieu d'une ligne
+// compacte — pensée pour une grille de plusieurs profils par rôle, où le
+// visuel donne envie de cliquer plutôt qu'une liste texte. Le clic ouvre
+// une fenêtre dédiée à ce profil, avec précédent/suivant pour parcourir
+// les autres profils du même rôle sans fermer/rouvrir à chaque fois.
 export function CastingRealEntryCard({
   items,
   index,
@@ -208,25 +242,32 @@ export function CastingRealEntryCard({
           setOpen(true);
         }}
         disabled={!hasMedia}
-        className="flex w-full items-center gap-4 rounded-xl border border-border bg-ink px-4 py-3 text-left disabled:cursor-default"
+        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"
       >
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-          {item.portraitUrl && <Image src={item.portraitUrl} alt="" fill className="object-cover" />}
+        <div className="relative aspect-square w-full overflow-hidden bg-ink-raised-2">
+          {item.portraitUrl && (
+            <Image
+              src={item.portraitUrl}
+              alt=""
+              fill
+              className="object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+          )}
+          {hasMedia && (
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11px] text-white">
+              {item.videoUrls.length > 0 && `${item.videoUrls.length} ${t(lang, item.videoUrls.length > 1 ? "videos" : "video")}`}
+              {item.videoUrls.length > 0 && item.photos.length > 0 && " · "}
+              {item.photos.length > 0 && `${item.photos.length} ${t(lang, item.photos.length > 1 ? "photos" : "photo")}`}
+            </span>
+          )}
         </div>
-        <div className="flex flex-1 flex-col gap-1">
-          <span className="font-medium">{item.nom}</span>
+        <div className="flex flex-col gap-1.5 px-3 py-2.5">
+          <span className="truncate font-medium">{item.nom}</span>
           <div className="flex flex-wrap gap-1.5">
             {roleLabel && <Badge>{roleLabel}</Badge>}
             <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
           </div>
         </div>
-        {hasMedia && (
-          <span className="text-xs text-text-muted">
-            {item.videoUrls.length > 0 && `${item.videoUrls.length} ${t(lang, item.videoUrls.length > 1 ? "videos" : "video")}`}
-            {item.videoUrls.length > 0 && item.photos.length > 0 && " · "}
-            {item.photos.length > 0 && `${item.photos.length} ${t(lang, item.photos.length > 1 ? "photos" : "photo")}`}
-          </span>
-        )}
       </button>
       {open && (
         <CastingRealMediaModal
