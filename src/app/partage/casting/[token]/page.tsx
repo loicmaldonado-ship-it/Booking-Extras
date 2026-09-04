@@ -8,7 +8,7 @@ import {
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import { CastingRealEntryCard } from "@/components/casting/casting-real-entry-card";
+import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
 import { formatTournageLabel } from "@/lib/casting/types";
@@ -124,17 +124,19 @@ export default async function PartageCastingPage({
             </div>
 
             <div className="flex flex-col gap-3">
-              {roleEntries.map((entry) => (
-                <CastingRealEntryCard
-                  key={entry.id}
-                  nom={`${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim()}
-                  valide={entry.statut === "valide"}
-                  portraitUrl={pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
-                  videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
-                  photos={entryPhotosByEntry.get(entry.id) ?? []}
-                  lang={lang}
-                />
-              ))}
+              {(() => {
+                const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
+                  id: entry.id,
+                  nom: `${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim(),
+                  valide: entry.statut === "valide",
+                  portraitUrl: pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null,
+                  videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
+                  photos: entryPhotosByEntry.get(entry.id) ?? [],
+                }));
+                return items.map((item, i) => (
+                  <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
+                ));
+              })()}
               {roleEntries.length === 0 && (
                 <p className="text-sm text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
               )}
