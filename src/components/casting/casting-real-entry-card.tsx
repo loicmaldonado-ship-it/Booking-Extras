@@ -129,7 +129,6 @@ function CastingRealMediaModal({
                 else videoRefs.current.delete(v.url);
               }}
               controls
-              playsInline
               preload="metadata"
               onPlay={(e) => pauseOthers(e.currentTarget)}
               className="w-full rounded-lg bg-black"
