@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
@@ -39,6 +39,19 @@ function CastingRealMediaModal({
   const hasMultiple = items.length > 1;
   const item = items[index] ?? items[0];
   const gallery: GalleryPhoto[] = (item?.photos ?? []).map((p) => ({ src: p.url, alt: p.label }));
+
+  // Une seule vidéo lue à la fois — démarrer l'une met en pause toutes les
+  // autres du même profil (plusieurs essais lus en même temps, sons qui se
+  // chevauchent, sinon). Map plutôt qu'un tableau : se tient à jour toute
+  // seule via les callbacks de montage/démontage des vidéos quand on
+  // change de profil (précédent/suivant), sans jamais toucher `.current`
+  // pendant le rendu lui-même.
+  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
+  function pauseOthers(current: HTMLVideoElement) {
+    for (const v of videoRefs.current.values()) {
+      if (v !== current && !v.paused) v.pause();
+    }
+  }
 
   const goPrev = useCallback(
     () => onIndexChange((index - 1 + items.length) % items.length),
@@ -110,7 +123,17 @@ function CastingRealMediaModal({
           <div key={v.url} className="flex flex-col gap-1.5">
             <span className="text-xs font-medium text-text-muted">{v.label}</span>
             {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
-            <video controls preload="metadata" className="w-full rounded-lg bg-black">
+            <video
+              ref={(el) => {
+                if (el) videoRefs.current.set(v.url, el);
+                else videoRefs.current.delete(v.url);
+              }}
+              controls
+              playsInline
+              preload="metadata"
+              onPlay={(e) => pauseOthers(e.currentTarget)}
+              className="w-full rounded-lg bg-black"
+            >
               <source src={v.url} />
             </video>
           </div>
