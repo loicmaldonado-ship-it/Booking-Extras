@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { Card } from "@/components/ui/card";
 import { PlanningBoard } from "@/components/bookings/planning-board";
 import { getCurrentProjetId } from "@/lib/projet-context";
@@ -25,16 +26,14 @@ async function withPortraitUrl(
     if (!byFigurant.has(p.figurant_id)) byFigurant.set(p.figurant_id, p.storage_path);
   }
 
-  const urls = await Promise.all(
-    figurants.map(async (f) => {
-      const path = byFigurant.get(f.id);
-      if (!path) return null;
-      const { data } = await supabase.storage.from("figurant-photos").createSignedUrl(path, 60 * 60);
-      return data?.signedUrl ?? null;
-    })
-  );
+  const paths = Array.from(new Set(Array.from(byFigurant.values()))).sort();
+  const signedUrls = await getCachedSignedUrls("figurant-photos", paths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
 
-  return figurants.map((f, i) => ({ ...f, portraitUrl: urls[i] }));
+  return figurants.map((f) => {
+    const path = byFigurant.get(f.id);
+    return { ...f, portraitUrl: path ? urlByPath.get(path) ?? null : null };
+  });
 }
 
 export default async function PlanningPage({

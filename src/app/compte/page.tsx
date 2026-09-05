@@ -6,6 +6,7 @@ import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { logoutFigurant } from "@/lib/candidats/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { MessageThread } from "@/components/candidats/message-thread";
 import { PushSubscribe } from "@/components/candidats/push-subscribe";
 import { MaFicheForm } from "@/components/candidats/ma-fiche-form";
@@ -64,12 +65,14 @@ export default async function CompteCandidatPage() {
     (projetsMessages ?? []).map((p) => [p.id, { label: p.nom, archive: p.archive }])
   );
 
-  const photos = await Promise.all(
-    (photosRaw ?? []).map(async (p) => {
-      const { data } = await supabase.storage.from("figurant-photos").createSignedUrl(p.storage_path, 60 * 60);
-      return { id: p.id, type: p.type, url: data?.signedUrl };
-    })
-  );
+  const photoPaths = Array.from(new Set((photosRaw ?? []).map((p) => p.storage_path))).sort();
+  const signedPhotoUrls = await getCachedSignedUrls("figurant-photos", photoPaths);
+  const urlByPhotoPath = new Map(signedPhotoUrls.map((s) => [s.path, s.signedUrl ?? null]));
+  const photos = (photosRaw ?? []).map((p) => ({
+    id: p.id,
+    type: p.type,
+    url: urlByPhotoPath.get(p.storage_path) ?? undefined,
+  }));
 
   const { data: indisponibilites } = await supabase
     .from("figurant_indisponibilites")

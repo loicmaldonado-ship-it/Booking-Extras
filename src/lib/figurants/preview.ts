@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrl } from "@/lib/supabase/signed-urls";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import type { FigurantMessage } from "@/lib/candidats/types";
 
@@ -51,9 +52,7 @@ export async function getFigurantPreview(figurantId: string): Promise<FigurantPr
     .eq("type", "portrait")
     .limit(1);
   const portraitPath = photos?.[0]?.storage_path;
-  const portraitUrl = portraitPath
-    ? (await supabase.storage.from("figurant-photos").createSignedUrl(portraitPath, 60 * 60)).data?.signedUrl ?? null
-    : null;
+  const portraitUrl = portraitPath ? await getCachedSignedUrl("figurant-photos", portraitPath) : null;
 
   const profile = await getCurrentProfile();
   const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;

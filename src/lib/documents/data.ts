@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { Figurant, FigurantPhoto } from "@/lib/figurants/types";
 import type { CovoiturageRole } from "@/lib/bookings/types";
 
@@ -86,11 +87,13 @@ export async function getPhotosByFigurantId(figurantIds: string[]) {
 
   // Une seule requête pour signer tous les chemins d'un coup — un appel par
   // photo ici a fait ramper des pages à des centaines de figurant·es (un
-  // aller-retour Storage par photo, tous attendus en parallèle).
-  const paths = (photos ?? []).map((p) => p.storage_path);
-  const { data: signedUrls } =
-    paths.length > 0 ? await supabase.storage.from("figurant-photos").createSignedUrls(paths, 60 * 60) : { data: [] };
-  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+  // aller-retour Storage par photo, tous attendus en parallèle). Passée par
+  // le cache partagé (voir signed-urls.ts) pour que la même URL revienne
+  // d'une vue à l'autre au lieu d'un nouveau jeton à chaque fois — triée
+  // pour que l'ordre des chemins ne fasse pas rater le cache.
+  const paths = (photos ?? []).map((p) => p.storage_path).sort();
+  const signedUrls = await getCachedSignedUrls("figurant-photos", paths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
   const withUrls = (photos ?? []).map((p) => ({ ...p, url: urlByPath.get(p.storage_path) ?? null }));
 
   const map = new Map<string, FigurantPhotoWithUrl[]>();

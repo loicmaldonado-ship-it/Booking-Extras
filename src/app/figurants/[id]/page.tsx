@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
@@ -107,14 +108,10 @@ export default async function FigurantDetailPage({
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
   const { data: projets } = await projetsQuery;
 
-  const photos = await Promise.all(
-    (photosRaw ?? []).map(async (p) => {
-      const { data } = await supabase.storage
-        .from("figurant-photos")
-        .createSignedUrl(p.storage_path, 60 * 60);
-      return { ...p, url: data?.signedUrl };
-    })
-  );
+  const photoPaths = Array.from(new Set((photosRaw ?? []).map((p) => p.storage_path))).sort();
+  const signedPhotoUrls = await getCachedSignedUrls("figurant-photos", photoPaths);
+  const urlByPhotoPath = new Map(signedPhotoUrls.map((s) => [s.path, s.signedUrl ?? null]));
+  const photos = (photosRaw ?? []).map((p) => ({ ...p, url: urlByPhotoPath.get(p.storage_path) ?? undefined }));
 
   const boundDeleteFigurant = deleteFigurant.bind(null, id);
 

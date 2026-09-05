@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CastingRole, CastingEntry } from "./types";
 
 export async function getCastingRoles(projetId: string): Promise<CastingRole[]> {
@@ -36,12 +37,11 @@ export async function getCastingVideoUrlPairsByEntries(
   entries: { id: string; video_storage_paths: string[]; video_labels?: string[] }[]
 ): Promise<Map<string, { path: string; url: string; label: string }[]>> {
   const map = new Map<string, { path: string; url: string; label: string }[]>();
-  const allPaths = entries.flatMap((e) => e.video_storage_paths);
+  const allPaths = Array.from(new Set(entries.flatMap((e) => e.video_storage_paths))).sort();
   if (allPaths.length === 0) return map;
 
-  const supabase = createAdminClient();
-  const { data: signedUrls } = await supabase.storage.from("casting-videos").createSignedUrls(allPaths, 60 * 60);
-  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+  const signedUrls = await getCachedSignedUrls("casting-videos", allPaths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
 
   for (const entry of entries) {
     const pairs = entry.video_storage_paths
@@ -76,11 +76,11 @@ export async function getCastingEntryPhotos(
 
   // Une seule requête pour signer tous les chemins d'un coup, comme
   // getPhotosByFigurantId — un aller-retour Storage par photo ici faisait
-  // ramper les rôles à beaucoup de profils.
-  const paths = photos.map((p) => p.storage_path);
-  const { data: signedUrls } =
-    paths.length > 0 ? await supabase.storage.from("figurant-photos").createSignedUrls(paths, 60 * 60) : { data: [] };
-  const urlByPath = new Map((signedUrls ?? []).map((s) => [s.path, s.signedUrl ?? null]));
+  // ramper les rôles à beaucoup de profils. Passée par le cache partagé
+  // (signed-urls.ts) pour réutiliser la même URL d'une vue à l'autre.
+  const paths = photos.map((p) => p.storage_path).sort();
+  const signedUrls = await getCachedSignedUrls("figurant-photos", paths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
 
   for (const photo of photos) {
     const url = urlByPath.get(photo.storage_path);
