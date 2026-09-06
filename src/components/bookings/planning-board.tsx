@@ -141,7 +141,7 @@ export function PlanningBoard({
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
                   {f.portraitUrl && (
-                    <Image src={f.portraitUrl} alt="" fill className="object-cover" />
+                    <Image src={f.portraitUrl} alt="" fill sizes="40px" className="object-cover" />
                   )}
                 </div>
                 <span className="text-sm">
@@ -190,6 +190,7 @@ export function PlanningBoard({
                           src={b.figurant.portraitUrl}
                           alt=""
                           fill
+                          sizes="32px"
                           className="object-cover"
                         />
                       )}

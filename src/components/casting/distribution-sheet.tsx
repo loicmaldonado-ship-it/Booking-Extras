@@ -25,7 +25,7 @@ export function DistributionSheet({
         return (
           <div key={role.id} className="flex gap-4 border-b border-gray-300 pb-4 last:border-b-0">
             <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-              {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
+              {portraitUrl && <Image src={portraitUrl} alt="" fill sizes="112px" className="object-cover" />}
             </div>
 
             <div className="flex flex-1 flex-col gap-1.5 text-sm">

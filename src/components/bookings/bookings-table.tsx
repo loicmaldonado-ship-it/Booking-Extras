@@ -994,7 +994,15 @@ export function BookingsTable({
         )}
         <Link href={`/bookings/${r.id}`} className="flex w-full flex-col items-center gap-2">
           <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-            {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
+            {r.portraitUrl && (
+              <Image
+                src={r.portraitUrl}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
+                className="object-cover"
+              />
+            )}
             {r.portraitUrl && (() => {
               const gallery = toGalleryPhotos(r.photos);
               return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;

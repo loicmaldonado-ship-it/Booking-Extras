@@ -27,7 +27,7 @@ export function FicheRoleValideSheet({
       </div>
 
       <div className="relative w-full flex-1 overflow-hidden rounded-lg bg-gray-100">
-        {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-contain" />}
+        {portraitUrl && <Image src={portraitUrl} alt="" fill sizes="600px" className="object-contain" />}
       </div>
 
       <div className="grid grid-cols-2 gap-6 text-sm">

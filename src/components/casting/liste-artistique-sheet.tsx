@@ -55,7 +55,7 @@ export function ListeArtistiqueSheet({
               <td className="py-2 pr-1 font-semibold">{numero}</td>
               <td className="py-1.5 pr-2">
                 <div className="relative h-10 w-10 overflow-hidden rounded bg-gray-200">
-                  {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
+                  {portraitUrl && <Image src={portraitUrl} alt="" fill sizes="40px" className="object-cover" />}
                 </div>
               </td>
               <td className="py-2 pr-2 font-semibold uppercase">{role.nom}</td>

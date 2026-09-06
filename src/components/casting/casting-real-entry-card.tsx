@@ -128,7 +128,7 @@ function CastingRealMediaModal({
       >
         <div className="flex items-center gap-3">
           <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-            {item.portraitUrl && <Image src={item.portraitUrl} alt="" fill className="object-cover" />}
+            {item.portraitUrl && <Image src={item.portraitUrl} alt="" fill sizes="56px" className="object-cover" />}
           </div>
           <div className="flex flex-1 flex-col gap-1">
             <span className="font-semibold">{item.nom}</span>
@@ -176,7 +176,7 @@ function CastingRealMediaModal({
             {item.photos.map((p, i) => (
               <div key={p.url} className="relative flex flex-col gap-1">
                 <div className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
-                  <Image src={p.url} alt={p.label} fill className="object-cover" />
+                  <Image src={p.url} alt={p.label} fill sizes="(min-width: 640px) 150px, 33vw" className="object-cover" />
                   <ZoomButton src={p.url} alt={p.label} gallery={gallery} index={i} />
                 </div>
                 <span className="text-center text-[11px] text-text-muted">{p.label}</span>
@@ -250,6 +250,7 @@ export function CastingRealEntryCard({
               src={item.portraitUrl}
               alt=""
               fill
+              sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
               className="object-cover transition-transform duration-200 group-hover:scale-105"
             />
           )}

@@ -111,7 +111,7 @@ function ExistingPhoto({ photo, gallery, index }: { photo: CastingEntryPhoto; ga
   return (
     <div className="flex flex-col gap-1">
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-        <Image src={photo.url} alt={photo.label} fill className="object-cover" />
+        <Image src={photo.url} alt={photo.label} fill sizes="33vw" className="object-cover" />
         <ZoomButton src={photo.url} alt={photo.label} gallery={gallery} index={index} />
         <button
           type="button"
@@ -564,7 +564,7 @@ export function CastingEntryManageCard({
         className="flex items-center gap-3 text-left"
       >
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
-          {portraitUrl && <Image src={portraitUrl} alt="" fill className="object-cover" />}
+          {portraitUrl && <Image src={portraitUrl} alt="" fill sizes="64px" className="object-cover" />}
           {entry.statut === "valide" && (
             <span
               className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-turquoise text-xs text-ink"

@@ -135,12 +135,14 @@ export function ZoomableImage({
   src,
   alt = "",
   imgClassName = "object-cover",
+  sizes = "200px",
   gallery,
   index = 0,
 }: {
   src: string;
   alt?: string;
   imgClassName?: string;
+  sizes?: string;
   gallery?: GalleryPhoto[];
   index?: number;
 }) {
@@ -159,7 +161,7 @@ export function ZoomableImage({
         className="absolute inset-0 cursor-zoom-in"
         aria-label="Agrandir la photo"
       >
-        <Image src={src} alt={alt} fill className={imgClassName} />
+        <Image src={src} alt={alt} fill sizes={sizes} className={imgClassName} />
       </button>
       {open && <LightboxPortal photos={photos} index={current} onIndexChange={setCurrent} onClose={close} />}
     </>

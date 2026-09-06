@@ -101,7 +101,15 @@ export function FigurantsTrombiGrid({
             />
             <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                {f.portraitUrl && <Image src={f.portraitUrl} alt="" fill className="object-cover" />}
+                {f.portraitUrl && (
+                  <Image
+                    src={f.portraitUrl}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
+                    className="object-cover"
+                  />
+                )}
                 {f.portraitUrl && (() => {
                   const gallery = toGalleryPhotos(f.photos);
                   return <ZoomButton src={f.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, f.portraitUrl)} />;
