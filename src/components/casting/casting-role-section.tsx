@@ -75,6 +75,7 @@ export function CastingRoleSection({
   position: number;
 }) {
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -292,7 +293,15 @@ export function CastingRoleSection({
               title="N° d'ordre — change ce chiffre pour déplacer le rôle"
               className="w-12 rounded-lg border border-border bg-ink px-1.5 py-1 text-center text-sm font-semibold outline-none focus:border-coral disabled:opacity-50"
             />
-            <h2 className="text-lg font-semibold">{role.nom}</h2>
+            <button
+              type="button"
+              onClick={() => setCollapsed((v) => !v)}
+              className="flex items-center gap-1.5 text-left"
+              title={collapsed ? "Déplier le rôle" : "Réduire le rôle"}
+            >
+              <span className={cn("text-text-muted transition-transform", collapsed && "-rotate-90")}>▾</span>
+              <h2 className="text-lg font-semibold">{role.nom}</h2>
+            </button>
           </div>
           <p className="text-xs text-text-muted">
             {formatTournageLabel(role.date_tournage, role.date_tournage_fin) ?? "Date de tournage non définie"}
@@ -350,6 +359,8 @@ export function CastingRoleSection({
         </div>
       </div>
 
+      {!collapsed && (
+        <>
       {calibrateOpen && (
         <div className="rounded-xl border border-border bg-ink px-4 py-3">
           <CastingRoleForm projetId={projetId} role={role} />
@@ -562,6 +573,8 @@ export function CastingRoleSection({
               ))}
           </div>
         </div>
+      )}
+        </>
       )}
     </Card>
   );
