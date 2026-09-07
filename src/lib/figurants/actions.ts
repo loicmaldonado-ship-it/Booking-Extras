@@ -151,11 +151,7 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   redirect(`/figurants/${data.id}`);
 }
 
-export async function updateFigurant(
-  id: string,
-  _prevState: unknown,
-  formData: FormData
-) {
+async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ error?: string }> {
   const payload = buildFigurantPayload(formData);
   const fieldsError = requireBaseFields(payload);
   if (fieldsError) return { error: fieldsError };
@@ -183,7 +179,28 @@ export async function updateFigurant(
 
   revalidatePath("/figurants");
   revalidatePath(`/figurants/${id}`);
+  return {};
+}
+
+export async function updateFigurant(
+  id: string,
+  _prevState: unknown,
+  formData: FormData
+) {
+  const result = await saveFigurantUpdate(id, formData);
+  if (result.error) return result;
   redirect(`/figurants/${id}`);
+}
+
+// Même sauvegarde que updateFigurant, mais sans redirection — pour éditer
+// la fiche depuis une fenêtre sur place (ex. carte casting) sans quitter la
+// page en cours.
+export async function updateFigurantInline(
+  id: string,
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ error?: string }> {
+  return saveFigurantUpdate(id, formData);
 }
 
 // Édition rapide de l'agent depuis n'importe où (ex. la carte casting) —

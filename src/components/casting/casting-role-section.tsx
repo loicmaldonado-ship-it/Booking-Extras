@@ -75,7 +75,7 @@ export function CastingRoleSection({
   position: number;
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -147,7 +147,7 @@ export function CastingRoleSection({
   }
 
   function sendTo(entry: CastingEntry) {
-    if (!entry.figurants?.email || !bulkMessage.trim()) return;
+    if ((!entry.figurants?.email && !entry.figurants?.agent_email) || !bulkMessage.trim()) return;
     const tk = tokens(entry);
     const body = substituteTokens(bulkMessage, tk);
     const subj = substituteTokens(bulkSubject, tk);
@@ -166,14 +166,16 @@ export function CastingRoleSection({
   }
 
   function sendToAll() {
-    const targets = entries.filter((e) => selected.has(e.id) && e.figurants?.email && !sentBulk.has(e.id));
+    const targets = entries.filter(
+      (e) => selected.has(e.id) && (e.figurants?.email || e.figurants?.agent_email) && !sentBulk.has(e.id)
+    );
     if (targets.length === 0 || !bulkMessage.trim()) return;
 
     const payload = targets.map((entry) => {
       const tk = tokens(entry);
       return {
         figurantId: entry.figurant_id,
-        email: entry.figurants!.email!,
+        email: entry.figurants?.email ?? null,
         agentEmail: entry.figurants?.agent_email,
         subject: substituteTokens(bulkSubject, tk),
         corps: substituteTokens(bulkMessage, tk),
@@ -548,9 +550,13 @@ export function CastingRoleSection({
                 <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
                   <span>
                     {e.figurants?.prenom} {e.figurants?.nom}
-                    {!e.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
+                    {!e.figurants?.email && !e.figurants?.agent_email && (
+                      <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
+                    )}
                     {e.figurants?.agent_email && (
-                      <span className="ml-2 text-xs text-text-muted">— agent en copie</span>
+                      <span className="ml-2 text-xs text-text-muted">
+                        {e.figurants?.email ? "— agent en copie" : "— envoyé à l'agent (pas de contact direct)"}
+                      </span>
                     )}
                     {presentielAssignments.get(e.figurant_id) && (
                       <span className="ml-2 text-xs text-text-muted">
@@ -564,7 +570,7 @@ export function CastingRoleSection({
                   <Button
                     type="button"
                     variant={sentBulk.has(e.id) ? "ghost" : "secondary"}
-                    disabled={!e.figurants?.email || !bulkMessage.trim()}
+                    disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
                     onClick={() => sendTo(e)}
                   >
                     {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${e.figurants?.prenom ?? ""}`}

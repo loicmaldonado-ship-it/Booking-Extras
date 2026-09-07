@@ -761,7 +761,7 @@ export async function recordCastingMessage(
 export async function recordCastingMessagesBulk(
   entries: {
     figurantId: string;
-    email: string;
+    email: string | null;
     agentEmail?: string | null;
     subject: string;
     corps: string;

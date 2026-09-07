@@ -10,6 +10,7 @@ import { ContactIcons } from "@/components/ui/contact-icons";
 import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
+import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/media/compress-image";
 import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
@@ -508,6 +509,7 @@ export function CastingEntryManageCard({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [statutPending, startStatutTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
@@ -649,14 +651,15 @@ export function CastingEntryManageCard({
       <div className="flex items-center gap-1">
         <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
         {previewItems && previewIndex !== undefined && <PreviewButton items={previewItems} index={previewIndex} />}
-        <Link
-          href={`/figurants/${entry.figurant_id}/modifier`}
-          target="_blank"
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
           title="Modifier la fiche du profil"
           className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
         >
           ✏️
-        </Link>
+        </button>
+        {editOpen && <FigurantEditModal figurantId={entry.figurant_id} onClose={() => setEditOpen(false)} />}
       </div>
       {showAgent && (
         <AgentSection

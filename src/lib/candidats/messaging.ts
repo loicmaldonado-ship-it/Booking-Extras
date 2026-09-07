@@ -31,11 +31,18 @@ export async function recordFigurantMessage(params: {
 
   const supabase = createAdminClient();
 
-  if (params.email) {
+  // Sans email du/de la figurant·e mais avec un agent (cc), on envoie
+  // directement à l'agent au lieu de rester silencieux — un cc sans
+  // destinataire principal ne part nulle part chez la plupart des clients
+  // mail. Le cc n'est alors plus utile puisqu'il devient le destinataire.
+  const to = params.email || params.cc;
+  const cc = params.email ? params.cc : undefined;
+
+  if (to) {
     const { credentials, error } = await getProjetEmailCredentials(supabase, params.projetId);
     if (error) return { error };
-    const result = await sendEmail(params.email, params.subject ?? "Booking Extras", params.corps, credentials, {
-      cc: params.cc,
+    const result = await sendEmail(to, params.subject ?? "Booking Extras", params.corps, credentials, {
+      cc,
       attachments: params.attachments,
       html: params.html,
     });
