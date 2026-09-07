@@ -649,6 +649,14 @@ export function CastingEntryManageCard({
       <div className="flex items-center gap-1">
         <ContactIcons telephone={entry.figurants?.telephone} email={entry.figurants?.email} variant="inline" />
         {previewItems && previewIndex !== undefined && <PreviewButton items={previewItems} index={previewIndex} />}
+        <Link
+          href={`/figurants/${entry.figurant_id}/modifier`}
+          target="_blank"
+          title="Modifier la fiche du profil"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
+        >
+          ✏️
+        </Link>
       </div>
       {showAgent && (
         <AgentSection
