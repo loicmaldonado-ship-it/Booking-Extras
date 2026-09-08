@@ -12,8 +12,9 @@ import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
-import { requireProjetAccess } from "@/lib/auth/session";
+import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
+import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import { DuplicateWarning } from "@/components/figurants/duplicate-warning";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
 
@@ -84,6 +85,20 @@ export default async function CandidatureDetailPage({
 
   const duplicates = await findPossibleDuplicates(f.id);
 
+  // Candidature "Rôle" : le booking se fait sur la fiche comédien·ne (pool
+  // de qui traite la candidature) plutôt que sur la fiche figurant·e
+  // générale rattachée à la candidature — voir comedien-twin.ts. La fiche
+  // figurant·e (espace perso, disponibilités) n'est jamais touchée.
+  let bookingFigurantId = f.id;
+  if (candidature.cachet_assigne === "Rôle" && !lienBooking) {
+    const profile = await getCurrentProfile();
+    const twinId = await findOrCreateComedienTwin(
+      { prenom: f.prenom, nom: f.nom, email: f.email, telephone: f.telephone, genre: f.genre },
+      profile
+    );
+    if (twinId) bookingFigurantId = twinId;
+  }
+
   const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
@@ -132,7 +147,7 @@ export default async function CandidatureDetailPage({
               → Voir le booking
             </ButtonLink>
           ) : (
-            <ButtonLink href={`/bookings/nouveau?figurant_id=${f.id}&projet_id=${candidature.annonces?.projet_id ?? ""}`}>
+            <ButtonLink href={`/bookings/nouveau?figurant_id=${bookingFigurantId}&projet_id=${candidature.annonces?.projet_id ?? ""}`}>
               + Ajouter à un booking
             </ButtonLink>
           )}

@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkProjetAccess } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import type { CategorieCachet, CastingMode } from "./types";
 import type { BookingStatut } from "@/lib/bookings/types";
 
@@ -222,9 +223,11 @@ async function createCastingEntry(
 ): Promise<{ error?: string; created?: boolean }> {
   const supabase = createAdminClient();
 
+  const { data: role } = await supabase.from("casting_roles").select("categorie_cachet").eq("id", roleId).maybeSingle();
+
   const { data: figurant } = await supabase
     .from("figurants")
-    .select("email, est_comedien")
+    .select("prenom, nom, email, telephone, genre, est_comedien")
     .eq("id", figurantId)
     .maybeSingle();
   if (!figurant) return { error: "Profil introuvable." };
@@ -232,18 +235,29 @@ async function createCastingEntry(
   // passe par l'agent, ou l'info arrive plus tard) — pas de blocage ici.
   if (!figurant.email && !figurant.est_comedien) return { error: "Ce profil n'a pas d'email renseigné." };
 
+  // Rôle "cachet rôle" : le profil envoyé rejoint (ou crée) sa fiche
+  // comédien·ne dans le pool de qui l'envoie, plutôt que de rester rattaché
+  // à sa fiche figurant·e générale — voir comedien-twin.ts. Sa fiche
+  // figurant·e d'origine n'est jamais modifiée.
+  let targetFigurantId = figurantId;
+  if (role?.categorie_cachet === "role" && !figurant.est_comedien) {
+    const profile = await getCurrentProfile();
+    const twinId = await findOrCreateComedienTwin(figurant, profile);
+    if (twinId) targetFigurantId = twinId;
+  }
+
   const { data: existing } = await supabase
     .from("casting_entries")
     .select("id")
     .eq("role_id", roleId)
-    .eq("figurant_id", figurantId)
+    .eq("figurant_id", targetFigurantId)
     .maybeSingle();
   if (existing) return { created: false };
 
   const { error } = await supabase.from("casting_entries").insert({
     projet_id: projetId,
     role_id: roleId,
-    figurant_id: figurantId,
+    figurant_id: targetFigurantId,
     mode: entryMode,
     booking_id: opts?.bookingId ?? null,
     candidature_id: opts?.candidatureId ?? null,
