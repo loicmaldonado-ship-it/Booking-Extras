@@ -67,6 +67,31 @@ h1, h2, h3, h4 {
   color: var(--color-ink);
 }
 
+/* Essai "verre" (2026-09-07, page Casting uniquement) — deux intensités :
+   discret pour les grilles à volume (cartes profils/rôles empilées, où un
+   flou fort coûterait cher en rendu et nuirait à la lisibilité), liquide
+   pour les éléments flottants isolés (une fenêtre modale à la fois). */
+.glass-subtle {
+  background: rgba(236, 228, 247, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 6px 16px -8px rgba(90, 60, 140, 0.22);
+}
+
+.glass-liquid {
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.22));
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 12px 28px -10px rgba(90, 60, 140, 0.35),
+    0 2px 6px rgba(90, 60, 140, 0.12);
+}
+
 @media print {
   body {
     background: white;

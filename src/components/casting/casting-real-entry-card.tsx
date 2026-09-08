@@ -124,7 +124,7 @@ function CastingRealMediaModal({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-5"
+        className="glass-liquid flex max-h-[85vh] w-full max-w-2xl flex-col gap-4 overflow-y-auto rounded-2xl p-5"
       >
         <div className="flex items-center gap-3">
           <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-ink-raised-2">
@@ -242,7 +242,7 @@ export function CastingRealEntryCard({
           setOpen(true);
         }}
         disabled={!hasMedia}
-        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"
+        className="glass-subtle group flex flex-col overflow-hidden rounded-xl text-left transition-colors hover:border-coral/60 disabled:cursor-default"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-ink-raised-2">
           {item.portraitUrl && (

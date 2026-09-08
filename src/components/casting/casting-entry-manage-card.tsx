@@ -551,7 +551,7 @@ export function CastingEntryManageCard({
   const extraPhotos = photos.filter((p) => !photoLabels.includes(p.label));
 
   return (
-    <div className="relative flex w-full max-w-xs flex-col gap-2 rounded-xl border border-border bg-ink-raised p-3">
+    <div className="glass-subtle relative flex w-full max-w-xs flex-col gap-2 rounded-xl p-3">
       {onToggleSelect && (
         <input
           type="checkbox"

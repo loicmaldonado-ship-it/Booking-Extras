@@ -278,7 +278,7 @@ export function CastingRoleSection({
   const deadlinePassed = !!role.date_limite_envoi && role.date_limite_envoi < new Date().toISOString().slice(0, 10);
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card className="glass-subtle flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

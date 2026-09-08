@@ -80,7 +80,7 @@ export function FigurantEditModal({ figurantId, onClose }: { figurantId: string;
       </button>
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl rounded-2xl border border-border bg-ink-raised p-5"
+        className="glass-liquid w-full max-w-3xl rounded-2xl p-5"
       >
         <h2 className="mb-4 text-xl font-semibold">Modifier le profil</h2>
         <EditModalBody key={figurantId} figurantId={figurantId} onSaved={handleSaved} />

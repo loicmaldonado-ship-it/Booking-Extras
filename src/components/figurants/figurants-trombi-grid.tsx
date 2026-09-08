@@ -90,7 +90,7 @@ export function FigurantsTrombiGrid({
               "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
               selected.has(f.id)
                 ? "border-coral bg-coral/10"
-                : "border-border bg-ink-raised hover:border-coral/60"
+                : "glass-subtle hover:border-coral/60"
             )}
           >
             <input

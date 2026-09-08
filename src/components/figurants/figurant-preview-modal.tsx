@@ -164,7 +164,7 @@ function PreviewModal({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-5"
+        className="glass-liquid flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl p-5"
       >
         <div className="flex items-center gap-3">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
