@@ -18,6 +18,14 @@ export type CurrentProfile = {
   // null = accès complet à toutes les sections (défaut historique) — voir
   // src/lib/auth/sections.ts. Sans effet pour les comptes "chef".
   sectionsAutorisees: string[] | null;
+  // Compte propriétaire (voir src/lib/auth/owner.ts) — accès à tout, toutes
+  // les chef·fes confondues.
+  isOwner: boolean;
+  // Groupe de partage des fiches comédien·nes — deux chef·fes avec le même
+  // comedienPoolId voient les mêmes fiches comédien·nes ; null = pool
+  // personnel (son propre id sert alors de clé). Voir
+  // src/lib/figurants/comedien-privacy.ts.
+  comedienPoolId: string | null;
 };
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
@@ -40,7 +48,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees")
+    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees, is_owner, comedien_pool_id")
     .eq("id", user.id)
     .single();
 
@@ -69,6 +77,8 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     avatarUrl,
     profileComplete: !!(avatarUrl && user.email && profile.nom && profile.prenom && profile.telephone),
     sectionsAutorisees: profile.sections_autorisees,
+    isOwner: profile.is_owner,
+    comedienPoolId: profile.comedien_pool_id,
   };
 }
 

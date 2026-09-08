@@ -18,6 +18,7 @@ import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { CASTING_MODE_LABELS, CASTING_STATUTS } from "@/lib/casting/types";
@@ -58,6 +59,10 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
+  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
+
   const [
     roles,
     entries,
@@ -77,7 +82,7 @@ export default async function CastingPage({
     getPartageTitre(currentProjetId, "casting"),
     getCastingDocsVisibility(currentProjetId),
     getSiteOrigin(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    allFigurantsQuery,
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),

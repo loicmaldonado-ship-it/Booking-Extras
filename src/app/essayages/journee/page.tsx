@@ -12,8 +12,9 @@ import { getEssayageJournees } from "@/lib/essayages/journees";
 import { getEssayageLieuProjet } from "@/lib/essayages/lieu";
 import { formatDateLong } from "@/lib/format-date";
 import { Shirt } from "lucide-react";
-import { requireProjetAccess } from "@/lib/auth/session";
+import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,11 @@ export default async function EssayageJourneePage({
     return <p className="text-text-muted">Cette journée d&apos;essayage n&apos;existe pas.</p>;
   }
 
+  const profile = await getCurrentProfile();
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
+
   const [{ data: essayagesRaw }, { data: allFigurants }, { data: creneaux }] = await Promise.all([
     supabase
       .from("essayages")
@@ -50,7 +56,7 @@ export default async function EssayageJourneePage({
       )
       .eq("essayage_journee_id", journee.id)
       .returns<Omit<EssayageRow, "portraitUrl">[]>(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    figurantsQuery,
     supabase
       .from("essayage_creneaux")
       .select("id, heure_debut, heure_fin, capacite")

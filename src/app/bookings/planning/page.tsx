@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { PlanningBoard } from "@/components/bookings/planning-board";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,8 @@ export default async function PlanningPage({
   if (params.q) {
     figurantsQuery = figurantsQuery.or(`nom.ilike.%${params.q}%,prenom.ilike.%${params.q}%`);
   }
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
   const { data: figurantsRaw } = await figurantsQuery;
 
   type BookingRow = {

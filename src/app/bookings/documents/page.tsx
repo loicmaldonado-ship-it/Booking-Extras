@@ -17,6 +17,7 @@ import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
@@ -57,6 +58,9 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
     await Promise.all([
     supabase
@@ -74,7 +78,7 @@ export default async function JourneeDashboardPage({
       .order("heure_convocation")
       .returns<BookingRow[]>(),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    figurantsQuery,
     supabase
       .from("projet_indemnites")
       .select("*")

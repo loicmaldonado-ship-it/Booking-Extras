@@ -5,6 +5,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { updateEssayage } from "@/lib/essayages/actions";
 import type { Essayage } from "@/lib/essayages/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 
 export default async function ModifierEssayagePage({
   params,
@@ -19,9 +20,13 @@ export default async function ModifierEssayagePage({
   let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
+
   const [{ data: essayage }, { data: figurants }, { data: projets }] = await Promise.all([
     supabase.from("essayages").select("*").eq("id", id).single<Essayage>(),
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    figurantsQuery,
     projetsQuery,
   ]);
 

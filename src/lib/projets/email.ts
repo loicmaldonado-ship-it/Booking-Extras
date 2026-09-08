@@ -1,7 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto/secrets";
-import { isOwner } from "@/lib/auth/owner";
 
 export type EmailCredentialsResult = { credentials: { user: string; pass: string } | null; error?: string };
 
@@ -41,7 +40,7 @@ export async function getOwnerEmailCredentials(
 
   const { data: owner } = await supabase
     .from("profiles")
-    .select("email, gmail_smtp_user, gmail_smtp_app_password")
+    .select("email, gmail_smtp_user, gmail_smtp_app_password, is_owner")
     .eq("id", ownerId)
     .maybeSingle();
   if (!owner) return { credentials: null };
@@ -50,7 +49,7 @@ export async function getOwnerEmailCredentials(
     return { credentials: { user: owner.gmail_smtp_user, pass: decryptSecret(owner.gmail_smtp_app_password) } };
   }
 
-  if (isOwner({ email: owner.email })) return { credentials: null };
+  if (owner.is_owner) return { credentials: null };
 
   return {
     credentials: null,

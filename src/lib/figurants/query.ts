@@ -1,5 +1,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS, type MensurationFilters } from "@/lib/figurants/mensuration-filters";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import type { CurrentProfile } from "@/lib/auth/session";
 
 export type FigurantFilters = {
   q?: string;
@@ -24,7 +26,7 @@ function dateIlYA(annees: number): string {
 export function buildFigurantsQuery(
   supabase: ReturnType<typeof createAdminClient>,
   params: FigurantFilters,
-  options?: { withCount?: boolean }
+  options?: { withCount?: boolean; profile?: CurrentProfile | null }
 ) {
   let query = supabase
     .from("figurants")
@@ -38,6 +40,14 @@ export function buildFigurantsQuery(
   // noieraient les filtres pensés pour la figuration (mensurations,
   // véhicule...), et inversement.
   query = query.eq("est_comedien", params.profil === "comediens");
+
+  // Base comédien·nes personnelle par chef·fe (sauf groupe partagé) — voir
+  // comedien-privacy.ts. Sans effet sur l'onglet Figurant·es, toujours
+  // partagé.
+  if (params.profil === "comediens") {
+    const clause = comedienPoolClause(options?.profile ?? null);
+    if (clause) query = query.or(clause);
+  }
 
   if (params.q) {
     query = query.or(

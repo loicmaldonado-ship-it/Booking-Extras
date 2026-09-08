@@ -3,6 +3,7 @@ import { EssayageForm } from "@/components/essayages/essayage-form";
 import { BackLink } from "@/components/ui/back-link";
 import { createEssayage } from "@/lib/essayages/actions";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 
 export default async function NouvelEssayagePage({
   searchParams,
@@ -17,8 +18,12 @@ export default async function NouvelEssayagePage({
   let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
+
   const [{ data: figurants }, { data: projets }] = await Promise.all([
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    figurantsQuery,
     projetsQuery,
   ]);
 

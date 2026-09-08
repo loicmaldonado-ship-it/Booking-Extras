@@ -45,7 +45,7 @@ export default async function FigurantsPage({
   // compte total vient du même aller-retour que la page (Content-Range),
   // pas d'une requête séparée.
   const pageParamNum = Math.max(1, Number(pageParam) || 1);
-  const { data: figurants, error, count: totalCount } = await buildFigurantsQuery(supabase, filters, { withCount: true })
+  const { data: figurants, error, count: totalCount } = await buildFigurantsQuery(supabase, filters, { withCount: true, profile })
     .range((pageParamNum - 1) * FIGURANTS_PAR_PAGE, pageParamNum * FIGURANTS_PAR_PAGE - 1)
     .returns<Figurant[]>();
   const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE));

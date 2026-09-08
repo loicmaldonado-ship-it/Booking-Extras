@@ -4,6 +4,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { createBooking } from "@/lib/bookings/actions";
 import type { BaremeCachet } from "@/lib/bareme/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 
 export default async function NouveauBookingPage({
   searchParams,
@@ -20,8 +21,12 @@ export default async function NouveauBookingPage({
   let projetsQuery = supabase.from("projets").select("id, nom, convention").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  const comedienClause = comedienPoolClause(profile);
+  if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
+
   const [{ data: figurants }, { data: projets }, { data: bareme }] = await Promise.all([
-    supabase.from("figurants").select("id, prenom, nom").order("nom"),
+    figurantsQuery,
     projetsQuery,
     supabase.from("bareme_cachets").select("*").returns<BaremeCachet[]>(),
   ]);

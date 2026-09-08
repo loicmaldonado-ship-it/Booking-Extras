@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { countFigurantPhotos, insertFigurantPhoto, MAX_PHOTOS_PAR_FIGURANT } from "./photos";
 import { upsertAgent } from "@/lib/agents/actions";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import type { Civilite, Genre, PhotoType, Pronom } from "./types";
 
 function str(fd: FormData, key: string): string | null {
@@ -118,9 +120,13 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   }
 
   const supabase = createAdminClient();
+  // Rattache la fiche au pool comédien·nes de qui la crée (voir
+  // comedien-privacy.ts) — sans effet sur les figurant·es, toujours
+  // partagé·es.
+  const comedienPoolId = payload.est_comedien ? comedienPoolIdFor(await getCurrentProfile()) : null;
   const { data, error } = await supabase
     .from("figurants")
-    .insert({ ...payload, confirme: true })
+    .insert({ ...payload, confirme: true, comedien_pool_id: comedienPoolId })
     .select("id")
     .single();
 
@@ -157,7 +163,23 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
   if (fieldsError) return { error: fieldsError };
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("figurants").update(payload).eq("id", id);
+
+  // Ne rattache au pool comédien·nes que si la fiche n'en a pas déjà un —
+  // ne change jamais le pool d'une fiche existante en la modifiant (sinon
+  // rééditer la fiche d'un·e comédien·ne géré ailleurs la ferait basculer
+  // dans le pool de qui édite).
+  let comedienPoolId: string | undefined;
+  if (payload.est_comedien) {
+    const { data: existing } = await supabase.from("figurants").select("comedien_pool_id").eq("id", id).maybeSingle();
+    if (!existing?.comedien_pool_id) {
+      comedienPoolId = comedienPoolIdFor(await getCurrentProfile()) ?? undefined;
+    }
+  }
+
+  const { error } = await supabase
+    .from("figurants")
+    .update(comedienPoolId ? { ...payload, comedien_pool_id: comedienPoolId } : payload)
+    .eq("id", id);
 
   if (error) {
     if (error.code === "23505") {
