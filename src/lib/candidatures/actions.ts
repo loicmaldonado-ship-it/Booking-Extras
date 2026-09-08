@@ -192,10 +192,16 @@ export async function postulerAnnonce(
     }
   }
 
+  // Une candidature (annonce de figuration) ne doit matcher/rattacher
+  // qu'une fiche figurant·e — jamais une éventuelle fiche comédien·ne
+  // partageant le même email ou nom+téléphone (voir comedien-privacy.ts) :
+  // celle-ci reste privée à son pool, et n'a pas à être mutée par ce flux
+  // public.
   const { data: existingFigurant } = await supabase
     .from("figurants")
     .select("id")
     .ilike("email", email)
+    .eq("est_comedien", false)
     .maybeSingle();
 
   let figurantId = existingFigurant?.id as string | undefined;
@@ -206,7 +212,11 @@ export async function postulerAnnonce(
   // juste parce qu'elle a postulé avec une autre adresse).
   if (!figurantId) {
     const telephoneNormalise = telephone.replace(/\s+/g, "");
-    const { data: memeNom } = await supabase.from("figurants").select("id, telephone").ilike("nom", nom);
+    const { data: memeNom } = await supabase
+      .from("figurants")
+      .select("id, telephone")
+      .ilike("nom", nom)
+      .eq("est_comedien", false);
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
     if (doublon) figurantId = doublon.id;
   }

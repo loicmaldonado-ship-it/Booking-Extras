@@ -110,10 +110,16 @@ export async function requestMagicLink(
   if (!email) return { error: "Merci de renseigner votre email." };
 
   const supabase = createAdminClient();
+  // L'espace personnel (disponibilités, candidatures) est toujours la
+  // fiche figurant·e, jamais une éventuelle fiche comédien·ne partageant
+  // le même email (voir comedien-privacy.ts) — sans ce filtre, une
+  // personne ayant les deux fiches ferait planter la recherche (deux
+  // lignes pour un seul email attendu).
   const { data: figurant } = await supabase
     .from("figurants")
     .select("id, prenom, email, acces_compte")
     .ilike("email", email)
+    .eq("est_comedien", false)
     .maybeSingle();
 
   if (!figurant?.email) {

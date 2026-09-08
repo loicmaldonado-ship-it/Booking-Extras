@@ -6,6 +6,7 @@ import { Input, Select } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { GENRES, type Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
@@ -81,18 +82,26 @@ export default async function FigurantsPage({
     return `/figurants${qs ? `?${qs}` : ""}`;
   }
 
-  const { data: tousLesFigurants } = await supabase
+  let doublonsQuery = supabase
     .from("figurants")
-    .select("id, prenom, nom, telephone, email, created_at")
+    .select("id, prenom, nom, telephone, email, created_at, est_comedien")
     .not("telephone", "is", null)
-    .order("created_at", { ascending: true })
-    .returns<{ id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string }[]>();
+    .order("created_at", { ascending: true });
+  const doublonsComedienClause = comedienPoolClause(profile);
+  if (doublonsComedienClause) doublonsQuery = doublonsQuery.or(doublonsComedienClause);
+  const { data: tousLesFigurants } = await doublonsQuery.returns<
+    { id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string; est_comedien: boolean }[]
+  >();
 
+  // Une fiche comédien·ne et une fiche figurant·e peuvent légitimement
+  // partager nom+téléphone (même personne, deux profils voulus — voir
+  // comedien-privacy.ts) : la clé inclut est_comedien pour ne pas les
+  // signaler comme doublon à fusionner.
   const groupesParCle = new Map<string, DoublonGroupe>();
   for (const f of tousLesFigurants ?? []) {
     const telephoneNormalise = (f.telephone ?? "").replace(/\s+/g, "");
     if (!telephoneNormalise) continue;
-    const cle = `${f.nom.trim().toLowerCase()}::${telephoneNormalise}`;
+    const cle = `${f.nom.trim().toLowerCase()}::${telephoneNormalise}::${f.est_comedien}`;
     const groupe = groupesParCle.get(cle) ?? { key: cle, nom: f.nom, telephone: telephoneNormalise, profils: [] };
     groupe.profils.push({ id: f.id, prenom: f.prenom, email: f.email, created_at: f.created_at });
     groupesParCle.set(cle, groupe);
