@@ -105,17 +105,42 @@ export function CastingUploadForm({
   const [pending, setPending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  async function uploadOne(kind: "video" | "photo", slot: string, file: File) {
-    const target = await createCastingUploadSlot(token, kind, slot);
-    if (target.error || !target.bucket || !target.path || !target.token) {
-      throw new Error(target.error ?? "Impossible de préparer l'envoi.");
-    }
-    const supabase = createBrowserSupabaseClient();
-    const { error: uploadError } = await supabase.storage
-      .from(target.bucket)
-      .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-    if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
-    return target.path;
+  // Même souci que côté équipe (voir casting-entry-manage-card.tsx) : ni
+  // createCastingUploadSlot ni uploadToSignedUrl n'ont de filet de
+  // sécurité, et le SDK Supabase n'accepte pas de signal d'annulation ici
+  // — sans la course ci-dessous, "Annuler" ne ferait rigoureusement rien
+  // tant que l'appel réseau ne se règle pas de lui-même.
+  async function uploadOne(kind: "video" | "photo", slot: string, file: File, signal: AbortSignal) {
+    const attempt = (async () => {
+      const target = await createCastingUploadSlot(token, kind, slot);
+      if (target.error || !target.bucket || !target.path || !target.token) {
+        throw new Error(target.error ?? "Impossible de préparer l'envoi.");
+      }
+      const supabase = createBrowserSupabaseClient();
+      const { error: uploadError } = await supabase.storage
+        .from(target.bucket)
+        .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+      if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
+      return target.path;
+    })();
+    return new Promise<string>((resolve, reject) => {
+      const timeoutId = setTimeout(
+        () => reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie.")),
+        120_000
+      );
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timeoutId);
+          reject(new DOMException("Annulé", "AbortError"));
+        },
+        { once: true }
+      );
+      attempt.then((p) => {
+        clearTimeout(timeoutId);
+        resolve(p);
+      }, reject);
+    });
   }
 
   async function submit() {
@@ -142,7 +167,7 @@ export function CastingUploadForm({
         });
         if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
         setStep(`Envoi de la vidéo ${i + 1}...`);
-        videoPaths.push(await uploadOne("video", String(i), compressed));
+        videoPaths.push(await uploadOne("video", String(i), compressed, controller.signal));
       }
 
       const uploadedPhotos: { label: string; path: string }[] = [];
@@ -153,7 +178,7 @@ export function CastingUploadForm({
         setStep(`Compression de la photo « ${label} »...`);
         const compressed = await compressImage(file);
         setStep(`Envoi de la photo « ${label} »...`);
-        uploadedPhotos.push({ label, path: await uploadOne("photo", label, compressed) });
+        uploadedPhotos.push({ label, path: await uploadOne("photo", label, compressed, controller.signal) });
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
