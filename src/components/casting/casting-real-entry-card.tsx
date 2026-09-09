@@ -102,7 +102,7 @@ function CastingRealMediaModal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink/80 text-xl text-white hover:bg-danger"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-text/80 text-xl text-white hover:bg-danger"
         aria-label={t(lang, "fermer")}
       >
         ×
@@ -115,7 +115,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-2xl text-white hover:bg-ink sm:left-4"
+          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:left-4"
           aria-label={t(lang, "profil_precedent")}
         >
           ‹
@@ -193,7 +193,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-2xl text-white hover:bg-ink sm:right-4"
+          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:right-4"
           aria-label={t(lang, "profil_suivant")}
         >
           ›
@@ -201,7 +201,7 @@ function CastingRealMediaModal({
       )}
 
       {hasMultiple && (
-        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
+        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-text/80 px-3 py-1 text-xs text-white">
           {index + 1} / {items.length}
         </span>
       )}
@@ -255,7 +255,7 @@ export function CastingRealEntryCard({
             />
           )}
           {hasMedia && (
-            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-ink/80 px-2 py-0.5 text-[11px] text-white">
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-text/80 px-2 py-0.5 text-[11px] text-white">
               {item.videoUrls.length > 0 && `${item.videoUrls.length} ${t(lang, item.videoUrls.length > 1 ? "videos" : "video")}`}
               {item.videoUrls.length > 0 && item.photos.length > 0 && " · "}
               {item.photos.length > 0 && `${item.photos.length} ${t(lang, item.photos.length > 1 ? "photos" : "photo")}`}

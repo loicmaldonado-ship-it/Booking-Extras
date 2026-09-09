@@ -142,7 +142,7 @@ function PreviewModal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink/80 text-xl text-white hover:bg-danger"
+        className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-text/80 text-xl text-white hover:bg-danger"
         aria-label="Fermer"
       >
         ×
@@ -155,7 +155,7 @@ function PreviewModal({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-2xl text-white hover:bg-ink sm:left-4"
+          className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:left-4"
           aria-label="Profil précédent"
         >
           ‹
@@ -194,7 +194,7 @@ function PreviewModal({
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-ink/80 text-2xl text-white hover:bg-ink sm:right-4"
+          className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:right-4"
           aria-label="Profil suivant"
         >
           ›
@@ -202,7 +202,7 @@ function PreviewModal({
       )}
 
       {hasMultiple && (
-        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-ink/80 px-3 py-1 text-xs text-white">
+        <span className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-text/80 px-3 py-1 text-xs text-white">
           {index + 1} / {items.length}
         </span>
       )}

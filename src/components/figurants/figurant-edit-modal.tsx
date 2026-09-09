@@ -73,7 +73,7 @@ export function FigurantEditModal({ figurantId, onClose }: { figurantId: string;
       <button
         type="button"
         onClick={onClose}
-        className="fixed right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-ink/80 text-xl text-white hover:bg-danger"
+        className="fixed right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-text/80 text-xl text-white hover:bg-danger"
         aria-label="Fermer"
       >
         ×
