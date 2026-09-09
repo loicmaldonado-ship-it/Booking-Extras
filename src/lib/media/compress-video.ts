@@ -197,8 +197,30 @@ async function compressVideoRealtime(
     // le fil principal là où nos clips de test synthétiques ne le
     // faisaient pas.
     const fps = isSafari ? 15 : 30;
-    const canvasStream = canvas.captureStream(fps);
-    const combinedStream = new MediaStream([...canvasStream.getVideoTracks(), ...audioTracks]);
+
+    // captureStream(fps) échantillonne le canvas sur SA PROPRE horloge
+    // interne, indépendante de nos dessins (setInterval plus bas) — si ce
+    // dernier prend du retard (charge processeur, tick ralenti), la piste
+    // vidéo livre une image dupliquée/périmée au prochain top au lieu
+    // d'attendre la suivante : la vidéo produite paraît saccadée alors que
+    // la piste audio (jamais concernée par ce mécanisme) reste fluide —
+    // signalé en usage réel (plusieurs selftapes) courant 2026-09.
+    // Quand le navigateur le permet, on bascule donc en capture manuelle
+    // (fps=0, aucun échantillonnage automatique) et on force nous-mêmes une
+    // image fraîche juste après chaque dessin via requestFrame() — jamais
+    // de dérive possible entre les deux horloges. Repli silencieux sur le
+    // mode automatique existant si requestFrame() n'existe pas sur ce
+    // navigateur (Safari plus anciens compris) : on vérifie sa présence sur
+    // une vraie piste de CE navigateur avant de s'y engager, jamais de pari.
+    const probeTrack = canvas.captureStream(fps).getVideoTracks()[0] as
+      | (MediaStreamTrack & { requestFrame?: () => void })
+      | undefined;
+    const manualCapture = typeof probeTrack?.requestFrame === "function";
+    const canvasVideoTrack = manualCapture
+      ? (canvas.captureStream(0).getVideoTracks()[0] as MediaStreamTrack & { requestFrame: () => void })
+      : probeTrack!;
+    if (manualCapture) probeTrack!.stop();
+    const combinedStream = new MediaStream([canvasVideoTrack, ...audioTracks]);
     if (audioTracks.length === 0) {
       console.warn("[compressVideo] Aucune piste audio disponible — compression sans son.");
     }
@@ -250,6 +272,7 @@ async function compressVideoRealtime(
     function drawFrame() {
       if (video.paused || video.ended) return;
       ctx!.drawImage(video, 0, 0, width, height);
+      if (manualCapture) canvasVideoTrack.requestFrame?.();
     }
     // Toujours rapporté (les deux passes) — laisser la deuxième passe sans
     // retour, comme avant, donnait l'impression que la compression était
