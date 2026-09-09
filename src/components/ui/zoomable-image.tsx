@@ -30,13 +30,27 @@ function LightboxPortal({
   );
 
   useEffect(() => {
+    // Capture + stopPropagation : quand cette visionneuse photo s'ouvre
+    // par-dessus une autre fenêtre qui écoute aussi les flèches (ex. la
+    // visionneuse "profil précédent/suivant" du lien réal), il faut que
+    // les flèches ne fassent naviguer QUE les photos, pas les deux à la
+    // fois. La phase capture s'exécute avant toute écoute posée en phase
+    // bulle (l'ordre de montage ne suffit pas : la fenêtre extérieure,
+    // montée en premier, aurait sinon la main en premier).
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "ArrowLeft" && hasMultiple) goPrev();
-      else if (e.key === "ArrowRight" && hasMultiple) goNext();
+      if (e.key === "Escape") {
+        onClose();
+        e.stopPropagation();
+      } else if (e.key === "ArrowLeft" && hasMultiple) {
+        goPrev();
+        e.stopPropagation();
+      } else if (e.key === "ArrowRight" && hasMultiple) {
+        goNext();
+        e.stopPropagation();
+      }
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [onClose, goPrev, goNext, hasMultiple]);
 
   return createPortal(
