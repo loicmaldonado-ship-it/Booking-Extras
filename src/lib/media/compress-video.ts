@@ -224,8 +224,22 @@ async function compressVideoRealtime(
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunks.push(e.data);
     };
+    // "stuck at 99%" signalé en usage réel (Safari iPhone, Firefox) : le
+    // filet de sécurité ci-dessous ne protège que l'attente de la fin de
+    // lecture — recorder.stop() reste ensuite un événement asynchrone
+    // (onstop) sans aucune garantie qu'il se déclenche toujours. Si le
+    // MediaRecorder atterrit dans un état d'erreur (onerror, jamais
+    // écouté avant) ou si onstop ne se déclenche simplement jamais sur
+    // certains navigateurs/appareils, cette promesse ne se résolvait
+    // jamais et bloquait tout indéfiniment après la phase de lecture,
+    // sans que le timeout plus bas (qui ne couvre que cette phase-là) ne
+    // puisse rien y faire.
     const recordingDone = new Promise<Blob>((resolve) => {
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      recorder.onerror = (ev) => {
+        console.warn("[compressVideo] Erreur MediaRecorder — utilisation des données déjà capturées.", ev);
+        resolve(new Blob(chunks, { type: mimeType }));
+      };
     });
 
     // setInterval plutôt que requestAnimationFrame : sur mobile, l'appli
@@ -268,7 +282,18 @@ async function compressVideoRealtime(
       if (recorder.state !== "inactive") recorder.stop();
     }
 
-    const blob = await recordingDone;
+    // Filet de sécurité final : même si onstop/onerror ne se déclenchent
+    // jamais (vu en usage réel), on repart avec ce qui a déjà été capturé
+    // plutôt que de bloquer indéfiniment.
+    const blob = await Promise.race([
+      recordingDone,
+      new Promise<Blob>((resolve) =>
+        setTimeout(() => {
+          console.warn("[compressVideo] recorder.onstop jamais déclenché — utilisation des données déjà capturées.");
+          resolve(new Blob(chunks, { type: mimeType }));
+        }, 5000)
+      ),
+    ]);
     return blob.size > 0 ? blob : null;
   }
 
