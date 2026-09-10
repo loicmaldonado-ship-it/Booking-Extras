@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
@@ -40,37 +40,25 @@ function CastingRealMediaModal({
   const item = items[index] ?? items[0];
   const gallery: GalleryPhoto[] = (item?.photos ?? []).map((p) => ({ src: p.url, alt: p.label }));
 
-  // Une seule vidéo lue à la fois — démarrer l'une met en pause toutes les
-  // autres du même profil (plusieurs essais lus en même temps, sons qui se
-  // chevauchent, sinon). Map plutôt qu'un tableau : se tient à jour toute
-  // seule via les callbacks de montage/démontage des vidéos quand on
-  // change de profil (précédent/suivant), sans jamais toucher `.current`
-  // pendant le rendu lui-même.
-  const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  function pauseOthers(current: HTMLVideoElement) {
-    for (const v of videoRefs.current.values()) {
-      if (v !== current && !v.paused) v.pause();
-    }
-  }
-
-  // Chaque vidéo repliée par défaut, dévoilée au clic sur son nom — plus
-  // rangé qu'un empilement de plusieurs lecteurs affichés d'un coup.
+  // Une seule vidéo OUVERTE (donc montée dans le DOM) à la fois par profil —
+  // pas juste "une seule en lecture". Ouvrir un essai puis un autre sans
+  // jamais refermer le premier les empilait tous en mémoire (chacun avec
+  // autoPlay, son décodeur, ses données mises en tampon) : un réal qui
+  // parcourt plusieurs essais sur plusieurs profils sans les refermer au
+  // fur et à mesure a fini par figer complètement l'onglet (2026-09-10).
+  // Ouvrir un nouvel essai referme donc maintenant automatiquement le
+  // précédent plutôt que de s'ajouter à côté.
   // Réinitialisé à chaque changement de profil (précédent/suivant) — ajusté
   // pendant le rendu plutôt que dans un effet (pattern React recommandé
   // pour "réinitialiser un état quand une prop change").
-  const [openVideos, setOpenVideos] = useState<Set<string>>(new Set());
-  const [openVideosItemId, setOpenVideosItemId] = useState(item?.id);
-  if (item?.id !== openVideosItemId) {
-    setOpenVideosItemId(item?.id);
-    setOpenVideos(new Set());
+  const [openVideo, setOpenVideo] = useState<string | null>(null);
+  const [openVideoItemId, setOpenVideoItemId] = useState(item?.id);
+  if (item?.id !== openVideoItemId) {
+    setOpenVideoItemId(item?.id);
+    setOpenVideo(null);
   }
   function toggleVideo(url: string) {
-    setOpenVideos((prev) => {
-      const next = new Set(prev);
-      if (next.has(url)) next.delete(url);
-      else next.add(url);
-      return next;
-    });
+    setOpenVideo((prev) => (prev === url ? null : url));
   }
 
   const goPrev = useCallback(
@@ -140,7 +128,7 @@ function CastingRealMediaModal({
         </div>
 
         {item.videoUrls.map((v) => {
-          const isOpen = openVideos.has(v.url);
+          const isOpen = openVideo === v.url;
           return (
             <div key={v.url} className="flex flex-col gap-1.5">
               <button
@@ -153,17 +141,7 @@ function CastingRealMediaModal({
               </button>
               {isOpen && (
                 // eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(v.url, el);
-                    else videoRefs.current.delete(v.url);
-                  }}
-                  controls
-                  autoPlay
-                  preload="metadata"
-                  onPlay={(e) => pauseOthers(e.currentTarget)}
-                  className="w-full rounded-lg bg-black"
-                >
+                <video controls autoPlay preload="metadata" className="w-full rounded-lg bg-black">
                   <source src={v.url} />
                 </video>
               )}
