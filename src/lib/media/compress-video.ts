@@ -20,6 +20,11 @@ type CompressVideoOpts = {
   // utile pour afficher un temps d'attente plutôt qu'un pourcentage
   // abstrait. `pass` ne concerne que la méthode temps réel (1 ou 2 passes).
   onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
+  // Appelé dès que la durée réelle de la vidéo est connue (avant même que
+  // la compression démarre pour de bon) — permet à l'appelant de calculer
+  // un budget de temps proportionné (voir compress-and-upload-video.ts)
+  // plutôt qu'un délai fixe deviné à l'aveugle.
+  onDurationKnown?: (seconds: number) => void;
   // Permet d'annuler une compression en cours (bouton "Annuler" côté
   // appelant) — lève une DOMException("AbortError") plutôt que de replier
   // silencieusement sur le fichier d'origine : une annulation explicite de
@@ -61,6 +66,7 @@ export async function compressVideo(file: File, opts?: CompressVideoOpts): Promi
       maxDurationSeconds: opts?.maxDurationSeconds ?? 1800,
       audioBitsPerSecond: 96_000,
       onProgress: opts?.onProgress,
+      onDurationKnown: opts?.onDurationKnown,
       signal: opts?.signal,
     };
 
@@ -81,6 +87,7 @@ async function compressVideoRealtime(
     minBitsPerSecond?: number;
     maxDurationSeconds?: number;
     onProgress?: (pct: number, secondsRemaining?: number, pass?: 1 | 2) => void;
+    onDurationKnown?: (seconds: number) => void;
     signal?: AbortSignal;
   }
 ): Promise<File> {
@@ -330,6 +337,7 @@ async function compressVideoRealtime(
       console.warn(`[compressVideo] Durée invalide ou excessive (${video.duration}s) — envoi du fichier original.`);
       return file;
     }
+    opts?.onDurationKnown?.(video.duration);
     if (!video.videoWidth || !video.videoHeight) {
       console.warn("[compressVideo] Dimensions vidéo non lisibles — envoi du fichier original.");
       return file;

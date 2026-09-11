@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/field";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { compressImage } from "@/lib/media/compress-image";
-import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
+import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
 
@@ -105,14 +105,12 @@ export function CastingUploadForm({
   const [pending, setPending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Même souci que côté équipe (voir casting-entry-manage-card.tsx) : ni
-  // createCastingUploadSlot ni uploadToSignedUrl n'ont de filet de
-  // sécurité, et le SDK Supabase n'accepte pas de signal d'annulation ici
-  // — sans la course ci-dessous, "Annuler" ne ferait rigoureusement rien
-  // tant que l'appel réseau ne se règle pas de lui-même.
-  async function uploadOne(kind: "video" | "photo", slot: string, file: File, signal: AbortSignal) {
+  // Photos uniquement — l'envoi vidéo (compression + envoi avec course
+  // contre timeout/annulation) est mutualisé avec la carte équipe dans
+  // compress-and-upload-video.ts.
+  async function uploadOnePhoto(slot: string, file: File, signal: AbortSignal) {
     const attempt = (async () => {
-      const target = await createCastingUploadSlot(token, kind, slot);
+      const target = await createCastingUploadSlot(token, "photo", slot);
       if (target.error || !target.bucket || !target.path || !target.token) {
         throw new Error(target.error ?? "Impossible de préparer l'envoi.");
       }
@@ -157,17 +155,15 @@ export function CastingUploadForm({
       for (let i = 0; i < videos.length; i++) {
         const file = videos[i];
         if (!file) continue;
-        const compressed = await compressVideo(file, {
-          signal: controller.signal,
-          onProgress: (pct, secondsRemaining, pass) => {
-            const phase = pass === 2 ? " (2e passe)" : "";
-            const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
-            setStep(`Compression de la vidéo ${i + 1}${phase}... ${pct}%${eta}`);
-          },
-        });
         if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
-        setStep(`Envoi de la vidéo ${i + 1}...`);
-        videoPaths.push(await uploadOne("video", String(i), compressed, controller.signal));
+        const path = await compressAndUploadVideo({
+          file,
+          signal: controller.signal,
+          onProgress: (label) => setStep(`Vidéo ${i + 1} — ${label}`),
+          createSlot: () => createCastingUploadSlot(token, "video", String(i)),
+          logContext: { source: "candidat", requestToken: token },
+        });
+        videoPaths.push(path);
       }
 
       const uploadedPhotos: { label: string; path: string }[] = [];
@@ -178,7 +174,7 @@ export function CastingUploadForm({
         setStep(`Compression de la photo « ${label} »...`);
         const compressed = await compressImage(file);
         setStep(`Envoi de la photo « ${label} »...`);
-        uploadedPhotos.push({ label, path: await uploadOne("photo", label, compressed, controller.signal) });
+        uploadedPhotos.push({ label, path: await uploadOnePhoto(label, compressed, controller.signal) });
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");

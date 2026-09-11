@@ -11,10 +11,8 @@ import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
-import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { compressImage } from "@/lib/media/compress-image";
-import { compressVideo, formatSecondsRemaining } from "@/lib/media/compress-video";
-import { translateUploadErrorMessage } from "@/lib/media/upload-error";
+import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
 import { cn } from "@/lib/cn";
 import {
   deleteCastingEntry,
@@ -265,58 +263,13 @@ function AddVideoButton({ entryId }: { entryId: string }) {
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const compressed = await compressVideo(next.file, {
+      const path = await compressAndUploadVideo({
+        file: next.file,
         signal: controller.signal,
-        onProgress: (pct, secondsRemaining, pass) => {
-          const phase = pass === 2 ? "Compression (2e passe)" : "Compression";
-          const eta = secondsRemaining !== undefined ? ` (${formatSecondsRemaining(secondsRemaining)})` : "";
-          setStep(`${phase}... ${pct}%${eta}`);
-        },
+        onProgress: setStep,
+        createSlot: () => createStaffCastingVideoSlot(entryId),
+        logContext: { source: "equipe", entryId },
       });
-      if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
-      setStep("Envoi...");
-      // Signalé bloqué indéfiniment sur "Envoi..." (Safari desktop, aucune
-      // erreur) — ni createStaffCastingVideoSlot ni uploadToSignedUrl
-      // n'ont de filet de sécurité, et le SDK Supabase n'accepte pas de
-      // signal d'annulation ici : cliquer Annuler ne faisait donc RIEN tant
-      // que cet await ne se réglait pas de lui-même. Course contre un
-      // timeout + le signal d'annulation, pour au moins pouvoir échouer
-      // proprement (et passer à la suite de la file) au lieu de rester
-      // bloqué sans recours — n'arrête pas la requête réseau sous-jacente
-      // (impossible avec ce SDK), juste l'attente côté interface.
-      let path: string;
-      {
-        const uploadOnce = (async () => {
-          const slot = await createStaffCastingVideoSlot(entryId);
-          if (slot.error || !slot.bucket || !slot.path || !slot.token) {
-            throw new Error(slot.error ?? "Impossible de préparer l'envoi.");
-          }
-          const supabase = createBrowserSupabaseClient();
-          const { error: uploadError } = await supabase.storage
-            .from(slot.bucket)
-            .uploadToSignedUrl(slot.path, slot.token, compressed, { contentType: compressed.type });
-          if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
-          return slot.path;
-        })();
-        path = await new Promise<string>((resolve, reject) => {
-          const timeoutId = setTimeout(
-            () => reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie.")),
-            120_000
-          );
-          controller.signal.addEventListener(
-            "abort",
-            () => {
-              clearTimeout(timeoutId);
-              reject(new DOMException("Annulé", "AbortError"));
-            },
-            { once: true }
-          );
-          uploadOnce.then((p) => {
-            clearTimeout(timeoutId);
-            resolve(p);
-          }, reject);
-        });
-      }
       // Envoi déjà terminé côté réseau à ce stade — l'annulation ne peut
       // plus empêcher le fichier d'atterrir dans le stockage, mais on
       // évite au moins de le rattacher au profil si on a demandé d'arrêter.

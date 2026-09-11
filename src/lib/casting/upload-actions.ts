@@ -42,6 +42,64 @@ function deadlinePassed(role: EntryWithRole["casting_roles"]): boolean {
   return dateLimite < new Date().toISOString().slice(0, 10);
 }
 
+// Trace une tentative d'envoi vidéo (candidat OU équipe) pour ne plus
+// repartir de zéro quand quelqu'un signale "ça marche pas" sans détail —
+// voir la migration casting_upload_events. Best-effort strict : un souci
+// ici ne doit jamais faire échouer l'envoi réel, donc on avale toute
+// erreur silencieusement. Accepte soit `entryId` (équipe, déjà connu côté
+// composant) soit `requestToken` (candidat, qui ne connaît que son lien).
+export async function logCastingUploadEvent(input: {
+  entryId?: string;
+  requestToken?: string;
+  source: "candidat" | "equipe";
+  kind: "video" | "photo";
+  outcome: "reussi" | "repli_original" | "erreur" | "annule";
+  errorMessage?: string;
+  originalBytes?: number;
+  finalBytes?: number;
+  durationMs?: number;
+  userAgent?: string;
+}): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    let entryId = input.entryId;
+    let projetId: string | undefined;
+
+    if (!entryId && input.requestToken) {
+      const entry = await loadEntry(input.requestToken);
+      if (!entry) return;
+      entryId = entry.id;
+      projetId = entry.projet_id;
+    }
+    if (!entryId) return;
+
+    if (!projetId) {
+      const { data } = await supabase
+        .from("casting_entries")
+        .select("projet_id")
+        .eq("id", entryId)
+        .maybeSingle<{ projet_id: string }>();
+      projetId = data?.projet_id;
+    }
+    if (!projetId) return;
+
+    await supabase.from("casting_upload_events").insert({
+      entry_id: entryId,
+      projet_id: projetId,
+      source: input.source,
+      kind: input.kind,
+      outcome: input.outcome,
+      error_message: input.errorMessage ?? null,
+      original_bytes: input.originalBytes ?? null,
+      final_bytes: input.finalBytes ?? null,
+      duration_ms: input.durationMs ?? null,
+      user_agent: input.userAgent ?? null,
+    });
+  } catch (e) {
+    console.warn("[logCastingUploadEvent] Échec de l'enregistrement (sans impact sur l'envoi).", e);
+  }
+}
+
 // Génère une URL d'upload signée pour UN fichier précis (une vidéo n°X, ou
 // la photo d'un libellé donné) — le navigateur du candidat envoie ensuite
 // le fichier DIRECTEMENT à Supabase Storage avec cette URL, sans repasser

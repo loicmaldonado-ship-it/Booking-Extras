@@ -28,6 +28,7 @@ export async function compressVideoWebCodecs(
     maxDurationSeconds: number;
     audioBitsPerSecond: number;
     onProgress?: (pct: number, secondsRemaining?: number) => void;
+    onDurationKnown?: (seconds: number) => void;
     signal?: AbortSignal;
   }
 ): Promise<File | null> {
@@ -106,6 +107,7 @@ export async function compressVideoWebCodecs(
     const duration = state.duration;
     if (!videoTrack || !videoTrack.video) return null;
     if (duration > opts.maxDurationSeconds || !Number.isFinite(duration) || duration <= 0) return null;
+    opts.onDurationKnown?.(duration);
     // Déjà dans le budget -> pas la peine de décoder/réencoder pour rien.
     if (file.size <= opts.targetBytes && videoTrack.video.width <= opts.maxWidth) return file;
     // Fichier fragmenté/streamé où l'extraction en un seul passage n'a pas
