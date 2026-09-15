@@ -8,7 +8,55 @@ import { Button } from "@/components/ui/button";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
 import { updateMyProfile } from "@/lib/auth/profile-actions";
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { CurrentProfile } from "@/lib/auth/session";
+
+function ChangePasswordCard() {
+  const [password, setPassword] = useState("");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+    setSuccess(false);
+
+    const supabase = createBrowserSupabaseClient();
+    const { error } = await supabase.auth.updateUser({ password });
+
+    setPending(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setPassword("");
+    setSuccess(true);
+  }
+
+  return (
+    <Card className="flex flex-col gap-4">
+      <h2 className="text-lg font-semibold">Mot de passe</h2>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <Field label="Nouveau mot de passe">
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            minLength={6}
+          />
+        </Field>
+        {error && <p className="text-sm text-danger">{error}</p>}
+        {success && <p className="text-sm text-turquoise">Mot de passe changé.</p>}
+        <Button type="submit" disabled={pending || password.length < 6} className="w-full sm:w-auto">
+          {pending ? "..." : "Changer mon mot de passe"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
 
 export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate?: boolean }) {
   const router = useRouter();
@@ -88,6 +136,8 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
           </Button>
         </form>
       </Card>
+
+      <ChangePasswordCard />
     </div>
   );
 }

@@ -35,6 +35,23 @@ export async function signIn(_prevState: unknown, formData: FormData) {
   redirect(next.startsWith("/") ? next : "/");
 }
 
+// Toujours le même message de succès, que l'email existe ou non côté
+// Supabase Auth — ne jamais laisser deviner quels emails ont un compte.
+export async function requestPasswordReset(_prevState: unknown, formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Email requis." };
+
+  const supabase = await createServerSupabaseClient();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  // Passe par /auth/confirm (échange du code PKCE côté serveur) plutôt que
+  // directement vers la page du formulaire — voir route.ts pour le détail.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${siteUrl}/auth/confirm`,
+  });
+
+  return { success: true };
+}
+
 export async function signOut() {
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();

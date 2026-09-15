@@ -6,6 +6,9 @@ import { APP_SECTIONS, hasSectionAccess } from "@/lib/auth/sections";
 const PUBLIC_PREFIXES = [
   "/login",
   "/auth/invite",
+  "/auth/confirm",
+  "/auth/forgot-password",
+  "/auth/reset-password",
   "/postuler",
   "/confidentialite",
   "/disponibilites",
