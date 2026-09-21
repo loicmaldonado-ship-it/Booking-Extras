@@ -45,8 +45,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .filter(Boolean)
     .join(" · ");
 
-  const descriptionText = annonce.description?.replace(/\s+/g, " ").trim() ?? "";
-  const description = descriptionText.length > 220 ? `${descriptionText.slice(0, 220).trim()}…` : descriptionText;
+  // Texte complet, plus de troncature à 220 caractères — l'affiche grandit
+  // en hauteur pour l'accueillir plutôt que de couper le message (voir
+  // calcul de imageHeight plus bas), au lieu du carré 1080×1080 fixe
+  // d'origine qui coupait tout texte un peu long.
+  const description = annonce.description?.replace(/\s+/g, " ").trim() ?? "";
+
+  // Estimation grossière du nombre de lignes que le texte va occuper, pour
+  // dimensionner l'image en conséquence (Satori/ImageResponse ne permet pas
+  // un canevas qui s'ajuste tout seul à son contenu — la hauteur doit être
+  // connue à la génération). Largeur dispo pour la colonne de texte ≈ 1080
+  // - 128 (padding) - 140 (colonne QR) - 24 (gap) ≈ 788px ; ~11px par
+  // caractère à 22px de police sans-serif → ~68 caractères/ligne. Valeur
+  // volontairement prudente (sous-estimer la largeur plutôt que risquer un
+  // débordement).
+  const CHARS_PER_LINE = 68;
+  const descriptionLines = description ? Math.max(1, Math.ceil(description.length / CHARS_PER_LINE)) : 0;
+  const titleLines = annonce.titre.length > 26 ? 2 : 1;
+
+  // Hauteur de base (padding, titre, infoLine, bloc QR + légende, ligne de
+  // lien, pied de page logo) + la place prise par la description, avec un
+  // minimum de 1080 pour garder le format carré Instagram/Facebook tant que
+  // le texte est court.
+  const baseHeight = 560 + titleLines * 62;
+  const descriptionHeight = descriptionLines * 31;
+  const imageHeight = Math.max(1080, baseHeight + descriptionHeight);
 
   return new ImageResponse(
     (
@@ -87,6 +110,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
               <div style={{ fontSize: 16, color: "#E8E8E8" }}>Scannez pour postuler</div>
             </div>
           </div>
+          <div style={{ display: "flex", fontSize: 18, color: "#F5A47A" }}>{postulerUrl}</div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <LogoMark size={28} />
             <div style={{ display: "flex", fontSize: 20, color: "#F5A47A", fontWeight: 600 }}>
@@ -96,6 +120,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         </div>
       </div>
     ),
-    { width: 1080, height: 1080 }
+    { width: 1080, height: imageHeight }
   );
 }
