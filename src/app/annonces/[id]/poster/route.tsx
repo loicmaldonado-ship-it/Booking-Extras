@@ -7,7 +7,8 @@ import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { generateQrCodeDataUrl } from "@/lib/annonces/qrcode";
 import { getSiteOrigin } from "@/lib/partage/data";
-import { formatDateShort } from "@/lib/format-date";
+import { getAnnonceDates } from "@/lib/annonces/dates";
+import { formatAnnonceDatesLabel } from "@/lib/format-date";
 
 export const runtime = "nodejs";
 
@@ -36,20 +37,33 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const accessError = await checkProjetAccess(annonce.projet_id);
   if (accessError) return NextResponse.json({ error: accessError }, { status: 403 });
 
-  const [moodboard, origin] = await Promise.all([getAnnoncePhotos(supabase, id), getSiteOrigin()]);
+  const [moodboard, origin, annonceDates] = await Promise.all([
+    getAnnoncePhotos(supabase, id),
+    getSiteOrigin(),
+    getAnnonceDates(id),
+  ]);
   const backgroundUrl = moodboard[0]?.url ?? getAnnoncePhotoUrl(supabase, annonce.projets?.annonce_photo_storage_path);
   const postulerUrl = `${origin}/postuler/${annonce.public_token}`;
   const qrCode = await generateQrCodeDataUrl(postulerUrl);
 
-  const infoLine = [annonce.projets?.nom, annonce.date_recherchee ? formatDateShort(annonce.date_recherchee) : null, annonce.lieu]
-    .filter(Boolean)
-    .join(" · ");
+  const datesLabel = formatAnnonceDatesLabel(annonceDates, annonce.date_recherchee);
+  const infoLine = [annonce.projets?.nom, datesLabel, annonce.lieu].filter(Boolean).join(" · ");
 
   // Texte complet, plus de troncature à 220 caractères — l'affiche grandit
   // en hauteur pour l'accueillir plutôt que de couper le message (voir
   // calcul de imageHeight plus bas), au lieu du carré 1080×1080 fixe
   // d'origine qui coupait tout texte un peu long.
-  const description = annonce.description?.replace(/\s+/g, " ").trim() ?? "";
+  //
+  // Découpé en paragraphes sur les sauts de ligne d'origine : un
+  // remplacement global de TOUS les espaces (y compris les retours à la
+  // ligne) fondait les paragraphes de la personne qui rédige en un seul
+  // bloc illisible ("tout collé", signalé en usage réel) — on ne
+  // normalise les espaces qu'À L'INTÉRIEUR de chaque paragraphe, jamais
+  // les sauts de ligne entre eux.
+  const descriptionParagraphs = (annonce.description ?? "")
+    .split(/\n+/)
+    .map((p) => p.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean);
 
   // Estimation grossière du nombre de lignes que le texte va occuper, pour
   // dimensionner l'image en conséquence (Satori/ImageResponse ne permet pas
@@ -58,17 +72,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // - 128 (padding) - 140 (colonne QR) - 24 (gap) ≈ 788px ; ~11px par
   // caractère à 22px de police sans-serif → ~68 caractères/ligne. Valeur
   // volontairement prudente (sous-estimer la largeur plutôt que risquer un
-  // débordement).
+  // débordement). Chaque paragraphe arrondit indépendamment à la ligne
+  // supérieure (un paragraphe court prend quand même sa propre ligne).
   const CHARS_PER_LINE = 68;
-  const descriptionLines = description ? Math.max(1, Math.ceil(description.length / CHARS_PER_LINE)) : 0;
+  const descriptionLines = descriptionParagraphs.reduce(
+    (sum, p) => sum + Math.max(1, Math.ceil(p.length / CHARS_PER_LINE)),
+    0
+  );
+  const descriptionGapsHeight = Math.max(0, descriptionParagraphs.length - 1) * 10;
   const titleLines = annonce.titre.length > 26 ? 2 : 1;
+
+  // Même logique de repli pour l'infoLine (projet · dates · lieu) : une
+  // annonce avec plusieurs dates peut dépasser une ligne à 28px — elle passe
+  // alors à la ligne suivante (le style ne fixe pas whiteSpace: nowrap), et
+  // la hauteur doit en tenir compte comme pour la description.
+  const INFO_CHARS_PER_LINE = 50;
+  const infoLineLines = infoLine ? Math.max(1, Math.ceil(infoLine.length / INFO_CHARS_PER_LINE)) : 0;
+  const infoLineHeight = infoLineLines > 1 ? (infoLineLines - 1) * 34 : 0;
 
   // Hauteur de base (padding, titre, infoLine, bloc QR + légende, ligne de
   // lien, pied de page logo) + la place prise par la description, avec un
   // minimum de 1080 pour garder le format carré Instagram/Facebook tant que
   // le texte est court.
-  const baseHeight = 620 + titleLines * 62;
-  const descriptionHeight = descriptionLines * 31;
+  const baseHeight = 620 + titleLines * 62 + infoLineHeight;
+  const descriptionHeight = descriptionLines * 31 + descriptionGapsHeight;
   const imageHeight = Math.max(1080, baseHeight + descriptionHeight);
 
   return new ImageResponse(
@@ -100,8 +127,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
               <div style={{ fontSize: 56, fontWeight: 700, color: "white", lineHeight: 1.15 }}>{annonce.titre}</div>
               {infoLine && <div style={{ fontSize: 28, color: "#E8E8E8" }}>{infoLine}</div>}
-              {description && (
-                <div style={{ fontSize: 22, color: "#D8D8D8", lineHeight: 1.5, marginTop: 10 }}>{description}</div>
+              {descriptionParagraphs.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                    fontSize: 22,
+                    color: "#D8D8D8",
+                    lineHeight: 1.5,
+                    marginTop: 10,
+                  }}
+                >
+                  {descriptionParagraphs.map((paragraph, i) => (
+                    <div key={i}>{paragraph}</div>
+                  ))}
+                </div>
               )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
