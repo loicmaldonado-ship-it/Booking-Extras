@@ -67,7 +67,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // lien, pied de page logo) + la place prise par la description, avec un
   // minimum de 1080 pour garder le format carré Instagram/Facebook tant que
   // le texte est court.
-  const baseHeight = 560 + titleLines * 62;
+  const baseHeight = 620 + titleLines * 62;
   const descriptionHeight = descriptionLines * 31;
   const imageHeight = Math.max(1080, baseHeight + descriptionHeight);
 
@@ -91,27 +91,27 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 16,
+            gap: 28,
             padding: 64,
-            background: "linear-gradient(to top, rgba(10,10,10,0.92) 40%, rgba(10,10,10,0))",
+            background: "linear-gradient(to top, rgba(10,10,10,0.94) 46%, rgba(10,10,10,0))",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
-              <div style={{ fontSize: 56, fontWeight: 700, color: "white", lineHeight: 1.1 }}>{annonce.titre}</div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 24 }}>
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 14 }}>
+              <div style={{ fontSize: 56, fontWeight: 700, color: "white", lineHeight: 1.15 }}>{annonce.titre}</div>
               {infoLine && <div style={{ fontSize: 28, color: "#E8E8E8" }}>{infoLine}</div>}
               {description && (
-                <div style={{ fontSize: 22, color: "#D8D8D8", lineHeight: 1.4, marginTop: 4 }}>{description}</div>
+                <div style={{ fontSize: 22, color: "#D8D8D8", lineHeight: 1.5, marginTop: 10 }}>{description}</div>
               )}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
               {/* eslint-disable-next-line @next/next/no-img-element -- rendu via Satori (next/og), pas le DOM */}
               <img src={qrCode} width={140} height={140} style={{ borderRadius: 8, background: "white", padding: 8 }} alt="" />
               <div style={{ fontSize: 16, color: "#E8E8E8" }}>Scannez pour postuler</div>
             </div>
           </div>
-          <div style={{ display: "flex", fontSize: 18, color: "#F5A47A" }}>{postulerUrl}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", fontSize: 18, color: "#F5A47A", marginTop: 4 }}>{postulerUrl}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
             <LogoMark size={28} />
             <div style={{ display: "flex", fontSize: 20, color: "#F5A47A", fontWeight: 600 }}>
               Booking<span style={{ color: "white" }}>Extras</span>
