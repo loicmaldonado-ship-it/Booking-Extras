@@ -8,7 +8,9 @@ export function CopyLink({ url }: { url: string }) {
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-ink px-4 py-3">
-      <code className="flex-1 overflow-x-auto text-sm text-text-muted whitespace-nowrap">{url}</code>
+      <code className="flex-1 truncate text-sm text-text-muted" title={url}>
+        {url}
+      </code>
       <Button
         type="button"
         variant="secondary"
