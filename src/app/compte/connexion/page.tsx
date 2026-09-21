@@ -48,9 +48,9 @@ export default async function ConnexionCandidatPage() {
         <Logo iconSize={26} textClassName="text-lg" />
         <h1 className="mt-4 text-2xl font-semibold">Espace candidat·es</h1>
         <p className="mt-1 text-text-muted">
-          Déjà booké·e par notre équipe ? Reçois ton lien de connexion par email pour mettre à jour tes infos
-          (adresse, mensurations, photos...). Sinon, découvre les annonces ouvertes ci-dessous — postuler ne
-          demande pas de compte.
+          Déjà postulé·e ou booké·e par notre équipe ? Connecte-toi avec le mot de passe défini après ta
+          candidature, ou reçois un lien de connexion par email pour mettre à jour tes infos (adresse,
+          mensurations, photos...). Sinon, découvre les annonces ouvertes ci-dessous.
         </p>
       </div>
 

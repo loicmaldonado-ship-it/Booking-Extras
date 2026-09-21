@@ -1,10 +1,12 @@
 import "server-only";
+import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/notifications/create";
 
 const COOKIE_NAME = "figurant_session";
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type CandidatSession = {
   id: string;
@@ -48,6 +50,19 @@ export async function getCurrentFigurant(): Promise<CandidatSession | null> {
   }
 
   return { id: figurant.id, prenom: figurant.prenom, nom: figurant.nom, email: figurant.email };
+}
+
+// Crée une session (table + cookie) pour un·e figurant·e déjà identifié·e —
+// même mécanique que la vérification du lien magique
+// (src/app/compte/verifier/route.ts), réutilisée telle quelle après une
+// candidature ou une connexion par mot de passe, pour ne pas dupliquer la
+// génération de token / durée de session à plusieurs endroits.
+export async function createFigurantSession(figurantId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const token = randomUUID().replace(/-/g, "");
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  await supabase.from("figurant_sessions").insert({ figurant_id: figurantId, token, expires_at: expiresAt.toISOString() });
+  await setFigurantSessionCookie(token, expiresAt);
 }
 
 export async function setFigurantSessionCookie(token: string, expiresAt: Date) {

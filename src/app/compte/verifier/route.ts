@@ -1,8 +1,6 @@
-import { randomUUID } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+import { createFigurantSession } from "@/lib/candidats/session";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -26,21 +24,7 @@ export async function GET(request: NextRequest) {
   }
 
   await supabase.from("figurant_auth_tokens").update({ used_at: new Date().toISOString() }).eq("id", authToken.id);
+  await createFigurantSession(authToken.figurant_id);
 
-  const sessionToken = randomUUID().replace(/-/g, "");
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  await supabase.from("figurant_sessions").insert({
-    figurant_id: authToken.figurant_id,
-    token: sessionToken,
-    expires_at: expiresAt.toISOString(),
-  });
-
-  const response = NextResponse.redirect(`${origin}/compte`);
-  response.cookies.set("figurant_session", sessionToken, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    expires: expiresAt,
-  });
-  return response;
+  return NextResponse.redirect(`${origin}/compte`);
 }

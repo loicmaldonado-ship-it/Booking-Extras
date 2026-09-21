@@ -7,12 +7,63 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
+import { setMaPassword } from "@/lib/candidats/actions";
 import { compressImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
 import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import { GENRES, PRONOMS } from "@/lib/figurants/types";
 import type { AnnonceQuestion } from "@/lib/annonces/questions";
 import type { AnnonceDate } from "@/lib/annonces/dates";
+
+// Proposé juste après l'envoi de la candidature : la session est déjà
+// active à ce stade (postulerAnnonce connecte automatiquement), donc pas
+// besoin de redemander l'email — juste un mot de passe, optionnel, pour
+// gérer ses infos et suivre ses candidatures sans repasser par le lien
+// magique à chaque fois.
+function SetPasswordCard() {
+  const [state, formAction, pending] = useActionState(setMaPassword, undefined);
+  const [password, setPassword] = useState("");
+
+  if (state?.success) {
+    return (
+      <Card className="flex flex-col gap-1">
+        <p className="text-sm text-turquoise">Mot de passe défini.</p>
+        <Link href="/compte" className="text-sm text-coral hover:underline">
+          Aller à mon espace →
+        </Link>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div>
+        <h3 className="text-sm font-semibold">Crée un mot de passe (optionnel)</h3>
+        <p className="text-xs text-text-muted">
+          Pour gérer tes infos et suivre tes candidatures sans attendre un email à chaque fois.
+        </p>
+      </div>
+      <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Field label="Mot de passe">
+            <Input
+              type="password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              minLength={6}
+            />
+          </Field>
+        </div>
+        <Button type="submit" disabled={pending || password.length < 6}>
+          {pending ? "..." : "Valider"}
+        </Button>
+      </form>
+      {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+    </Card>
+  );
+}
 
 const REQUIRED_PHOTO_SLOTS = [
   { name: "photo_portrait", label: "Portrait" },
@@ -143,12 +194,15 @@ export function PostulerForm({
 
   if (state?.success) {
     return (
-      <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-turquoise">Candidature envoyée</h2>
-        <p className="text-sm text-text-muted">
-          Merci ! Ta candidature a bien été enregistrée. On te recontacte si ton profil correspond.
-        </p>
-      </Card>
+      <div className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold text-turquoise">Candidature envoyée</h2>
+          <p className="text-sm text-text-muted">
+            Merci ! Ta candidature a bien été enregistrée. On te recontacte si ton profil correspond.
+          </p>
+        </Card>
+        <SetPasswordCard />
+      </div>
     );
   }
 

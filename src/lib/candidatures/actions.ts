@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
+import { activerAccesCompte } from "@/lib/candidats/actions";
+import { createFigurantSession } from "@/lib/candidats/session";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
@@ -337,6 +339,13 @@ export async function postulerAnnonce(
     projetId: annonce.projet_id,
     lien: `/candidatures/${candidature.id}`,
   });
+
+  // Accès à l'espace personnel activé dès la candidature, plus besoin
+  // d'attendre une validation côté staff (déjà idempotent + envoie déjà
+  // l'email "espace prêt" avec lien magique) — puis connexion immédiate,
+  // pour proposer un mot de passe sans détour par cet email.
+  await activerAccesCompte(figurantId!, annonce.projet_id);
+  await createFigurantSession(figurantId!);
 
   revalidatePath("/candidatures");
   return { success: true };

@@ -11,7 +11,8 @@ import { getEmailTemplate, applyEmailTemplate } from "@/lib/projets/email-templa
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
-import { clearFigurantSessionCookie, getCurrentFigurant } from "./session";
+import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant } from "./session";
+import { hashPassword, verifyPassword } from "./password";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 
@@ -125,13 +126,12 @@ export async function requestMagicLink(
   if (!figurant?.email) {
     return {
       error:
-        "Aucun compte ne correspond à cet email. Vous devez déjà avoir été booké·e par un·e chargé·e de casting pour avoir accès à un compte personnel — cela ne vous empêche en rien de postuler à une annonce en cours ci-dessous.",
+        "Aucun compte ne correspond à cet email. Postulez à une annonce en cours ci-dessous pour en créer un.",
     };
   }
   if (!figurant.acces_compte) {
     return {
-      error:
-        "Votre espace n'est pas encore activé. Il s'active dès que votre candidature est validée — vous recevrez un email à ce moment-là.",
+      error: "Votre espace n'est pas encore activé. Contactez le casting si besoin.",
     };
   }
 
@@ -139,6 +139,57 @@ export async function requestMagicLink(
   if (result.error) return { error: result.error };
 
   return { sentTo: figurant.email };
+}
+
+// Alternative au lien magique quand un mot de passe a déjà été défini
+// (setMaPassword ci-dessous) — même filtre est_comedien que requestMagicLink,
+// mêmes raisons.
+export async function loginWithPassword(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ error?: string } | void> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (!email || !password) return { error: "Email et mot de passe requis." };
+
+  const supabase = createAdminClient();
+  const { data: figurant } = await supabase
+    .from("figurants")
+    .select("id, password_hash")
+    .ilike("email", email)
+    .eq("est_comedien", false)
+    .maybeSingle();
+
+  if (!figurant?.password_hash || !(await verifyPassword(password, figurant.password_hash))) {
+    return { error: "Email ou mot de passe incorrect." };
+  }
+
+  await createFigurantSession(figurant.id);
+  redirect("/compte");
+}
+
+// Appelée depuis l'espace personnel (déjà connecté·e) — que ce soit juste
+// après avoir postulé (session posée par postulerAnnonce) ou plus tard
+// depuis /compte, pour définir ou changer son mot de passe. Jamais
+// obligatoire : le lien magique reste toujours disponible sans lui.
+export async function setMaPassword(
+  _prevState: unknown,
+  formData: FormData
+): Promise<{ error?: string; success?: boolean }> {
+  const session = await getCurrentFigurant();
+  if (!session) return { error: "Non connecté." };
+
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 6) return { error: "Le mot de passe doit faire au moins 6 caractères." };
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("figurants")
+    .update({ password_hash: await hashPassword(password) })
+    .eq("id", session.id);
+  if (error) return { error: error.message };
+
+  return { success: true };
 }
 
 export async function logoutFigurant() {
