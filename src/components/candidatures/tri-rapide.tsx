@@ -10,7 +10,7 @@ import { PHOTO_TYPE_LABELS } from "@/lib/figurants/photo-labels";
 import type { PhotoType } from "@/lib/figurants/types";
 import { formatDateShort } from "@/lib/format-date";
 import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
-import { HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChipsView, JOUR_KEYS } from "@/components/candidatures/jour-chips";
 import { setCandidatureJour } from "@/lib/candidatures/jours";
 

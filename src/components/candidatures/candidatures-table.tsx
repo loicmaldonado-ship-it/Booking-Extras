@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
-import { HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
