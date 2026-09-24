@@ -283,7 +283,15 @@ export function PostulerForm({
               <Input type="number" name="poids_kg" required min={0} defaultValue={prefill?.poids_kg ?? undefined} />
             </Field>
             <Field label="Pointure" required>
-              <Input type="number" name="pointure" required min={0} defaultValue={prefill?.pointure ?? undefined} />
+              <Input
+                type="number"
+                name="pointure"
+                required
+                min={15}
+                max={60}
+                step={0.5}
+                defaultValue={prefill?.pointure ?? undefined}
+              />
             </Field>
             <Field label="Taille de veste" required>
               <Input name="veste" placeholder="Ex. 48/50" required defaultValue={prefill?.veste ?? undefined} />

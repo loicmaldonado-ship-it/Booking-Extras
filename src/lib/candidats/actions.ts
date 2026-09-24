@@ -381,6 +381,10 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
   if (!genre || !pronom) {
     return { error: "Le genre et le pronom sont obligatoires." };
   }
+  const pointure = num(formData, "pointure");
+  if (pointure !== null && (pointure < 15 || pointure > 60)) {
+    return { error: "La pointure doit être comprise entre 15 et 60." };
+  }
 
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -397,7 +401,7 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
       pronom,
       taille_cm: num(formData, "taille_cm"),
       poids_kg: num(formData, "poids_kg"),
-      pointure: num(formData, "pointure"),
+      pointure,
       veste: str(formData, "veste"),
       pantalon: str(formData, "pantalon"),
       tour_tete_cm: num(formData, "tour_tete_cm"),

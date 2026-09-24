@@ -110,6 +110,9 @@ export async function postulerAnnonce(
   if (!tailleCm || !poidsKg || !pointure) {
     return { error: "Les mensurations (taille, poids, pointure) sont obligatoires." };
   }
+  if (pointure < 15 || pointure > 60) {
+    return { error: "La pointure doit être comprise entre 15 et 60." };
+  }
   if (!veste || !pantalon) {
     return { error: "Les tailles de veste et de pantalon sont obligatoires." };
   }

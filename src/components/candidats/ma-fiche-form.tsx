@@ -316,7 +316,15 @@ export function MaFicheForm({
               <Input type="number" name="poids_kg" defaultValue={figurant.poids_kg ?? ""} required />
             </Field>
             <Field label="Pointure" required>
-              <Input type="number" step="0.5" name="pointure" defaultValue={figurant.pointure ?? ""} required />
+              <Input
+                type="number"
+                step="0.5"
+                name="pointure"
+                min={15}
+                max={60}
+                defaultValue={figurant.pointure ?? ""}
+                required
+              />
             </Field>
             <Field label="Veste" required>
               <Input name="veste" defaultValue={figurant.veste ?? ""} required />
