@@ -10,12 +10,14 @@ import type { CandidatureOnglet } from "@/lib/candidatures/types";
 
 export function CandidatureRow({
   id,
+  annonceId,
   ongletId,
   onglets,
   fonctionAssignee,
   cachetAssigne,
 }: {
   id: string;
+  annonceId: string;
   ongletId: string | null;
   onglets: CandidatureOnglet[];
   fonctionAssignee: string | null;
@@ -25,7 +27,7 @@ export function CandidatureRow({
 
   return (
     <div className="flex flex-col gap-2">
-      <OngletPicker candidatureId={id} ongletId={ongletId} onglets={onglets} />
+      <OngletPicker candidatureId={id} annonceId={annonceId} ongletId={ongletId} onglets={onglets} />
       <form
         action={(formData) => startTransition(() => updateCandidature(id, formData))}
         className="flex flex-wrap items-center gap-2"

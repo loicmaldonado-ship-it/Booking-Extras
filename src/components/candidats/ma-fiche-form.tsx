@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
+import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { updateMaFiche } from "@/lib/candidats/actions";
 import { GENRES, PRONOMS, type Figurant } from "@/lib/figurants/types";
 import { formatDateShort } from "@/lib/format-date";
@@ -253,9 +254,7 @@ export function MaFicheForm({
             <Field label="Téléphone" required>
               <Input type="tel" name="telephone" required defaultValue={figurant.telephone ?? ""} />
             </Field>
-            <Field label="Date de naissance">
-              <Input type="date" name="date_naissance" defaultValue={figurant.date_naissance ?? ""} />
-            </Field>
+            <DateNaissanceField name="date_naissance" defaultValue={figurant.date_naissance} />
             <Field label="Commune de naissance" required>
               <Input name="commune_naissance" defaultValue={figurant.commune_naissance ?? ""} required />
             </Field>
@@ -316,7 +315,15 @@ export function MaFicheForm({
               <Input type="number" name="poids_kg" defaultValue={figurant.poids_kg ?? ""} required />
             </Field>
             <Field label="Pointure" required>
-              <Input type="number" step="0.5" name="pointure" defaultValue={figurant.pointure ?? ""} required />
+              <Input
+                type="number"
+                step="0.5"
+                name="pointure"
+                min={15}
+                max={60}
+                defaultValue={figurant.pointure ?? ""}
+                required
+              />
             </Field>
             <Field label="Veste" required>
               <Input name="veste" defaultValue={figurant.veste ?? ""} required />

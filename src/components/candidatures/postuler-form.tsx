@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
 import { setMaPassword } from "@/lib/candidats/actions";
 import { compressImage } from "@/lib/media/compress-image";
@@ -232,9 +233,7 @@ export function PostulerForm({
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
           </Field>
-          <Field label="Date de naissance" required>
-            <Input type="date" name="date_naissance" required defaultValue={prefill?.date_naissance ?? undefined} />
-          </Field>
+          <DateNaissanceField name="date_naissance" required defaultValue={prefill?.date_naissance} />
           <Field label="Commune de naissance" required>
             <Input name="commune_naissance" required defaultValue={prefill?.commune_naissance ?? undefined} />
           </Field>
@@ -283,7 +282,15 @@ export function PostulerForm({
               <Input type="number" name="poids_kg" required min={0} defaultValue={prefill?.poids_kg ?? undefined} />
             </Field>
             <Field label="Pointure" required>
-              <Input type="number" name="pointure" required min={0} defaultValue={prefill?.pointure ?? undefined} />
+              <Input
+                type="number"
+                name="pointure"
+                required
+                min={15}
+                max={60}
+                step={0.5}
+                defaultValue={prefill?.pointure ?? undefined}
+              />
             </Field>
             <Field label="Taille de veste" required>
               <Input name="veste" placeholder="Ex. 48/50" required defaultValue={prefill?.veste ?? undefined} />

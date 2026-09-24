@@ -3,6 +3,12 @@ export function formatDateShort(date: string) {
   return `${d}/${m}/${y}`;
 }
 
+// Pour les pastilles serrées (dispos par date sur une carte) : 08/10
+export function formatDayMonth(date: string) {
+  const [, m, d] = date.slice(0, 10).split("-");
+  return `${d}/${m}`;
+}
+
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

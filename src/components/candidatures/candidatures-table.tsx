@@ -11,6 +11,8 @@ import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
+import { DispoChips, HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ZoomButton } from "@/components/ui/zoomable-image";
@@ -43,6 +45,8 @@ export type CandidatureSummary = {
   questions: { label: string; reponse: boolean }[];
   dates: { date: string; disponible: boolean }[];
   message: string | null;
+  age: number | null;
+  tournages: number;
 };
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -65,12 +69,17 @@ export function CandidaturesTable({
   projets,
   summaries = {},
   onglets,
+  annonceId,
+  triIds,
 }: {
   rows: Row[];
   templates: MessageTemplate[];
   projets: { id: string; nom: string }[];
   summaries?: Record<string, CandidatureSummary>;
   onglets: CandidatureOnglet[];
+  annonceId: string;
+  // Toute la liste filtrée/triée (toutes pages), pour le tri rapide.
+  triIds: string[];
 }) {
   const router = useRouter();
   const [, startStatutTransition] = useTransition();
@@ -85,6 +94,7 @@ export function CandidaturesTable({
   const [bulkMessage, setBulkMessage] = useState(DEFAULT_BODY);
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
+  const [triOpen, setTriOpen] = useState(false);
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
 
@@ -203,6 +213,15 @@ export function CandidaturesTable({
         >
           Trombinoscope
         </button>
+        {triIds.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setTriOpen(true)}
+            className="rounded-full bg-coral px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-coral-hover"
+          >
+            ⚡ Tri rapide ({triIds.length})
+          </button>
+        )}
         {selectableIds.length > 0 && (
           <button
             type="button"
@@ -436,8 +455,14 @@ export function CandidaturesTable({
                 <div className="text-sm font-medium">
                   {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                 </div>
-                <div className="text-xs text-text-muted">{r.annonces?.projets?.nom}</div>
+                <div className="text-xs text-text-muted">
+                  {[summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </div>
               </Link>
+              <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} />
+              <DispoChips dates={summaries[r.id]?.dates ?? []} className="justify-center" />
               {r.portraitUrl && (() => {
                 const gallery = toGalleryPhotos(r.photos);
                 return (
@@ -457,7 +482,7 @@ export function CandidaturesTable({
                   className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
                 />
               )}
-              <OngletPicker candidatureId={r.id} ongletId={r.onglet_id} onglets={onglets} />
+              <OngletPicker candidatureId={r.id} annonceId={annonceId} ongletId={r.onglet_id} onglets={onglets} />
             </div>
           ))}
           {rows.length === 0 && (
@@ -478,9 +503,9 @@ export function CandidaturesTable({
                   />
                 </th>
                 <th className="px-6 py-3 font-medium">Figurant</th>
-                <th className="px-6 py-3 font-medium">Ville</th>
+                <th className="px-6 py-3 font-medium">Âge · Ville</th>
                 <th className="px-6 py-3 font-medium">Myrole</th>
-                <th className="px-6 py-3 font-medium">Annonce / Projet</th>
+                <th className="px-6 py-3 font-medium">Dispos</th>
                 <th className="px-6 py-3 font-medium">Onglet & fonction</th>
                 <th className="px-6 py-3 font-medium">Message</th>
               </tr>
@@ -508,19 +533,27 @@ export function CandidaturesTable({
                           <PreviewButton items={previewItems} index={previewIndexByCandidatureId.get(r.id)!} />
                         )}
                       </div>
+                      <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} className="mt-1 inline-block" />
                     </td>
-                    <td className="px-6 py-3 text-text-muted">{r.figurants?.ville ?? "—"}</td>
+                    <td className="px-6 py-3 text-text-muted">
+                      {[summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </td>
                     <td className="px-6 py-3">
                       {r.figurants?.compte_myrole ? <Badge tone="turquoise">Oui</Badge> : <Badge>Non</Badge>}
                     </td>
-                    <td className="px-6 py-3 text-text-muted">
-                      {r.annonces?.titre ?? "—"}
-                      <br />
-                      <span className="text-xs">{r.annonces?.projets?.nom}</span>
+                    <td className="px-6 py-3">
+                      {(summaries[r.id]?.dates.length ?? 0) > 0 ? (
+                        <DispoChips dates={summaries[r.id].dates} />
+                      ) : (
+                        <span className="text-text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-6 py-3">
                       <CandidatureRow
                         id={r.id}
+                        annonceId={annonceId}
                         ongletId={r.onglet_id}
                         onglets={onglets}
                         fonctionAssignee={r.fonction_assignee}
@@ -599,6 +632,17 @@ export function CandidaturesTable({
             </tbody>
           </table>
         </Card>
+      )}
+
+      {triOpen && (
+        <TriRapide
+          ids={triIds}
+          onglets={onglets}
+          onClose={() => {
+            setTriOpen(false);
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

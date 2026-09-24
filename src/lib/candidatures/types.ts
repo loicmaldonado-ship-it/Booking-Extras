@@ -30,6 +30,38 @@ export type CandidatureOnglet = {
   couleur: CandidatureOngletCouleur;
   fixe: boolean;
   ordre: number;
+  // null = onglet commun à toutes les annonces
+  annonce_id: string | null;
+};
+
+// Tout ce que le mode "tri rapide" affiche pour une candidature, chargé à
+// la demande (une à la fois) plutôt que pour toute la liste d'un coup.
+export type TriCandidature = {
+  id: string;
+  onglet_id: string | null;
+  message: string | null;
+  created_at: string;
+  figurant: {
+    id: string;
+    prenom: string;
+    nom: string;
+    ville: string | null;
+    code_postal: string | null;
+    genre: string | null;
+    age: number | null;
+    taille_cm: number | null;
+    poids_kg: number | null;
+    pointure: number | null;
+    veste: string | null;
+    pantalon: string | null;
+    vehicule: string | null;
+    compte_myrole: boolean;
+  };
+  photos: { url: string; type: string }[];
+  questions: { label: string; reponse: boolean }[];
+  dates: { date: string; disponible: boolean }[];
+  lienBandeDemo: string | null;
+  tournagesConfirmes: number;
 };
 
 export type Candidature = {

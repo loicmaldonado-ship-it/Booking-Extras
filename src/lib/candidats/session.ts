@@ -15,6 +15,29 @@ export type CandidatSession = {
   email: string | null;
 };
 
+// Projet de la dernière candidature (sinon du dernier booking) : rattache
+// la notification "compte créé" à l'équipe qui suit cette personne, au lieu
+// de la montrer (et la marquer lue) chez toutes les cheffes.
+async function dernierProjetDuFigurant(figurantId: string): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: candidature } = await supabase
+    .from("candidatures")
+    .select("annonces(projet_id)")
+    .eq("figurant_id", figurantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ annonces: { projet_id: string } | null }>();
+  if (candidature?.annonces?.projet_id) return candidature.annonces.projet_id;
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("projet_id")
+    .eq("figurant_id", figurantId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return booking?.projet_id ?? null;
+}
+
 export async function getCurrentFigurant(): Promise<CandidatSession | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
@@ -44,6 +67,7 @@ export async function getCurrentFigurant(): Promise<CandidatSession | null> {
     if (!lastSeen) {
       await createNotification("compte_cree", `${figurant.prenom} ${figurant.nom} a créé son compte`, {
         figurantId: figurant.id,
+        projetId: await dernierProjetDuFigurant(figurant.id),
         lien: `/figurants/${figurant.id}`,
       });
     }

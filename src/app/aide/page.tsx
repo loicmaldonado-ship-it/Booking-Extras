@@ -173,8 +173,10 @@ export default function AidePage() {
                 annonce par nom (raccourci <UI>⌘K</UI>).
               </>,
               <>
-                <strong className="text-text">Cloche</strong> — notifications (candidature reçue, réponse
-                d&apos;un·e figurant·e, vidéo de casting envoyée).
+                <strong className="text-text">Cloche</strong> — notifications de ton équipe (candidatures, comptes
+                candidat créés, vidéos de casting), regroupées par annonce ou par projet : la flèche d&apos;un
+                groupe montre le détail. Ce qui est lu l&apos;est pour toute l&apos;équipe du projet, jamais pour
+                les autres cheffes. <UI>Tout marquer comme lu</UI> en haut du panneau.
               </>,
               <>
                 <strong className="text-text">Ta photo</strong> — en haut à droite, pour changer ton avatar et
@@ -335,10 +337,23 @@ export default function AidePage() {
       >
         <Steps
           items={[
-            "Ouvre une candidature pour voir le profil complet et vérifier les photos.",
             <>
-              Range-la dans un <strong className="text-text">onglet</strong> (à trier, retenu, refusé...) —
-              personnalisables par projet.
+              Le plus rapide : <UI>⚡ Tri rapide</UI>. Chaque personne s&apos;affiche en grand (photos, âge, ville,
+              dispos, réponses, message) et tu la ranges d&apos;un clic ou d&apos;une touche (<UI>1</UI> Retenu,{" "}
+              <UI>2</UI> Peut-être… <UI>0</UI> la remet à trier), puis la suivante arrive toute seule.{" "}
+              <UI>←</UI> <UI>→</UI> pour naviguer, <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour
+              fermer. Le tri porte sur la liste affichée : ouvre-le depuis l&apos;onglet <UI>À trier</UI> pour ne
+              voir que les nouvelles.
+            </>,
+            <>
+              Sur chaque carte, l&apos;âge, la ville et une pastille par date recherchée (verte = dispo, rouge
+              barrée = pas dispo) sont visibles directement. Le badge <UI>Habitué·e</UI> indique sur combien de
+              tournages la personne a déjà été confirmée.
+            </>,
+            <>
+              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
+              à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
+              as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
             </>,
             <>
               Depuis la fiche, <UI>+ Ajouter à un booking</UI> pour la faire passer directement en tournage, ou
@@ -347,10 +362,11 @@ export default function AidePage() {
           ]}
         />
         <Callout>
-          <strong className="text-text">Filtres.</strong> En plus du genre, du véhicule, de l&apos;âge et du
-          compte Myrole, le panneau <UI>Code postal &amp; mensurations</UI> permet de filtrer par code postal ou
-          par n&apos;importe quelle mensuration de la fiche. Si l&apos;annonce a des dates calibrées, un filtre{" "}
-          <UI>Date dispo</UI> apparaît pour ne garder que les disponibles (ou non) sur une date précise.
+          <strong className="text-text">Filtres et ordre.</strong> Si l&apos;annonce a des dates, les pastilles{" "}
+          <UI>Dispo le</UI> filtrent en un clic (plusieurs cochées = dispo sur toutes). La ligne <UI>Ordre</UI>{" "}
+          classe par date de candidature, par âge ou met les habitué·es en premier. En plus du genre, du véhicule,
+          de l&apos;âge et du compte Myrole, le panneau <UI>Code postal &amp; mensurations</UI> filtre par code
+          postal ou par n&apos;importe quelle mensuration de la fiche.
         </Callout>
       </GuideChapter>
 

@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { CIVILITES, GENRES, PRONOMS, type Figurant, type FigurantLien } from "@/lib/figurants/types";
 import { addIndisponibilite } from "@/lib/figurants/disponibilites";
@@ -118,9 +119,7 @@ export function FigurantForm({
           </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Date de naissance">
-            <Input type="date" name="date_naissance" defaultValue={figurant?.date_naissance ?? ""} />
-          </Field>
+          <DateNaissanceField name="date_naissance" defaultValue={figurant?.date_naissance} />
           <Field label="Commune de naissance" required={!estComedien}>
             <Input name="commune_naissance" defaultValue={figurant?.commune_naissance ?? ""} required={!estComedien} />
           </Field>

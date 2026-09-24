@@ -9,7 +9,7 @@ import type { NotificationType } from "./types";
 export async function createNotification(
   type: NotificationType,
   titre: string,
-  opts?: { figurantId?: string | null; projetId?: string | null; lien?: string | null }
+  opts?: { figurantId?: string | null; projetId?: string | null; annonceId?: string | null; lien?: string | null }
 ) {
   const supabase = createAdminClient();
   await supabase.from("notifications").insert({
@@ -17,6 +17,7 @@ export async function createNotification(
     titre,
     figurant_id: opts?.figurantId ?? null,
     projet_id: opts?.projetId ?? null,
+    annonce_id: opts?.annonceId ?? null,
     lien: opts?.lien ?? null,
   });
 }
