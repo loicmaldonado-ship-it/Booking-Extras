@@ -351,6 +351,15 @@ export default function AidePage() {
               tournages la personne a déjà été confirmée.
             </>,
             <>
+              <strong className="text-text">Jours de tournage.</strong> Si l&apos;annonce a des dates, chaque carte
+              montre une pastille par date : un clic prévoit la personne ce jour-là (plusieurs jours possibles),
+              contour vert = elle s&apos;est dite dispo. Dans le tri rapide, les touches <UI>A</UI> <UI>Z</UI>{" "}
+              <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
+              au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
+              d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
+              journée.
+            </>,
+            <>
               Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
               à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
               as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.

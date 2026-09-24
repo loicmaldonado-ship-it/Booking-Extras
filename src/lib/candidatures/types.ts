@@ -59,7 +59,9 @@ export type TriCandidature = {
   };
   photos: { url: string; type: string }[];
   questions: { label: string; reponse: boolean }[];
-  dates: { date: string; disponible: boolean }[];
+  // Une entrée par date de l'annonce : dispo déclarée, jour prévu, déjà
+  // dans la journée de tournage.
+  jours: { id: string; date: string; disponible: boolean; prevu: boolean; dansLaJournee: boolean }[];
   lienBandeDemo: string | null;
   tournagesConfirmes: number;
 };

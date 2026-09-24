@@ -11,7 +11,8 @@ import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
-import { DispoChips, HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
@@ -47,6 +48,7 @@ export type CandidatureSummary = {
   message: string | null;
   age: number | null;
   tournages: number;
+  jours: JourCandidature[];
 };
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -462,7 +464,7 @@ export function CandidaturesTable({
                 </div>
               </Link>
               <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} />
-              <DispoChips dates={summaries[r.id]?.dates ?? []} className="justify-center" />
+              <JourChips candidatureId={r.id} jours={summaries[r.id]?.jours ?? []} center />
               {r.portraitUrl && (() => {
                 const gallery = toGalleryPhotos(r.photos);
                 return (
@@ -505,7 +507,7 @@ export function CandidaturesTable({
                 <th className="px-6 py-3 font-medium">Figurant</th>
                 <th className="px-6 py-3 font-medium">Âge · Ville</th>
                 <th className="px-6 py-3 font-medium">Myrole</th>
-                <th className="px-6 py-3 font-medium">Dispos</th>
+                <th className="px-6 py-3 font-medium">Jours</th>
                 <th className="px-6 py-3 font-medium">Onglet & fonction</th>
                 <th className="px-6 py-3 font-medium">Message</th>
               </tr>
@@ -544,8 +546,8 @@ export function CandidaturesTable({
                       {r.figurants?.compte_myrole ? <Badge tone="turquoise">Oui</Badge> : <Badge>Non</Badge>}
                     </td>
                     <td className="px-6 py-3">
-                      {(summaries[r.id]?.dates.length ?? 0) > 0 ? (
-                        <DispoChips dates={summaries[r.id].dates} />
+                      {(summaries[r.id]?.jours.length ?? 0) > 0 ? (
+                        <JourChips candidatureId={r.id} jours={summaries[r.id].jours} />
                       ) : (
                         <span className="text-text-muted">—</span>
                       )}
