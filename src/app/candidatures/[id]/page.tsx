@@ -10,7 +10,8 @@ import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { computeAge } from "@/lib/documents/fields";
-import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
+import type { Cachet } from "@/lib/candidatures/types";
+import { getOngletsForAnnonce } from "@/lib/candidatures/onglets";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant } from "@/lib/figurants/types";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
@@ -61,12 +62,8 @@ export default async function CandidatureDetailPage({
     .order("date", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const { data: onglets } = await supabase
-    .from("candidature_onglets")
-    .select("id, nom, couleur, fixe, ordre")
-    .order("ordre")
-    .returns<CandidatureOnglet[]>();
-  const ongletActuel = (onglets ?? []).find((o) => o.id === candidature.onglet_id);
+  const onglets = await getOngletsForAnnonce(candidature.annonces?.id);
+  const ongletActuel = onglets.find((o) => o.id === candidature.onglet_id);
 
   const [{ data: photosRaw }, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
     getPhotosByFigurantId([f.id]).then((map) => ({ data: map.get(f.id) ?? [] })),
@@ -163,8 +160,9 @@ export default async function CandidatureDetailPage({
         <h2 className="text-lg font-semibold">Rangement de la candidature</h2>
         <CandidatureRow
           id={candidature.id}
+          annonceId={candidature.annonces?.id ?? ""}
           ongletId={candidature.onglet_id}
-          onglets={onglets ?? []}
+          onglets={onglets}
           fonctionAssignee={candidature.fonction_assignee}
           cachetAssigne={candidature.cachet_assigne}
         />

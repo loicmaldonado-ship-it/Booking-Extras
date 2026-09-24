@@ -5,9 +5,10 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
 import { setCurrentProjet } from "@/lib/projet-context";
 import { cn } from "@/lib/cn";
-import { CandidaturesTable, type Row } from "@/components/candidatures/candidatures-table";
+import { CandidaturesTable, type Row, type CandidatureSummary } from "@/components/candidatures/candidatures-table";
 import { SortChips } from "@/components/documents/sort-chips";
-import { ONGLET_OUT_BE, type CandidatureOnglet } from "@/lib/candidatures/types";
+import { ONGLET_OUT_BE } from "@/lib/candidatures/types";
+import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { GENRES } from "@/lib/figurants/types";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import {
@@ -40,13 +41,26 @@ type SearchParams = {
   age_max?: string;
   question_id?: string;
   question_reponse?: string;
-  date_id?: string;
-  disponible?: string;
+  dispo?: string | string[];
+  ordre?: string;
   sort?: string | string[];
   page?: string;
 } & MensurationFilters;
 
 const CANDIDATURES_PAR_PAGE = 30;
+
+const ORDRES = [
+  { key: "recentes", label: "Plus récentes" },
+  { key: "anciennes", label: "Plus anciennes" },
+  { key: "age_asc", label: "Plus jeunes" },
+  { key: "age_desc", label: "Plus âgé·es" },
+  { key: "habitues", label: "Habitué·es d'abord" },
+] as const;
+type Ordre = (typeof ORDRES)[number]["key"];
+
+function toList(v: string | string[] | undefined): string[] {
+  return Array.isArray(v) ? v : v ? [v] : [];
+}
 
 // Les candidatures n'ont pas d'heure de convocation (ça n'existe qu'une fois
 // bookées) — la puce "Heure de convocation" est donc exclue ci-dessous.
@@ -67,6 +81,7 @@ function candidatureNameOf(c: CandidatureWithFilters) {
 type CandidatureRaw = Omit<Row, "portraitUrl">;
 type CandidatureWithFilters = CandidatureRaw & {
   message: string | null;
+  created_at: string;
   onglet_id: string | null;
   figurants:
     | (CandidatureRaw["figurants"] & {
@@ -181,13 +196,18 @@ export default async function CandidaturesPage({
     getAnnonceDates(params.annonce_id),
   ]);
 
+  const annonceDateIds = annonceDates.map((d) => d.id);
+  // Ne garde que des dates de cette annonce : les ids viennent de l'URL.
+  const dispoFilter = toList(params.dispo).filter((id) => annonceDateIds.includes(id));
+  const ordre: Ordre = ORDRES.some((o) => o.key === params.ordre) ? (params.ordre as Ordre) : "recentes";
+
   const [
     { data: candidaturesRaw, error },
     { data: bookedCandidatures },
     { data: templates },
     { data: reponsesMatch },
-    { data: disposMatch },
-    { data: onglets },
+    { data: disposOui },
+    onglets,
   ] = await Promise.all([
     query.returns<CandidatureWithFilters[]>(),
     supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
@@ -199,15 +219,22 @@ export default async function CandidaturesPage({
           .eq("annonce_question_id", params.question_id)
           .eq("reponse", params.question_reponse === "oui")
       : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
-    params.date_id && params.disponible
+    annonceDateIds.length > 0
       ? supabase
           .from("candidature_disponibilites")
-          .select("candidature_id")
-          .eq("annonce_date_id", params.date_id)
-          .eq("disponible", params.disponible === "oui")
-      : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
-    supabase.from("candidature_onglets").select("id, nom, couleur, fixe, ordre").order("ordre").returns<CandidatureOnglet[]>(),
+          .select("candidature_id, annonce_date_id")
+          .in("annonce_date_id", annonceDateIds)
+          .eq("disponible", true)
+      : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
+    getOngletsForAnnonce(params.annonce_id),
   ]);
+
+  const datesDispoByCandidature = new Map<string, Set<string>>();
+  for (const d of disposOui ?? []) {
+    const set = datesDispoByCandidature.get(d.candidature_id) ?? new Set<string>();
+    set.add(d.annonce_date_id);
+    datesDispoByCandidature.set(d.candidature_id, set);
+  }
 
   const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
 
@@ -247,9 +274,22 @@ export default async function CandidaturesPage({
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
   }
-  if (disposMatch) {
-    const matchingIds = new Set(disposMatch.map((d) => d.candidature_id));
-    candidatures = candidatures.filter((c) => matchingIds.has(c.id));
+  // Compteur par date sur le périmètre de l'onglet affiché, mais avant le
+  // filtre de dates lui-même : chaque pastille annonce combien de personnes
+  // sont dispo ce jour-là.
+  const dispoCountByDate = new Map<string, number>();
+  for (const c of candidatures) {
+    if (params.onglet_id === "a_trier" && c.onglet_id !== null) continue;
+    if (params.onglet_id && params.onglet_id !== "a_trier" && c.onglet_id !== params.onglet_id) continue;
+    for (const dateId of datesDispoByCandidature.get(c.id) ?? []) {
+      dispoCountByDate.set(dateId, (dispoCountByDate.get(dateId) ?? 0) + 1);
+    }
+  }
+  if (dispoFilter.length > 0) {
+    candidatures = candidatures.filter((c) => {
+      const dispos = datesDispoByCandidature.get(c.id);
+      return dispoFilter.every((id) => dispos?.has(id));
+    });
   }
 
   // Compte par onglet pour la barre d'onglets — calculé sur le même
@@ -270,8 +310,31 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.onglet_id === params.onglet_id);
   }
 
+  const tournagesTous =
+    ordre === "habitues"
+      ? await getTournagesConfirmesCount(
+          candidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
+        )
+      : null;
+  const ageOf = (c: CandidatureWithFilters) => computeAge(c.figurants?.date_naissance ?? null);
+  const tournagesOf = (c: CandidatureWithFilters) => (c.figurants ? (tournagesTous?.get(c.figurants.id) ?? 0) : 0);
+  const recentFirst = (a: CandidatureWithFilters, b: CandidatureWithFilters) => b.created_at.localeCompare(a.created_at);
+  // Âge inconnu toujours en fin de liste, dans les deux sens.
+  const compareOrdre = (a: CandidatureWithFilters, b: CandidatureWithFilters): number => {
+    if (ordre === "anciennes") return a.created_at.localeCompare(b.created_at);
+    if (ordre === "age_asc" || ordre === "age_desc") {
+      const ageA = ageOf(a);
+      const ageB = ageOf(b);
+      if (ageA === null || ageB === null) return (ageA === null ? 1 : 0) - (ageB === null ? 1 : 0);
+      return ordre === "age_asc" ? ageA - ageB : ageB - ageA;
+    }
+    if (ordre === "habitues") return tournagesOf(b) - tournagesOf(a) || recentFirst(a, b);
+    return recentFirst(a, b);
+  };
+  candidatures = [...candidatures].sort(compareOrdre);
+
   const docSort = parseDocSort(params.sort);
-  const sortGroups = groupByDimensions(candidatures, docSort, candidatureDimLabel, candidatureNameOf);
+  const sortGroups = groupByDimensions(candidatures, docSort, candidatureDimLabel, candidatureNameOf, compareOrdre);
   if (sortGroups) candidatures = sortGroups.flatMap((g) => g.items);
 
   // Pagination — appliquée AVANT les lookups coûteux ci-dessous (photos,
@@ -305,25 +368,33 @@ export default async function CandidaturesPage({
       : Promise.resolve({ data: [] as { candidature_id: string; disponible: boolean; annonce_dates: { date: string } | null }[] }),
   ]);
 
-  const summaries: Record<
-    string,
-    { questions: { label: string; reponse: boolean }[]; dates: { date: string; disponible: boolean }[]; message: string | null }
-  > = {};
+  const tournagesPage =
+    tournagesTous ??
+    (await getTournagesConfirmesCount(
+      pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
+    ));
+
+  const summaries: Record<string, CandidatureSummary> = {};
   for (const c of pageCandidatures) {
-    summaries[c.id] = { questions: [], dates: [], message: c.message };
+    summaries[c.id] = {
+      questions: [],
+      dates: [],
+      message: c.message,
+      age: ageOf(c),
+      tournages: c.figurants ? (tournagesPage.get(c.figurants.id) ?? 0) : 0,
+    };
   }
   for (const r of reponsesRaw ?? []) {
-    if (!r.annonce_questions) continue;
-    const entry = summaries[r.candidature_id] ?? { questions: [], dates: [], message: null };
+    const entry = summaries[r.candidature_id];
+    if (!r.annonce_questions || !entry) continue;
     entry.questions.push({ label: r.annonce_questions.label, reponse: r.reponse });
-    summaries[r.candidature_id] = entry;
   }
   for (const d of disposRaw ?? []) {
-    if (!d.annonce_dates) continue;
-    const entry = summaries[d.candidature_id] ?? { questions: [], dates: [], message: null };
+    const entry = summaries[d.candidature_id];
+    if (!d.annonce_dates || !entry) continue;
     entry.dates.push({ date: d.annonce_dates.date, disponible: d.disponible });
-    summaries[d.candidature_id] = entry;
   }
+  for (const entry of Object.values(summaries)) entry.dates.sort((a, b) => a.date.localeCompare(b.date));
 
   const signatureByProjet = await getProjetSignaturesOrOwnerNames(
     supabase,
@@ -356,7 +427,13 @@ export default async function CandidaturesPage({
   function buildCandidaturesHref(
     base: SearchParams,
     docSortDims: Dimension[],
-    { ongletId, genre, page: pageOverride }: { ongletId?: string; genre?: string; page?: number }
+    {
+      ongletId,
+      genre,
+      page: pageOverride,
+      dispo = dispoFilter,
+      ordre: ordreOverride = ordre,
+    }: { ongletId?: string; genre?: string; page?: number; dispo?: string[]; ordre?: Ordre }
   ) {
     const sp = new URLSearchParams();
     sp.set("annonce_id", base.annonce_id!);
@@ -378,8 +455,8 @@ export default async function CandidaturesPage({
     }
     if (base.question_id) sp.set("question_id", base.question_id);
     if (base.question_reponse) sp.set("question_reponse", base.question_reponse);
-    if (base.date_id) sp.set("date_id", base.date_id);
-    if (base.disponible) sp.set("disponible", base.disponible);
+    for (const id of dispo) sp.append("dispo", id);
+    if (ordreOverride !== "recentes") sp.set("ordre", ordreOverride);
     for (const dim of docSortDims) sp.append("sort", dim);
     if (pageOverride && pageOverride > 1) sp.set("page", String(pageOverride));
     return `/candidatures?${sp.toString()}`;
@@ -411,6 +488,15 @@ export default async function CandidaturesPage({
   // une fois un genre sélectionné.
   const genreTabHref = (genreParam?: string) =>
     buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: genreParam });
+
+  const toggleDispoHref = (dateId: string) =>
+    buildCandidaturesHref(params, docSort, {
+      ongletId: params.onglet_id,
+      genre: params.genre,
+      dispo: dispoFilter.includes(dateId) ? dispoFilter.filter((id) => id !== dateId) : [...dispoFilter, dateId],
+    });
+  const ordreHref = (o: Ordre) =>
+    buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, ordre: o });
 
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
     .filter((c) => !bookedCandidatureIds.has(c.id))
@@ -516,6 +602,30 @@ export default async function CandidaturesPage({
         })}
       </div>
 
+      {annonceDates.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Dispo le :</span>
+          {annonceDates.map((d) => {
+            const active = dispoFilter.includes(d.id);
+            return (
+              <Link
+                key={d.id}
+                href={toggleDispoHref(d.id)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+                )}
+              >
+                {formatDateShort(d.date)} ({dispoCountByDate.get(d.id) ?? 0})
+              </Link>
+            );
+          })}
+          {dispoFilter.length > 1 && (
+            <span className="text-xs text-text-muted">dispo sur toutes les dates cochées</span>
+          )}
+        </div>
+      )}
+
       <SortChips
         baseParams={{
           annonce_id: params.annonce_id,
@@ -537,12 +647,28 @@ export default async function CandidaturesPage({
           ),
           question_id: params.question_id,
           question_reponse: params.question_reponse,
-          date_id: params.date_id,
-          disponible: params.disponible,
+          dispo: dispoFilter,
+          ordre: ordre === "recentes" ? undefined : ordre,
         }}
         current={docSort}
         dimensions={CANDIDATURE_SORT_DIMENSIONS}
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Ordre :</span>
+        {ORDRES.map((o) => (
+          <Link
+            key={o.key}
+            href={ordreHref(o.key)}
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              ordre === o.key ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            )}
+          >
+            {o.label}
+          </Link>
+        ))}
+      </div>
 
       <Card>
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
@@ -551,6 +677,10 @@ export default async function CandidaturesPage({
           {docSort.map((dim) => (
             <input key={dim} type="hidden" name="sort" value={dim} />
           ))}
+          {dispoFilter.map((id) => (
+            <input key={id} type="hidden" name="dispo" value={id} />
+          ))}
+          {ordre !== "recentes" && <input type="hidden" name="ordre" value={ordre} />}
           <Select name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Myrole (tous)</option>
             <option value="oui">Avec compte Myrole</option>
@@ -589,23 +719,6 @@ export default async function CandidaturesPage({
             />
           </div>
           <MensurationsFilterPanel defaultValues={params} />
-          {annonceDates.length > 0 && (
-            <>
-              <Select name="date_id" defaultValue={params.date_id ?? ""}>
-                <option value="">Date dispo (toutes)</option>
-                {annonceDates.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {formatDateShort(d.date)}
-                  </option>
-                ))}
-              </Select>
-              <Select name="disponible" defaultValue={params.disponible ?? ""}>
-                <option value="">Disponibilité (toutes)</option>
-                <option value="oui">Disponible</option>
-                <option value="non">Non disponible</option>
-              </Select>
-            </>
-          )}
           {annonceQuestions.length > 0 && (
             <>
               <Select name="question_id" defaultValue={params.question_id ?? ""}>
@@ -649,7 +762,9 @@ export default async function CandidaturesPage({
         templates={templates ?? []}
         projets={projetOption}
         summaries={summaries}
-        onglets={onglets ?? []}
+        onglets={onglets}
+        annonceId={params.annonce_id}
+        triIds={candidatures.map((c) => c.id)}
       />
 
       {totalPages > 1 && (

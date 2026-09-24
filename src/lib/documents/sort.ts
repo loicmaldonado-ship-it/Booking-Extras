@@ -40,12 +40,14 @@ export function ageBracket(dateNaissance: string | null): string {
 // Regroupe des items selon une liste ordonnée de dimensions, via des
 // fonctions fournies par l'appelant (les champs disponibles diffèrent entre
 // bookings et candidatures). Retourne null si aucun tri n'est demandé —
-// l'appelant garde alors son ordre par défaut.
+// l'appelant garde alors son ordre par défaut. Dans chaque groupe : ordre
+// alphabétique, ou `compareWithin` si l'appelant a son propre ordre.
 export function groupByDimensions<T>(
   items: T[],
   sort: DocSort,
   labelFor: (item: T, dim: Dimension) => string,
-  nameOf: (item: T) => string
+  nameOf: (item: T) => string,
+  compareWithin?: (a: T, b: T) => number
 ): { label: string; items: T[] }[] | null {
   if (sort.length === 0) return null;
 
@@ -61,7 +63,7 @@ export function groupByDimensions<T>(
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([label, groupItems]) => ({
       label,
-      items: [...groupItems].sort((a, b) => nameOf(a).localeCompare(nameOf(b))),
+      items: [...groupItems].sort(compareWithin ?? ((a, b) => nameOf(a).localeCompare(nameOf(b)))),
     }));
 }
 

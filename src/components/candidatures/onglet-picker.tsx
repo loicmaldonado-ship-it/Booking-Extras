@@ -19,10 +19,12 @@ export const TONE_CLASSES: Record<CandidatureOnglet["couleur"], string> = {
 
 export function OngletPicker({
   candidatureId,
+  annonceId,
   ongletId,
   onglets,
 }: {
   candidatureId: string;
+  annonceId: string;
   ongletId: string | null;
   onglets: CandidatureOnglet[];
 }) {
@@ -45,7 +47,7 @@ export function OngletPicker({
     if (!nouveauNom.trim()) return;
     setError(null);
     startTransition(async () => {
-      const result = await createCandidatureOnglet(nouveauNom.trim());
+      const result = await createCandidatureOnglet(nouveauNom.trim(), annonceId);
       if (result?.error) {
         setError(result.error);
         return;

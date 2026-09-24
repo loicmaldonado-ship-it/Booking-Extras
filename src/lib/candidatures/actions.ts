@@ -11,7 +11,9 @@ import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
-import type { Cachet } from "./types";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { getTournagesConfirmesCount } from "./onglets";
+import type { Cachet, TriCandidature } from "./types";
 
 // candidatures n'a pas de projet_id direct — il vit sur son annonce.
 async function checkCandidatureAccess(candidatureId: string): Promise<string | null> {
@@ -404,6 +406,10 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
+  if (ongletId) {
+    const ongletError = await checkOngletMatchesAnnonces(ongletId, [id]);
+    if (ongletError) return { error: ongletError };
+  }
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
@@ -425,40 +431,183 @@ export async function setCandidaturesOngletBulk(ids: string[], ongletId: string 
     }
   }
 
+  if (ongletId) {
+    const ongletError = await checkOngletMatchesAnnonces(ongletId, ids);
+    if (ongletError) return { error: ongletError };
+  }
+
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
   return { success: true as const };
 }
 
-export async function createCandidatureOnglet(nom: string) {
+// Un onglet propre à une annonce ne peut ranger que des candidatures de
+// cette annonce ; un onglet commun (annonce_id null) va partout.
+async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: string[]): Promise<string | null> {
+  const supabase = createAdminClient();
+  const { data: onglet } = await supabase
+    .from("candidature_onglets")
+    .select("annonce_id")
+    .eq("id", ongletId)
+    .maybeSingle();
+  if (!onglet) return "Onglet introuvable.";
+  if (!onglet.annonce_id) return null;
+  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", candidatureIds);
+  if ((candidatures ?? []).some((c) => c.annonce_id !== onglet.annonce_id)) {
+    return "Cet onglet appartient à une autre annonce.";
+  }
+  return null;
+}
+
+// Créé sur l'annonce en cours, jamais en commun : les onglets communs sont
+// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT BE).
+export async function createCandidatureOnglet(nom: string, annonceId: string) {
   const trimmed = nom.trim();
   if (!trimmed) return { error: "Nom d'onglet requis." };
 
   const supabase = createAdminClient();
+  const { data: annonce } = await supabase.from("annonces").select("projet_id").eq("id", annonceId).maybeSingle();
+  if (!annonce) return { error: "Annonce introuvable." };
+  const accessError = await checkProjetAccess(annonce.projet_id);
+  if (accessError) return { error: accessError };
+
   const { data: existant } = await supabase
     .from("candidature_onglets")
     .select("id")
     .ilike("nom", trimmed)
+    .or(`annonce_id.is.null,annonce_id.eq.${annonceId}`)
+    .limit(1)
     .maybeSingle();
   if (existant) return { onglet: existant };
 
   const { data: maxOrdre } = await supabase
     .from("candidature_onglets")
     .select("ordre")
+    .lt("ordre", 99)
     .order("ordre", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const { data: onglet, error } = await supabase
     .from("candidature_onglets")
-    .insert({ nom: trimmed, couleur: "default", fixe: false, ordre: (maxOrdre?.ordre ?? 0) + 1 })
-    .select("id, nom, couleur, fixe, ordre")
+    .insert({ nom: trimmed, couleur: "default", fixe: false, ordre: (maxOrdre?.ordre ?? 0) + 1, annonce_id: annonceId })
+    .select("id, nom, couleur, fixe, ordre, annonce_id")
     .single();
 
   if (error) return { error: error.message };
   revalidatePath("/candidatures");
   return { onglet };
+}
+
+const PHOTO_ORDER = ["portrait", "pied", "selfie", "tenue", "autre", "vehicule", "casting"];
+
+export async function getCandidatureTriData(id: string): Promise<{ error?: string; data?: TriCandidature }> {
+  const accessError = await checkCandidatureAccess(id);
+  if (accessError) return { error: accessError };
+
+  const supabase = createAdminClient();
+  const { data: c } = await supabase
+    .from("candidatures")
+    .select(
+      "id, onglet_id, message, created_at, figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
+    )
+    .eq("id", id)
+    .single<{
+      id: string;
+      onglet_id: string | null;
+      message: string | null;
+      created_at: string;
+      figurants: {
+        id: string;
+        prenom: string;
+        nom: string;
+        ville: string | null;
+        code_postal: string | null;
+        genre: string | null;
+        date_naissance: string | null;
+        taille_cm: number | null;
+        poids_kg: number | null;
+        pointure: number | null;
+        veste: string | null;
+        pantalon: string | null;
+        a_vehicule: boolean | null;
+        vehicule_velo: boolean;
+        vehicule_moto: boolean;
+        vehicule_scooter: boolean;
+        compte_myrole: boolean;
+      } | null;
+    }>();
+  if (!c?.figurants) return { error: "Candidature introuvable." };
+  const f = c.figurants;
+
+  const [photosByFigurant, { data: reponses }, { data: dispos }, { data: lien }, tournages] = await Promise.all([
+    getPhotosByFigurantId([f.id]),
+    supabase
+      .from("candidature_reponses")
+      .select("reponse, annonce_questions(label)")
+      .eq("candidature_id", id)
+      .returns<{ reponse: boolean; annonce_questions: { label: string } | null }[]>(),
+    supabase
+      .from("candidature_disponibilites")
+      .select("disponible, annonce_dates(date)")
+      .eq("candidature_id", id)
+      .returns<{ disponible: boolean; annonce_dates: { date: string } | null }[]>(),
+    supabase.from("figurant_liens").select("url").eq("figurant_id", f.id).eq("label", LIEN_BANDE_DEMO).maybeSingle(),
+    getTournagesConfirmesCount([f.id]),
+  ]);
+
+  const rank = (type: string) => {
+    const i = PHOTO_ORDER.indexOf(type);
+    return i === -1 ? PHOTO_ORDER.length : i;
+  };
+  const photos = (photosByFigurant.get(f.id) ?? [])
+    .filter((p): p is typeof p & { url: string } => !!p.url)
+    .sort((a, b) => rank(a.type) - rank(b.type))
+    .map((p) => ({ url: p.url, type: p.type }));
+
+  const vehicule =
+    f.a_vehicule === null
+      ? null
+      : f.a_vehicule
+        ? [f.vehicule_velo && "vélo", f.vehicule_moto && "moto", f.vehicule_scooter && "scooter"].filter(Boolean).join(", ") ||
+          "oui"
+        : "non";
+
+  return {
+    data: {
+      id: c.id,
+      onglet_id: c.onglet_id,
+      message: c.message,
+      created_at: c.created_at,
+      figurant: {
+        id: f.id,
+        prenom: f.prenom,
+        nom: f.nom,
+        ville: f.ville,
+        code_postal: f.code_postal,
+        genre: f.genre,
+        age: computeAge(f.date_naissance),
+        taille_cm: f.taille_cm,
+        poids_kg: f.poids_kg,
+        pointure: f.pointure,
+        veste: f.veste,
+        pantalon: f.pantalon,
+        vehicule,
+        compte_myrole: f.compte_myrole,
+      },
+      photos,
+      questions: (reponses ?? [])
+        .filter((r) => r.annonce_questions)
+        .map((r) => ({ label: r.annonce_questions!.label, reponse: r.reponse })),
+      dates: (dispos ?? [])
+        .filter((d) => d.annonce_dates)
+        .map((d) => ({ date: d.annonce_dates!.date, disponible: d.disponible }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+      lienBandeDemo: lien?.url ?? null,
+      tournagesConfirmes: tournages.get(f.id) ?? 0,
+    },
+  };
 }
 
 export async function deleteCandidatureOnglet(id: string) {
