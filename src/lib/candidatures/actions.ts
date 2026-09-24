@@ -342,6 +342,7 @@ export async function postulerAnnonce(
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
     figurantId,
     projetId: annonce.projet_id,
+    annonceId: annonce.id,
     lien: `/candidatures/${candidature.id}`,
   });
 

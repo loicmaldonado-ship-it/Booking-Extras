@@ -173,8 +173,10 @@ export default function AidePage() {
                 annonce par nom (raccourci <UI>⌘K</UI>).
               </>,
               <>
-                <strong className="text-text">Cloche</strong> — notifications (candidature reçue, réponse
-                d&apos;un·e figurant·e, vidéo de casting envoyée).
+                <strong className="text-text">Cloche</strong> — notifications de ton équipe (candidatures, comptes
+                candidat créés, vidéos de casting), regroupées par annonce ou par projet : la flèche d&apos;un
+                groupe montre le détail. Ce qui est lu l&apos;est pour toute l&apos;équipe du projet, jamais pour
+                les autres cheffes. <UI>Tout marquer comme lu</UI> en haut du panneau.
               </>,
               <>
                 <strong className="text-text">Ta photo</strong> — en haut à droite, pour changer ton avatar et

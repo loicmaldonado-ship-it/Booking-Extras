@@ -1,27 +1,91 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile, getAccessibleProjetIds, checkProjetAccess, idsOrNone } from "@/lib/auth/session";
-import type { AppNotification, CandidatureATrier } from "./types";
+import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import type { AppNotification, CandidatureATrier, NotificationGroup, NotificationType } from "./types";
 
-const RECENT_LIMIT = 40;
+const RECENT_LIMIT = 150;
 
-// Un événement sans projet (réponse à un message, compte candidat créé)
-// porte sur une fiche figurant partagée entre toutes les chef·fes — il
-// reste visible par tout le monde, comme la fiche elle-même. Un événement
-// avec projet (candidature, casting) est privé à ce projet : seul·es les
-// membres de son équipe le voient — voir 20260906000001_notif_projet_scope.
+// Chaque équipe (les membres d'un projet) voit les événements de ses
+// projets, et un "lu" vaut pour toute l'équipe — voir
+// 20260924000002_notifications_par_equipe. Seuls restent visibles par tout
+// le monde les rares événements sans aucun projet.
 function visibleToProfileFilter(accessibleIds: string[]) {
   return `projet_id.is.null,projet_id.in.(${idsOrNone(accessibleIds).join(",")})`;
 }
 
+function plural(n: number, singulier: string, pluriel: string) {
+  return `${n} ${n > 1 ? pluriel : singulier}`;
+}
+
+function groupTitre(type: NotificationType, count: number, nonLu: boolean, contexte: string | null) {
+  const suffixe = contexte ? ` · « ${contexte} »` : "";
+  if (type === "candidature") {
+    return (nonLu ? plural(count, "nouvelle candidature", "nouvelles candidatures") : plural(count, "candidature", "candidatures")) + suffixe;
+  }
+  if (type === "casting") return plural(count, "envoi de casting", "envois de casting") + suffixe;
+  if (type === "compte_cree") return plural(count, "compte candidat créé", "comptes candidat créés") + suffixe;
+  return plural(count, "réponse", "réponses") + suffixe;
+}
+
+// Regroupe par type + annonce (candidatures) ou projet (le reste), sans
+// jamais mêler non lus et lus. Un groupe d'un seul événement garde son
+// titre et son lien d'origine.
+function buildGroups(
+  notifs: AppNotification[],
+  annonceTitres: Map<string, string>,
+  projetNoms: Map<string, string>
+): NotificationGroup[] {
+  const map = new Map<string, AppNotification[]>();
+  for (const n of notifs) {
+    const contexte = n.type === "candidature" && n.annonce_id ? `a:${n.annonce_id}` : `p:${n.projet_id ?? "global"}`;
+    const key = `${n.type}|${contexte}|${n.lu_at ? "lu" : "nonlu"}`;
+    const list = map.get(key) ?? [];
+    list.push(n);
+    map.set(key, list);
+  }
+
+  const groups: NotificationGroup[] = [];
+  for (const [key, items] of map) {
+    const first = items[0];
+    const nonLu = !first.lu_at;
+    if (items.length === 1) {
+      groups.push({ key, type: first.type, titre: first.titre, lien: first.lien, nonLu, latestAt: first.created_at, items });
+      continue;
+    }
+    const contexte =
+      first.type === "candidature" && first.annonce_id
+        ? (annonceTitres.get(first.annonce_id) ?? null)
+        : first.projet_id
+          ? (projetNoms.get(first.projet_id) ?? null)
+          : null;
+    const lien =
+      first.type === "candidature" && first.annonce_id
+        ? `/candidatures?annonce_id=${first.annonce_id}${nonLu ? "&onglet_id=a_trier" : ""}`
+        : first.type === "casting"
+          ? "/casting"
+          : null;
+    groups.push({
+      key,
+      type: first.type,
+      titre: groupTitre(first.type, items.length, nonLu, contexte),
+      lien,
+      nonLu,
+      latestAt: first.created_at,
+      items,
+    });
+  }
+
+  return groups.sort((a, b) => Number(b.nonLu) - Number(a.nonLu) || b.latestAt.localeCompare(a.latestAt));
+}
+
 export async function getNotificationsPanel(): Promise<{
-  notifications: AppNotification[];
+  groups: NotificationGroup[];
   unreadCount: number;
   aTrier: CandidatureATrier[];
 }> {
   const profile = await getCurrentProfile();
-  if (!profile) return { notifications: [], unreadCount: 0, aTrier: [] };
+  if (!profile) return { groups: [], unreadCount: 0, aTrier: [] };
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
@@ -62,19 +126,43 @@ export async function getNotificationsPanel(): Promise<{
       .map((a) => ({ annonce_id: a.id, annonce_titre: a.titre, count: counts.get(a.id)! }));
   }
 
-  return { notifications: notifs ?? [], unreadCount: unreadCount ?? 0, aTrier };
+  const list = notifs ?? [];
+  const annonceIds = Array.from(new Set(list.map((n) => n.annonce_id).filter((id): id is string => !!id)));
+  const projetIds = Array.from(new Set(list.map((n) => n.projet_id).filter((id): id is string => !!id)));
+  const [{ data: annonces }, { data: projets }] = await Promise.all([
+    annonceIds.length > 0
+      ? supabase.from("annonces").select("id, titre").in("id", annonceIds)
+      : Promise.resolve({ data: [] as { id: string; titre: string }[] }),
+    projetIds.length > 0
+      ? supabase.from("projets").select("id, nom").in("id", projetIds)
+      : Promise.resolve({ data: [] as { id: string; nom: string }[] }),
+  ]);
+
+  return {
+    groups: buildGroups(
+      list,
+      new Map((annonces ?? []).map((a) => [a.id, a.titre])),
+      new Map((projets ?? []).map((p) => [p.id, p.nom]))
+    ),
+    unreadCount: unreadCount ?? 0,
+    aTrier,
+  };
 }
 
-export async function markNotificationLu(id: string) {
+// Ne marque que ce que l'équipe de la personne voit réellement : un id
+// d'un autre projet passé à la main est simplement ignoré.
+export async function markNotificationsLues(ids: string[]) {
   const profile = await getCurrentProfile();
-  if (!profile) return;
+  if (!profile || ids.length === 0) return;
 
   const supabase = createAdminClient();
-  const { data: notif } = await supabase.from("notifications").select("projet_id").eq("id", id).maybeSingle();
-  if (!notif) return;
-  if (await checkProjetAccess(notif.projet_id)) return;
-
-  await supabase.from("notifications").update({ lu_at: new Date().toISOString() }).eq("id", id);
+  const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
+  await supabase
+    .from("notifications")
+    .update({ lu_at: new Date().toISOString() })
+    .in("id", ids)
+    .is("lu_at", null)
+    .or(visibleToProfileFilter(accessibleIds));
 }
 
 export async function markAllNotificationsLues() {
