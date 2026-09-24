@@ -61,7 +61,7 @@ export function DateNaissanceField({
   return (
     <Field label={label} required={required}>
       <input type="hidden" name={name} value={value} />
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Select
           aria-label="Jour de naissance"
           value={clampedDay ?? ""}
