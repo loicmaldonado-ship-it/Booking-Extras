@@ -343,7 +343,8 @@ export default function AidePage() {
               <UI>2</UI> Peut-être… <UI>0</UI> la remet à trier), puis la suivante arrive toute seule.{" "}
               <UI>←</UI> <UI>→</UI> pour naviguer, <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour
               fermer. Le tri porte sur la liste affichée : ouvre-le depuis l&apos;onglet <UI>À trier</UI> pour ne
-              voir que les nouvelles.
+              voir que les nouvelles. Un clic sur le nom ou la photo d&apos;une personne ouvre cette même vue
+              directement sur elle (Cmd/Ctrl-clic ouvre sa page détaillée dans un nouvel onglet).
             </>,
             <>
               Sur chaque carte, l&apos;âge, la ville et une pastille par date recherchée (verte = dispo, rouge

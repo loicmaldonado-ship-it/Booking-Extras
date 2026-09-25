@@ -97,6 +97,18 @@ export function CandidaturesTable({
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
   const [triOpen, setTriOpen] = useState(false);
+  const [triStart, setTriStart] = useState<string | null>(null);
+
+  // Un clic sur le nom ou la photo ouvre la candidature complète en plein
+  // écran (même vue que le tri rapide, démarrée sur cette personne) au lieu
+  // de changer de page. Cmd/Ctrl-clic ou clic molette ouvrent toujours la
+  // page détaillée dans un nouvel onglet.
+  function openFiche(e: React.MouseEvent, id: string) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    setTriStart(id);
+    setTriOpen(true);
+  }
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
 
@@ -218,7 +230,10 @@ export function CandidaturesTable({
         {triIds.length > 0 && (
           <button
             type="button"
-            onClick={() => setTriOpen(true)}
+            onClick={() => {
+              setTriStart(null);
+              setTriOpen(true);
+            }}
             className="rounded-full bg-coral px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-coral-hover"
           >
             ⚡ Tri rapide ({triIds.length})
@@ -410,6 +425,7 @@ export function CandidaturesTable({
                 <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                   <Link
                     href={`/candidatures/${r.id}`}
+                    onClick={(e) => openFiche(e, r.id)}
                     className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                   >
                     {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
@@ -446,6 +462,7 @@ export function CandidaturesTable({
                     })()}
                     <Link
                       href={`/candidatures/${r.id}`}
+                      onClick={(e) => openFiche(e, r.id)}
                       className="mt-auto text-[10px] font-medium text-coral hover:underline"
                     >
                       Vue complète →
@@ -453,7 +470,11 @@ export function CandidaturesTable({
                   </div>
                 </div>
               </div>
-              <Link href={`/candidatures/${r.id}`} className="flex w-full flex-col items-center gap-1">
+              <Link
+                href={`/candidatures/${r.id}`}
+                onClick={(e) => openFiche(e, r.id)}
+                className="flex w-full flex-col items-center gap-1"
+              >
                 <div className="text-sm font-medium">
                   {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                 </div>
@@ -527,7 +548,11 @@ export function CandidaturesTable({
                     </td>
                     <td className="px-6 py-3 font-medium">
                       <div className="flex items-center gap-2">
-                        <Link href={`/candidatures/${r.id}`} className="hover:text-coral">
+                        <Link
+                          href={`/candidatures/${r.id}`}
+                          onClick={(e) => openFiche(e, r.id)}
+                          className="hover:text-coral"
+                        >
                           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                         </Link>
                         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
@@ -639,6 +664,7 @@ export function CandidaturesTable({
       {triOpen && (
         <TriRapide
           ids={triIds}
+          startId={triStart ?? undefined}
           onglets={onglets}
           onClose={() => {
             setTriOpen(false);

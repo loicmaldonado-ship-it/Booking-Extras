@@ -23,10 +23,14 @@ type Option = { id: string | null; nom: string; couleur: CandidatureOnglet["coul
 // centaines de profils coûteraient cher en egress pour rien.
 export function TriRapide({
   ids: initialIds,
+  startId,
   onglets,
   onClose,
 }: {
   ids: string[];
+  // Ouvert depuis le nom d'une personne : on démarre sur elle, les flèches
+  // parcourent ensuite le reste de la liste affichée.
+  startId?: string;
   onglets: CandidatureOnglet[];
   onClose: () => void;
 }) {
@@ -34,7 +38,7 @@ export function TriRapide({
   // personne rangée quitte par exemple "À trier" — sans ce gel, la liste se
   // décalerait sous nos pieds et le tri sauterait quelqu'un.
   const [ids] = useState(initialIds);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => Math.max(0, startId ? initialIds.indexOf(startId) : 0));
   const [cache, setCache] = useState<Record<string, TriCandidature | { error: string }>>({});
   const [ongletOverride, setOngletOverride] = useState<Record<string, string | null>>({});
   const [rangesIds, setRangesIds] = useState<Set<string>>(new Set());
@@ -189,7 +193,7 @@ export function TriRapide({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-ink" role="dialog" aria-modal="true" aria-label="Tri rapide">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <span className="text-sm font-semibold">⚡ Tri rapide</span>
+        <span className="text-sm font-semibold">{startId ? "Candidatures" : "⚡ Tri rapide"}</span>
         <span className="text-sm tabular-nums text-text-muted">
           {Math.min(index + 1, ids.length)} / {ids.length}
         </span>
