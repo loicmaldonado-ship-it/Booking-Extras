@@ -511,11 +511,13 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
   const { data: c } = await supabase
     .from("candidatures")
     .select(
-      "id, onglet_id, message, created_at, figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
+      "id, annonce_id, onglet_id, message, created_at, annonces(projet_id), figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
     )
     .eq("id", id)
     .single<{
       id: string;
+      annonce_id: string;
+      annonces: { projet_id: string } | null;
       onglet_id: string | null;
       message: string | null;
       created_at: string;
@@ -542,7 +544,15 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
   if (!c?.figurants) return { error: "Candidature introuvable." };
   const f = c.figurants;
 
-  const [photosByFigurant, { data: reponses }, { data: dispos }, { data: lien }, tournages] = await Promise.all([
+  const [
+    photosByFigurant,
+    { data: reponses },
+    { data: dispos },
+    { data: lien },
+    tournages,
+    { data: annonceDates },
+    { data: joursPrevus },
+  ] = await Promise.all([
     getPhotosByFigurantId([f.id]),
     supabase
       .from("candidature_reponses")
@@ -551,12 +561,25 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
       .returns<{ reponse: boolean; annonce_questions: { label: string } | null }[]>(),
     supabase
       .from("candidature_disponibilites")
-      .select("disponible, annonce_dates(date)")
-      .eq("candidature_id", id)
-      .returns<{ disponible: boolean; annonce_dates: { date: string } | null }[]>(),
+      .select("disponible, annonce_date_id")
+      .eq("candidature_id", id),
     supabase.from("figurant_liens").select("url").eq("figurant_id", f.id).eq("label", LIEN_BANDE_DEMO).maybeSingle(),
     getTournagesConfirmesCount([f.id]),
+    supabase.from("annonce_dates").select("id, date").eq("annonce_id", c.annonce_id).order("date"),
+    supabase.from("candidature_jours").select("annonce_date_id").eq("candidature_id", id),
   ]);
+  const { data: bookingsJours } =
+    c.annonces && (annonceDates ?? []).length > 0
+      ? await supabase
+          .from("bookings")
+          .select("date")
+          .eq("projet_id", c.annonces.projet_id)
+          .eq("figurant_id", f.id)
+          .in("date", (annonceDates ?? []).map((d) => d.date))
+      : { data: [] as { date: string }[] };
+  const dispoByDate = new Map((dispos ?? []).map((d) => [d.annonce_date_id, d.disponible]));
+  const prevus = new Set((joursPrevus ?? []).map((j) => j.annonce_date_id));
+  const bookesLe = new Set((bookingsJours ?? []).map((b) => b.date));
 
   const rank = (type: string) => {
     const i = PHOTO_ORDER.indexOf(type);
@@ -601,10 +624,13 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
       questions: (reponses ?? [])
         .filter((r) => r.annonce_questions)
         .map((r) => ({ label: r.annonce_questions!.label, reponse: r.reponse })),
-      dates: (dispos ?? [])
-        .filter((d) => d.annonce_dates)
-        .map((d) => ({ date: d.annonce_dates!.date, disponible: d.disponible }))
-        .sort((a, b) => a.date.localeCompare(b.date)),
+      jours: (annonceDates ?? []).map((d) => ({
+        id: d.id,
+        date: d.date,
+        disponible: dispoByDate.get(d.id) ?? false,
+        prevu: prevus.has(d.id),
+        dansLaJournee: bookesLe.has(d.date),
+      })),
       lienBandeDemo: lien?.url ?? null,
       tournagesConfirmes: tournages.get(f.id) ?? 0,
     },

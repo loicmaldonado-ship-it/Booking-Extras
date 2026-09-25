@@ -343,12 +343,22 @@ export default function AidePage() {
               <UI>2</UI> Peut-être… <UI>0</UI> la remet à trier), puis la suivante arrive toute seule.{" "}
               <UI>←</UI> <UI>→</UI> pour naviguer, <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour
               fermer. Le tri porte sur la liste affichée : ouvre-le depuis l&apos;onglet <UI>À trier</UI> pour ne
-              voir que les nouvelles.
+              voir que les nouvelles. Un clic sur le nom ou la photo d&apos;une personne ouvre cette même vue
+              directement sur elle (Cmd/Ctrl-clic ouvre sa page détaillée dans un nouvel onglet).
             </>,
             <>
               Sur chaque carte, l&apos;âge, la ville et une pastille par date recherchée (verte = dispo, rouge
               barrée = pas dispo) sont visibles directement. Le badge <UI>Habitué·e</UI> indique sur combien de
               tournages la personne a déjà été confirmée.
+            </>,
+            <>
+              <strong className="text-text">Jours de tournage.</strong> Si l&apos;annonce a des dates, chaque carte
+              montre une pastille par date : un clic prévoit la personne ce jour-là (plusieurs jours possibles),
+              contour vert = elle s&apos;est dite dispo. Dans le tri rapide, les touches <UI>A</UI> <UI>Z</UI>{" "}
+              <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
+              au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
+              d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
+              journée.
             </>,
             <>
               Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
@@ -551,6 +561,12 @@ export default function AidePage() {
               pour chaque profil.
             </>,
             "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
+            <>
+              Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
+              <UI>🔀 Changer de date</UI> : choisis une autre journée du projet ou une nouvelle date. La convocation
+              et le « bien reçu » repartent à zéro, et par défaut le statut repasse en PER pour que la personne
+              reconfirme. <UI>📅 Ajouter des dates</UI>, lui, garde la date actuelle et en ajoute d&apos;autres.
+            </>,
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />

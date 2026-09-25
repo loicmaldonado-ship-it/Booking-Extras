@@ -22,6 +22,7 @@ import type { ProjetIndemnite } from "@/lib/indemnites/types";
 import { applyMajorationToBookings } from "@/lib/bareme/actions";
 import { formatMajorationValeur, type BaremeMajoration, type MajorationValeurType } from "@/lib/bareme/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
+import { ChangeDateBar } from "@/components/bookings/change-date-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
@@ -326,6 +327,7 @@ export function BookingsTable({
   messagesByFigurant = {},
   projetIndemnites = [],
   baremeMajorations = [],
+  autresJournees = [],
 }: {
   rows: Row[];
   projetId?: string;
@@ -337,6 +339,8 @@ export function BookingsTable({
   messagesByFigurant?: Record<string, MessageRow[]>;
   projetIndemnites?: ProjetIndemnite[];
   baremeMajorations?: BaremeMajoration[];
+  // Autres journées du projet, proposées pour "Changer de date".
+  autresJournees?: string[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -356,6 +360,8 @@ export function BookingsTable({
   const [essayageOpen, setEssayageOpen] = useState(false);
   const [castingOpen, setCastingOpen] = useState(false);
   const [addDatesOpen, setAddDatesOpen] = useState(false);
+  const [changeDateOpen, setChangeDateOpen] = useState(false);
+  const [changeDateMessage, setChangeDateMessage] = useState<string | null>(null);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
   const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
@@ -1369,6 +1375,15 @@ export function BookingsTable({
         </div>
       )}
 
+      {changeDateMessage && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-2 text-sm text-turquoise">
+          {changeDateMessage}
+          <button type="button" onClick={() => setChangeDateMessage(null)} className="text-xs text-text-muted hover:text-text">
+            Fermer
+          </button>
+        </div>
+      )}
+
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
           <span className="text-sm">{selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}</span>
@@ -1476,7 +1491,28 @@ export function BookingsTable({
             </Button>
           )}
           {projetId && (
-            <Button type="button" variant="secondary" disabled={pending} onClick={() => setAddDatesOpen((v) => !v)}>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => {
+                setChangeDateOpen((v) => !v);
+                setAddDatesOpen(false);
+              }}
+            >
+              🔀 Changer de date
+            </Button>
+          )}
+          {projetId && (
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              onClick={() => {
+                setAddDatesOpen((v) => !v);
+                setChangeDateOpen(false);
+              }}
+            >
               📅 Ajouter des dates
             </Button>
           )}
@@ -1496,6 +1532,21 @@ export function BookingsTable({
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             ✖️ Masquer la sélection
           </Button>
+          {changeDateOpen && projetId && (
+            <div className="w-full border-t border-coral/40 pt-3">
+              <ChangeDateBar
+                bookingIds={selectedRows.map((r) => r.id)}
+                currentDate={date}
+                autresJournees={autresJournees}
+                onDone={(message) => {
+                  setChangeDateOpen(false);
+                  setSelected(new Set());
+                  setChangeDateMessage(message);
+                }}
+                onPartial={(restantIds) => setSelected(new Set(restantIds))}
+              />
+            </div>
+          )}
           {addDatesOpen && projetId && (
             <div className="w-full border-t border-turquoise/40 pt-3">
               <AddToJourneeBar

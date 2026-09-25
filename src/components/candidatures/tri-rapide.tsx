@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -10,7 +10,9 @@ import { PHOTO_TYPE_LABELS } from "@/lib/figurants/photo-labels";
 import type { PhotoType } from "@/lib/figurants/types";
 import { formatDateShort } from "@/lib/format-date";
 import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
-import { DispoChips, HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { HabitueBadge } from "@/components/candidatures/habitue-badge";
+import { JourChipsView, JOUR_KEYS } from "@/components/candidatures/jour-chips";
+import { setCandidatureJour } from "@/lib/candidatures/jours";
 
 type Option = { id: string | null; nom: string; couleur: CandidatureOnglet["couleur"]; key: string };
 
@@ -21,10 +23,14 @@ type Option = { id: string | null; nom: string; couleur: CandidatureOnglet["coul
 // centaines de profils coûteraient cher en egress pour rien.
 export function TriRapide({
   ids: initialIds,
+  startId,
   onglets,
   onClose,
 }: {
   ids: string[];
+  // Ouvert depuis le nom d'une personne : on démarre sur elle, les flèches
+  // parcourent ensuite le reste de la liste affichée.
+  startId?: string;
   onglets: CandidatureOnglet[];
   onClose: () => void;
 }) {
@@ -32,12 +38,14 @@ export function TriRapide({
   // personne rangée quitte par exemple "À trier" — sans ce gel, la liste se
   // décalerait sous nos pieds et le tri sauterait quelqu'un.
   const [ids] = useState(initialIds);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => Math.max(0, startId ? initialIds.indexOf(startId) : 0));
   const [cache, setCache] = useState<Record<string, TriCandidature | { error: string }>>({});
   const [ongletOverride, setOngletOverride] = useState<Record<string, string | null>>({});
   const [rangesIds, setRangesIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
+  // Jours prévus modifiés pendant ce tri, par candidature puis par date.
+  const [jourOverride, setJourOverride] = useState<Record<string, Record<string, boolean>>>({});
   const requested = useRef(new Set<string>());
 
   // 0 = "À trier", puis 1..9 dans l'ordre des onglets (OUT BE toujours dernier).
@@ -70,6 +78,30 @@ export function TriRapide({
   const currentId = ids[index];
   const current = currentId ? cache[currentId] : undefined;
   const data = current && !("error" in current) ? current : null;
+  const jours = useMemo(
+    () => (data ? data.jours.map((j) => ({ ...j, prevu: jourOverride[data.id]?.[j.id] ?? j.prevu })) : []),
+    [data, jourOverride]
+  );
+
+  const toggleJour = useCallback(
+    (jourId: string) => {
+      if (!data) return;
+      const j = jours.find((x) => x.id === jourId);
+      if (!j || j.dansLaJournee) return;
+      const id = data.id;
+      const prevu = !j.prevu;
+      setError(null);
+      setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: prevu } }));
+      setCandidatureJour(id, jourId, prevu).then((res) => {
+        if (res.error) {
+          setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: !prevu } }));
+          setError(`${data.figurant.prenom} ${data.figurant.nom} : ${res.error}`);
+        }
+      });
+    },
+    [data, jours]
+  );
+
   const ongletActuel = currentId
     ? currentId in ongletOverride
       ? ongletOverride[currentId]
@@ -127,10 +159,19 @@ export function TriRapide({
         if (n > 0) setPhotoIndex((p) => (p + (e.key === "ArrowDown" ? 1 : n - 1)) % n);
         return;
       }
-      const option = options.find((o) => o.key === e.key);
+      // Touche physique plutôt que caractère : sur un clavier français,
+      // la rangée des chiffres donne "&", "é"... sans Maj.
+      const digit = /^(?:Digit|Numpad)(\d)$/.exec(e.code)?.[1] ?? (/^\d$/.test(e.key) ? e.key : null);
+      const option = digit !== null ? options.find((o) => o.key === digit) : undefined;
       if (option) {
         e.preventDefault();
         assign(option.id);
+        return;
+      }
+      const jourIndex = JOUR_KEYS.indexOf(e.key.toLowerCase());
+      if (jourIndex !== -1 && jours[jourIndex]) {
+        e.preventDefault();
+        toggleJour(jours[jourIndex].id);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -152,7 +193,7 @@ export function TriRapide({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-ink" role="dialog" aria-modal="true" aria-label="Tri rapide">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <span className="text-sm font-semibold">⚡ Tri rapide</span>
+        <span className="text-sm font-semibold">{startId ? "Candidatures" : "⚡ Tri rapide"}</span>
         <span className="text-sm tabular-nums text-text-muted">
           {Math.min(index + 1, ids.length)} / {ids.length}
         </span>
@@ -274,10 +315,15 @@ export function TriRapide({
                     </div>
                   </div>
 
-                  {data!.dates.length > 0 && (
+                  {jours.length > 0 && (
                     <div>
-                      <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">Dispos</h3>
-                      <DispoChips dates={data!.dates} size="lg" />
+                      <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
+                        Jours de tournage
+                      </h3>
+                      <JourChipsView jours={jours} onToggle={(j) => toggleJour(j.id)} size="lg" showKeys />
+                      <p className="mt-1.5 text-[11px] text-text-muted">
+                        Contour vert = dispo, plein = prévu·e ce jour, ✓ = déjà dans la journée.
+                      </p>
                     </div>
                   )}
 
@@ -368,7 +414,9 @@ export function TriRapide({
                   <ChevronLeft size={16} /> Précédent
                 </button>
                 <span className="hidden text-xs text-text-muted md:inline">
-                  Touches : 0–{options.length - 1} ranger · ← → naviguer · ↑ ↓ photos · Échap fermer
+                  Touches : 0–{options.length - 1} ranger
+                  {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} jours`} · ← →
+                  naviguer · ↑ ↓ photos · Échap fermer
                 </span>
                 <button
                   type="button"

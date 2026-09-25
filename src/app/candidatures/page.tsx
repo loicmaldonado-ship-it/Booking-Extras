@@ -9,6 +9,7 @@ import { CandidaturesTable, type Row, type CandidatureSummary } from "@/componen
 import { SortChips } from "@/components/documents/sort-chips";
 import { ONGLET_OUT_BE } from "@/lib/candidatures/types";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
+import { JoursTournageBar } from "@/components/candidatures/jours-tournage-bar";
 import { GENRES } from "@/lib/figurants/types";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import {
@@ -42,6 +43,7 @@ type SearchParams = {
   question_id?: string;
   question_reponse?: string;
   dispo?: string | string[];
+  jour?: string;
   ordre?: string;
   sort?: string | string[];
   page?: string;
@@ -200,6 +202,8 @@ export default async function CandidaturesPage({
   // Ne garde que des dates de cette annonce : les ids viennent de l'URL.
   const dispoFilter = toList(params.dispo).filter((id) => annonceDateIds.includes(id));
   const ordre: Ordre = ORDRES.some((o) => o.key === params.ordre) ? (params.ordre as Ordre) : "recentes";
+  const jourFilter = params.jour && annonceDateIds.includes(params.jour) ? params.jour : null;
+  const annonceDatesIso = annonceDates.map((d) => d.date);
 
   const [
     { data: candidaturesRaw, error },
@@ -208,6 +212,9 @@ export default async function CandidaturesPage({
     { data: reponsesMatch },
     { data: disposOui },
     onglets,
+    { data: joursRows },
+    { data: bookingsJours },
+    { data: journeesBesoins },
   ] = await Promise.all([
     query.returns<CandidatureWithFilters[]>(),
     supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
@@ -227,7 +234,42 @@ export default async function CandidaturesPage({
           .eq("disponible", true)
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     getOngletsForAnnonce(params.annonce_id),
+    annonceDateIds.length > 0
+      ? supabase.from("candidature_jours").select("candidature_id, annonce_date_id").in("annonce_date_id", annonceDateIds)
+      : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
+    annonce && annonceDatesIso.length > 0
+      ? supabase.from("bookings").select("figurant_id, date").eq("projet_id", annonce.projet_id).in("date", annonceDatesIso)
+      : Promise.resolve({ data: [] as { figurant_id: string; date: string }[] }),
+    annonce && annonceDatesIso.length > 0
+      ? supabase
+          .from("journees")
+          .select("date, journee_besoins(quantite)")
+          .eq("projet_id", annonce.projet_id)
+          .in("date", annonceDatesIso)
+          .returns<{ date: string; journee_besoins: { quantite: number }[] }[]>()
+      : Promise.resolve({ data: [] as { date: string; journee_besoins: { quantite: number }[] }[] }),
   ]);
+
+  // Jours de tournage prévus par candidature, et personnes déjà présentes
+  // dans la journée correspondante (booking sur ce projet à cette date).
+  const dateIsoById = new Map(annonceDates.map((d) => [d.id, d.date]));
+  const joursPrevus = new Map<string, Set<string>>();
+  for (const j of joursRows ?? []) {
+    const set = joursPrevus.get(j.candidature_id) ?? new Set<string>();
+    set.add(j.annonce_date_id);
+    joursPrevus.set(j.candidature_id, set);
+  }
+  const dansLaJournee = new Set((bookingsJours ?? []).map((b) => `${b.figurant_id}|${b.date}`));
+  // Une journée sans besoin saisi (créée par un premier envoi) n'affiche
+  // pas de "/ 0".
+  const besoinsByDate = new Map(
+    (journeesBesoins ?? [])
+      .map((j) => [j.date, j.journee_besoins.reduce((sum, b) => sum + b.quantite, 0)] as const)
+      .filter(([, total]) => total > 0)
+  );
+  const figurantIdByCandidature = new Map((candidaturesRaw ?? []).map((c) => [c.id, c.figurants?.id ?? null]));
+  const estTransfere = (candidatureId: string, dateId: string) =>
+    dansLaJournee.has(`${figurantIdByCandidature.get(candidatureId)}|${dateIsoById.get(dateId)}`);
 
   const datesDispoByCandidature = new Map<string, Set<string>>();
   for (const d of disposOui ?? []) {
@@ -237,8 +279,13 @@ export default async function CandidaturesPage({
   }
 
   const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
+  // Une candidature déjà passée en booking quitte la liste, sauf s'il lui
+  // reste un jour prévu pas encore envoyé dans sa journée : elle doit rester
+  // visible pour ce jour-là.
+  const estMasquee = (c: CandidatureWithFilters) =>
+    bookedCandidatureIds.has(c.id) && ![...(joursPrevus.get(c.id) ?? [])].some((dateId) => !estTransfere(c.id, dateId));
 
-  let candidatures = (candidaturesRaw ?? []).filter((c) => !bookedCandidatureIds.has(c.id));
+  let candidatures = (candidaturesRaw ?? []).filter((c) => !estMasquee(c));
   if (params.myrole === "oui") {
     candidatures = candidatures.filter((c) => c.figurants?.compte_myrole);
   } else if (params.myrole === "non") {
@@ -291,6 +338,23 @@ export default async function CandidaturesPage({
       return dispoFilter.every((id) => dispos?.has(id));
     });
   }
+  if (jourFilter) {
+    candidatures = candidatures.filter((c) => joursPrevus.get(c.id)?.has(jourFilter));
+  }
+
+  // Par jour : toutes les personnes prévues (quel que soit le filtre
+  // affiché), dont celles déjà dans la journée, et le besoin saisi dans
+  // Bookings pour cette journée s'il existe.
+  const joursTournage = annonceDates.map((d) => {
+    const prevues = (joursRows ?? []).filter((j) => j.annonce_date_id === d.id);
+    return {
+      id: d.id,
+      date: d.date,
+      prevues: prevues.length,
+      dansLaJournee: prevues.filter((j) => estTransfere(j.candidature_id, d.id)).length,
+      besoin: besoinsByDate.get(d.date) ?? null,
+    };
+  });
 
   // Compte par onglet pour la barre d'onglets — calculé sur le même
   // périmètre que les filtres actifs (myrole/genre/âge/question), mais
@@ -351,7 +415,7 @@ export default async function CandidaturesPage({
   );
 
   const candidatureIds = pageCandidatures.map((c) => c.id);
-  const [{ data: reponsesRaw }, { data: disposRaw }] = await Promise.all([
+  const [{ data: reponsesRaw }, tournagesPage] = await Promise.all([
     candidatureIds.length > 0
       ? supabase
           .from("candidature_reponses")
@@ -359,29 +423,24 @@ export default async function CandidaturesPage({
           .in("candidature_id", candidatureIds)
           .returns<{ candidature_id: string; reponse: boolean; annonce_questions: { label: string } | null }[]>()
       : Promise.resolve({ data: [] as { candidature_id: string; reponse: boolean; annonce_questions: { label: string } | null }[] }),
-    candidatureIds.length > 0
-      ? supabase
-          .from("candidature_disponibilites")
-          .select("candidature_id, disponible, annonce_dates(date)")
-          .in("candidature_id", candidatureIds)
-          .returns<{ candidature_id: string; disponible: boolean; annonce_dates: { date: string } | null }[]>()
-      : Promise.resolve({ data: [] as { candidature_id: string; disponible: boolean; annonce_dates: { date: string } | null }[] }),
-  ]);
-
-  const tournagesPage =
     tournagesTous ??
-    (await getTournagesConfirmesCount(
-      pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
-    ));
+      getTournagesConfirmesCount(pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+  ]);
 
   const summaries: Record<string, CandidatureSummary> = {};
   for (const c of pageCandidatures) {
     summaries[c.id] = {
       questions: [],
-      dates: [],
       message: c.message,
       age: ageOf(c),
       tournages: c.figurants ? (tournagesPage.get(c.figurants.id) ?? 0) : 0,
+      jours: annonceDates.map((d) => ({
+        id: d.id,
+        date: d.date,
+        disponible: datesDispoByCandidature.get(c.id)?.has(d.id) ?? false,
+        prevu: joursPrevus.get(c.id)?.has(d.id) ?? false,
+        dansLaJournee: estTransfere(c.id, d.id),
+      })),
     };
   }
   for (const r of reponsesRaw ?? []) {
@@ -389,12 +448,6 @@ export default async function CandidaturesPage({
     if (!r.annonce_questions || !entry) continue;
     entry.questions.push({ label: r.annonce_questions.label, reponse: r.reponse });
   }
-  for (const d of disposRaw ?? []) {
-    const entry = summaries[d.candidature_id];
-    if (!d.annonce_dates || !entry) continue;
-    entry.dates.push({ date: d.annonce_dates.date, disponible: d.disponible });
-  }
-  for (const entry of Object.values(summaries)) entry.dates.sort((a, b) => a.date.localeCompare(b.date));
 
   const signatureByProjet = await getProjetSignaturesOrOwnerNames(
     supabase,
@@ -433,7 +486,8 @@ export default async function CandidaturesPage({
       page: pageOverride,
       dispo = dispoFilter,
       ordre: ordreOverride = ordre,
-    }: { ongletId?: string; genre?: string; page?: number; dispo?: string[]; ordre?: Ordre }
+      jour = jourFilter,
+    }: { ongletId?: string; genre?: string; page?: number; dispo?: string[]; ordre?: Ordre; jour?: string | null }
   ) {
     const sp = new URLSearchParams();
     sp.set("annonce_id", base.annonce_id!);
@@ -456,6 +510,7 @@ export default async function CandidaturesPage({
     if (base.question_id) sp.set("question_id", base.question_id);
     if (base.question_reponse) sp.set("question_reponse", base.question_reponse);
     for (const id of dispo) sp.append("dispo", id);
+    if (jour) sp.set("jour", jour);
     if (ordreOverride !== "recentes") sp.set("ordre", ordreOverride);
     for (const dim of docSortDims) sp.append("sort", dim);
     if (pageOverride && pageOverride > 1) sp.set("page", String(pageOverride));
@@ -495,11 +550,13 @@ export default async function CandidaturesPage({
       genre: params.genre,
       dispo: dispoFilter.includes(dateId) ? dispoFilter.filter((id) => id !== dateId) : [...dispoFilter, dateId],
     });
+  const jourHref = (dateId: string | null) =>
+    buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, jour: dateId });
   const ordreHref = (o: Ordre) =>
     buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, ordre: o });
 
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
-    .filter((c) => !bookedCandidatureIds.has(c.id))
+    .filter((c) => !estMasquee(c))
     .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
     .filter((c) => (params.myrole === "non" ? !c.figurants?.compte_myrole : true))
     .filter((c) => (params.onglet_id === "a_trier" ? c.onglet_id === null : true))
@@ -602,6 +659,16 @@ export default async function CandidaturesPage({
         })}
       </div>
 
+      {annonceDates.length > 0 && annonce && (
+        <JoursTournageBar
+          jours={joursTournage}
+          activeId={jourFilter}
+          hrefs={Object.fromEntries(annonceDates.map((d) => [d.id, jourHref(d.id)]))}
+          clearHref={jourHref(null)}
+          projetId={annonce.projet_id}
+        />
+      )}
+
       {annonceDates.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium uppercase tracking-wide text-text-muted">Dispo le :</span>
@@ -648,6 +715,7 @@ export default async function CandidaturesPage({
           question_id: params.question_id,
           question_reponse: params.question_reponse,
           dispo: dispoFilter,
+          jour: jourFilter ?? undefined,
           ordre: ordre === "recentes" ? undefined : ordre,
         }}
         current={docSort}
@@ -681,6 +749,7 @@ export default async function CandidaturesPage({
             <input key={id} type="hidden" name="dispo" value={id} />
           ))}
           {ordre !== "recentes" && <input type="hidden" name="ordre" value={ordre} />}
+          {jourFilter && <input type="hidden" name="jour" value={jourFilter} />}
           <Select name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Myrole (tous)</option>
             <option value="oui">Avec compte Myrole</option>

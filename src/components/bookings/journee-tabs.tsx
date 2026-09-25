@@ -126,6 +126,7 @@ export function JourneeTabs({
             messagesByFigurant={messagesByFigurant}
             projetIndemnites={projetIndemnites}
             baremeMajorations={baremeMajorations}
+            autresJournees={autresDates}
           />
         </div>
       )}

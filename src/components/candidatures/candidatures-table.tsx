@@ -11,7 +11,8 @@ import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
-import { DispoChips, HabitueBadge } from "@/components/candidatures/dispo-chips";
+import { HabitueBadge } from "@/components/candidatures/habitue-badge";
+import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
@@ -23,7 +24,6 @@ import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
-import { formatDateShort } from "@/lib/format-date";
 import type { MessageTemplate } from "@/lib/templates/types";
 
 export type Row = {
@@ -43,10 +43,10 @@ export type Row = {
 
 export type CandidatureSummary = {
   questions: { label: string; reponse: boolean }[];
-  dates: { date: string; disponible: boolean }[];
   message: string | null;
   age: number | null;
   tournages: number;
+  jours: JourCandidature[];
 };
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -95,6 +95,18 @@ export function CandidaturesTable({
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
   const [sendError, setSendError] = useState<string | null>(null);
   const [triOpen, setTriOpen] = useState(false);
+  const [triStart, setTriStart] = useState<string | null>(null);
+
+  // Un clic sur le nom ou la photo ouvre la candidature complète en plein
+  // écran (même vue que le tri rapide, démarrée sur cette personne) au lieu
+  // de changer de page. Cmd/Ctrl-clic ou clic molette ouvrent toujours la
+  // page détaillée dans un nouvel onglet.
+  function openFiche(e: React.MouseEvent, id: string) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    setTriStart(id);
+    setTriOpen(true);
+  }
 
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
 
@@ -216,7 +228,10 @@ export function CandidaturesTable({
         {triIds.length > 0 && (
           <button
             type="button"
-            onClick={() => setTriOpen(true)}
+            onClick={() => {
+              setTriStart(null);
+              setTriOpen(true);
+            }}
             className="rounded-full bg-coral px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-coral-hover"
           >
             ⚡ Tri rapide ({triIds.length})
@@ -388,7 +403,7 @@ export function CandidaturesTable({
       )}
 
       {isTrombi ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {rows.map((r) => (
             <div
               key={r.id}
@@ -408,31 +423,30 @@ export function CandidaturesTable({
                 <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                   <Link
                     href={`/candidatures/${r.id}`}
+                    onClick={(e) => openFiche(e, r.id)}
                     className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                   >
                     {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
                   </Link>
-                  <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-2 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     {(() => {
                       const summary = summaries[r.id];
-                      if (!summary || (summary.questions.length === 0 && summary.dates.length === 0 && !summary.message)) {
-                        return <p className="text-[10px] text-text-muted">Pas de détails.</p>;
+                      // Les dates sont déjà sur la face avant (pastilles jour) :
+                      // le dos sert à lire le message de la personne.
+                      if (!summary || (summary.questions.length === 0 && !summary.message)) {
+                        return <p className="text-xs text-text-muted">Pas de message.</p>;
                       }
                       return (
-                        <div className="flex flex-1 flex-col gap-1 overflow-hidden text-[9px] leading-tight">
-                          {summary.message && (
-                            <p className="line-clamp-3 italic text-text-muted">&laquo; {summary.message} &raquo;</p>
+                        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+                          {summary.message ? (
+                            <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
+                              {summary.message}
+                            </p>
+                          ) : (
+                            <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
                           )}
-                          {summary.dates.map((d, i) => (
-                            <div key={i} className="flex items-center justify-between gap-1">
-                              <span className="truncate text-text-muted">{formatDateShort(d.date)}</span>
-                              <span className={d.disponible ? "text-turquoise" : "text-danger"}>
-                                {d.disponible ? "Dispo" : "Non"}
-                              </span>
-                            </div>
-                          ))}
                           {summary.questions.map((q, i) => (
-                            <div key={i} className="flex items-center justify-between gap-1">
+                            <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
                               <span className="truncate text-text-muted">{q.label}</span>
                               <span className={q.reponse ? "text-turquoise" : "text-danger"}>
                                 {q.reponse ? "Oui" : "Non"}
@@ -444,14 +458,19 @@ export function CandidaturesTable({
                     })()}
                     <Link
                       href={`/candidatures/${r.id}`}
-                      className="mt-auto text-[10px] font-medium text-coral hover:underline"
+                      onClick={(e) => openFiche(e, r.id)}
+                      className="mt-auto text-xs font-medium text-coral hover:underline"
                     >
                       Vue complète →
                     </Link>
                   </div>
                 </div>
               </div>
-              <Link href={`/candidatures/${r.id}`} className="flex w-full flex-col items-center gap-1">
+              <Link
+                href={`/candidatures/${r.id}`}
+                onClick={(e) => openFiche(e, r.id)}
+                className="flex w-full flex-col items-center gap-1"
+              >
                 <div className="text-sm font-medium">
                   {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                 </div>
@@ -462,7 +481,7 @@ export function CandidaturesTable({
                 </div>
               </Link>
               <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} />
-              <DispoChips dates={summaries[r.id]?.dates ?? []} className="justify-center" />
+              <JourChips candidatureId={r.id} jours={summaries[r.id]?.jours ?? []} center />
               {r.portraitUrl && (() => {
                 const gallery = toGalleryPhotos(r.photos);
                 return (
@@ -505,7 +524,7 @@ export function CandidaturesTable({
                 <th className="px-6 py-3 font-medium">Figurant</th>
                 <th className="px-6 py-3 font-medium">Âge · Ville</th>
                 <th className="px-6 py-3 font-medium">Myrole</th>
-                <th className="px-6 py-3 font-medium">Dispos</th>
+                <th className="px-6 py-3 font-medium">Jours</th>
                 <th className="px-6 py-3 font-medium">Onglet & fonction</th>
                 <th className="px-6 py-3 font-medium">Message</th>
               </tr>
@@ -525,7 +544,11 @@ export function CandidaturesTable({
                     </td>
                     <td className="px-6 py-3 font-medium">
                       <div className="flex items-center gap-2">
-                        <Link href={`/candidatures/${r.id}`} className="hover:text-coral">
+                        <Link
+                          href={`/candidatures/${r.id}`}
+                          onClick={(e) => openFiche(e, r.id)}
+                          className="hover:text-coral"
+                        >
                           {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
                         </Link>
                         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
@@ -544,8 +567,8 @@ export function CandidaturesTable({
                       {r.figurants?.compte_myrole ? <Badge tone="turquoise">Oui</Badge> : <Badge>Non</Badge>}
                     </td>
                     <td className="px-6 py-3">
-                      {(summaries[r.id]?.dates.length ?? 0) > 0 ? (
-                        <DispoChips dates={summaries[r.id].dates} />
+                      {(summaries[r.id]?.jours.length ?? 0) > 0 ? (
+                        <JourChips candidatureId={r.id} jours={summaries[r.id].jours} />
                       ) : (
                         <span className="text-text-muted">—</span>
                       )}
@@ -637,6 +660,7 @@ export function CandidaturesTable({
       {triOpen && (
         <TriRapide
           ids={triIds}
+          startId={triStart ?? undefined}
           onglets={onglets}
           onClose={() => {
             setTriOpen(false);
