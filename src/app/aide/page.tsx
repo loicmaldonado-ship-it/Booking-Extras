@@ -560,6 +560,12 @@ export default function AidePage() {
               pour chaque profil.
             </>,
             "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
+            <>
+              Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
+              <UI>🔀 Changer de date</UI> : choisis une autre journée du projet ou une nouvelle date. La convocation
+              et le « bien reçu » repartent à zéro, et par défaut le statut repasse en PER pour que la personne
+              reconfirme. <UI>📅 Ajouter des dates</UI>, lui, garde la date actuelle et en ajoute d&apos;autres.
+            </>,
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />

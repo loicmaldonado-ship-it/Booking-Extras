@@ -82,6 +82,11 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
     const existingAccessError = await checkProjetAccess(existing.projet_id);
     if (existingAccessError) return { error: existingAccessError };
   }
+  // Une date changée ici doit exister comme journée, sinon le booking
+  // n'apparaît plus dans aucune vue par journée.
+  await supabase
+    .from("journees")
+    .upsert({ projet_id: payload.projet_id, date: payload.date }, { onConflict: "projet_id,date" });
   const { error } = await supabase.from("bookings").update(payload).eq("id", id);
 
   if (error) {
@@ -355,6 +360,81 @@ export async function bulkUpdateBookings(
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   return {};
+}
+
+// Déplace des bookings vers une autre date du même projet (journée créée
+// si besoin). Ce qui ne vaut que pour l'ancienne date est remis à zéro :
+// convocation envoyée, "bien reçu", et le covoiturage croisé (un passager
+// déplacé n'est plus dans la voiture de son conducteur, et les passagers
+// restés sur l'ancienne date perdent un conducteur déplacé). Une personne
+// déjà bookée à la nouvelle date sur ce projet n'est pas déplacée.
+export async function moveBookingsToDate(
+  ids: string[],
+  newDate: string,
+  repasserEnPer: boolean
+): Promise<{ moved: number; conflits: string[]; restantIds: string[]; error?: string }> {
+  const vide = { moved: 0, conflits: [] as string[], restantIds: ids };
+  if (ids.length === 0) return vide;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return { ...vide, error: "Date invalide." };
+
+  const supabase = createAdminClient();
+  const { data: bookings, error: readError } = await supabase
+    .from("bookings")
+    .select("id, projet_id, date, figurant_id, figurants!bookings_figurant_id_fkey(prenom, nom)")
+    .in("id", ids)
+    .returns<{ id: string; projet_id: string; date: string; figurant_id: string; figurants: { prenom: string; nom: string } | null }[]>();
+  if (readError) return { ...vide, error: readError.message };
+  const list = bookings ?? [];
+  const projetIds = Array.from(new Set(list.map((b) => b.projet_id)));
+  if (projetIds.length !== 1) return { ...vide, error: "Sélection sur plusieurs projets." };
+  const projetId = projetIds[0];
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { ...vide, error: accessError };
+
+  const aDeplacer = list.filter((b) => b.date !== newDate);
+  const { data: dejaLa } = await supabase
+    .from("bookings")
+    .select("figurant_id")
+    .eq("projet_id", projetId)
+    .eq("date", newDate)
+    .in("figurant_id", aDeplacer.map((b) => b.figurant_id));
+  const dejaLaIds = new Set((dejaLa ?? []).map((b) => b.figurant_id));
+  const conflits = aDeplacer
+    .filter((b) => dejaLaIds.has(b.figurant_id))
+    .map((b) => (b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "?"));
+  const moves = aDeplacer.filter((b) => !dejaLaIds.has(b.figurant_id));
+  const restantIds = list.filter((b) => !moves.includes(b)).map((b) => b.id);
+  if (moves.length === 0) return { moved: 0, conflits, restantIds };
+
+  await supabase.from("journees").upsert({ projet_id: projetId, date: newDate }, { onConflict: "projet_id,date" });
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({
+      date: newDate,
+      convocation_envoyee: false,
+      convocation_envoyee_le: null,
+      reponse_recue: false,
+      reponse_recue_le: null,
+      covoiturage_conducteur_id: null,
+      ...(repasserEnPer ? { statut: "envoyé" as BookingStatut } : {}),
+    })
+    .in("id", moves.map((b) => b.id));
+  if (error) return { moved: 0, conflits, restantIds: ids, error: friendlyError(error.message) };
+
+  for (const oldDate of Array.from(new Set(moves.map((b) => b.date)))) {
+    await supabase
+      .from("bookings")
+      .update({ covoiturage_conducteur_id: null })
+      .eq("projet_id", projetId)
+      .eq("date", oldDate)
+      .in("covoiturage_conducteur_id", moves.filter((b) => b.date === oldDate).map((b) => b.figurant_id));
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  revalidatePath("/bookings/planning");
+  return { moved: moves.length, conflits, restantIds };
 }
 
 export async function markConvocationEnvoyee(id: string) {
