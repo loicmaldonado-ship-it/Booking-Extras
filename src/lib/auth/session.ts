@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,7 +39,11 @@ export function profileDisplayName(p: { prenom?: string | null; nom: string | nu
   return p.nom || p.email;
 }
 
-export async function getCurrentProfile(): Promise<CurrentProfile | null> {
+// Mémorisé le temps d'un rendu de page (cache de React, sans effet dans une
+// action serveur) : le layout, la page et chaque vérification d'accès
+// l'appelaient chacun, soit deux allers-retours réseau (auth + profil) de
+// plus à chaque fois.
+export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> => {
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
@@ -80,7 +85,7 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
     isOwner: profile.is_owner,
     comedienPoolId: profile.comedien_pool_id,
   };
-}
+});
 
 // Liste ce que ce profil voit dans ses propres listes/pickers (Projets,
 // Base Profils, Bookings, Casting...) : pour une chef·fe (y compris le
@@ -91,21 +96,25 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 // checkProjetAccess pour l'accès direct (par id) qui, lui, reste illimité
 // pour le compte propriétaire.
 export async function getAccessibleProjetIds(profile: CurrentProfile): Promise<string[] | null> {
+  return accessibleProjetIdsFor(profile.id, profile.role);
+}
+
+const accessibleProjetIdsFor = cache(async (profileId: string, role: CurrentProfile["role"]): Promise<string[]> => {
   const admin = createAdminClient();
 
-  if (profile.role === "chef") {
+  if (role === "chef") {
     const [{ data: owned }, { data: membre }] = await Promise.all([
-      admin.from("projets").select("id").eq("owner_id", profile.id),
-      admin.from("projet_membres").select("projet_id").eq("profile_id", profile.id),
+      admin.from("projets").select("id").eq("owner_id", profileId),
+      admin.from("projet_membres").select("projet_id").eq("profile_id", profileId),
     ]);
     return Array.from(
       new Set([...(owned ?? []).map((p) => p.id), ...(membre ?? []).map((m) => m.projet_id)])
     );
   }
 
-  const { data } = await admin.from("projet_membres").select("projet_id").eq("profile_id", profile.id);
+  const { data } = await admin.from("projet_membres").select("projet_id").eq("profile_id", profileId);
   return (data ?? []).map((r) => r.projet_id);
-}
+});
 
 // À appeler dans chaque page de détail/édition d'une ressource rattachée à
 // un projet (booking, annonce, candidature, essayage...), une fois son
