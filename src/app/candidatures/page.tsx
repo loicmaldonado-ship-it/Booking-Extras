@@ -415,7 +415,7 @@ export default async function CandidaturesPage({
   );
 
   const candidatureIds = pageCandidatures.map((c) => c.id);
-  const [{ data: reponsesRaw }, { data: disposRaw }] = await Promise.all([
+  const [{ data: reponsesRaw }, tournagesPage] = await Promise.all([
     candidatureIds.length > 0
       ? supabase
           .from("candidature_reponses")
@@ -423,26 +423,14 @@ export default async function CandidaturesPage({
           .in("candidature_id", candidatureIds)
           .returns<{ candidature_id: string; reponse: boolean; annonce_questions: { label: string } | null }[]>()
       : Promise.resolve({ data: [] as { candidature_id: string; reponse: boolean; annonce_questions: { label: string } | null }[] }),
-    candidatureIds.length > 0
-      ? supabase
-          .from("candidature_disponibilites")
-          .select("candidature_id, disponible, annonce_dates(date)")
-          .in("candidature_id", candidatureIds)
-          .returns<{ candidature_id: string; disponible: boolean; annonce_dates: { date: string } | null }[]>()
-      : Promise.resolve({ data: [] as { candidature_id: string; disponible: boolean; annonce_dates: { date: string } | null }[] }),
-  ]);
-
-  const tournagesPage =
     tournagesTous ??
-    (await getTournagesConfirmesCount(
-      pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
-    ));
+      getTournagesConfirmesCount(pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+  ]);
 
   const summaries: Record<string, CandidatureSummary> = {};
   for (const c of pageCandidatures) {
     summaries[c.id] = {
       questions: [],
-      dates: [],
       message: c.message,
       age: ageOf(c),
       tournages: c.figurants ? (tournagesPage.get(c.figurants.id) ?? 0) : 0,
@@ -460,12 +448,6 @@ export default async function CandidaturesPage({
     if (!r.annonce_questions || !entry) continue;
     entry.questions.push({ label: r.annonce_questions.label, reponse: r.reponse });
   }
-  for (const d of disposRaw ?? []) {
-    const entry = summaries[d.candidature_id];
-    if (!d.annonce_dates || !entry) continue;
-    entry.dates.push({ date: d.annonce_dates.date, disponible: d.disponible });
-  }
-  for (const entry of Object.values(summaries)) entry.dates.sort((a, b) => a.date.localeCompare(b.date));
 
   const signatureByProjet = await getProjetSignaturesOrOwnerNames(
     supabase,

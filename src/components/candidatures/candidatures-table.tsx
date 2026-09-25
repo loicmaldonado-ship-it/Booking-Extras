@@ -24,7 +24,6 @@ import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
-import { formatDateShort } from "@/lib/format-date";
 import type { MessageTemplate } from "@/lib/templates/types";
 
 export type Row = {
@@ -44,7 +43,6 @@ export type Row = {
 
 export type CandidatureSummary = {
   questions: { label: string; reponse: boolean }[];
-  dates: { date: string; disponible: boolean }[];
   message: string | null;
   age: number | null;
   tournages: number;
@@ -405,7 +403,7 @@ export function CandidaturesTable({
       )}
 
       {isTrombi ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {rows.map((r) => (
             <div
               key={r.id}
@@ -430,27 +428,25 @@ export function CandidaturesTable({
                   >
                     {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
                   </Link>
-                  <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-2 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                  <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
                     {(() => {
                       const summary = summaries[r.id];
-                      if (!summary || (summary.questions.length === 0 && summary.dates.length === 0 && !summary.message)) {
-                        return <p className="text-[10px] text-text-muted">Pas de détails.</p>;
+                      // Les dates sont déjà sur la face avant (pastilles jour) :
+                      // le dos sert à lire le message de la personne.
+                      if (!summary || (summary.questions.length === 0 && !summary.message)) {
+                        return <p className="text-xs text-text-muted">Pas de message.</p>;
                       }
                       return (
-                        <div className="flex flex-1 flex-col gap-1 overflow-hidden text-[9px] leading-tight">
-                          {summary.message && (
-                            <p className="line-clamp-3 italic text-text-muted">&laquo; {summary.message} &raquo;</p>
+                        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
+                          {summary.message ? (
+                            <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
+                              {summary.message}
+                            </p>
+                          ) : (
+                            <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
                           )}
-                          {summary.dates.map((d, i) => (
-                            <div key={i} className="flex items-center justify-between gap-1">
-                              <span className="truncate text-text-muted">{formatDateShort(d.date)}</span>
-                              <span className={d.disponible ? "text-turquoise" : "text-danger"}>
-                                {d.disponible ? "Dispo" : "Non"}
-                              </span>
-                            </div>
-                          ))}
                           {summary.questions.map((q, i) => (
-                            <div key={i} className="flex items-center justify-between gap-1">
+                            <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
                               <span className="truncate text-text-muted">{q.label}</span>
                               <span className={q.reponse ? "text-turquoise" : "text-danger"}>
                                 {q.reponse ? "Oui" : "Non"}
@@ -463,7 +459,7 @@ export function CandidaturesTable({
                     <Link
                       href={`/candidatures/${r.id}`}
                       onClick={(e) => openFiche(e, r.id)}
-                      className="mt-auto text-[10px] font-medium text-coral hover:underline"
+                      className="mt-auto text-xs font-medium text-coral hover:underline"
                     >
                       Vue complète →
                     </Link>
