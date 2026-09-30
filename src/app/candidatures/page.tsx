@@ -279,11 +279,11 @@ export default async function CandidaturesPage({
   }
 
   const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
-  // Une candidature déjà passée en booking quitte la liste, sauf s'il lui
-  // reste un jour prévu pas encore envoyé dans sa journée : elle doit rester
-  // visible pour ce jour-là.
-  const estMasquee = (c: CandidatureWithFilters) =>
-    bookedCandidatureIds.has(c.id) && ![...(joursPrevus.get(c.id) ?? [])].some((dateId) => !estTransfere(c.id, dateId));
+  // Règle de Loïc : une fois envoyée dans un booking, une candidature ne
+  // réapparaît plus jamais dans cette annonce, même s'il lui reste des jours
+  // prévus (ils restent comptés et envoyables depuis la barre "Jours de
+  // tournage"). Postuler à une autre annonce crée une nouvelle candidature.
+  const estMasquee = (c: CandidatureWithFilters) => bookedCandidatureIds.has(c.id);
 
   let candidatures = (candidaturesRaw ?? []).filter((c) => !estMasquee(c));
   if (params.myrole === "oui") {
