@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { uploadMaPhoto, deleteMaPhoto } from "@/lib/candidats/actions";
 import { MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
-import { compressImage } from "@/lib/media/compress-image";
+import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 
 type PhotoWithUrl = { id: string; type: PhotoType; url?: string };
 
@@ -41,10 +41,15 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
     setError(null);
     setBusy(true);
     startTransition(async () => {
-      const compressed = await compressImage(file);
+      const prepare = await prepareImage(file);
+      if ("error" in prepare) {
+        setBusy(false);
+        setError(prepare.error);
+        return;
+      }
       const fd = new FormData();
       fd.set("type", type);
-      fd.set("photo", compressed);
+      fd.set("photo", prepare.file);
       const result = await uploadMaPhoto(undefined, fd);
       setBusy(false);
       if (result?.error) setError(result.error);
@@ -122,7 +127,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept={ACCEPT_IMAGES}
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];

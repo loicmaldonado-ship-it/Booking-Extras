@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
-import { compressImage } from "@/lib/media/compress-image";
+import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
@@ -172,9 +172,14 @@ export function CastingUploadForm({
         const file = photos[label];
         if (!file) continue;
         setStep(`Compression de la photo « ${label} »...`);
-        const compressed = await compressImage(file);
+        const prepare = await prepareImage(file);
+        if ("error" in prepare) {
+          setError(`Photo « ${label} » : ${prepare.error}`);
+          setStep(null);
+          return;
+        }
         setStep(`Envoi de la photo « ${label} »...`);
-        uploadedPhotos.push({ label, path: await uploadOnePhoto(label, compressed, controller.signal) });
+        uploadedPhotos.push({ label, path: await uploadOnePhoto(label, prepare.file, controller.signal) });
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
@@ -232,7 +237,7 @@ export function CastingUploadForm({
               <FileSlot
                 key={label}
                 label={label}
-                accept="image/*"
+                accept={ACCEPT_IMAGES}
                 onSelect={(file) => setPhotos((prev) => ({ ...prev, [label]: file }))}
               />
             ))}
