@@ -277,9 +277,28 @@ export function CandidaturesTable({
 
       {selected.size > 0 && (
         <div className="flex flex-col gap-3">
-          <Button type="button" variant="secondary" onClick={() => setShowPreview((v) => !v)}>
-            {showPreview ? "Masquer l'aperçu trombis" : "Prévisualiser en trombis"}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={() => setShowPreview((v) => !v)}>
+              {showPreview ? "Masquer l'aperçu trombis" : "Prévisualiser en trombis"}
+            </Button>
+            {/* Documents imprimables / PDF de la sélection, avant tout booking. */}
+            <a
+              href={`/candidatures/documents/trombis?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              🖼️ Trombi ({selected.size})
+            </a>
+            <a
+              href={`/candidatures/documents/fiches?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            >
+              📏 Fiches mensuration ({selected.size})
+            </a>
+          </div>
 
           {showPreview && (() => {
             const previewRows = rows.filter((r) => selected.has(r.id));

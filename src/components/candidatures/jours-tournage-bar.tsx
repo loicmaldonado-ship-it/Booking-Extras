@@ -2,20 +2,26 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { formatDateLong, formatDayMonth } from "@/lib/format-date";
 import { envoyerJourAuTournage } from "@/lib/candidatures/jours";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/card";
+import { statutLabel, statutTone, type BookingStatut } from "@/lib/bookings/types";
 
 export type JourTournage = {
   id: string;
   date: string;
   prevues: number;
   dansLaJournee: number;
+  envoyes: number;
   besoin: number | null;
 };
+
+export type EnvoyeJour = { bookingId: string; nom: string; statut: BookingStatut; portraitUrl: string | null };
 
 // Une pastille par date de l'annonce = un "onglet jour" : combien de
 // personnes y sont prévues (et le besoin saisi dans Bookings). Le jour
@@ -27,12 +33,14 @@ export function JoursTournageBar({
   hrefs,
   clearHref,
   projetId,
+  envoyesDuJour = [],
 }: {
   jours: JourTournage[];
   activeId: string | null;
   hrefs: Record<string, string>;
   clearHref: string;
   projetId: string;
+  envoyesDuJour?: EnvoyeJour[];
 }) {
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
@@ -78,6 +86,12 @@ export function JoursTournageBar({
                 {j.besoin !== null ? ` / ${j.besoin}` : ""}
               </span>{" "}
               prévu·e{j.prevues > 1 ? "s" : ""}
+              {j.envoyes > 0 && (
+                <span className="text-turquoise">
+                  {" "}
+                  · {j.envoyes} envoyé·e{j.envoyes > 1 ? "s" : ""}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -149,8 +163,59 @@ export function JoursTournageBar({
           {aEnvoyer === 0 && active.prevues > 0 && !result && (
             <p className="text-xs text-text-muted">Tout le monde prévu ce jour est déjà dans la journée.</p>
           )}
-          {active.prevues === 0 && (
+          {active.prevues === 0 && active.envoyes === 0 && (
             <p className="text-xs text-text-muted">Personne n&apos;est encore prévu ce jour-là.</p>
+          )}
+
+          {envoyesDuJour.length > 0 && (
+            // Trace de qui a été envoyé dans la journée : ces personnes ne
+            // sont plus dans la liste des candidatures une fois envoyées.
+            <div className="flex flex-col gap-2 border-t border-border pt-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  Envoyé·es dans la journée du {formatDayMonth(active.date)} ({envoyesDuJour.length})
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <Link
+                    href={`/bookings/documents/trombis?projet_id=${projetId}&date=${active.date}&statut=tous`}
+                    target="_blank"
+                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                  >
+                    🖼️ Trombi de la journée
+                  </Link>
+                  <Link
+                    href={`/bookings/documents/fiches?projet_id=${projetId}&date=${active.date}&statut=tous`}
+                    target="_blank"
+                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                  >
+                    📏 Fiches mensuration
+                  </Link>
+                  <Link
+                    href={`/bookings/documents?projet_id=${projetId}&date=${active.date}`}
+                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                  >
+                    Voir la journée →
+                  </Link>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
+                {envoyesDuJour.map((e) => (
+                  <Link
+                    key={e.bookingId}
+                    href={`/bookings/${e.bookingId}`}
+                    className="flex flex-col gap-1 rounded-xl border border-border bg-ink p-1.5 text-center hover:border-coral/60"
+                  >
+                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                      {e.portraitUrl && (
+                        <Image src={e.portraitUrl} alt={e.nom} fill sizes="120px" className="object-cover" />
+                      )}
+                    </div>
+                    <span className="truncate text-xs font-medium">{e.nom}</span>
+                    <Badge tone={statutTone(e.statut)}>{e.statut === "envoyé" ? "PER" : statutLabel(e.statut)}</Badge>
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

@@ -369,7 +369,15 @@ export default function AidePage() {
               <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
               au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
               d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
-              journée.
+              journée. Les personnes envoyées quittent la liste, mais le jour garde leur trace : la pastille compte les{" "}
+              <UI>envoyé·es</UI>, et en ouvrant le jour tu vois leur trombi (photo, nom, statut du booking) avec des
+              liens vers le trombi et les fiches mensuration de la journée.
+            </>,
+            <>
+              <strong className="text-text">Trombi et fiches d&apos;une sélection.</strong> Coche des personnes, puis{" "}
+              <UI>🖼️ Trombi</UI> ou <UI>📏 Fiches mensuration</UI> : les documents s&apos;ouvrent dans un nouvel
+              onglet, à imprimer ou télécharger en PDF (avant tout booking, par exemple pour les montrer à la
+              réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
             </>,
             <>
               Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
@@ -635,6 +643,11 @@ export default function AidePage() {
         <p className="text-sm text-text-muted">
           Sur chaque document, <UI>Champs à afficher</UI> te permet de cocher ce que tu veux montrer (téléphone,
           email, âge, ville...), puis <UI>Télécharger le PDF</UI> ou <UI>Imprimer</UI>.
+        </p>
+        <p className="text-sm text-text-muted">
+          Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}
+          <UI>Confirmé·es</UI> ; aussi <UI>Proposé·es</UI>, <UI>PER</UI> ou <UI>Tout le monde</UI> (sauf annulé·es
+          et indisponibles).
         </p>
       </GuideChapter>
 
