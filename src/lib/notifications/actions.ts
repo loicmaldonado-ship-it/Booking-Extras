@@ -1,7 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { getCurrentProfile, getAccessibleProjetIds, getSupportChefId, idsOrNone } from "@/lib/auth/session";
 import type { AppNotification, CandidatureATrier, NotificationGroup, NotificationType } from "./types";
 
 const RECENT_LIMIT = 150;
@@ -153,6 +153,8 @@ export async function getNotificationsPanel(): Promise<{
 export async function markNotificationsLues(ids: string[]) {
   const profile = await getCurrentProfile();
   if (!profile || ids.length === 0) return;
+  // Mode support : on regarde sans toucher à ce que l'équipe de la cheffe a lu.
+  if (await getSupportChefId(profile)) return;
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
@@ -167,6 +169,7 @@ export async function markNotificationsLues(ids: string[]) {
 export async function markAllNotificationsLues() {
   const profile = await getCurrentProfile();
   if (!profile) return;
+  if (await getSupportChefId(profile)) return;
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];

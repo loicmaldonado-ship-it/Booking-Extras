@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOut } from "@/lib/auth/actions";
+import { quitterModeSupport } from "@/lib/auth/support";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { MyAvatarMenu } from "@/components/my-avatar-menu";
@@ -67,9 +68,11 @@ const PUBLIC_PREFIXES = [
 export function AppShell({
   children,
   profile,
+  supportChef,
 }: {
   children: React.ReactNode;
   profile: CurrentProfile | null;
+  supportChef?: { id: string; nom: string } | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -200,6 +203,26 @@ export function AppShell({
           </div>
         )}
       </header>
+      {supportChef && (
+        // Mode support (compte propriétaire) : rappel permanent qu'on est
+        // dans l'espace d'une autre cheffe, pas dans le sien.
+        <div className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 bg-yellow px-6 py-2 text-sm text-white md:px-10 print:hidden">
+          <p>
+            <strong>Mode support</strong> · Tu vois l&apos;espace de <strong>{supportChef.nom}</strong>. Ce que tu
+            modifies s&apos;applique à ses projets.
+          </p>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/support" className="rounded-full px-3 py-1 text-xs font-medium hover:bg-white/15">
+              Autres cheffes
+            </Link>
+            <form action={quitterModeSupport}>
+              <button type="submit" className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-yellow">
+                Quitter le mode support
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <main className="flex-1 px-6 py-8 md:px-10 md:py-10 print:p-0">{children}</main>
     </div>
   );
