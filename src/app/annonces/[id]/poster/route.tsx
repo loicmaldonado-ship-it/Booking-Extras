@@ -13,15 +13,21 @@ import { getAnnonceDates } from "@/lib/annonces/dates";
 import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import {
   affichePolice,
+  affichePoliceCorps,
+  afficheTaille,
   afficheCouleurs,
   normalizeAfficheCouleur,
   normalizeAffichePolice,
+  normalizeAffichePoliceCorps,
+  normalizeAfficheTaille,
+  normalizeAfficheFormat,
+  type AfficheFormat,
 } from "@/lib/annonces/affiche";
 
 export const runtime = "nodejs";
 
-// Lus une fois par instance, à la demande : seules la police du corps et
-// celle du titre choisie sont passées au rendu.
+// Lus une fois par instance, à la demande : seules les polices utilisées
+// par l'affiche sont passées au rendu.
 const polices = new Map<string, Promise<Buffer>>();
 function lirePolice(fichier: string) {
   if (!polices.has(fichier)) polices.set(fichier, readFile(join(process.cwd(), "src/app/fonts", fichier)));
@@ -36,19 +42,26 @@ type Contenu = {
   couleur: string | null;
   police: string | null;
   couleurTitre: string | null;
+  policeCorps: string | null;
+  couleurCorps: string | null;
+  tailleCorps: string | null;
 };
 
-// Affiche (1080 de large, format Instagram/Facebook, plus haute si le texte
-// l'exige) : photo de fond (moodboard ou photo projet), infos clés, QR code
-// vers le lien de candidature. GET = l'annonce telle qu'enregistrée ; POST
-// = aperçu depuis le formulaire, avec le texte et le style pas encore
-// enregistrés.
-async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
+// Marge basse en plus pour une story : Instagram y affiche la barre de
+// réponse, le texte ne doit pas passer dessous.
+const STORY_MARGE_BAS = 220;
+
+// Affiche (1080 de large ; carrée pour un post, 1080×1920 pour une story,
+// plus haute si le texte l'exige) : photo de fond (moodboard ou photo
+// projet), infos clés, QR code vers le lien de candidature. GET =
+// l'annonce telle qu'enregistrée ; POST = aperçu depuis le formulaire, avec
+// le texte et le style pas encore enregistrés.
+async function rendreAffiche(id: string, format: AfficheFormat, surcharge?: Partial<Contenu>) {
   const supabase = createAdminClient();
   const { data: annonce } = await supabase
     .from("annonces")
     .select(
-      "titre, description, date_recherchee, lieu, public_token, projet_id, affiche_couleur, affiche_police, affiche_couleur_titre, projets(nom, annonce_photo_storage_path)"
+      "titre, description, date_recherchee, lieu, public_token, projet_id, affiche_couleur, affiche_police, affiche_couleur_titre, affiche_police_corps, affiche_couleur_corps, affiche_taille_corps, projets(nom, annonce_photo_storage_path)"
     )
     .eq("id", id)
     .single<{
@@ -61,6 +74,9 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
       affiche_couleur: string | null;
       affiche_police: string | null;
       affiche_couleur_titre: string | null;
+      affiche_police_corps: string | null;
+      affiche_couleur_corps: string | null;
+      affiche_taille_corps: string | null;
       projets: { nom: string; annonce_photo_storage_path: string | null } | null;
     }>();
   if (!annonce) return NextResponse.json({ error: "Annonce introuvable." }, { status: 404 });
@@ -76,17 +92,24 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
     couleur: annonce.affiche_couleur,
     police: annonce.affiche_police,
     couleurTitre: annonce.affiche_couleur_titre,
+    policeCorps: annonce.affiche_police_corps,
+    couleurCorps: annonce.affiche_couleur_corps,
+    tailleCorps: annonce.affiche_taille_corps,
     ...surcharge,
   };
   const couleurs = afficheCouleurs(normalizeAfficheCouleur(contenu.couleur));
   const police = affichePolice(normalizeAffichePolice(contenu.police));
+  const policeCorps = affichePoliceCorps(normalizeAffichePoliceCorps(contenu.policeCorps));
+  const echelle = afficheTaille(normalizeAfficheTaille(contenu.tailleCorps)).echelle * policeCorps.facteur;
   const couleurTitre = normalizeAfficheCouleur(contenu.couleurTitre) ?? couleurs.texte;
+  const couleurCorps = normalizeAfficheCouleur(contenu.couleurCorps) ?? couleurs.texteDoux;
 
-  const [moodboard, origin, annonceDates, policeCorps, policeTitre] = await Promise.all([
+  const [moodboard, origin, annonceDates, policeBase, policeTexte, policeTitre] = await Promise.all([
     getAnnoncePhotos(supabase, id),
     getSiteOrigin(),
     getAnnonceDates(id),
     lirePolice("SpaceGrotesk-500.ttf"),
+    lirePolice(policeCorps.fichier),
     lirePolice(police.fichier),
   ]);
   const backgroundUrl = moodboard[0]?.url ?? getAnnoncePhotoUrl(supabase, annonce.projets?.annonce_photo_storage_path);
@@ -106,26 +129,32 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
 
   // Satori ne s'ajuste pas à son contenu : la hauteur est estimée avant le
   // rendu. Colonne de texte ≈ 788px (1080 - 128 de marges - 140 de QR - 24
-  // d'écart) ; ~62 caractères par ligne à 22px en Space Grotesk, valeur
-  // prudente. Le titre dépend de la police choisie (voir affiche.ts).
-  const CHARS_PER_LINE = 62;
+  // d'écart) ; le nombre de caractères par ligne dépend de la police et de
+  // la taille choisies (valeurs prudentes, voir affiche.ts).
+  const descriptionTaille = Math.round(22 * echelle);
+  const descriptionInterligne = Math.ceil(descriptionTaille * 1.5);
+  const descriptionCarParLigne = Math.floor(policeCorps.caracteresParLigne / echelle);
+  const descriptionEcart = Math.round(10 * echelle);
   const descriptionLines = descriptionParagraphs.reduce(
-    (sum, p) => sum + Math.max(1, Math.ceil(p.length / CHARS_PER_LINE)),
+    (sum, p) => sum + Math.max(1, Math.ceil(p.length / descriptionCarParLigne)),
     0
   );
-  const descriptionGapsHeight = Math.max(0, descriptionParagraphs.length - 1) * 10;
+  const descriptionGapsHeight = Math.max(0, descriptionParagraphs.length - 1) * descriptionEcart;
   const titleLines = Math.max(1, Math.ceil(contenu.titre.length / police.titreCaracteresParLigne));
   const titleLineHeight = Math.ceil(police.titreTaille * police.titreInterligne);
 
-  const INFO_CHARS_PER_LINE = 46;
-  const infoLineLines = infoLine ? Math.max(1, Math.ceil(infoLine.length / INFO_CHARS_PER_LINE)) : 0;
-  const infoLineHeight = infoLineLines > 1 ? (infoLineLines - 1) * 34 : 0;
+  const infoTaille = Math.round(28 * echelle);
+  const infoCarParLigne = Math.floor((46 * policeCorps.caracteresParLigne) / 62 / echelle);
+  const infoLineLines = infoLine ? Math.max(1, Math.ceil(infoLine.length / infoCarParLigne)) : 0;
+  // La base compte déjà une ligne d'infos de 34px.
+  const infoLineHeight = infoLineLines > 0 ? infoLineLines * Math.ceil(infoTaille * 1.2) - 34 : 0;
 
   // Base (marges, infos, QR, lien, logo) + titre + description, minimum
-  // 1080 pour garder le format carré tant que le texte est court.
-  const baseHeight = 620 + titleLines * titleLineHeight + infoLineHeight;
-  const descriptionHeight = descriptionLines * 31 + descriptionGapsHeight;
-  const imageHeight = Math.max(1080, baseHeight + descriptionHeight);
+  // 1080 (carré) ou 1920 (story) tant que le texte est court.
+  const margeBas = format === "story" ? STORY_MARGE_BAS : 0;
+  const baseHeight = 620 + margeBas + titleLines * titleLineHeight + infoLineHeight;
+  const descriptionHeight = descriptionLines * descriptionInterligne + descriptionGapsHeight;
+  const imageHeight = Math.max(format === "story" ? 1920 : 1080, baseHeight + descriptionHeight);
 
   return new ImageResponse(
     (
@@ -137,7 +166,7 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
           flexDirection: "column",
           justifyContent: "flex-end",
           backgroundColor: couleurs.fond,
-          fontFamily: "Corps",
+          fontFamily: "Base",
           ...(backgroundUrl
             ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
             : {}),
@@ -149,6 +178,7 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
             flexDirection: "column",
             gap: 28,
             padding: 64,
+            paddingBottom: 64 + margeBas,
             background: `linear-gradient(to top, ${couleurs.voile} 46%, rgba(0,0,0,0))`,
           }}
         >
@@ -165,15 +195,20 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
               >
                 {contenu.titre}
               </div>
-              {infoLine && <div style={{ fontSize: 28, color: couleurs.texteDoux }}>{infoLine}</div>}
+              {infoLine && (
+                <div style={{ fontFamily: "Corps", fontSize: infoTaille, color: couleurCorps, lineHeight: 1.2 }}>
+                  {infoLine}
+                </div>
+              )}
               {descriptionParagraphs.length > 0 && (
                 <div
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: 10,
-                    fontSize: 22,
-                    color: couleurs.texteDoux,
+                    gap: descriptionEcart,
+                    fontFamily: "Corps",
+                    fontSize: descriptionTaille,
+                    color: couleurCorps,
                     lineHeight: 1.5,
                     marginTop: 10,
                   }}
@@ -204,7 +239,8 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
       width: 1080,
       height: imageHeight,
       fonts: [
-        { name: "Corps", data: policeCorps, weight: 500, style: "normal" },
+        { name: "Base", data: policeBase, weight: 500, style: "normal" },
+        { name: "Corps", data: policeTexte, weight: 500, style: "normal" },
         { name: "Titre", data: policeTitre, weight: 700, style: "normal" },
       ],
       // L'affiche change dès qu'on modifie l'annonce ou son style.
@@ -213,9 +249,9 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
   );
 }
 
-export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return rendreAffiche(id);
+  return rendreAffiche(id, normalizeAfficheFormat(request.nextUrl.searchParams.get("format")));
 }
 
 function texte(v: unknown, max: number): string | null {
@@ -228,7 +264,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return NextResponse.json({ error: "Requête invalide." }, { status: 400 });
-  return rendreAffiche(id, {
+  return rendreAffiche(id, normalizeAfficheFormat(body.format), {
     titre: texte(body.titre, 200) ?? "Titre de l'annonce",
     description: texte(body.description, 5000),
     date_recherchee: texte(body.date_recherchee, 10),
@@ -236,5 +272,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     couleur: normalizeAfficheCouleur(body.couleur),
     police: normalizeAffichePolice(body.police),
     couleurTitre: normalizeAfficheCouleur(body.couleur_titre),
+    policeCorps: normalizeAffichePoliceCorps(body.police_corps),
+    couleurCorps: normalizeAfficheCouleur(body.couleur_corps),
+    tailleCorps: normalizeAfficheTaille(body.taille_corps),
   });
 }

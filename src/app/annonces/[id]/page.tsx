@@ -6,6 +6,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
 import { CopyAnnonceText } from "@/components/annonces/copy-annonce-text";
+import { AffichePublier } from "@/components/annonces/affiche-publier";
 import { ToggleStatutButton } from "@/components/annonces/toggle-statut-button";
 import { QuestionsManager } from "@/components/annonces/questions-manager";
 import { DatesManager } from "@/components/annonces/dates-manager";
@@ -114,18 +115,9 @@ export default async function AnnonceDetailPage({
             >
               Télécharger le QR code
             </a>
-            <a
-              href={`/annonces/${id}/poster`}
-              download={`affiche-${id}.png`}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
-            >
-              Télécharger l&apos;affiche (Insta/Facebook)
-            </a>
-            <Link href={`/annonces/${id}/modifier`} className="px-4 text-xs text-coral hover:underline">
-              Changer la couleur ou la police de l&apos;affiche →
-            </Link>
           </div>
         </div>
+        <AffichePublier annonceId={id} titre={annonce.titre} texte={shareText} />
         <div className="flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm text-text-muted">
             <Link href={`/candidatures?annonce_id=${id}`} className="text-coral hover:underline">

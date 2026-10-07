@@ -19,6 +19,9 @@ export type Annonce = {
   affiche_couleur: string | null;
   affiche_police: string | null;
   affiche_couleur_titre: string | null;
+  affiche_police_corps: string | null;
+  affiche_couleur_corps: string | null;
+  affiche_taille_corps: string | null;
   created_at: string;
   updated_at: string;
 };

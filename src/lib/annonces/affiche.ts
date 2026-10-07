@@ -23,6 +23,36 @@ export const AFFICHE_POLICES: {
   { key: "caveat", label: "Caveat", description: "Manuscrite", fichier: "Caveat-700.ttf", titreTaille: 68, titreInterligne: 1.1, titreCaracteresParLigne: 28 },
 ];
 
+// Polices du corps (infos + description) : seulement des polices lisibles
+// en paragraphe. caracteresParLigne = à 22px dans la colonne de texte,
+// facteur = agrandissement pour une lisibilité équivalente (Caveat est
+// petite à taille égale).
+export type AffichePoliceCorps = "space-grotesk" | "playfair" | "archivo" | "caveat";
+
+export const AFFICHE_POLICES_CORPS: {
+  key: AffichePoliceCorps;
+  label: string;
+  description: string;
+  fichier: string;
+  facteur: number;
+  caracteresParLigne: number;
+}[] = [
+  { key: "space-grotesk", label: "Space Grotesk", description: "Moderne, la police du site", fichier: "SpaceGrotesk-500.ttf", facteur: 1, caracteresParLigne: 62 },
+  { key: "playfair", label: "Playfair Display", description: "Élégante", fichier: "PlayfairDisplay-400.ttf", facteur: 1, caracteresParLigne: 64 },
+  { key: "archivo", label: "Archivo", description: "Sobre et nette", fichier: "Archivo-400.ttf", facteur: 1, caracteresParLigne: 58 },
+  { key: "caveat", label: "Caveat", description: "Manuscrite", fichier: "Caveat-700.ttf", facteur: 1.3, caracteresParLigne: 84 },
+];
+
+export type AfficheTaille = "normal" | "grand" | "tres-grand";
+
+export const AFFICHE_TAILLES: { key: AfficheTaille; label: string; echelle: number }[] = [
+  { key: "normal", label: "Normal", echelle: 1 },
+  { key: "grand", label: "Grand", echelle: 1.2 },
+  { key: "tres-grand", label: "Très grand", echelle: 1.4 },
+];
+
+export type AfficheFormat = "carre" | "story";
+
 export const AFFICHE_COULEURS: { hex: string; label: string }[] = [
   { hex: "#111111", label: "Noir" },
   { hex: "#1F2A44", label: "Bleu nuit" },
@@ -47,6 +77,26 @@ export function normalizeAffichePolice(v: unknown): AffichePolice | null {
   return AFFICHE_POLICES.some((p) => p.key === v) ? (v as AffichePolice) : null;
 }
 
+export function normalizeAffichePoliceCorps(v: unknown): AffichePoliceCorps | null {
+  return AFFICHE_POLICES_CORPS.some((p) => p.key === v) ? (v as AffichePoliceCorps) : null;
+}
+
+export function normalizeAfficheTaille(v: unknown): AfficheTaille | null {
+  return AFFICHE_TAILLES.some((t) => t.key === v) ? (v as AfficheTaille) : null;
+}
+
+export function normalizeAfficheFormat(v: unknown): AfficheFormat {
+  return v === "story" ? "story" : "carre";
+}
+
+export function affichePoliceCorps(key: string | null | undefined) {
+  return AFFICHE_POLICES_CORPS.find((p) => p.key === key) ?? AFFICHE_POLICES_CORPS[0];
+}
+
+export function afficheTaille(key: string | null | undefined) {
+  return AFFICHE_TAILLES.find((t) => t.key === key) ?? AFFICHE_TAILLES[0];
+}
+
 export function normalizeAfficheCouleur(v: unknown): string | null {
   return typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toUpperCase() : null;
 }
@@ -60,15 +110,27 @@ function canaux(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-// Texte blanc ou presque noir selon la clarté de la couleur choisie, pour
-// qu'une couleur claire (crème) reste lisible.
-function texteLisible(hex: string): string {
+function luminance(hex: string): number {
   const [r, g, b] = canaux(hex).map((c) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });
-  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  return luminance > 0.4 ? "#141414" : "#FFFFFF";
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// Texte blanc ou presque noir selon la clarté de la couleur choisie, pour
+// qu'une couleur claire (crème) reste lisible.
+function texteLisible(hex: string): string {
+  return luminance(hex) > 0.4 ? "#141414" : "#FFFFFF";
+}
+
+// Contraste WCAG entre un texte et le bas de l'affiche (le voile, de la
+// couleur du fond ; presque noir pour le style d'origine). Lisible si
+// ≥ 4,5 pour un paragraphe, ≥ 3 pour un gros titre.
+export function afficheContraste(texte: string, fond: string | null): number {
+  const a = luminance(texte);
+  const b = luminance(fond ?? "#0A0A0A");
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
 }
 
 // null = style d'origine de l'affiche, inchangé pour les annonces existantes.
