@@ -32,6 +32,17 @@ export const AFFICHE_COULEURS: { hex: string; label: string }[] = [
   { hex: "#F2E8D5", label: "Crème" },
 ];
 
+// Couleurs proposées pour le titre, en plus de « Auto » (blanc ou noir
+// selon le fond) et d'une couleur libre.
+export const AFFICHE_COULEURS_TITRE: { hex: string; label: string }[] = [
+  { hex: "#FFFFFF", label: "Blanc" },
+  { hex: "#141414", label: "Noir" },
+  { hex: "#F2E8D5", label: "Crème" },
+  { hex: "#F5A47A", label: "Pêche" },
+  { hex: "#E8734A", label: "Corail" },
+  { hex: "#F2C14E", label: "Jaune doré" },
+];
+
 export function normalizeAffichePolice(v: unknown): AffichePolice | null {
   return AFFICHE_POLICES.some((p) => p.key === v) ? (v as AffichePolice) : null;
 }

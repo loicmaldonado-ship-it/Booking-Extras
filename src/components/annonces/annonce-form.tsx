@@ -126,7 +126,7 @@ export function AnnonceForm({
           </label>
         </Card>
 
-        {!annonce && <AfficheEditor formRef={formRef} initialCouleur={null} initialPolice={null} />}
+        {!annonce && <AfficheEditor formRef={formRef} initialCouleur={null} initialPolice={null} initialCouleurTitre={null} />}
 
         <div className="flex gap-3">
           <Button type="submit" disabled={pending}>
@@ -142,6 +142,7 @@ export function AnnonceForm({
             formRef={formRef}
             initialCouleur={annonce.affiche_couleur}
             initialPolice={annonce.affiche_police}
+            initialCouleurTitre={annonce.affiche_couleur_titre}
           />
         </div>
       )}

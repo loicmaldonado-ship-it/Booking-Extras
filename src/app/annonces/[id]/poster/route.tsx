@@ -35,6 +35,7 @@ type Contenu = {
   lieu: string | null;
   couleur: string | null;
   police: string | null;
+  couleurTitre: string | null;
 };
 
 // Affiche (1080 de large, format Instagram/Facebook, plus haute si le texte
@@ -47,7 +48,7 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
   const { data: annonce } = await supabase
     .from("annonces")
     .select(
-      "titre, description, date_recherchee, lieu, public_token, projet_id, affiche_couleur, affiche_police, projets(nom, annonce_photo_storage_path)"
+      "titre, description, date_recherchee, lieu, public_token, projet_id, affiche_couleur, affiche_police, affiche_couleur_titre, projets(nom, annonce_photo_storage_path)"
     )
     .eq("id", id)
     .single<{
@@ -59,6 +60,7 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
       projet_id: string;
       affiche_couleur: string | null;
       affiche_police: string | null;
+      affiche_couleur_titre: string | null;
       projets: { nom: string; annonce_photo_storage_path: string | null } | null;
     }>();
   if (!annonce) return NextResponse.json({ error: "Annonce introuvable." }, { status: 404 });
@@ -73,10 +75,12 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
     lieu: annonce.lieu,
     couleur: annonce.affiche_couleur,
     police: annonce.affiche_police,
+    couleurTitre: annonce.affiche_couleur_titre,
     ...surcharge,
   };
   const couleurs = afficheCouleurs(normalizeAfficheCouleur(contenu.couleur));
   const police = affichePolice(normalizeAffichePolice(contenu.police));
+  const couleurTitre = normalizeAfficheCouleur(contenu.couleurTitre) ?? couleurs.texte;
 
   const [moodboard, origin, annonceDates, policeCorps, policeTitre] = await Promise.all([
     getAnnoncePhotos(supabase, id),
@@ -154,7 +158,7 @@ async function rendreAffiche(id: string, surcharge?: Partial<Contenu>) {
                 style={{
                   fontFamily: "Titre",
                   fontSize: police.titreTaille,
-                  color: couleurs.texte,
+                  color: couleurTitre,
                   lineHeight: police.titreInterligne,
                   textTransform: police.majuscules ? "uppercase" : "none",
                 }}
@@ -231,5 +235,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     lieu: texte(body.lieu, 200),
     couleur: normalizeAfficheCouleur(body.couleur),
     police: normalizeAffichePolice(body.police),
+    couleurTitre: normalizeAfficheCouleur(body.couleur_titre),
   });
 }

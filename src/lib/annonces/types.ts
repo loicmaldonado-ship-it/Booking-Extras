@@ -18,6 +18,7 @@ export type Annonce = {
   // Style de l'affiche, null = style d'origine (voir affiche.ts)
   affiche_couleur: string | null;
   affiche_police: string | null;
+  affiche_couleur_titre: string | null;
   created_at: string;
   updated_at: string;
 };
