@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
 import { setMaPassword } from "@/lib/candidats/actions";
-import { compressImage } from "@/lib/media/compress-image";
+import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
 import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import { GENRES, PRONOMS } from "@/lib/figurants/types";
@@ -74,6 +74,17 @@ const REQUIRED_PHOTO_SLOTS = [
 
 const MAX_EXTRA_PHOTOS = 4; // 3 obligatoires + 4 = 7 photos maximum
 
+// Les photos ne passent pas par l'<input> au moment de l'envoi : chaque
+// emplacement prépare sa photo (réduite, HEIC converti) et la confie au
+// formulaire, qui l'ajoute lui-même aux données envoyées. Remplacer le
+// fichier de l'input (DataTransfer) ne marche pas sur tous les navigateurs,
+// et une photo non réduite dépassait la limite d'envoi de 4,5 Mo.
+type Emplacement = { name: string; label: string; required: boolean; file: File | null; busy: boolean; el: HTMLElement | null };
+const PhotosContext = createContext<{
+  maj: (key: string, patch: Partial<Emplacement>) => void;
+  retirer: (key: string) => void;
+} | null>(null);
+
 function PhotoSlot({
   name,
   label,
@@ -83,21 +94,35 @@ function PhotoSlot({
   label: string;
   required?: boolean;
 }) {
+  const key = useId();
+  const photos = useContext(PhotosContext);
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [preparation, setPreparation] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Retiré au démontage (photo du véhicule quand on répond « non »).
+  useEffect(() => {
+    photos?.maj(key, { name, label, required: !!required, el: wrapperRef.current });
+    return () => photos?.retirer(key);
+  }, [photos, key, name, label, required]);
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-1.5" ref={wrapperRef}>
       <div
         onClick={() => inputRef.current?.click()}
-        className="relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-border bg-ink-raised-2 transition-colors hover:border-coral/60"
+        className={
+          "relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 transition-colors hover:border-coral/60 " +
+          (erreur ? "border-danger" : "border-border")
+        }
       >
         {preview ? (
           <Image src={preview} alt={label} fill className="object-cover" unoptimized />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-xs text-text-muted">
-            <span className="text-lg">+</span>
-            <span>Ajouter</span>
+            <span className="text-lg">{preparation ? "…" : "+"}</span>
+            <span>{preparation ? "Préparation" : "Ajouter"}</span>
           </div>
         )}
         {preview && (
@@ -106,6 +131,7 @@ function PhotoSlot({
             onClick={(e) => {
               e.stopPropagation();
               setPreview(null);
+              photos?.maj(key, { file: null });
               if (inputRef.current) inputRef.current.value = "";
             }}
             className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-danger hover:text-ink"
@@ -116,27 +142,26 @@ function PhotoSlot({
         <input
           ref={inputRef}
           type="file"
-          name={name}
-          accept="image/*"
-          required={required}
+          accept={ACCEPT_IMAGES}
           className="hidden"
           onChange={async (e) => {
             const file = e.target.files?.[0];
-            if (!file) {
+            if (!file) return;
+            setErreur(null);
+            setPreparation(true);
+            photos?.maj(key, { busy: true });
+            // 1400 px : jusqu'à 8 photos doivent tenir sous la limite d'envoi.
+            const res = await prepareImage(file, { maxDimension: 1400 });
+            setPreparation(false);
+            if ("error" in res) {
+              setErreur(res.error);
               setPreview(null);
+              photos?.maj(key, { busy: false, file: null });
+              e.target.value = "";
               return;
             }
-            // Compresse puis remplace le fichier de l'input lui-même (via
-            // DataTransfer) — la soumission native du formulaire envoie
-            // alors directement le fichier réduit, sans rien changer au
-            // reste du flux (server action classique, pas d'upload à part).
-            const compressed = await compressImage(file);
-            if (compressed !== file && inputRef.current) {
-              const dt = new DataTransfer();
-              dt.items.add(compressed);
-              inputRef.current.files = dt.files;
-            }
-            setPreview(URL.createObjectURL(compressed));
+            setPreview(URL.createObjectURL(res.file));
+            photos?.maj(key, { busy: false, file: res.file });
           }}
         />
       </div>
@@ -144,9 +169,27 @@ function PhotoSlot({
         {label}
         {required ? " *" : ""}
       </span>
+      {erreur && <span className="text-center text-xs text-danger">{erreur}</span>}
     </div>
   );
 }
+
+// Nom lisible d'un champ invalide : le libellé (Field, question, date)
+// est le premier enfant d'un des ancêtres proches.
+function nomDuChamp(el: Element): string {
+  let n: Element | null = el.parentElement;
+  for (let i = 0; i < 5 && n; i++, n = n.parentElement) {
+    const premier = n.firstElementChild;
+    if (premier && premier !== el && !premier.contains(el) && (premier.tagName === "LABEL" || premier.tagName === "SPAN")) {
+      const t = premier.textContent?.replace(/\*/g, "").trim();
+      if (t) return t;
+    }
+  }
+  return "un champ obligatoire";
+}
+
+// Limite Vercel 4,5 Mo pour tout l'envoi : marge pour le texte du formulaire.
+const TAILLE_MAX_ENVOI = 4 * 1024 * 1024;
 
 export function PostulerForm({
   publicToken,
@@ -192,6 +235,87 @@ export function PostulerForm({
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
   const [sansAgent, setSansAgent] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
+  const emplacements = useRef(new Map<string, Emplacement>());
+  const [photosEnPreparation, setPhotosEnPreparation] = useState(0);
+  const [aCorriger, setACorriger] = useState<string[] | null>(null);
+  const [photosContexte] = useState(() => ({
+    maj: (key: string, patch: Partial<Emplacement>) => {
+      const actuel = emplacements.current.get(key) ?? {
+        name: "",
+        label: "",
+        required: false,
+        file: null,
+        busy: false,
+        el: null,
+      };
+      emplacements.current.set(key, { ...actuel, ...patch });
+      if (patch.busy !== undefined) {
+        setPhotosEnPreparation(Array.from(emplacements.current.values()).filter((e) => e.busy).length);
+      }
+    },
+    retirer: (key: string) => {
+      emplacements.current.delete(key);
+      setPhotosEnPreparation(Array.from(emplacements.current.values()).filter((e) => e.busy).length);
+    },
+  }));
+
+  // Validation maison plutôt que celle du navigateur : les emplacements
+  // photo sont des champs cachés, et un champ obligatoire caché bloquait
+  // l'envoi sans aucun message (« impossible de valider »).
+  function envoyer(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const manquants: string[] = [];
+    let premier: HTMLElement | null = null;
+    const groupesVus = new Set<string>();
+    for (const el of Array.from(form.elements)) {
+      if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) continue;
+      if (el.disabled || el.type === "file" || el.checkValidity()) continue;
+      // Un groupe Oui/Non n'est signalé qu'une fois (sur son premier bouton).
+      if (el instanceof HTMLInputElement && el.type === "radio") {
+        if (groupesVus.has(el.name)) continue;
+        groupesVus.add(el.name);
+      }
+      const nom = nomDuChamp(el);
+      if (!manquants.includes(nom)) manquants.push(nom);
+      premier ??= el;
+    }
+    const slots = Array.from(emplacements.current.values());
+    for (const slot of slots) {
+      if (slot.required && !slot.file) {
+        manquants.push(`Photo : ${slot.label}`);
+        premier ??= slot.el;
+      }
+    }
+    if (photosEnPreparation > 0) {
+      setACorriger(["Les photos sont encore en préparation : réessaie dans quelques secondes."]);
+      return;
+    }
+    if (manquants.length > 0) {
+      setACorriger(manquants);
+      premier?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (premier instanceof HTMLInputElement || premier instanceof HTMLSelectElement || premier instanceof HTMLTextAreaElement) {
+        premier.focus({ preventScroll: true });
+      }
+      return;
+    }
+
+    const fd = new FormData(form);
+    let total = 0;
+    for (const slot of slots) {
+      if (!slot.file) continue;
+      fd.append(slot.name, slot.file);
+      total += slot.file.size;
+    }
+    if (total > TAILLE_MAX_ENVOI) {
+      setACorriger([
+        `Tes photos sont trop lourdes au total (${(total / 1048576).toFixed(1)} Mo, 4 Mo maximum) : retire une photo optionnelle.`,
+      ]);
+      return;
+    }
+    setACorriger(null);
+    startTransition(() => formAction(fd));
+  }
 
   if (state?.success) {
     return (
@@ -208,7 +332,8 @@ export function PostulerForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <PhotosContext.Provider value={photosContexte}>
+    <form noValidate onSubmit={envoyer} className="flex flex-col gap-4">
       {state?.error && (
         <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}
@@ -474,8 +599,23 @@ export function PostulerForm({
         </Card>
       )}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Envoi..." : "Postuler"}
+      {aCorriger && (
+        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <p className="font-medium">
+            {aCorriger.length === 1 && aCorriger[0].endsWith(".") ? aCorriger[0] : "Il reste à compléter ou corriger :"}
+          </p>
+          {!(aCorriger.length === 1 && aCorriger[0].endsWith(".")) && (
+            <ul className="mt-1 list-disc pl-5">
+              {aCorriger.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <Button type="submit" disabled={pending || photosEnPreparation > 0}>
+        {pending ? "Envoi..." : photosEnPreparation > 0 ? "Préparation des photos…" : "Postuler"}
       </Button>
 
       <p className="text-center text-xs text-text-muted">
@@ -493,5 +633,6 @@ export function PostulerForm({
         </Link>
       </p>
     </form>
+    </PhotosContext.Provider>
   );
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
 import { prepareAvatar } from "@/lib/media/prepare-avatar";
+import { ACCEPT_IMAGES } from "@/lib/media/compress-image";
 import { updateMyProfile } from "@/lib/auth/profile-actions";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { CurrentProfile } from "@/lib/auth/session";
@@ -133,7 +134,7 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
               <p className="text-xs text-danger">{erreurFichier ?? avatarState?.error}</p>
             )}
           </div>
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
+          <input ref={inputRef} type="file" accept={ACCEPT_IMAGES} className="hidden" onChange={onAvatarChange} />
         </div>
       </Card>
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
 import { prepareAvatar } from "@/lib/media/prepare-avatar";
+import { ACCEPT_IMAGES } from "@/lib/media/compress-image";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 export function MyAvatarMenu({
@@ -63,7 +64,7 @@ export function MyAvatarMenu({
             <input
               ref={inputRef}
               type="file"
-              accept="image/*"
+              accept={ACCEPT_IMAGES}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
