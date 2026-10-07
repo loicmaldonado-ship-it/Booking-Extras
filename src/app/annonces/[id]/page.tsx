@@ -121,6 +121,9 @@ export default async function AnnonceDetailPage({
             >
               Télécharger l&apos;affiche (Insta/Facebook)
             </a>
+            <Link href={`/annonces/${id}/modifier`} className="px-4 text-xs text-coral hover:underline">
+              Changer la couleur ou la police de l&apos;affiche →
+            </Link>
           </div>
         </div>
         <div className="flex items-center justify-between">
