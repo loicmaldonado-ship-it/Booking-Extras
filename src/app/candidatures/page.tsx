@@ -918,31 +918,60 @@ export default async function CandidaturesPage({
       />
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <Link
-            href={pageHref(page - 1)}
-            aria-disabled={page <= 1}
-            className={cn(
-              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
-              page <= 1 ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
-            )}
-          >
-            ← Précédent
-          </Link>
-          <span className="text-text-muted">
-            Page {page} / {totalPages}
-          </span>
-          <Link
-            href={pageHref(page + 1)}
-            aria-disabled={page >= totalPages}
-            className={cn(
-              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
-              page >= totalPages ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
-            )}
-          >
-            Suivant →
-          </Link>
-        </div>
+        <nav aria-label="Pages" className="flex flex-wrap items-center justify-center gap-2 text-sm">
+          {[
+            { label: "« Première", cible: 1, inactif: page <= 1 },
+            { label: "← Précédent", cible: page - 1, inactif: page <= 1 },
+          ].map((b) => (
+            <Link
+              key={b.label}
+              href={pageHref(b.cible)}
+              aria-disabled={b.inactif}
+              className={cn(
+                "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+                b.inactif ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+              )}
+            >
+              {b.label}
+            </Link>
+          ))}
+          {/* Numéros : la première, la dernière et les deux voisines de la
+              page en cours, « … » entre les trous. */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .flatMap((p, i, liste) => [
+              ...(i > 0 && p - liste[i - 1] > 1 ? [<span key={`trou-${p}`} className="text-text-muted">…</span>] : []),
+              <Link
+                key={p}
+                href={pageHref(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={cn(
+                  "min-w-9 rounded-full border px-3 py-2 text-center font-medium tabular-nums transition-colors",
+                  p === page
+                    ? "pointer-events-none border-coral bg-coral/15 text-coral"
+                    : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                )}
+              >
+                {p}
+              </Link>,
+            ])}
+          {[
+            { label: "Suivant →", cible: page + 1, inactif: page >= totalPages },
+            { label: "Dernière »", cible: totalPages, inactif: page >= totalPages },
+          ].map((b) => (
+            <Link
+              key={b.label}
+              href={pageHref(b.cible)}
+              aria-disabled={b.inactif}
+              className={cn(
+                "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+                b.inactif ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+              )}
+            >
+              {b.label}
+            </Link>
+          ))}
+        </nav>
       )}
     </div>
   );
