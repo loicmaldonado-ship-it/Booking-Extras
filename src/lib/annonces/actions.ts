@@ -28,6 +28,7 @@ function buildAnnoncePayload(fd: FormData) {
     types_cachet: fd.getAll("types_cachet").map(String),
     affiche_couleur: normalizeAfficheCouleur(str(fd, "affiche_couleur")),
     affiche_police: normalizeAffichePolice(str(fd, "affiche_police")),
+    affiche_couleur_titre: normalizeAfficheCouleur(str(fd, "affiche_couleur_titre")),
   };
 }
 

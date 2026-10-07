@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { Card } from "@/components/ui/card";
 import {
   AFFICHE_COULEURS,
+  AFFICHE_COULEURS_TITRE,
   AFFICHE_POLICES,
   normalizeAfficheCouleur,
   normalizeAffichePolice,
@@ -21,14 +22,17 @@ export function AfficheEditor({
   formRef,
   initialCouleur,
   initialPolice,
+  initialCouleurTitre,
 }: {
   annonceId?: string;
   formRef: RefObject<HTMLFormElement | null>;
   initialCouleur: string | null;
   initialPolice: string | null;
+  initialCouleurTitre: string | null;
 }) {
   const [couleur, setCouleur] = useState<string | null>(normalizeAfficheCouleur(initialCouleur));
   const [police, setPolice] = useState<AffichePolice>(normalizeAffichePolice(initialPolice) ?? "space-grotesk");
+  const [couleurTitre, setCouleurTitre] = useState<string | null>(normalizeAfficheCouleur(initialCouleurTitre));
   const [version, setVersion] = useState(0);
   const [apercu, setApercu] = useState<string | null>(null);
   const [chargement, setChargement] = useState(false);
@@ -62,6 +66,7 @@ export function AfficheEditor({
             lieu: fd.get("lieu"),
             couleur,
             police,
+            couleur_titre: couleurTitre,
           }),
           signal: controller.signal,
         });
@@ -80,71 +85,44 @@ export function AfficheEditor({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [formRef, annonceId, couleur, police, version]);
+  }, [formRef, annonceId, couleur, police, couleurTitre, version]);
 
   useEffect(() => () => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
   }, []);
 
-  const couleurPerso = couleur && !AFFICHE_COULEURS.some((c) => c.hex === couleur) ? couleur : null;
-
   return (
     <Card className="flex flex-col gap-4">
       <input type="hidden" name="affiche_couleur" value={couleur ?? ""} />
       <input type="hidden" name="affiche_police" value={police} />
+      <input type="hidden" name="affiche_couleur_titre" value={couleurTitre ?? ""} />
       <h2 className="text-lg font-semibold">Affiche</h2>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-text-muted">Couleur</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setCouleur(null)}
-            aria-pressed={couleur === null}
-            title="Style d'origine : corail sans photo, voile noir"
-            className={cn(
-              "h-8 rounded-full border px-3 text-xs font-medium",
-              couleur === null ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
-            )}
-          >
-            Origine
-          </button>
-          {AFFICHE_COULEURS.map((c) => (
-            <button
-              key={c.hex}
-              type="button"
-              onClick={() => setCouleur(c.hex)}
-              aria-pressed={couleur === c.hex}
-              aria-label={c.label}
-              title={c.label}
-              className={cn(
-                "h-8 w-8 rounded-full border border-border",
-                couleur === c.hex && "ring-2 ring-coral ring-offset-2 ring-offset-ink-raised"
-              )}
-              style={{ backgroundColor: c.hex }}
-            />
-          ))}
-          <label
-            title="Autre couleur"
-            className={cn(
-              "relative flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium",
-              couleurPerso ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
-            )}
-          >
-            <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: couleurPerso ?? "#888888" }} />
-            Autre…
-            <input
-              type="color"
-              value={couleurPerso ?? "#888888"}
-              onChange={(e) => setCouleur(normalizeAfficheCouleur(e.target.value))}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-          </label>
-        </div>
+        <span className="text-xs font-medium text-text-muted">Couleur du fond</span>
+        <ChoixCouleur
+          couleurs={AFFICHE_COULEURS}
+          valeur={couleur}
+          onChange={setCouleur}
+          libelleDefaut="Origine"
+          titreDefaut="Style d'origine : corail sans photo, voile noir"
+        />
         <p className="text-xs text-text-muted">
-          La couleur teinte le bas de l&apos;affiche (et tout le fond sans photo). Le texte passe en blanc ou en noir selon
-          ce qui se lit le mieux.
+          Elle teinte le bas de l&apos;affiche (et tout le fond sans photo). Le texte passe en blanc ou en noir selon ce
+          qui se lit le mieux.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <span className="text-xs font-medium text-text-muted">Couleur du titre</span>
+        <ChoixCouleur
+          couleurs={AFFICHE_COULEURS_TITRE}
+          valeur={couleurTitre}
+          onChange={setCouleurTitre}
+          libelleDefaut="Auto"
+          titreDefaut="Blanc ou noir selon la couleur du fond"
+        />
+        <p className="text-xs text-text-muted">Auto = blanc ou noir selon le fond, comme le reste du texte.</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -198,5 +176,69 @@ export function AfficheEditor({
         </p>
       </div>
     </Card>
+  );
+}
+
+// Pastilles de couleur + couleur libre ; null = choix par défaut.
+function ChoixCouleur({
+  couleurs,
+  valeur,
+  onChange,
+  libelleDefaut,
+  titreDefaut,
+}: {
+  couleurs: { hex: string; label: string }[];
+  valeur: string | null;
+  onChange: (couleur: string | null) => void;
+  libelleDefaut: string;
+  titreDefaut: string;
+}) {
+  const couleurPerso = valeur && !couleurs.some((c) => c.hex === valeur) ? valeur : null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        aria-pressed={valeur === null}
+        title={titreDefaut}
+        className={cn(
+          "h-8 rounded-full border px-3 text-xs font-medium",
+          valeur === null ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
+        )}
+      >
+        {libelleDefaut}
+      </button>
+      {couleurs.map((c) => (
+        <button
+          key={c.hex}
+          type="button"
+          onClick={() => onChange(c.hex)}
+          aria-pressed={valeur === c.hex}
+          aria-label={c.label}
+          title={c.label}
+          className={cn(
+            "h-8 w-8 rounded-full border border-border",
+            valeur === c.hex && "ring-2 ring-coral ring-offset-2 ring-offset-ink-raised"
+          )}
+          style={{ backgroundColor: c.hex }}
+        />
+      ))}
+      <label
+        title="Autre couleur"
+        className={cn(
+          "relative flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium",
+          couleurPerso ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
+        )}
+      >
+        <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: couleurPerso ?? "#888888" }} />
+        Autre…
+        <input
+          type="color"
+          value={couleurPerso ?? "#888888"}
+          onChange={(e) => onChange(normalizeAfficheCouleur(e.target.value))}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
+      </label>
+    </div>
   );
 }
