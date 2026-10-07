@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { getCurrentProfile, getAccessibleProjetIds, getSupportChefId, idsOrNone } from "@/lib/auth/session";
 import type { AppNotification, CandidatureATrier, NotificationGroup, NotificationType } from "./types";
 
@@ -109,12 +110,16 @@ export async function getNotificationsPanel(): Promise<{
     // Une candidature déjà envoyée en booking n'a plus besoin d'être
     // triée — même logique que la page /candidatures, sinon le chiffre
     // affiché ici ne correspond à rien d'actionnable.
-    const { data: candidaturesRaw } = await supabase
-      .from("candidatures")
-      .select("id, annonce_id")
-      .is("onglet_id", null)
-      .is("envoyee_en_booking_le", null)
-      .in("annonce_id", openIds);
+    const { data: candidaturesRaw } = await fetchAll((from, to) =>
+      supabase
+        .from("candidatures")
+        .select("id, annonce_id")
+        .is("onglet_id", null)
+        .is("envoyee_en_booking_le", null)
+        .in("annonce_id", openIds)
+        .order("id")
+        .range(from, to)
+    );
     const counts = new Map<string, number>();
     for (const c of candidaturesRaw ?? []) {
       counts.set(c.annonce_id, (counts.get(c.annonce_id) ?? 0) + 1);
