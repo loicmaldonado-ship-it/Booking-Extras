@@ -464,6 +464,10 @@ export function PostulerForm({
             <div className="flex flex-col gap-3 rounded-xl border border-border bg-ink px-3 py-3">
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" name="vehicule_voiture" className="h-4 w-4 rounded border-border accent-coral" />
+                  Voiture
+                </label>
+                <label className="flex items-center gap-1.5 text-sm">
                   <input type="checkbox" name="vehicule_velo" className="h-4 w-4 rounded border-border accent-coral" />
                   Vélo
                 </label>

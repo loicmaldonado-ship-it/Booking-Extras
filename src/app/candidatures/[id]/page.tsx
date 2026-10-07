@@ -254,7 +254,7 @@ export default async function CandidatureDetailPage({
             ) : f.a_vehicule ? (
               <>
                 <Badge tone="turquoise">Oui</Badge>{" "}
-                {[f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
+                {[f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
                   .filter(Boolean)
                   .join(", ")}
                 {f.vehicule_marque ? ` (${f.vehicule_marque})` : ""}

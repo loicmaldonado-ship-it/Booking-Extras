@@ -65,6 +65,7 @@ export default async function CastingTrombisPage({
   if (params.genre) filtered = filtered.filter((e) => e.figurants?.genre === params.genre);
   if (params.vehicule === "oui") filtered = filtered.filter((e) => e.figurants?.a_vehicule);
   else if (params.vehicule === "non") filtered = filtered.filter((e) => e.figurants?.a_vehicule === false);
+  else if (params.vehicule === "voiture") filtered = filtered.filter((e) => e.figurants?.vehicule_voiture);
   else if (params.vehicule === "velo") filtered = filtered.filter((e) => e.figurants?.vehicule_velo);
   else if (params.vehicule === "moto") filtered = filtered.filter((e) => e.figurants?.vehicule_moto);
   else if (params.vehicule === "scooter") filtered = filtered.filter((e) => e.figurants?.vehicule_scooter);
@@ -134,6 +135,7 @@ export default async function CastingTrombisPage({
           <option value="">Véhicule (tous)</option>
           <option value="oui">A un véhicule</option>
           <option value="non">Sans véhicule</option>
+          <option value="voiture">Voiture</option>
           <option value="velo">Vélo</option>
           <option value="moto">Moto</option>
           <option value="scooter">Scooter</option>

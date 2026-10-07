@@ -191,6 +191,7 @@ export default async function FigurantsPage({
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
             <option value="non">Sans véhicule</option>
+            <option value="voiture">Voiture</option>
             <option value="velo">Vélo</option>
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>

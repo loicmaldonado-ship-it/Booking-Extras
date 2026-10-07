@@ -26,6 +26,7 @@ type ExportRow = {
     vehicule_velo: boolean;
     vehicule_moto: boolean;
     vehicule_scooter: boolean;
+    vehicule_voiture: boolean;
   } | null;
 };
 
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from("candidatures")
         .select(
-          "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
+          "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter)"
         )
         .eq("annonce_id", annonceId)
         // Même règle que la page Candidatures : envoyée en booking = masquée.
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
   if (genre) candidatures = candidatures.filter((c) => c.figurants?.genre === genre);
   if (vehicule === "oui") candidatures = candidatures.filter((c) => c.figurants?.a_vehicule);
   else if (vehicule === "non") candidatures = candidatures.filter((c) => c.figurants?.a_vehicule === false);
+  else if (vehicule === "voiture") candidatures = candidatures.filter((c) => c.figurants?.vehicule_voiture);
   else if (vehicule === "velo") candidatures = candidatures.filter((c) => c.figurants?.vehicule_velo);
   else if (vehicule === "moto") candidatures = candidatures.filter((c) => c.figurants?.vehicule_moto);
   else if (vehicule === "scooter") candidatures = candidatures.filter((c) => c.figurants?.vehicule_scooter);
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
       myrole: f?.compte_myrole ? "Oui" : "Non",
       vehicule: f?.a_vehicule === null || f?.a_vehicule === undefined ? "" : f.a_vehicule ? "Oui" : "Non",
       vehiculeType: f
-        ? [f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
+        ? [f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
             .filter(Boolean)
             .join(", ")
         : "",

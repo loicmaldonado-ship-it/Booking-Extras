@@ -51,6 +51,7 @@ export type Figurant = {
   vehicule_velo: boolean;
   vehicule_moto: boolean;
   vehicule_scooter: boolean;
+  vehicule_voiture: boolean;
   vehicule_marque: string | null;
   last_seen_at: string | null;
   created_at: string;

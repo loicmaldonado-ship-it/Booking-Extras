@@ -73,6 +73,7 @@ function buildVehiculePayload(fd: FormData) {
   const aVehicule = str(fd, "a_vehicule");
   return {
     a_vehicule: aVehicule === null ? null : aVehicule === "oui",
+    vehicule_voiture: fd.get("vehicule_voiture") === "on",
     vehicule_velo: fd.get("vehicule_velo") === "on",
     vehicule_moto: fd.get("vehicule_moto") === "on",
     vehicule_scooter: fd.get("vehicule_scooter") === "on",

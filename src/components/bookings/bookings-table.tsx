@@ -104,6 +104,7 @@ export type Row = {
     vehicule_velo?: boolean;
     vehicule_moto?: boolean;
     vehicule_scooter?: boolean;
+    vehicule_voiture?: boolean;
   } | null;
   projets: { nom: string; confidentiel: boolean; nom_code?: string | null; lieu: string | null; signature: string | null } | null;
   portraitUrl: string | null;
@@ -263,7 +264,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
     const f = r.figurants;
     if (!f || f.a_vehicule === null || f.a_vehicule === undefined) return "Véhicule non renseigné";
     if (!f.a_vehicule) return "Sans véhicule";
-    const types = [f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"].filter(
+    const types = [f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"].filter(
       Boolean
     );
     return types.length > 0 ? types.join(" + ") : "Véhicule (type non précisé)";

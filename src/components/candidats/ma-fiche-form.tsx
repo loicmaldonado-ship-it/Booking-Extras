@@ -197,7 +197,7 @@ export function MaFicheForm({
               : figurant.a_vehicule
                 ? [
                     "Oui",
-                    [figurant.vehicule_velo && "vélo", figurant.vehicule_moto && "moto", figurant.vehicule_scooter && "scooter"]
+                    [figurant.vehicule_voiture && "voiture", figurant.vehicule_velo && "vélo", figurant.vehicule_moto && "moto", figurant.vehicule_scooter && "scooter"]
                       .filter(Boolean)
                       .join(", "),
                     figurant.vehicule_marque,
@@ -400,6 +400,15 @@ export function MaFicheForm({
             {aVehicule && (
               <>
                 <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-1.5 text-sm">
+                    <input
+                      type="checkbox"
+                      name="vehicule_voiture"
+                      defaultChecked={figurant.vehicule_voiture}
+                      className="h-4 w-4 rounded border-border accent-coral"
+                    />
+                    Voiture
+                  </label>
                   <label className="flex items-center gap-1.5 text-sm">
                     <input
                       type="checkbox"
