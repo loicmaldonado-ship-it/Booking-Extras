@@ -312,6 +312,13 @@ export default function AidePage() {
               <strong className="text-text">QR code</strong> ou génère directement une{" "}
               <strong className="text-text">affiche</strong> pour Instagram/Facebook.
             </>,
+            <>
+              Pour personnaliser l&apos;affiche, ouvre <UI>Modifier</UI> sur l&apos;annonce : choisis une{" "}
+              <strong className="text-text">couleur</strong> (ou <UI>Origine</UI> pour le style de base) et une{" "}
+              <strong className="text-text">police pour le titre</strong>. L&apos;aperçu à droite se met à jour
+              en direct pendant que tu modifies le titre, la description, la date ou le lieu. Rien n&apos;est
+              enregistré avant <UI>Enregistrer</UI>.
+            </>,
             "Les candidatures arrivent automatiquement dans Candidatures, classées par annonce.",
           ]}
         />

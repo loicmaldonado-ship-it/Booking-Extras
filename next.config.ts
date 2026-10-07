@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Les polices de l'affiche sont lues avec readFile au moment du rendu :
+  // à embarquer explicitement dans la fonction serveur.
+  outputFileTracingIncludes: {
+    "/annonces/*/poster": ["./src/app/fonts/*.ttf"],
+  },
   experimental: {
     // Server Actions default to a 1MB request body — too small for photo
     // uploads (portrait/pied/autres/selfie submitted together from a form).
