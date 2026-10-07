@@ -26,6 +26,14 @@ export function AnnonceForm({
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const formRef = useRef<HTMLFormElement>(null);
+  const styleAffiche = {
+    couleur: annonce?.affiche_couleur ?? null,
+    police: annonce?.affiche_police ?? null,
+    couleurTitre: annonce?.affiche_couleur_titre ?? null,
+    policeCorps: annonce?.affiche_police_corps ?? null,
+    couleurCorps: annonce?.affiche_couleur_corps ?? null,
+    tailleCorps: annonce?.affiche_taille_corps ?? null,
+  };
 
   // En modification, l'affiche et son aperçu restent visibles à droite
   // pendant qu'on modifie le texte de l'annonce.
@@ -126,7 +134,7 @@ export function AnnonceForm({
           </label>
         </Card>
 
-        {!annonce && <AfficheEditor formRef={formRef} initialCouleur={null} initialPolice={null} initialCouleurTitre={null} />}
+        {!annonce && <AfficheEditor formRef={formRef} initial={styleAffiche} />}
 
         <div className="flex gap-3">
           <Button type="submit" disabled={pending}>
@@ -137,13 +145,7 @@ export function AnnonceForm({
 
       {annonce && (
         <div className="lg:sticky lg:top-6">
-          <AfficheEditor
-            annonceId={annonce.id}
-            formRef={formRef}
-            initialCouleur={annonce.affiche_couleur}
-            initialPolice={annonce.affiche_police}
-            initialCouleurTitre={annonce.affiche_couleur_titre}
-          />
+          <AfficheEditor annonceId={annonce.id} formRef={formRef} initial={styleAffiche} />
         </div>
       )}
     </form>

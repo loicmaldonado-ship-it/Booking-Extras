@@ -309,16 +309,19 @@ export default function AidePage() {
             </>,
             <>
               Copie le <strong className="text-text">lien public</strong>, télécharge le{" "}
-              <strong className="text-text">QR code</strong> ou génère directement une{" "}
-              <strong className="text-text">affiche</strong> pour Instagram/Facebook.
+              <strong className="text-text">QR code</strong> ou publie l&apos;
+              <strong className="text-text">affiche</strong> : choisis <UI>Post carré</UI> ou <UI>Story</UI>,
+              puis <UI>Partager l&apos;affiche</UI> (sur téléphone, ouvre directement Instagram, WhatsApp,
+              Messages…), <UI>Télécharger</UI> ou <UI>Copier l&apos;image</UI>.
             </>,
             <>
-              Pour personnaliser l&apos;affiche, ouvre <UI>Modifier</UI> sur l&apos;annonce : choisis la{" "}
-              <strong className="text-text">couleur du fond</strong> (ou <UI>Origine</UI> pour le style de base), la{" "}
-              <strong className="text-text">couleur du titre</strong> (<UI>Auto</UI> = blanc ou noir selon le fond)
-              et la <strong className="text-text">police du titre</strong>. L&apos;aperçu à droite se met à jour
-              en direct pendant que tu modifies le titre, la description, la date ou le lieu. Rien n&apos;est
-              enregistré avant <UI>Enregistrer</UI>.
+              Pour personnaliser l&apos;affiche, ouvre <UI>Modifier</UI> sur l&apos;annonce. Trois blocs :{" "}
+              <strong className="text-text">Fond</strong> (couleur, ou <UI>Origine</UI> pour le style de base),{" "}
+              <strong className="text-text">Titre</strong> (police et couleur) et{" "}
+              <strong className="text-text">Texte</strong> (police, couleur et taille des infos et de la
+              description). <UI>Auto</UI> = blanc ou noir selon le fond, toujours lisible ; si une couleur choisie
+              se lit mal, un avertissement propose de revenir en Auto. L&apos;aperçu (post ou story) se met à jour
+              en direct ; rien n&apos;est enregistré avant <UI>Enregistrer</UI>.
             </>,
             "Les candidatures arrivent automatiquement dans Candidatures, classées par annonce.",
           ]}
