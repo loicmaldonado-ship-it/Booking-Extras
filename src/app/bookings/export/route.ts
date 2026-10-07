@@ -20,6 +20,7 @@ type ExportRow = {
     vehicule_velo: boolean;
     vehicule_moto: boolean;
     vehicule_scooter: boolean;
+    vehicule_voiture: boolean;
   } | null;
 };
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     supabase
       .from("bookings")
       .select(
-        "heure_convocation, fonction, cachet, convocation_envoyee, reponse_recue, figurants!bookings_figurant_id_fkey(prenom, nom, email, telephone, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter)"
+        "heure_convocation, fonction, cachet, convocation_envoyee, reponse_recue, figurants!bookings_figurant_id_fkey(prenom, nom, email, telephone, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter)"
       )
       .eq("projet_id", projetId)
       .eq("date", date)
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
       myrole: f?.compte_myrole ? "Oui" : "Non",
       vehicule: f?.a_vehicule === null || f?.a_vehicule === undefined ? "" : f.a_vehicule ? "Oui" : "Non",
       vehiculeType: f
-        ? [f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
+        ? [f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
             .filter(Boolean)
             .join(", ")
         : "",

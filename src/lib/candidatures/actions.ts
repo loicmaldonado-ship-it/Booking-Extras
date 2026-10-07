@@ -82,6 +82,7 @@ export async function postulerAnnonce(
   const temporaire = formData.get("temporaire") === "on";
   const aVehiculeRaw = str(formData, "a_vehicule");
   const vehiculeMarque = str(formData, "vehicule_marque");
+  const vehiculeVoiture = formData.get("vehicule_voiture") === "on";
   const vehiculeVelo = formData.get("vehicule_velo") === "on";
   const vehiculeMoto = formData.get("vehicule_moto") === "on";
   const vehiculeScooter = formData.get("vehicule_scooter") === "on";
@@ -136,8 +137,8 @@ export async function postulerAnnonce(
   }
   const aVehicule = aVehiculeRaw === "oui";
   if (aVehicule) {
-    if (!vehiculeVelo && !vehiculeMoto && !vehiculeScooter) {
-      return { error: "Merci de préciser le type de véhicule (vélo, moto ou scooter)." };
+    if (!vehiculeVoiture && !vehiculeVelo && !vehiculeMoto && !vehiculeScooter) {
+      return { error: "Merci de préciser le type de véhicule (voiture, vélo, moto ou scooter)." };
     }
     if (!vehiculeMarque) {
       return { error: "La marque du véhicule est obligatoire." };
@@ -251,6 +252,7 @@ export async function postulerAnnonce(
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
         a_vehicule: aVehicule,
+        vehicule_voiture: vehiculeVoiture,
         vehicule_velo: vehiculeVelo,
         vehicule_moto: vehiculeMoto,
         vehicule_scooter: vehiculeScooter,
@@ -287,6 +289,7 @@ export async function postulerAnnonce(
         veste,
         pantalon,
         a_vehicule: aVehicule,
+        vehicule_voiture: vehiculeVoiture,
         vehicule_velo: vehiculeVelo,
         vehicule_moto: vehiculeMoto,
         vehicule_scooter: vehiculeScooter,
@@ -511,7 +514,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
   const { data: c } = await supabase
     .from("candidatures")
     .select(
-      "id, annonce_id, onglet_id, message, created_at, annonces(projet_id), figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
+      "id, annonce_id, onglet_id, message, created_at, annonces(projet_id), figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
     )
     .eq("id", id)
     .single<{
@@ -538,6 +541,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
         vehicule_velo: boolean;
         vehicule_moto: boolean;
         vehicule_scooter: boolean;
+        vehicule_voiture: boolean;
         compte_myrole: boolean;
       } | null;
     }>();
@@ -594,7 +598,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     f.a_vehicule === null
       ? null
       : f.a_vehicule
-        ? [f.vehicule_velo && "vélo", f.vehicule_moto && "moto", f.vehicule_scooter && "scooter"].filter(Boolean).join(", ") ||
+        ? [f.vehicule_voiture && "voiture", f.vehicule_velo && "vélo", f.vehicule_moto && "moto", f.vehicule_scooter && "scooter"].filter(Boolean).join(", ") ||
           "oui"
         : "non";
 

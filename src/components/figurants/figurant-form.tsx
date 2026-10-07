@@ -298,6 +298,15 @@ export function FigurantForm({
               <label className="flex items-center gap-1.5 text-sm">
                 <input
                   type="checkbox"
+                  name="vehicule_voiture"
+                  defaultChecked={figurant?.vehicule_voiture}
+                  className="h-4 w-4 rounded border-border accent-coral"
+                />
+                Voiture
+              </label>
+              <label className="flex items-center gap-1.5 text-sm">
+                <input
+                  type="checkbox"
                   name="vehicule_velo"
                   defaultChecked={figurant?.vehicule_velo}
                   className="h-4 w-4 rounded border-border accent-coral"

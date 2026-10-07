@@ -93,6 +93,7 @@ type CandidatureWithFilters = CandidatureRaw & {
         vehicule_velo: boolean;
         vehicule_moto: boolean;
         vehicule_scooter: boolean;
+        vehicule_voiture: boolean;
         code_postal: string | null;
         taille_cm: number | null;
         poids_kg: number | null;
@@ -188,7 +189,7 @@ export default async function CandidaturesPage({
   const query = supabase
     .from("candidatures")
     .select(
-      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
     // Règle de Loïc : une fois envoyée en booking, une candidature ne
@@ -296,6 +297,8 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.figurants?.a_vehicule);
   } else if (params.vehicule === "non") {
     candidatures = candidatures.filter((c) => c.figurants?.a_vehicule === false);
+  } else if (params.vehicule === "voiture") {
+    candidatures = candidatures.filter((c) => c.figurants?.vehicule_voiture);
   } else if (params.vehicule === "velo") {
     candidatures = candidatures.filter((c) => c.figurants?.vehicule_velo);
   } else if (params.vehicule === "moto") {
@@ -764,6 +767,7 @@ export default async function CandidaturesPage({
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
             <option value="non">Sans véhicule</option>
+            <option value="voiture">Voiture</option>
             <option value="velo">Vélo</option>
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>

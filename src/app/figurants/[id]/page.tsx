@@ -238,6 +238,7 @@ export default async function FigurantDetailPage({
               <>
                 <Badge tone="turquoise">Oui</Badge>{" "}
                 {[
+                  figurant.vehicule_voiture && "Voiture",
                   figurant.vehicule_velo && "Vélo",
                   figurant.vehicule_moto && "Moto",
                   figurant.vehicule_scooter && "Scooter",
