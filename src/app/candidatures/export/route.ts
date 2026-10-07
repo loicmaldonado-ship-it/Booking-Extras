@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { buildXlsxResponse, sanitizeFilenamePart } from "@/lib/export/xlsx";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
@@ -46,16 +47,20 @@ export async function GET(request: NextRequest) {
 
   const [{ data: candidaturesRaw }, { data: onglets }, { data: annonce }] =
     await Promise.all([
-      supabase
-        .from("candidatures")
-        .select(
-          "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter)"
-        )
-        .eq("annonce_id", annonceId)
-        // Même règle que la page Candidatures : envoyée en booking = masquée.
-        .is("envoyee_en_booking_le", null)
-        .order("created_at", { ascending: false })
-        .returns<ExportRow[]>(),
+      fetchAll((from, to) =>
+        supabase
+          .from("candidatures")
+          .select(
+            "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(prenom, nom, ville, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter)"
+          )
+          .eq("annonce_id", annonceId)
+          // Même règle que la page Candidatures : envoyée en booking = masquée.
+          .is("envoyee_en_booking_le", null)
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(from, to)
+          .returns<ExportRow[]>()
+      ),
       supabase.from("candidature_onglets").select("id, nom"),
       supabase.from("annonces").select("titre, projets(nom)").eq("id", annonceId).single<{
         titre: string;

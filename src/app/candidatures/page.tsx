@@ -21,6 +21,7 @@ import {
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
@@ -187,7 +188,8 @@ export default async function CandidaturesPage({
 
   const annonce = (annonces ?? []).find((a) => a.id === params.annonce_id);
 
-  const query = supabase
+  // Toutes les lignes, par paquets de 1000 (voir fetchAll).
+  const query = (from: number, to: number) => supabase
     .from("candidatures")
     .select(
       "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
@@ -200,7 +202,10 @@ export default async function CandidaturesPage({
     // par la base (voir migration 20261007000004). Postuler à une autre
     // annonce crée une nouvelle candidature.
     .is("envoyee_en_booking_le", null)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(from, to)
+    .returns<CandidatureWithFilters[]>();
 
   const [annonceQuestions, annonceDates] = await Promise.all([
     getAnnonceQuestions(params.annonce_id),
@@ -224,33 +229,53 @@ export default async function CandidaturesPage({
     { data: bookingsJours },
     { data: journeesBesoins },
   ] = await Promise.all([
-    query.returns<CandidatureWithFilters[]>(),
+    fetchAll(query),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
     params.question_id && params.question_reponse
-      ? supabase
-          .from("candidature_reponses")
-          .select("candidature_id")
-          .eq("annonce_question_id", params.question_id)
-          .eq("reponse", params.question_reponse === "oui")
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_reponses")
+            .select("candidature_id")
+            .eq("annonce_question_id", params.question_id!)
+            .eq("reponse", params.question_reponse === "oui")
+            .order("candidature_id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
     annonceDateIds.length > 0
-      ? supabase
-          .from("candidature_disponibilites")
-          .select("candidature_id, annonce_date_id")
-          .in("annonce_date_id", annonceDateIds)
-          .eq("disponible", true)
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_disponibilites")
+            .select("candidature_id, annonce_date_id")
+            .in("annonce_date_id", annonceDateIds)
+            .eq("disponible", true)
+            .order("id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     getOngletsForAnnonce(params.annonce_id),
     annonceDateIds.length > 0
-      ? supabase.from("candidature_jours").select("candidature_id, annonce_date_id").in("annonce_date_id", annonceDateIds)
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_jours")
+            .select("candidature_id, annonce_date_id")
+            .in("annonce_date_id", annonceDateIds)
+            .order("candidature_id")
+            .order("annonce_date_id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     annonce && annonceDatesIso.length > 0
-      ? supabase
-          .from("bookings")
-          .select("id, figurant_id, date, statut")
-          .eq("projet_id", annonce.projet_id)
-          .in("date", annonceDatesIso)
-          .returns<{ id: string; figurant_id: string; date: string; statut: BookingStatut }[]>()
+      ? fetchAll((from, to) =>
+          supabase
+            .from("bookings")
+            .select("id, figurant_id, date, statut")
+            .eq("projet_id", annonce.projet_id)
+            .in("date", annonceDatesIso)
+            .order("id")
+            .range(from, to)
+            .returns<{ id: string; figurant_id: string; date: string; statut: BookingStatut }[]>()
+        )
       : Promise.resolve({ data: [] as { id: string; figurant_id: string; date: string; statut: BookingStatut }[] }),
     annonce && annonceDatesIso.length > 0
       ? supabase
