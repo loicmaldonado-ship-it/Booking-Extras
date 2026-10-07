@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { Figurant, FigurantPhoto } from "@/lib/figurants/types";
-import type { CovoiturageRole } from "@/lib/bookings/types";
+import type { BookingStatut, CovoiturageRole } from "@/lib/bookings/types";
 
 export type FigurantPhotoWithUrl = Omit<FigurantPhoto, "url"> & { url: string | null };
 
@@ -13,9 +13,13 @@ export type ConfirmedBooking = {
   figurant: Figurant;
 };
 
+// Par défaut, seulement les confirmé·es (documents de tournage) ; les
+// trombis et fiches mensuration peuvent aussi viser d'autres statuts
+// (proposé·es, PER…), voir lib/documents/statuts.ts.
 export async function getConfirmedBookings(
   projetId: string,
-  date: string
+  date: string,
+  statuts: BookingStatut[] = ["confirmé"]
 ): Promise<ConfirmedBooking[]> {
   const supabase = createAdminClient();
 
@@ -24,7 +28,7 @@ export async function getConfirmedBookings(
     .select("id, heure_convocation, fonction, cachet, figurants!bookings_figurant_id_fkey(*)")
     .eq("projet_id", projetId)
     .eq("date", date)
-    .eq("statut", "confirmé")
+    .in("statut", statuts)
     .returns<
       { id: string; heure_convocation: string | null; fonction: string | null; cachet: string | null; figurants: Figurant | null }[]
     >();

@@ -9,7 +9,8 @@ import { CandidaturesTable, type Row, type CandidatureSummary } from "@/componen
 import { SortChips } from "@/components/documents/sort-chips";
 import { ONGLET_OUT_BE } from "@/lib/candidatures/types";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
-import { JoursTournageBar } from "@/components/candidatures/jours-tournage-bar";
+import { JoursTournageBar, type EnvoyeJour } from "@/components/candidatures/jours-tournage-bar";
+import type { BookingStatut } from "@/lib/bookings/types";
 import { GENRES } from "@/lib/figurants/types";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import {
@@ -244,8 +245,13 @@ export default async function CandidaturesPage({
       ? supabase.from("candidature_jours").select("candidature_id, annonce_date_id").in("annonce_date_id", annonceDateIds)
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     annonce && annonceDatesIso.length > 0
-      ? supabase.from("bookings").select("figurant_id, date").eq("projet_id", annonce.projet_id).in("date", annonceDatesIso)
-      : Promise.resolve({ data: [] as { figurant_id: string; date: string }[] }),
+      ? supabase
+          .from("bookings")
+          .select("id, figurant_id, date, statut")
+          .eq("projet_id", annonce.projet_id)
+          .in("date", annonceDatesIso)
+          .returns<{ id: string; figurant_id: string; date: string; statut: BookingStatut }[]>()
+      : Promise.resolve({ data: [] as { id: string; figurant_id: string; date: string; statut: BookingStatut }[] }),
     annonce && annonceDatesIso.length > 0
       ? supabase
           .from("journees")
@@ -343,9 +349,30 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => joursPrevus.get(c.id)?.has(jourFilter));
   }
 
+  // Trace des envoyé·es : candidat·es de cette annonce présent·es dans la
+  // journée de tournage (booking sur le projet à cette date), y compris
+  // celles et ceux qui n'apparaissent plus dans la liste une fois envoyé·es.
+  const figurantsBookes = Array.from(new Set((bookingsJours ?? []).map((b) => b.figurant_id)));
+  const candidatsDeLAnnonce = new Set<string>();
+  for (let i = 0; i < figurantsBookes.length; i += 150) {
+    const { data } = await supabase
+      .from("candidatures")
+      .select("figurant_id")
+      .eq("annonce_id", params.annonce_id)
+      .in("figurant_id", figurantsBookes.slice(i, i + 150));
+    for (const c of data ?? []) candidatsDeLAnnonce.add(c.figurant_id);
+  }
+  const envoyesParDate = new Map<string, { id: string; figurant_id: string; statut: BookingStatut }[]>();
+  for (const b of bookingsJours ?? []) {
+    if (!candidatsDeLAnnonce.has(b.figurant_id)) continue;
+    const liste = envoyesParDate.get(b.date) ?? [];
+    liste.push(b);
+    envoyesParDate.set(b.date, liste);
+  }
+
   // Par jour : toutes les personnes prévues (quel que soit le filtre
-  // affiché), dont celles déjà dans la journée, et le besoin saisi dans
-  // Bookings pour cette journée s'il existe.
+  // affiché), dont celles déjà dans la journée, les envoyé·es, et le besoin
+  // saisi dans Bookings pour cette journée s'il existe.
   const joursTournage = annonceDates.map((d) => {
     const prevues = (joursRows ?? []).filter((j) => j.annonce_date_id === d.id);
     return {
@@ -353,9 +380,36 @@ export default async function CandidaturesPage({
       date: d.date,
       prevues: prevues.length,
       dansLaJournee: prevues.filter((j) => estTransfere(j.candidature_id, d.id)).length,
+      envoyes: envoyesParDate.get(d.date)?.length ?? 0,
       besoin: besoinsByDate.get(d.date) ?? null,
     };
   });
+
+  // Aperçu trombi des envoyé·es, seulement pour le jour ouvert (photos
+  // signées à la demande, pas pour tous les jours).
+  const jourOuvert = jourFilter ? annonceDates.find((d) => d.id === jourFilter) : null;
+  const envoyesJourOuvert = jourOuvert ? (envoyesParDate.get(jourOuvert.date) ?? []) : [];
+  const [{ data: figurantsEnvoyes }, photosEnvoyes] = await Promise.all([
+    envoyesJourOuvert.length > 0
+      ? supabase
+          .from("figurants")
+          .select("id, prenom, nom")
+          .in(
+            "id",
+            envoyesJourOuvert.map((b) => b.figurant_id)
+          )
+      : Promise.resolve({ data: [] as { id: string; prenom: string; nom: string }[] }),
+    getPhotosByFigurantId(envoyesJourOuvert.map((b) => b.figurant_id)),
+  ]);
+  const nomEnvoye = new Map((figurantsEnvoyes ?? []).map((f) => [f.id, `${f.prenom} ${f.nom}`]));
+  const apercuEnvoyes: EnvoyeJour[] = envoyesJourOuvert
+    .map((b) => ({
+      bookingId: b.id,
+      nom: nomEnvoye.get(b.figurant_id) ?? "—",
+      statut: b.statut,
+      portraitUrl: annonce ? (pickPortrait(photosEnvoyes.get(b.figurant_id), annonce.projet_id)?.url ?? null) : null,
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 
   // Compte par onglet pour la barre d'onglets — calculé sur le même
   // périmètre que les filtres actifs (myrole/genre/âge/question), mais
@@ -666,6 +720,7 @@ export default async function CandidaturesPage({
           hrefs={Object.fromEntries(annonceDates.map((d) => [d.id, jourHref(d.id)]))}
           clearHref={jourHref(null)}
           projetId={annonce.projet_id}
+          envoyesDuJour={apercuEnvoyes}
         />
       )}
 

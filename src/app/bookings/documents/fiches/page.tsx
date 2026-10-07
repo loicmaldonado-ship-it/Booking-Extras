@@ -18,6 +18,8 @@ import { computeAge, parseFields, parseIds, formatHeureConvocation, type Documen
 import { sortBookingsFlat, parseDocSort } from "@/lib/documents/sort";
 import { formatDateShort, formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { parseDocStatut } from "@/lib/documents/statuts";
+import { StatutChips } from "@/components/documents/statut-chips";
 
 // Muette par défaut : ni téléphone ni email tant qu'on ne les ajoute pas
 // explicitement (voir FieldsToggle) — le cachet, lui, est toujours affiché.
@@ -32,9 +34,10 @@ export default async function FichesPage({
     fields?: string | string[];
     booking_ids?: string;
     sort?: string | string[];
+    statut?: string;
   }>;
 }) {
-  const { projet_id, date, fields, booking_ids, sort } = await searchParams;
+  const { projet_id, date, fields, booking_ids, sort, statut } = await searchParams;
   await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
@@ -44,11 +47,12 @@ export default async function FichesPage({
   const selectedFields = fields === undefined ? new Set(DEFAULT_FIELDS) : parseFields(fields);
   const selectedIds = parseIds(booking_ids);
   const docSort = parseDocSort(sort);
+  const docStatut = parseDocStatut(statut, !!booking_ids);
 
   const supabase = createAdminClient();
   const [{ data: projet }, allBookings] = await Promise.all([
     supabase.from("projets").select("nom, realisateur, societe_production").eq("id", projet_id).single(),
-    getConfirmedBookings(projet_id, date),
+    getConfirmedBookings(projet_id, date, docStatut.statuts),
   ]);
 
   const bookings = sortBookingsFlat(
@@ -85,8 +89,10 @@ export default async function FichesPage({
         </div>
       </div>
 
+      <StatutChips baseParams={{ projet_id, date, fields, booking_ids, sort: docSort }} current={docStatut.key} />
+
       <SortChips
-        baseParams={{ projet_id, date, fields, booking_ids }}
+        baseParams={{ projet_id, date, fields, booking_ids, statut: docStatut.key }}
         current={docSort}
       />
 
@@ -95,12 +101,12 @@ export default async function FichesPage({
         date={date}
         selected={selectedFields}
         excludeFields={["sexe"]}
-        extraHidden={{ booking_ids, sort: docSort }}
+        extraHidden={{ booking_ids, sort: docSort, statut: docStatut.key }}
       />
 
       {bookings.length === 0 && (
         <PrintSheet orientation="landscape">
-          <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
+          <p className="py-6 text-center text-gray-500">Aucune personne ({docStatut.label.toLowerCase()}) pour cette journée.</p>
         </PrintSheet>
       )}
 
