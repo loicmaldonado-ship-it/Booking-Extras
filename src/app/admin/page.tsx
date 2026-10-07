@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getCurrentProfile, profileDisplayName } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { setCurrentProjet } from "@/lib/projet-context";
+import { entrerModeSupport } from "@/lib/auth/support";
 import { isOnline } from "@/lib/auth/presence";
 import { Card, Badge } from "@/components/ui/card";
 import { InviteChefForm } from "@/components/admin/invite-chef-form";
@@ -10,7 +10,7 @@ import { RevokeChefButton } from "@/components/admin/revoke-chef-button";
 import { ResendInviteButton } from "@/components/admin/resend-invite-button";
 import { TeamPresenceList, type PresenceMember } from "@/components/equipe/team-presence-list";
 import { formatDateTime } from "@/lib/format-date";
-import { Crown } from "lucide-react";
+import { Crown, LifeBuoy } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +80,24 @@ export default async function AdminPage() {
           aider si besoin.
         </p>
       </div>
+
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-yellow/50">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <LifeBuoy size={20} strokeWidth={1.75} />
+            Mode support
+          </h2>
+          <p className="text-sm text-text-muted">
+            Voir l&apos;espace d&apos;une autre cheffe exactement comme elle le voit, sans le mélanger au tien.
+          </p>
+        </div>
+        <Link
+          href="/admin/support"
+          className="rounded-full bg-yellow px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+        >
+          Ouvrir le mode support →
+        </Link>
+      </Card>
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -166,16 +184,16 @@ export default async function AdminPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {leursProjets.map((p) => (
                     <div key={p.id} className="flex items-center gap-1 rounded-full border border-border pl-3 pr-1 py-1">
-                      <Link href={`/projets/${p.id}`} className="text-xs font-medium hover:text-coral">
-                        {p.nom}
-                      </Link>
-                      <form action={setCurrentProjet.bind(null, p.id, "/bookings")}>
+                      <span className="text-xs font-medium">{p.nom}</span>
+                      {/* Ouvre le projet en mode support (bandeau, ses projets à elle) plutôt que
+                          dans ton propre espace, pour ne pas mélanger les projets. */}
+                      <form action={entrerModeSupport.bind(null, c.id, p.id)}>
                         <button
                           type="submit"
                           className="rounded-full bg-ink-raised-2 px-2 py-0.5 text-[10px] font-medium text-text-muted hover:text-coral"
-                          title="Ouvrir Bookings/Casting/Essayages pour ce projet"
+                          title="Ouvrir ce projet en mode support"
                         >
-                          Piloter →
+                          Ouvrir en support →
                         </button>
                       </form>
                     </div>

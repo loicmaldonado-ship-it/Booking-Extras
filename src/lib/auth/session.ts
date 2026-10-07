@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isOwner } from "@/lib/auth/owner";
@@ -95,8 +96,37 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
 // /admin, pas mélangés à ses propres listes — voir requireProjetAccess/
 // checkProjetAccess pour l'accès direct (par id) qui, lui, reste illimité
 // pour le compte propriétaire.
+//
+// Mode support (compte propriétaire seulement, voir /admin/support) : les
+// listes montrent alors les projets de la cheffe choisie à la place des
+// siens, pour voir le site exactement comme elle le voit, sans mélange.
 export async function getAccessibleProjetIds(profile: CurrentProfile): Promise<string[] | null> {
+  const supportChefId = await getSupportChefId(profile);
+  if (supportChefId) return accessibleProjetIdsFor(supportChefId, "chef");
   return accessibleProjetIdsFor(profile.id, profile.role);
+}
+
+export const SUPPORT_COOKIE = "support_chef_id";
+
+// Cheffe suivie en mode support, pour le bandeau affiché sur chaque page.
+export const getSupportChef = cache(async (): Promise<{ id: string; nom: string } | null> => {
+  const profile = await getCurrentProfile();
+  const id = await getSupportChefId(profile);
+  if (!id) return null;
+  const { data } = await createAdminClient()
+    .from("profiles")
+    .select("nom, prenom, email, role")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data || data.role !== "chef") return null;
+  return { id, nom: profileDisplayName(data) ?? data.email ?? "cheffe" };
+});
+
+// Id de la cheffe dont le compte propriétaire regarde l'espace, ou null.
+export async function getSupportChefId(profile: CurrentProfile | null): Promise<string | null> {
+  if (!isOwner(profile)) return null;
+  const id = (await cookies()).get(SUPPORT_COOKIE)?.value ?? null;
+  return id && id !== profile!.id ? id : null;
 }
 
 const accessibleProjetIdsFor = cache(async (profileId: string, role: CurrentProfile["role"]): Promise<string[]> => {
