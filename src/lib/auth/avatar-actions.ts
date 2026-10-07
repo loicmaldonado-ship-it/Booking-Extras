@@ -12,6 +12,14 @@ export async function updateMyAvatar(_prevState: unknown, formData: FormData) {
   if (!(photo instanceof File) || photo.size === 0) {
     return { error: "Choisis une image." };
   }
+  // Le navigateur réduit déjà la photo (prepareAvatar) ; garde-fou si un
+  // fichier arrive quand même tel quel.
+  if (!photo.type.startsWith("image/") || /heic|heif/i.test(photo.type)) {
+    return { error: "Format non pris en charge : choisis une photo JPEG ou PNG." };
+  }
+  if (photo.size > 4 * 1024 * 1024) {
+    return { error: "Photo trop lourde (4 Mo maximum) : choisis-en une autre." };
+  }
 
   const supabase = createAdminClient();
   const ext = photo.name.split(".").pop() || "jpg";

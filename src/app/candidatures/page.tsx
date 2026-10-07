@@ -191,6 +191,13 @@ export default async function CandidaturesPage({
       "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
+    // Règle de Loïc : une fois envoyée en booking, une candidature ne
+    // réapparaît plus jamais dans cette annonce, même s'il lui reste des
+    // jours prévus (ils restent comptés et envoyables depuis la barre "Jours
+    // de tournage") ou si le booking est supprimé / déplacé. Marque posée
+    // par la base (voir migration 20261007000004). Postuler à une autre
+    // annonce crée une nouvelle candidature.
+    .is("envoyee_en_booking_le", null)
     .order("created_at", { ascending: false });
 
   const [annonceQuestions, annonceDates] = await Promise.all([
@@ -207,7 +214,6 @@ export default async function CandidaturesPage({
 
   const [
     { data: candidaturesRaw, error },
-    { data: bookedCandidatures },
     { data: templates },
     { data: reponsesMatch },
     { data: disposOui },
@@ -217,7 +223,6 @@ export default async function CandidaturesPage({
     { data: journeesBesoins },
   ] = await Promise.all([
     query.returns<CandidatureWithFilters[]>(),
-    supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
     params.question_id && params.question_reponse
       ? supabase
@@ -278,14 +283,7 @@ export default async function CandidaturesPage({
     datesDispoByCandidature.set(d.candidature_id, set);
   }
 
-  const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
-  // Règle de Loïc : une fois envoyée dans un booking, une candidature ne
-  // réapparaît plus jamais dans cette annonce, même s'il lui reste des jours
-  // prévus (ils restent comptés et envoyables depuis la barre "Jours de
-  // tournage"). Postuler à une autre annonce crée une nouvelle candidature.
-  const estMasquee = (c: CandidatureWithFilters) => bookedCandidatureIds.has(c.id);
-
-  let candidatures = (candidaturesRaw ?? []).filter((c) => !estMasquee(c));
+  let candidatures = candidaturesRaw ?? [];
   if (params.myrole === "oui") {
     candidatures = candidatures.filter((c) => c.figurants?.compte_myrole);
   } else if (params.myrole === "non") {
@@ -556,7 +554,6 @@ export default async function CandidaturesPage({
     buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, ordre: o });
 
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
-    .filter((c) => !estMasquee(c))
     .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
     .filter((c) => (params.myrole === "non" ? !c.figurants?.compte_myrole : true))
     .filter((c) => (params.onglet_id === "a_trier" ? c.onglet_id === null : true))

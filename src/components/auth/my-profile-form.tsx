@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
+import { prepareAvatar } from "@/lib/media/prepare-avatar";
 import { updateMyProfile } from "@/lib/auth/profile-actions";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import type { CurrentProfile } from "@/lib/auth/session";
@@ -61,9 +62,16 @@ function ChangePasswordCard() {
 export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate?: boolean }) {
   const router = useRouter();
   const [preview, setPreview] = useState<string | null>(null);
+  const [erreurFichier, setErreurFichier] = useState<string | null>(null);
   const [avatarState, avatarAction, avatarPending] = useActionState(updateMyAvatar, undefined);
   const [profileState, profileAction, profilePending] = useActionState(updateMyProfile, undefined);
   const inputRef = useRef<HTMLInputElement>(null);
+  const manquants = [
+    !profile.avatarUrl && "ta photo",
+    !profile.prenom && "ton prénom",
+    !profile.nom && "ton nom",
+    !profile.telephone && "ton téléphone",
+  ].filter((m): m is string => !!m);
 
   useEffect(() => {
     if (avatarState?.success || profileState?.success) router.refresh();
@@ -71,11 +79,20 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
 
   function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    setPreview(URL.createObjectURL(file));
-    const fd = new FormData();
-    fd.set("avatar", file);
-    avatarAction(fd);
+    startTransition(async () => {
+      const prepare = await prepareAvatar(file);
+      if ("error" in prepare) {
+        setErreurFichier(prepare.error);
+        return;
+      }
+      setErreurFichier(null);
+      setPreview(URL.createObjectURL(prepare.file));
+      const fd = new FormData();
+      fd.set("avatar", prepare.file);
+      avatarAction(fd);
+    });
   }
 
   return (
@@ -83,8 +100,14 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
       {gate && (
         <Card className="border-coral/40 bg-coral/10">
           <p className="text-sm">
-            Avant de continuer, complète ta fiche membre — photo, nom, prénom et téléphone sont obligatoires pour
-            les chef·fes de casting.
+            Avant d&apos;accéder au reste du site, complète ta fiche membre : photo, nom, prénom et téléphone sont
+            obligatoires pour les chef·fes de casting.
+            {manquants.length > 0 && (
+              <>
+                {" "}
+                Il manque : <strong>{manquants.join(", ")}</strong>.
+              </>
+            )}
           </p>
         </Card>
       )}
@@ -106,7 +129,9 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
             <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} disabled={avatarPending}>
               {avatarPending ? "Envoi..." : "Changer ma photo"}
             </Button>
-            {avatarState?.error && <p className="text-xs text-danger">{avatarState.error}</p>}
+            {(erreurFichier ?? avatarState?.error) && (
+              <p className="text-xs text-danger">{erreurFichier ?? avatarState?.error}</p>
+            )}
           </div>
           <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={onAvatarChange} />
         </div>

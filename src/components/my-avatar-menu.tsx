@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AvatarPresence } from "@/components/equipe/avatar-presence";
 import { updateMyAvatar } from "@/lib/auth/avatar-actions";
+import { prepareAvatar } from "@/lib/media/prepare-avatar";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 export function MyAvatarMenu({
@@ -17,6 +18,7 @@ export function MyAvatarMenu({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [erreurFichier, setErreurFichier] = useState<string | null>(null);
   const [state, formAction, pending] = useActionState(updateMyAvatar, undefined);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +51,7 @@ export function MyAvatarMenu({
               Mon profil →
             </Link>
             <p className="text-xs text-text-muted">Ta photo de profil</p>
-            {state?.error && <p className="text-xs text-danger">{state.error}</p>}
+            {(erreurFichier ?? state?.error) && <p className="text-xs text-danger">{erreurFichier ?? state?.error}</p>}
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -65,12 +67,21 @@ export function MyAvatarMenu({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
+                e.target.value = "";
                 if (!file) return;
-                setPreview(URL.createObjectURL(file));
-                setOpen(false);
-                const fd = new FormData();
-                fd.set("avatar", file);
-                formAction(fd);
+                startTransition(async () => {
+                  const prepare = await prepareAvatar(file);
+                  if ("error" in prepare) {
+                    setErreurFichier(prepare.error);
+                    return;
+                  }
+                  setErreurFichier(null);
+                  setPreview(URL.createObjectURL(prepare.file));
+                  setOpen(false);
+                  const fd = new FormData();
+                  fd.set("avatar", prepare.file);
+                  formAction(fd);
+                });
               }}
             />
             <form action={signOutAction} className="border-t border-border pt-2 sm:hidden">
