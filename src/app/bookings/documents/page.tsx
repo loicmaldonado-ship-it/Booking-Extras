@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -98,7 +99,12 @@ export default async function JourneeDashboardPage({
 
   const rawBookings = bookingsRaw ?? [];
   const figurantIds = rawBookings.map((b) => b.figurant_id);
-  const photosByFigurant = await getPhotosByFigurantId(figurantIds);
+  // Photothèque complète (galerie) + photo principale choisie pour les
+  // trombis de ce projet (Booking → 📷 Photos).
+  const [photosByFigurant, photosTrombi] = await Promise.all([
+    getPhotosByFigurantId(figurantIds),
+    getPhotosDocumentsProjet(projet_id, figurantIds),
+  ]);
 
   const { data: messagesRaw } =
     figurantIds.length > 0
@@ -212,7 +218,8 @@ export default async function JourneeDashboardPage({
     // cheffe propriétaire (jamais une formule générique type "L'équipe
     // casting") — voir getProjetSignatureOrOwnerName.
     projets: b.projets ? { ...b.projets, signature: b.projets.signature || resolvedSignature } : b.projets,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
+    portraitUrl:
+      photosTrombi.get(b.figurant_id)?.[0]?.url ?? pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
     photos: photosByFigurant.get(b.figurant_id) ?? [],
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
@@ -224,7 +231,8 @@ export default async function JourneeDashboardPage({
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
+    portraitUrl:
+      photosTrombi.get(b.figurant_id)?.[0]?.url ?? pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
   }));
 
   const essayageFigurants: BookedFigurant[] = rawBookings

@@ -1,8 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import {
   getConfirmedBookings,
   getFutureBookingsByFigurant,
-  getPhotosByFigurantId,
   pickFichePhotos,
 } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -64,7 +64,7 @@ export default async function FichesPage({
   const figurantIds = bookings.map((b) => b.figurant.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant, { data: costumesRaw }] = await Promise.all([
-    getPhotosByFigurantId(figurantIds),
+    getPhotosDocumentsProjet(projet_id, figurantIds),
     getFutureBookingsByFigurant(figurantIds, today),
     figurantIds.length > 0
       ? supabase

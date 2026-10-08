@@ -652,6 +652,12 @@ export default function AidePage() {
           email, âge, ville...), puis <UI>Télécharger le PDF</UI> ou <UI>Imprimer</UI>.
         </p>
         <p className="text-sm text-text-muted">
+          Photos des trombis et fiches : dans la journée, <UI>📷 Photos</UI> à côté d&apos;un nom permet de choisir
+          jusqu&apos;à 3 photos dans l&apos;ordre (la 1 est la photo principale du trombi). Sans choix : photos de
+          l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
+          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.
+        </p>
+        <p className="text-sm text-text-muted">
           Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}
           <UI>Confirmé·es</UI> ; aussi <UI>Proposé·es</UI>, <UI>PER</UI> ou <UI>Tout le monde</UI> (sauf annulé·es
           et indisponibles).
