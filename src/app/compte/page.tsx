@@ -65,10 +65,15 @@ export default async function CompteCandidatPage({
   );
   const { data: projetsMessages } =
     projetIdsAvecMessage.length > 0
-      ? await supabase.from("projets").select("id, nom, archive").in("id", projetIdsAvecMessage)
-      : { data: [] as { id: string; nom: string; archive: boolean }[] };
+      ? await supabase
+          .from("projets")
+          .select("id, nom, archive, confidentiel, nom_code")
+          .in("id", projetIdsAvecMessage)
+      : { data: [] as { id: string; nom: string; archive: boolean; confidentiel: boolean; nom_code: string | null }[] };
+  // Nom public (nom de code si le projet est confidentiel), comme sur les
+  // annonces : les candidat·es ne voient jamais le vrai nom d'un projet confidentiel.
   const projetInfoById: Record<string, { label: string; archive: boolean }> = Object.fromEntries(
-    (projetsMessages ?? []).map((p) => [p.id, { label: p.nom, archive: p.archive }])
+    (projetsMessages ?? []).map((p) => [p.id, { label: projetNomPublic(p), archive: p.archive }])
   );
 
   const photoPaths = Array.from(new Set((photosRaw ?? []).map((p) => p.storage_path))).sort();
@@ -199,7 +204,7 @@ export default async function CompteCandidatPage({
         <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
           {CONTACT_SUPPORT_EMAIL}
         </a>
-        . Pour un tournage, réponds directement dans tes messages ci-dessus.
+        . Pour un tournage, réponds directement par email à l&apos;équipe casting.
       </p>
     </div>
   );

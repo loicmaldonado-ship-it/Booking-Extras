@@ -387,9 +387,16 @@ export default function AidePage() {
               réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
             </>,
             <>
-              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
+              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT</strong> sont communs
               à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
               as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
+            </>,
+            <>
+              <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
+              les autres onglets) et n&apos;en reste la trace que dans l&apos;onglet <UI>OUT</UI>. La personne reçoit
+              dans son espace : « Désolé, vous n&apos;avez pas été retenu·e pour l&apos;annonce … Un grand merci pour
+              votre candidature, et à tout bientôt ! L&apos;équipe Booking Extras ». Sortie de OUT par erreur, le
+              message est retiré.
             </>,
             <>
               Depuis la fiche, <UI>+ Ajouter à un booking</UI> pour la faire passer directement en tournage, ou
@@ -650,6 +657,12 @@ export default function AidePage() {
         <p className="text-sm text-text-muted">
           Sur chaque document, <UI>Champs à afficher</UI> te permet de cocher ce que tu veux montrer (téléphone,
           email, âge, ville...), puis <UI>Télécharger le PDF</UI> ou <UI>Imprimer</UI>.
+        </p>
+        <p className="text-sm text-text-muted">
+          Photos des trombis et fiches : dans la journée, <UI>📷 Photos</UI> à côté d&apos;un nom permet de choisir
+          jusqu&apos;à 3 photos dans l&apos;ordre (la 1 est la photo principale du trombi). Sans choix : photos de
+          l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
+          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.
         </p>
         <p className="text-sm text-text-muted">
           Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}

@@ -1,7 +1,8 @@
 import { Fragment } from "react";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import Link from "next/link";
 import Image from "next/image";
-import { getConfirmedBookings, getPhotosByFigurantId, pickPortrait, type ConfirmedBooking } from "@/lib/documents/data";
+import { getConfirmedBookings, pickPortrait, type ConfirmedBooking } from "@/lib/documents/data";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -115,7 +116,7 @@ export default async function PartageTrombisPage({
   const showFonction = selectedFields.has("fonction");
 
   const bookings = await getConfirmedBookings(projet.id, date);
-  const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
+  const photosByFigurant = await getPhotosDocumentsProjet(projet.id, bookings.map((b) => b.figurant.id));
   const pages = paginateGroupedItems(
     flattenByHeureEtCachet(bookings, showFonction, lang),
     (i) => `${i.heureLabel}·${i.cachetLabel}${showFonction ? `·${i.fonctionLabel}` : ""}`

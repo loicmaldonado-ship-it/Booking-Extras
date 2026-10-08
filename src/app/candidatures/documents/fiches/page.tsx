@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
-import { getCandidaturesPourDocuments } from "@/lib/candidatures/documents";
+import { getFutureBookingsByFigurant, pickFichePhotos } from "@/lib/documents/data";
+import { getCandidaturesPourDocuments, getPhotosDesCandidatures } from "@/lib/candidatures/documents";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -46,7 +46,7 @@ export default async function CandidaturesFichesPage({
     await Promise.all([
       supabase.from("projets").select("nom, realisateur, societe_production").eq("id", projetId).single(),
       getDocumentTemplate(supabase, projetId),
-      getPhotosByFigurantId(figurantIds),
+      getPhotosDesCandidatures(items),
       getFutureBookingsByFigurant(figurantIds, today),
       figurantIds.length > 0
         ? supabase

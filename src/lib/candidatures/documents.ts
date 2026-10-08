@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ConfirmedBooking } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, type ConfirmedBooking, type FigurantPhotoWithUrl } from "@/lib/documents/data";
 import type { Figurant } from "@/lib/figurants/types";
 
 // Trombis et fiches mensuration d'une sélection de candidatures (page
@@ -63,4 +63,14 @@ export async function getCandidaturesPourDocuments(annonceId: string, ids: Set<s
   }
 
   return { annonce, items, joursDispo };
+}
+
+// Photos à montrer par figurant·e dans ces documents : celles de la
+// candidature (envoyées ou reprises pour l'annonce), sinon celles du compte.
+export async function getPhotosDesCandidatures(items: ConfirmedBooking[]): Promise<Map<string, FigurantPhotoWithUrl[]>> {
+  const [parFigurant, parCandidature] = await Promise.all([
+    getPhotosByFigurantId(items.map((i) => i.figurant.id)),
+    getPhotosParCandidature(items.map((i) => i.id)),
+  ]);
+  return new Map(items.map((i) => [i.figurant.id, parCandidature.get(i.id) ?? parFigurant.get(i.figurant.id) ?? []]));
 }

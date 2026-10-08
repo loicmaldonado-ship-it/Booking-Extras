@@ -7,7 +7,6 @@ import { setCurrentProjet } from "@/lib/projet-context";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row, type CandidatureSummary } from "@/components/candidatures/candidatures-table";
 import { SortChips } from "@/components/documents/sort-chips";
-import { ONGLET_OUT_BE } from "@/lib/candidatures/types";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { JoursTournageBar, type EnvoyeJour } from "@/components/candidatures/jours-tournage-bar";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -20,7 +19,7 @@ import {
 } from "@/lib/figurants/mensuration-filters";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
@@ -353,11 +352,15 @@ export default async function CandidaturesPage({
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
   }
+  // Onglet fixe « OUT » : ses candidatures disparaissent de l'annonce.
+  const ongletOutId = (onglets ?? []).find((o) => o.fixe)?.id ?? null;
+
   // Compteur par date sur le périmètre de l'onglet affiché, mais avant le
   // filtre de dates lui-même : chaque pastille annonce combien de personnes
   // sont dispo ce jour-là.
   const dispoCountByDate = new Map<string, number>();
   for (const c of candidatures) {
+    if (!params.onglet_id && c.onglet_id === ongletOutId) continue;
     if (params.onglet_id === "a_trier" && c.onglet_id !== null) continue;
     if (params.onglet_id && params.onglet_id !== "a_trier" && c.onglet_id !== params.onglet_id) continue;
     for (const dateId of datesDispoByCandidature.get(c.id) ?? []) {
@@ -441,7 +444,7 @@ export default async function CandidaturesPage({
   // avant le découpage par onglet lui-même, pour que chaque pastille
   // annonce le nombre qu'on obtiendra en cliquant dessus.
   const tabCounts: Record<string, number> = {
-    tous: candidatures.length,
+    tous: candidatures.filter((c) => c.onglet_id !== ongletOutId).length,
     a_trier: candidatures.filter((c) => c.onglet_id === null).length,
   };
   for (const o of onglets ?? []) {
@@ -452,6 +455,10 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.onglet_id === null);
   } else if (params.onglet_id) {
     candidatures = candidatures.filter((c) => c.onglet_id === params.onglet_id);
+  } else {
+    // « Tous » : les candidatures en OUT ne sont plus dans l'annonce, il
+    // n'en reste la trace que dans l'onglet OUT.
+    candidatures = candidatures.filter((c) => c.onglet_id !== ongletOutId);
   }
 
   const tournagesTous =
@@ -490,9 +497,14 @@ export default async function CandidaturesPage({
   const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
   const pageCandidatures = candidatures.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
 
-  const portraitByFigurant = await getPhotosByFigurantId(
-    pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
-  );
+  // Photos de la candidature (envoyées ou reprises pour cette annonce),
+  // sinon celles du compte pour les candidatures d'avant.
+  const [portraitByFigurant, photosParCandidature] = await Promise.all([
+    getPhotosByFigurantId(pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+    getPhotosParCandidature(pageCandidatures.map((c) => c.id)),
+  ]);
+  const photosDe = (c: (typeof pageCandidatures)[number]) =>
+    photosParCandidature.get(c.id) ?? (c.figurants ? portraitByFigurant.get(c.figurants.id) : undefined);
 
   const candidatureIds = pageCandidatures.map((c) => c.id);
   const [{ data: reponsesRaw }, tournagesPage] = await Promise.all([
@@ -548,8 +560,8 @@ export default async function CandidaturesPage({
             : c.annonces.projets,
         }
       : c.annonces,
-    portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
-    photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
+    portraitUrl: pickPortrait(photosDe(c))?.url ?? null,
+    photos: photosDe(c) ?? [],
   }));
 
   // Partagée par pageHref/tabHref/genreTabHref ci-dessous : les trois ne
@@ -613,7 +625,7 @@ export default async function CandidaturesPage({
       label: o.nom,
       href: tabHref(o.id),
       count: tabCounts[o.id] ?? 0,
-      danger: o.nom === ONGLET_OUT_BE,
+      danger: o.fixe,
     })),
   ];
 
@@ -638,6 +650,7 @@ export default async function CandidaturesPage({
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
     .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
     .filter((c) => (params.myrole === "non" ? !c.figurants?.compte_myrole : true))
+    .filter((c) => (params.onglet_id ? true : c.onglet_id !== ongletOutId))
     .filter((c) => (params.onglet_id === "a_trier" ? c.onglet_id === null : true))
     .filter((c) => (params.onglet_id && params.onglet_id !== "a_trier" ? c.onglet_id === params.onglet_id : true));
   const genreTabs = [

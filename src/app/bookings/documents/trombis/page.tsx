@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getConfirmedBookings, getPhotosByFigurantId } from "@/lib/documents/data";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
+import { getConfirmedBookings } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -50,7 +51,7 @@ export default async function TrombisPage({
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
   const documentTemplate = await getDocumentTemplate(supabase, projet_id);
 
-  const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
+  const photosByFigurant = await getPhotosDocumentsProjet(projet_id, bookings.map((b) => b.figurant.id));
   const items: TrombiItem[] = buildTrombiItems(bookings, docSort);
   const pages = paginateGroupedItems(items, (i) => i.headerLabel);
 

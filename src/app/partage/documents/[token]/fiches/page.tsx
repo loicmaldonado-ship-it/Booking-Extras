@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import {
   getConfirmedBookings,
   getFutureBookingsByFigurant,
-  getPhotosByFigurantId,
   pickFichePhotos,
 } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -56,7 +56,7 @@ export default async function PartageFichesPage({
   const figurantIds = bookings.map((b) => b.figurant.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
-    getPhotosByFigurantId(figurantIds),
+    getPhotosDocumentsProjet(projet.id, figurantIds),
     getFutureBookingsByFigurant(figurantIds, today),
   ]);
   const documentTemplate = await getDocumentTemplate(createAdminClient(), projet.id);

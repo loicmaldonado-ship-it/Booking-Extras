@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -874,6 +875,14 @@ export function BookingsTable({
             {previewIndexByBookingId.has(r.id) && (
               <PreviewButton items={previewItems} index={previewIndexByBookingId.get(r.id)!} />
             )}
+            {projetId && r.figurant_id && (
+              <PhotosTrombiPicker
+                projetId={projetId}
+                figurantId={r.figurant_id}
+                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                compact
+              />
+            )}
           </div>
           {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
@@ -1023,6 +1032,23 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
+          {projetId && r.figurant_id && (
+            // La carte entière est un lien : le choix des photos ne doit pas
+            // ouvrir le booking.
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <PhotosTrombiPicker
+                projetId={projetId}
+                figurantId={r.figurant_id}
+                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                compact
+              />
+            </span>
+          )}
           <label
             onClick={(e) => {
               e.preventDefault();
