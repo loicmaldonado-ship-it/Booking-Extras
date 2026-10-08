@@ -364,7 +364,7 @@ export function BookingsTable({
   const [changeDateOpen, setChangeDateOpen] = useState(false);
   const [changeDateMessage, setChangeDateMessage] = useState<string | null>(null);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
-  const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number; dejaCompte?: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
   const [essayageResult, setEssayageResult] = useState<string | null>(null);
@@ -551,7 +551,7 @@ export function BookingsTable({
         setEspacePersoResult({ sent: 0, failed: selectedWithEmail.length });
         return;
       }
-      setEspacePersoResult({ sent: result.sent ?? 0, failed: result.failed ?? 0 });
+      setEspacePersoResult({ sent: result.sent ?? 0, failed: result.failed ?? 0, dejaCompte: result.dejaCompte ?? 0 });
       if (!result.failed) {
         setSelected(new Set());
         setEspacePersoOpen(false);
@@ -1617,7 +1617,11 @@ export function BookingsTable({
               {espacePersoResult && (
                 <span className="text-xs text-text-muted">
                   {espacePersoResult.sent} envoyé{espacePersoResult.sent > 1 ? "s" : ""}
-                  {espacePersoResult.failed > 0 ? `, ${espacePersoResult.failed} échec(s)` : ""}.
+                  {espacePersoResult.failed > 0 ? `, ${espacePersoResult.failed} échec(s)` : ""}
+                  {espacePersoResult.dejaCompte
+                    ? `, ${espacePersoResult.dejaCompte} ignoré${espacePersoResult.dejaCompte > 1 ? "s" : ""} (compte déjà créé)`
+                    : ""}
+                  .
                 </span>
               )}
             </div>

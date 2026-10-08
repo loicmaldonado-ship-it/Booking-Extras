@@ -3,10 +3,11 @@ export type Pronom = "Elle" | "Il" | "Iel";
 export type Genre = "Femme" | "Homme" | "Non-binaire" | "Autre";
 export type PhotoType = "portrait" | "pied" | "autre" | "selfie" | "tenue" | "vehicule" | "casting";
 
-// Au-delà, une fiche devient difficile à parcourir et le stockage explose
-// sans réel bénéfice pour le casting — appliqué partout où un candidat ou
-// un membre de l'équipe peut ajouter une photo.
-export const MAX_PHOTOS_PAR_FIGURANT = 7;
+// Photothèque d'un compte : limite des ajouts depuis l'espace candidat·e
+// et la fiche (au-delà, la fiche devient difficile à parcourir). Les photos
+// envoyées avec une candidature ne sont jamais refusées : chaque annonce
+// demande les siennes (voir candidature_photos).
+export const MAX_PHOTOS_PAR_FIGURANT = 20;
 
 export type Figurant = {
   id: string;

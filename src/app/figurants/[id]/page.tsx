@@ -14,6 +14,7 @@ import { FigurantAgentPanel } from "@/components/figurants/figurant-agent-panel"
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
 import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
+import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { AddDatesPanel } from "@/components/figurants/add-dates-panel";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
@@ -179,7 +180,12 @@ export default async function FigurantDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} projetId={currentProjetId} />
           {figurant.acces_compte && currentProjetId && (
-            <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
+            <SendEspacePersoButton
+              figurantId={figurant.id}
+              projetId={currentProjetId}
+              email={figurant.email}
+              aUnCompte={await aCreeSonCompte(figurant.id)}
+            />
           )}
         </div>
         {(figurant.est_comedien || figurant.agent_nom || figurant.agent_email || figurant.agent_telephone) && (

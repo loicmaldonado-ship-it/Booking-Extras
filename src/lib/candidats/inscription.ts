@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
-import { hashPassword } from "@/lib/candidats/password";
+import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
 import { lireProfil, emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
@@ -80,7 +80,7 @@ export async function inscrireCandidat(
 
   const { data: figurant, error } = await supabase
     .from("figurants")
-    .insert({ ...profil, acces_compte: true, password_hash: await hashPassword(motDePasse) })
+    .insert({ ...profil, acces_compte: true })
     .select("id")
     .single();
   if (error || !figurant) {
@@ -88,6 +88,11 @@ export async function inscrireCandidat(
       return { compteExistant: true, error: "Tu as déjà un compte avec cet email. Connecte-toi." };
     }
     return { error: error?.message ?? "Création du compte impossible." };
+  }
+  const mdp = await definirMotDePasse(figurant.id, motDePasse);
+  if (mdp.error) {
+    await supabase.from("figurants").delete().eq("id", figurant.id);
+    return { error: "Création du compte impossible, réessaie." };
   }
 
   const lienBandeDemo = String(formData.get("lien_bande_demo") ?? "").trim();

@@ -18,6 +18,7 @@ import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import { DuplicateWarning } from "@/components/figurants/duplicate-warning";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
+import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 
 type CandidatureDetail = {
   id: string;
@@ -149,7 +150,12 @@ export default async function CandidatureDetailPage({
             </ButtonLink>
           )}
           {candidature.annonces?.projet_id && (
-            <SendEspacePersoButton figurantId={f.id} projetId={candidature.annonces.projet_id} email={f.email} />
+            <SendEspacePersoButton
+              figurantId={f.id}
+              projetId={candidature.annonces.projet_id}
+              email={f.email}
+              aUnCompte={await aCreeSonCompte(f.id)}
+            />
           )}
         </div>
       </div>

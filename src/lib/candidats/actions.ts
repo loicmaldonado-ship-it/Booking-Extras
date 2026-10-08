@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retourAutorise } from "@/lib/candidats/retour";
+import { aCreeSonCompte, definirMotDePasse, motDePasseCorrect } from "@/lib/candidats/mot-de-passe";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
@@ -13,7 +14,6 @@ import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoTyp
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
 import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant } from "./session";
-import { hashPassword, verifyPassword } from "./password";
 
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 
@@ -157,12 +157,12 @@ export async function loginWithPassword(
   const supabase = createAdminClient();
   const { data: figurant } = await supabase
     .from("figurants")
-    .select("id, password_hash")
+    .select("id")
     .ilike("email", email)
     .eq("est_comedien", false)
     .maybeSingle();
 
-  if (!figurant?.password_hash || !(await verifyPassword(password, figurant.password_hash))) {
+  if (!figurant || !(await motDePasseCorrect(figurant.id, password))) {
     return { error: "Email ou mot de passe incorrect." };
   }
 
@@ -184,12 +184,8 @@ export async function setMaPassword(
   const password = String(formData.get("password") ?? "");
   if (password.length < 6) return { error: "Le mot de passe doit faire au moins 6 caractères." };
 
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("figurants")
-    .update({ password_hash: await hashPassword(password) })
-    .eq("id", session.id);
-  if (error) return { error: error.message };
+  const { error } = await definirMotDePasse(session.id, password);
+  if (error) return { error };
 
   return { success: true };
 }
@@ -276,6 +272,12 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
   const etaitDejaActif = figurant.acces_compte;
   if (!etaitDejaActif) {
     await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+  }
+  // Compte créé par la personne elle-même : pas de lien « espace prêt »,
+  // réservé aux profils ajoutés à la main.
+  if (await aCreeSonCompte(figurantId)) {
+    revalidatePath(`/figurants/${figurantId}`);
+    return { success: true as const };
   }
 
   if (projetId) {
