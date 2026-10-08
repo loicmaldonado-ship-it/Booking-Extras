@@ -14,6 +14,7 @@ import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
 import { getTournagesConfirmesCount } from "./onglets";
+import { appliquerMessagesOut, lireOngletsAvant } from "./out";
 import type { Cachet, TriCandidature } from "./types";
 
 // candidatures n'a pas de projet_id direct — il vit sur son annonce.
@@ -463,9 +464,11 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
     const ongletError = await checkOngletMatchesAnnonces(ongletId, [id]);
     if (ongletError) return { error: ongletError };
   }
+  const avant = await lireOngletsAvant([id]);
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
+  await appliquerMessagesOut(avant, ongletId);
   return { success: true as const };
 }
 
@@ -489,9 +492,11 @@ export async function setCandidaturesOngletBulk(ids: string[], ongletId: string 
     if (ongletError) return { error: ongletError };
   }
 
+  const avant = await lireOngletsAvant(ids);
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
+  await appliquerMessagesOut(avant, ongletId);
   return { success: true as const };
 }
 
@@ -514,7 +519,7 @@ async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: stri
 }
 
 // Créé sur l'annonce en cours, jamais en commun : les onglets communs sont
-// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT BE).
+// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT).
 export async function createCandidatureOnglet(nom: string, annonceId: string) {
   const trimmed = nom.trim();
   if (!trimmed) return { error: "Nom d'onglet requis." };

@@ -387,9 +387,16 @@ export default function AidePage() {
               réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
             </>,
             <>
-              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
+              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT</strong> sont communs
               à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
               as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
+            </>,
+            <>
+              <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
+              les autres onglets) et n&apos;en reste la trace que dans l&apos;onglet <UI>OUT</UI>. La personne reçoit
+              dans son espace : « Désolé, vous n&apos;avez pas été retenu·e pour l&apos;annonce … Un grand merci pour
+              votre candidature, et à tout bientôt ! L&apos;équipe Booking Extras ». Sortie de OUT par erreur, le
+              message est retiré.
             </>,
             <>
               Depuis la fiche, <UI>+ Ajouter à un booking</UI> pour la faire passer directement en tournage, ou

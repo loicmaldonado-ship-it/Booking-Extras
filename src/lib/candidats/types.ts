@@ -6,7 +6,8 @@ export type FigurantMessageCategorie =
   | "hmc"
   | "casting"
   | "libre"
-  | "espace_perso";
+  | "espace_perso"
+  | "non_retenu";
 
 export const FIGURANT_MESSAGE_CATEGORIES: { value: FigurantMessageCategorie; label: string }[] = [
   { value: "booking", label: "Booking" },
@@ -17,6 +18,7 @@ export const FIGURANT_MESSAGE_CATEGORIES: { value: FigurantMessageCategorie; lab
   { value: "casting", label: "Casting" },
   { value: "libre", label: "Libre" },
   { value: "espace_perso", label: "Espace perso" },
+  { value: "non_retenu", label: "Non retenu·e" },
 ];
 
 export type FigurantMessage = {
