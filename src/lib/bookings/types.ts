@@ -3,7 +3,8 @@ import type { Cachet } from "@/lib/candidatures/types";
 // Statut unifié : une seule progression, lisible d'un coup d'œil par toute
 // l'équipe. Proposé -> PER (pas encore de réponse) -> À relancer / Doit
 // rappeler -> Attente validation / Validé (étape casting, si utilisée) ->
-// CONFIRMÉ. Indisponible / Annulé possibles à tout moment.
+// CONFIRMÉ. Indisponible / Annulé possibles à tout moment. À REBOOKER :
+// profil basculé par une modification du plan de travail (journée miroir).
 export type BookingStatut =
   | "proposé"
   | "envoyé"
@@ -13,7 +14,8 @@ export type BookingStatut =
   | "valide"
   | "confirmé"
   | "indisponible"
-  | "annulé";
+  | "annulé"
+  | "a_rebooker";
 
 export const STATUTS: {
   value: BookingStatut;
@@ -29,6 +31,7 @@ export const STATUTS: {
   { value: "confirmé", label: "CONFIRMÉ", tone: "turquoise" },
   { value: "indisponible", label: "Indisponible", tone: "danger" },
   { value: "annulé", label: "Annulé", tone: "default" },
+  { value: "a_rebooker", label: "À REBOOKER", tone: "danger" },
 ];
 
 export function statutLabel(v: BookingStatut) {
