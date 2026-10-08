@@ -257,8 +257,10 @@ export default function AidePage() {
               ou directement par le figurant·e via son lien (à copier dans <UI>Disponibilités</UI>).
             </>,
             <>
-              Active l&apos;<strong className="text-text">accès à l&apos;espace personnel</strong> pour qu&apos;il·elle
-              se connecte et te réponde — le lien de connexion s&apos;envoie à la main, jamais automatiquement.
+              Pour une personne <strong className="text-text">ajoutée à la main</strong> (sans compte), active
+              l&apos;accès à l&apos;espace personnel et envoie-lui le lien de création de compte, pour qu&apos;elle
+              se connecte et te réponde. Une personne qui a créé son compte elle-même se connecte seule : la fiche
+              affiche « A créé son compte » et aucun lien ne lui est envoyé.
             </>,
           ]}
         />
@@ -333,7 +335,8 @@ export default function AidePage() {
           sa candidature ; si son email est déjà connu, elle doit d&apos;abord se connecter (mot de passe ou lien
           reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Les candidat·es se
           connectent sur <UI>Espace candidat·es</UI> (/compte/connexion) ; questions générales :
-          bookingextras.support@gmail.com.
+          bookingextras.support@gmail.com. Photos : chaque candidature garde les siennes (envoyées pour
+          l&apos;annonce, ou reprises parmi celles du compte avec <UI>Mes photos</UI>).
         </Callout>
         <Callout>
           <strong className="text-text">Agent.</strong> Si l&apos;annonce coche le type{" "}

@@ -29,11 +29,85 @@ const MAX_EXTRA_PHOTOS = 4; // 3 obligatoires + 4 = 7 photos maximum
 // formulaire, qui l'ajoute lui-même aux données envoyées. Remplacer le
 // fichier de l'input (DataTransfer) ne marche pas sur tous les navigateurs,
 // et une photo non réduite dépassait la limite d'envoi de 4,5 Mo.
-type Emplacement = { name: string; label: string; required: boolean; file: File | null; busy: boolean; el: HTMLElement | null };
+type Emplacement = {
+  name: string;
+  label: string;
+  required: boolean;
+  file: File | null;
+  // Photo déjà sur le compte, choisie à la place d'un nouveau fichier.
+  existante: string | null;
+  busy: boolean;
+  el: HTMLElement | null;
+};
+export type PhotoDuCompte = { id: string; type: string; url: string };
 const PhotosContext = createContext<{
   maj: (key: string, patch: Partial<Emplacement>) => void;
   retirer: (key: string) => void;
+  mesPhotos: PhotoDuCompte[];
 } | null>(null);
+
+const TYPE_PHOTO_LABEL: Record<string, string> = {
+  portrait: "Portrait",
+  pied: "En pied",
+  selfie: "Selfie",
+  vehicule: "Véhicule",
+  tenue: "Tenue",
+  autre: "Autre",
+};
+
+// Fenêtre « Mes photos » : les photos déjà sur le compte, la plus récente
+// d'abord ; un clic la choisit pour l'emplacement.
+function ChoixMesPhotos({
+  photos,
+  titre,
+  onChoisir,
+  onFermer,
+}: {
+  photos: PhotoDuCompte[];
+  titre: string;
+  onChoisir: (p: PhotoDuCompte) => void;
+  onFermer: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Mes photos — ${titre}`}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center"
+      onClick={onFermer}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-lg flex-col gap-3 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold">Mes photos — {titre}</h3>
+          <button type="button" onClick={onFermer} className="text-sm text-text-muted hover:text-text">
+            Fermer
+          </button>
+        </div>
+        <p className="text-xs text-text-muted">
+          Choisis une photo qui correspond à cette annonce (tenue, coupe de cheveux, barbe…).
+        </p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {photos.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onChoisir(p)}
+              className="flex flex-col gap-1 rounded-xl border border-border p-1 text-xs text-text-muted hover:border-coral"
+            >
+              <span className="relative block aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                <Image src={p.url} alt="" fill sizes="120px" className="object-cover" unoptimized />
+              </span>
+              {TYPE_PHOTO_LABEL[p.type] ?? p.type}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PhotoSlot({
   name,
@@ -50,7 +124,9 @@ function PhotoSlot({
   const [preview, setPreview] = useState<string | null>(null);
   const [preparation, setPreparation] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [choixOuvert, setChoixOuvert] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const mesPhotos = photos?.mesPhotos ?? [];
 
   // Retiré au démontage (photo du véhicule quand on répond « non »).
   useEffect(() => {
@@ -81,7 +157,7 @@ function PhotoSlot({
             onClick={(e) => {
               e.stopPropagation();
               setPreview(null);
-              photos?.maj(key, { file: null });
+              photos?.maj(key, { file: null, existante: null });
               if (inputRef.current) inputRef.current.value = "";
             }}
             className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-danger hover:text-ink"
@@ -111,7 +187,7 @@ function PhotoSlot({
               return;
             }
             setPreview(URL.createObjectURL(res.file));
-            photos?.maj(key, { busy: false, file: res.file });
+            photos?.maj(key, { busy: false, file: res.file, existante: null });
           }}
         />
       </div>
@@ -119,7 +195,30 @@ function PhotoSlot({
         {label}
         {required ? " *" : ""}
       </span>
+      {mesPhotos.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setChoixOuvert(true)}
+          className="text-center text-xs font-medium text-coral hover:underline"
+        >
+          Mes photos
+        </button>
+      )}
       {erreur && <span className="text-center text-xs text-danger">{erreur}</span>}
+      {choixOuvert && (
+        <ChoixMesPhotos
+          photos={mesPhotos}
+          titre={label}
+          onFermer={() => setChoixOuvert(false)}
+          onChoisir={(p) => {
+            setErreur(null);
+            setPreview(p.url);
+            if (inputRef.current) inputRef.current.value = "";
+            photos?.maj(key, { file: null, existante: p.id });
+            setChoixOuvert(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -148,6 +247,7 @@ export function PostulerForm({
   mode = "candidature",
   publicToken = "",
   connecte = false,
+  mesPhotos = [],
   questions,
   dates,
   prefill,
@@ -157,6 +257,7 @@ export function PostulerForm({
   mode?: "candidature" | "inscription";
   publicToken?: string;
   connecte?: boolean;
+  mesPhotos?: PhotoDuCompte[];
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
   prefill?: {
@@ -213,6 +314,7 @@ export function PostulerForm({
         label: "",
         required: false,
         file: null,
+        existante: null,
         busy: false,
         el: null,
       };
@@ -225,6 +327,7 @@ export function PostulerForm({
       emplacements.current.delete(key);
       setPhotosEnPreparation(Array.from(emplacements.current.values()).filter((e) => e.busy).length);
     },
+    mesPhotos,
   }));
 
   // Validation maison plutôt que celle du navigateur : les emplacements
@@ -250,7 +353,7 @@ export function PostulerForm({
     }
     const slots = Array.from(emplacements.current.values());
     for (const slot of slots) {
-      if (slot.required && !slot.file) {
+      if (slot.required && !slot.file && !slot.existante) {
         manquants.push(`Photo : ${slot.label}`);
         premier ??= slot.el;
       }
@@ -279,6 +382,7 @@ export function PostulerForm({
     const fd = new FormData(form);
     let total = 0;
     for (const slot of slots) {
+      if (slot.existante) fd.append(`${slot.name}__existante`, slot.existante);
       if (!slot.file) continue;
       fd.append(slot.name, slot.file);
       total += slot.file.size;

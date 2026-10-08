@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
+import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
@@ -630,6 +631,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
   const supabase = createAdminClient();
   let sent = 0;
   let failed = 0;
+  let dejaCompte = 0;
   let lastError: string | undefined;
 
   for (const figurantId of Array.from(new Set(figurantIds))) {
@@ -641,6 +643,12 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
 
     if (!figurant?.email) {
       failed += 1;
+      continue;
+    }
+    // Compte créé par la personne elle-même (mot de passe) : elle se
+    // connecte seule, le lien ne sert qu'aux profils ajoutés à la main.
+    if (await aCreeSonCompte(figurant.id)) {
+      dejaCompte += 1;
       continue;
     }
 
@@ -673,5 +681,5 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
 
   revalidatePath("/bookings");
   revalidatePath("/figurants");
-  return { sent, failed, lastError };
+  return { sent, failed, dejaCompte, lastError };
 }

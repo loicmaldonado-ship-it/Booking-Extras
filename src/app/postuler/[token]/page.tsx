@@ -3,7 +3,8 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
-import { PostulerForm } from "@/components/candidatures/postuler-form";
+import { PostulerForm, type PhotoDuCompte } from "@/components/candidatures/postuler-form";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
@@ -82,6 +83,15 @@ export default async function PostulerPage({
     agent_telephone?: string | null;
     agent_agence?: string | null;
   } | undefined;
+  // Photos du compte, proposées dans chaque emplacement (« Mes photos »).
+  let mesPhotos: PhotoDuCompte[] = [];
+  if (session) {
+    const photos = (await getPhotosByFigurantId([session.id])).get(session.id) ?? [];
+    mesPhotos = photos
+      .filter((p): p is typeof p & { url: string } => !!p.url && p.type !== "casting")
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map((p) => ({ id: p.id, type: p.type, url: p.url }));
+  }
   if (session) {
     const [{ data: figurantComplet }, { data: lienBandeDemo }] = await Promise.all([
       supabase
@@ -190,6 +200,7 @@ export default async function PostulerPage({
           dates={annonceDates}
           prefill={prefill}
           connecte={!!session}
+          mesPhotos={mesPhotos}
           bandeDemoObligatoire={annonce.bande_demo_obligatoire}
           showAgent={annonce.types_cachet.includes("Rôle")}
         />

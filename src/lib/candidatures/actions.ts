@@ -5,11 +5,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
-import { hashPassword } from "@/lib/candidats/password";
+import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
 import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
-import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
+import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
-import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
+import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
@@ -123,14 +123,13 @@ export async function postulerAnnonce(
   if (!veste || !pantalon) {
     return { error: "Les tailles de veste et de pantalon sont obligatoires." };
   }
-  const photoPortrait = formData.get("photo_portrait");
-  const photoPied = formData.get("photo_pied");
-  const photoSelfie = formData.get("photo_selfie");
-  if (
-    !(photoPortrait instanceof File && photoPortrait.size > 0) ||
-    !(photoPied instanceof File && photoPied.size > 0) ||
-    !(photoSelfie instanceof File && photoSelfie.size > 0)
-  ) {
+  // Chaque photo obligatoire : un nouveau fichier, ou une photo déjà sur le
+  // compte (« Mes photos », vérifiée plus bas).
+  const photoFournie = (nom: string) => {
+    const f = formData.get(nom);
+    return (f instanceof File && f.size > 0) || !!str(formData, `${nom}__existante`);
+  };
+  if (!photoFournie("photo_portrait") || !photoFournie("photo_pied") || !photoFournie("photo_selfie")) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
   }
   if (!str(formData, "selfie_date")) {
@@ -290,7 +289,6 @@ export async function postulerAnnonce(
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
         acces_compte: true,
-        password_hash: await hashPassword(motDePasse),
       })
       .select("id")
       .single();
@@ -301,6 +299,11 @@ export async function postulerAnnonce(
       return { error: figurantError?.message ?? "Création du compte impossible." };
     }
     figurantId = newFigurant.id;
+    const mdp = await definirMotDePasse(figurantId, motDePasse);
+    if (mdp.error) {
+      await supabase.from("figurants").delete().eq("id", figurantId);
+      return { error: "Création du compte impossible, réessaie." };
+    }
     compteCree = true;
     // Connecté·e tout de suite (accès activé à la création, sans l'email
     // « ajouté·e à une date de tournage », faux ici) : si la suite échoue,
@@ -347,7 +350,13 @@ export async function postulerAnnonce(
   }));
   if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
 
-  await uploadCandidaturePhotos(figurantId, formData);
+  const photosResultat = await enregistrerPhotosCandidature(figurantId, candidature.id, formData);
+  if (photosResultat.error) {
+    // Candidature annulée (réponses et dispos suivent en cascade) : un
+    // nouvel essai repart de zéro au lieu de « déjà postulé ».
+    await supabase.from("candidatures").delete().eq("id", candidature.id);
+    return { error: photosResultat.error };
+  }
 
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
     figurantId,
@@ -360,30 +369,70 @@ export async function postulerAnnonce(
   return { success: true, compteCree };
 }
 
-async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
+// Photos d'une candidature : chaque emplacement reçoit soit un nouveau
+// fichier (ajouté aussi à la photothèque du compte, sans limite — jamais
+// ignoré), soit une photo déjà sur le compte (champ « <emplacement>__existante »,
+// qui doit appartenir à ce compte). Le lien candidature ↔ photos est gardé
+// dans candidature_photos.
+async function enregistrerPhotosCandidature(
+  figurantId: string,
+  candidatureId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const selfieDate = str(formData, "selfie_date") ?? new Date().toISOString().slice(0, 10);
+  const emplacements: { champ: string; type: "portrait" | "pied" | "selfie" | "vehicule" | "autre" }[] = [
+    { champ: "photo_portrait", type: "portrait" },
+    { champ: "photo_pied", type: "pied" },
+    { champ: "photo_selfie", type: "selfie" },
+    { champ: "photo_vehicule", type: "vehicule" },
+    { champ: "photo_extra", type: "autre" },
+  ];
 
-  const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre" | "vehicule"; priseLe?: string | null }[] =
-    [];
-  const portrait = formData.get("photo_portrait");
-  if (portrait instanceof File && portrait.size > 0) files.push({ file: portrait, type: "portrait" });
-  const pied = formData.get("photo_pied");
-  if (pied instanceof File && pied.size > 0) files.push({ file: pied, type: "pied" });
-  const selfie = formData.get("photo_selfie");
-  if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: selfieDate });
-  const vehicule = formData.get("photo_vehicule");
-  if (vehicule instanceof File && vehicule.size > 0) files.push({ file: vehicule, type: "vehicule" });
-  for (const extra of formData.getAll("photo_extra")) {
-    if (extra instanceof File && extra.size > 0) files.push({ file: extra, type: "autre" });
+  const existantes = emplacements.flatMap(({ champ, type }) =>
+    formData
+      .getAll(`${champ}__existante`)
+      .filter((v): v is string => typeof v === "string" && v.length > 0)
+      .map((id) => ({ id, type }))
+  );
+  const { data: autorisees } =
+    existantes.length > 0
+      ? await supabase
+          .from("figurant_photos")
+          .select("id")
+          .eq("figurant_id", figurantId)
+          .in(
+            "id",
+            existantes.map((e) => e.id)
+          )
+      : { data: [] as { id: string }[] };
+  const idsAutorises = new Set((autorisees ?? []).map((p) => p.id));
+
+  const liens: { candidature_id: string; photo_id: string; emplacement: string; ordre: number }[] = [];
+  const ajouter = (photoId: string, emplacement: string) => {
+    if (liens.some((l) => l.photo_id === photoId)) return;
+    liens.push({ candidature_id: candidatureId, photo_id: photoId, emplacement, ordre: liens.length });
+  };
+
+  for (const { champ, type } of emplacements) {
+    for (const fichier of formData.getAll(champ)) {
+      if (!(fichier instanceof File) || fichier.size === 0) continue;
+      const res = await insertFigurantPhoto(supabase, figurantId, type, fichier, {
+        priseLe: type === "selfie" ? selfieDate : null,
+      });
+      if (res.error || !res.id) return { error: `Une photo n'a pas pu être enregistrée (${res.error ?? "erreur"}). Réessaie.` };
+      ajouter(res.id, type);
+    }
+    for (const e of existantes.filter((x) => x.type === type)) {
+      if (idsAutorises.has(e.id)) ajouter(e.id, type);
+    }
   }
 
-  let remaining = MAX_PHOTOS_PAR_FIGURANT - (await countFigurantPhotos(supabase, figurantId));
-  for (const { file, type, priseLe } of files) {
-    if (remaining <= 0) break;
-    const result = await insertFigurantPhoto(supabase, figurantId, type, file, { priseLe });
-    if (!result.error) remaining -= 1;
+  if (liens.length > 0) {
+    const { error } = await supabase.from("candidature_photos").insert(liens);
+    if (error) return { error: error.message };
   }
+  return {};
 }
 
 // Ne touche jamais onglet_id — c'est OngletPicker (setCandidatureOnglet) qui
