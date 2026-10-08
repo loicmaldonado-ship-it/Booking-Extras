@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { ConnexionForm } from "@/components/auth/connexion-form";
 import { AnnoncesOuvertes } from "@/components/candidats/annonces-ouvertes";
+import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,13 @@ export default async function ConnexionCandidatPage() {
       </Card>
 
       <AnnoncesOuvertes />
+
+      <p className="text-center text-xs text-text-muted">
+        Un souci pour te connecter ou une question ?{" "}
+        <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
+          {CONTACT_SUPPORT_EMAIL}
+        </a>
+      </p>
     </div>
   );
 }
