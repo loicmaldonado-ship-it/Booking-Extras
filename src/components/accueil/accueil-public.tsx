@@ -35,10 +35,10 @@ export async function AccueilPublic() {
 
       <section className="flex flex-col gap-5">
         <h1 className="max-w-2xl text-4xl font-semibold leading-tight [text-wrap:balance] sm:text-5xl">
-          Fais de la figuration sur des tournages près de chez toi.
+          Le site de casting rôles, silhouettes et figuration près de chez toi.
         </h1>
         <p className="max-w-xl text-lg text-text-muted">
-          Crée ton profil une seule fois, puis postule aux annonces des équipes casting en quelques clics.
+          Créé et géré par des chargé·es de casting membres de l&apos;ACFDA.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           {candidat ? (
