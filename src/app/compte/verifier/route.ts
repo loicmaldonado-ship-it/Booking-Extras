@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
+import { retourAutorise } from "@/lib/candidats/retour";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -26,5 +27,8 @@ export async function GET(request: NextRequest) {
   await supabase.from("figurant_auth_tokens").update({ used_at: new Date().toISOString() }).eq("id", authToken.id);
   await createFigurantSession(authToken.figurant_id);
 
-  return NextResponse.redirect(`${origin}/compte`);
+  // Connexion demandée depuis une annonce : retour direct sur le formulaire,
+  // pré-rempli.
+  const retour = retourAutorise(request.nextUrl.searchParams.get("retour"));
+  return NextResponse.redirect(`${origin}${retour ?? "/compte"}`);
 }

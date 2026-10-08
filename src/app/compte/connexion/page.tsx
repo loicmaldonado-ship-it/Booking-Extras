@@ -4,10 +4,16 @@ import { Logo } from "@/components/ui/logo";
 import { ConnexionForm } from "@/components/auth/connexion-form";
 import { AnnoncesOuvertes } from "@/components/candidats/annonces-ouvertes";
 import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
+import { retourAutorise } from "@/lib/candidats/retour";
 
 export const dynamic = "force-dynamic";
 
-export default async function ConnexionCandidatPage() {
+export default async function ConnexionCandidatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ retour?: string }>;
+}) {
+  const retour = retourAutorise((await searchParams).retour);
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8 px-4 py-10">
       <div>
@@ -21,7 +27,13 @@ export default async function ConnexionCandidatPage() {
         </p>
       </div>
 
-      <ConnexionForm />
+      {retour && (
+        <div className="rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm">
+          Connecte-toi : tu reviendras directement sur l&apos;annonce, avec tes infos déjà remplies.
+        </div>
+      )}
+
+      <ConnexionForm retour={retour} />
 
       <Card className="flex flex-wrap items-center justify-between gap-3">
         <div>

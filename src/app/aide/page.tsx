@@ -327,9 +327,13 @@ export default function AidePage() {
           ]}
         />
         <Callout>
-          <strong className="text-text">Espace candidat·es (/compte/connexion).</strong> Toutes les annonces
-          ouvertes y sont listées publiquement (avec le nom du·de la chef·fe et les dates), et c&apos;est aussi
-          là qu&apos;un·e figurant·e déjà booké·e demande son lien de connexion pour mettre à jour sa fiche.
+          <strong className="text-text">Compte obligatoire pour postuler.</strong> La page d&apos;accueil du site
+          présente Booking Extras et liste les annonces ouvertes ; on peut y créer son compte sans annonce (profil
+          complet et photos). Sans compte, la personne remplit l&apos;annonce puis crée son mot de passe pour valider
+          sa candidature ; si son email est déjà connu, elle doit d&apos;abord se connecter (mot de passe ou lien
+          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Les candidat·es se
+          connectent sur <UI>Espace candidat·es</UI> (/compte/connexion) ; questions générales :
+          bookingextras.support@gmail.com.
         </Callout>
         <Callout>
           <strong className="text-text">Agent.</strong> Si l&apos;annonce coche le type{" "}
