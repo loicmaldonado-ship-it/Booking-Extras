@@ -604,6 +604,17 @@ export default function AidePage() {
           ]}
         />
         <Callout>
+          <strong className="text-text">Le plan de travail change ?</strong> Sur la journée concernée,{" "}
+          <UI>🔀 Modifier le PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
+          basculer, qui a déclaré une indispo ce jour-là, et qui y est déjà calé·e (non touché·e). Tout le monde
+          réapparaît sur la nouvelle journée en <strong className="text-text">À REBOOKER</strong> — les autres
+          journées ne bougent pas. Coche <UI>Prévenir les profils</UI> pour leur envoyer le message (modifiable,
+          gardé pour le projet ; e-mail en option), ou décoche-la pour un simple déplacement silencieux. Dès que tu
+          changes le statut de quelqu&apos;un sur la nouvelle journée (CONFIRMÉ, Indisponible…), il·elle disparaît
+          de l&apos;ancienne ; quand tout le monde est traité, le bandeau de l&apos;ancienne journée propose{" "}
+          <UI>Supprimer cette journée</UI>.
+        </Callout>
+        <Callout>
           <strong className="text-text">Onglet Covoiturage.</strong> Glisse un profil sur un·e chauffeur·euse
           pour l&apos;ajouter comme passager·ère, ou classe-le·la en <strong className="text-text">PPM</strong>{" "}
           (par ses propres moyens — indemnité individuelle) ou <strong className="text-text">Transport en

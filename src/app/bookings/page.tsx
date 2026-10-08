@@ -4,7 +4,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { getJournees } from "@/lib/bookings/journees";
 import { createJournee, deleteJournee } from "@/lib/bookings/actions";
-import { formatDateLong } from "@/lib/format-date";
+import { formatDateLong, formatDayMonth } from "@/lib/format-date";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { JourneeDeleteButton } from "@/components/bookings/journee-delete-button";
@@ -110,6 +110,7 @@ export default async function BookingsPage({
               >
                 <span className="text-xs font-medium uppercase tracking-wide text-text-muted">J{j.numero}</span>
                 <span className="text-base font-semibold uppercase leading-tight">{formatDateLong(j.date)}</span>
+                {j.pdt_vers && <Badge tone="danger">PDT modifié → {formatDayMonth(j.pdt_vers)}</Badge>}
                 {j.total_requis ? (
                   <Badge tone={j.actifs >= j.total_requis ? "turquoise" : "yellow"}>
                     {j.actifs}/{j.total_requis}
