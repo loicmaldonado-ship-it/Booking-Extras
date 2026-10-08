@@ -32,7 +32,12 @@ type AnnonceOuverte = {
   projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
 };
 
-export default async function CompteCandidatPage() {
+export default async function CompteCandidatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bienvenue?: string }>;
+}) {
+  const { bienvenue } = await searchParams;
   const session = await getCurrentFigurant();
 
   if (!session) {
@@ -115,6 +120,15 @@ export default async function CompteCandidatPage() {
         </h1>
         <p className="mt-1 text-text-muted">Votre espace personnel.</p>
       </div>
+
+      {bienvenue && (
+        <Card className="border-turquoise/40 bg-turquoise/10">
+          <p className="text-sm">
+            <strong>Ton compte est créé.</strong> Pour postuler, choisis une annonce ci-dessous : tes infos seront
+            déjà remplies. Tu peux modifier ta fiche et tes photos ici à tout moment.
+          </p>
+        </Card>
+      )}
 
       <PushSubscribe />
 

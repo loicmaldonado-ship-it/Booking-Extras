@@ -23,8 +23,10 @@ const PUBLIC_PREFIXES = [
   "/offline",
 ];
 
+// « / » est l'accueil public pour un·e visiteur·se non connecté·e (et le
+// tableau de bord pour l'équipe) : exact, sinon tout serait public.
 function isPublic(pathname: string) {
-  return PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return pathname === "/" || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export async function middleware(request: NextRequest) {

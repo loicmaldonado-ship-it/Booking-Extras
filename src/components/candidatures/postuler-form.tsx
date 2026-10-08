@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
+import { inscrireCandidat } from "@/lib/candidats/inscription";
 import { setMaPassword } from "@/lib/candidats/actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
@@ -191,15 +192,20 @@ function nomDuChamp(el: Element): string {
 // Limite Vercel 4,5 Mo pour tout l'envoi : marge pour le texte du formulaire.
 const TAILLE_MAX_ENVOI = 4 * 1024 * 1024;
 
+// Même formulaire pour postuler à une annonce et pour créer son compte
+// sans annonce (mode « inscription » : pas de message ni de questions /
+// disponibilités, mot de passe en plus).
 export function PostulerForm({
-  publicToken,
+  mode = "candidature",
+  publicToken = "",
   questions,
   dates,
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
 }: {
-  publicToken: string;
+  mode?: "candidature" | "inscription";
+  publicToken?: string;
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
   prefill?: {
@@ -228,10 +234,11 @@ export function PostulerForm({
   bandeDemoObligatoire?: boolean;
   showAgent?: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(
-    postulerAnnonce.bind(null, publicToken),
-    undefined
-  );
+  const inscription = mode === "inscription";
+  const [state, formAction, pending] = useActionState<
+    { error?: string; success?: boolean; compteExistant?: boolean } | undefined,
+    FormData
+  >(inscription ? inscrireCandidat : postulerAnnonce.bind(null, publicToken), undefined);
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
   const [sansAgent, setSansAgent] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
@@ -287,6 +294,14 @@ export function PostulerForm({
         premier ??= slot.el;
       }
     }
+    if (inscription) {
+      const mdp = form.elements.namedItem("password") as HTMLInputElement | null;
+      const confirmation = form.elements.namedItem("password_confirmation") as HTMLInputElement | null;
+      if (mdp?.value && confirmation?.value && mdp.value !== confirmation.value) {
+        manquants.push("Les deux mots de passe ne sont pas identiques");
+        premier ??= confirmation;
+      }
+    }
     if (photosEnPreparation > 0) {
       setACorriger(["Les photos sont encore en préparation : réessaie dans quelques secondes."]);
       return;
@@ -337,6 +352,11 @@ export function PostulerForm({
       {state?.error && (
         <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}
+          {state.compteExistant && (
+            <Link href="/compte/connexion" className="mt-2 block font-medium underline">
+              Me connecter →
+            </Link>
+          )}
         </div>
       )}
       {prefill && (
@@ -425,15 +445,17 @@ export function PostulerForm({
             </Field>
           </div>
         </div>
-        <label className="flex items-start gap-2.5 rounded-xl border border-border bg-ink px-3 py-2.5 text-sm">
-          <input type="checkbox" name="temporaire" className="mt-0.5 h-4 w-4 rounded border-border accent-coral" />
-          <span>
-            Je ne fais de la figuration que pour ce tournage.
-            <span className="mt-0.5 block text-xs text-text-muted">
-              Ton profil sera automatiquement supprimé une fois ce projet terminé et archivé.
+        {!inscription && (
+          <label className="flex items-start gap-2.5 rounded-xl border border-border bg-ink px-3 py-2.5 text-sm">
+            <input type="checkbox" name="temporaire" className="mt-0.5 h-4 w-4 rounded border-border accent-coral" />
+            <span>
+              Je ne fais de la figuration que pour ce tournage.
+              <span className="mt-0.5 block text-xs text-text-muted">
+                Ton profil sera automatiquement supprimé une fois ce projet terminé et archivé.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        )}
         <div className="flex flex-col gap-2">
           <span className="text-xs font-medium text-text-muted">As-tu un véhicule ? *</span>
           <div className="flex gap-4">
@@ -494,13 +516,11 @@ export function PostulerForm({
           )}
         </div>
 
-        <Field label="Message" required>
-          <Textarea
-            name="message"
-            required
-            placeholder="Disponibilités, motivation, précisions..."
-          />
-        </Field>
+        {!inscription && (
+          <Field label="Message" required>
+            <Textarea name="message" required placeholder="Disponibilités, motivation, précisions..." />
+          </Field>
+        )}
         <Field label={`Lien bande démo${bandeDemoObligatoire ? "" : " (optionnel)"}`} required={bandeDemoObligatoire}>
           <Input
             type="url"
@@ -603,6 +623,26 @@ export function PostulerForm({
         </Card>
       )}
 
+      {inscription && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Ton compte</h2>
+            <p className="text-sm text-text-muted">
+              Tu te connecteras avec ton email et ce mot de passe pour postuler aux annonces : tes infos seront déjà
+              remplies.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Mot de passe (8 caractères minimum)" required>
+              <Input type="password" name="password" required minLength={8} autoComplete="new-password" />
+            </Field>
+            <Field label="Confirme le mot de passe" required>
+              <Input type="password" name="password_confirmation" required minLength={8} autoComplete="new-password" />
+            </Field>
+          </div>
+        </Card>
+      )}
+
       {aCorriger && (
         <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           <p className="font-medium">
@@ -619,12 +659,18 @@ export function PostulerForm({
       )}
 
       <Button type="submit" disabled={pending || photosEnPreparation > 0}>
-        {pending ? "Envoi..." : photosEnPreparation > 0 ? "Préparation des photos…" : "Postuler"}
+        {pending
+          ? "Envoi..."
+          : photosEnPreparation > 0
+            ? "Préparation des photos…"
+            : inscription
+              ? "Créer mon compte"
+              : "Postuler"}
       </Button>
 
       <p className="text-center text-xs text-text-muted">
-        Candidater est gratuit — aucune somme d&apos;argent ni aucun document de paie ne vous sera jamais demandé
-        sur Booking Extras.
+        {inscription ? "Créer un compte et candidater est" : "Candidater est"} gratuit — aucune somme d&apos;argent ni
+        aucun document de paie ne vous sera jamais demandé sur Booking Extras.
       </p>
 
       <p className="text-center text-xs text-text-muted">

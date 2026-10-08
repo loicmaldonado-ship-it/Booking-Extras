@@ -77,7 +77,9 @@ export function AppShell({
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isPublic = PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
+  // « / » sans compte équipe = accueil public, sans la navigation interne.
+  const isAccueilPublic = pathname === "/" && !profile;
+  const isPublic = isAccueilPublic || PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
   // The documents/essayages share pages render full-width landscape PDF
   // sheets (up to 1123px) — they need a much wider container than the
   // narrow candidate-facing forms (postuler, disponibilites, login).
@@ -95,7 +97,12 @@ export function AppShell({
 
   if (isPublic) {
     return (
-      <main className={cn("mx-auto w-full px-6 py-10", isWidePublic ? "max-w-6xl" : "max-w-2xl")}>
+      <main
+        className={cn(
+          "mx-auto w-full px-6 py-10",
+          isAccueilPublic ? "max-w-5xl" : isWidePublic ? "max-w-6xl" : "max-w-2xl"
+        )}
+      >
         {children}
       </main>
     );
