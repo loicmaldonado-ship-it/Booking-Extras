@@ -22,6 +22,7 @@ import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth
 import { setCurrentProjet } from "@/lib/projet-context";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort } from "@/lib/format-date";
+import { AccueilPublic } from "@/components/accueil/accueil-public";
 
 export const dynamic = "force-dynamic";
 
@@ -59,8 +60,11 @@ const SECTIONS: { label: string; href: string; description: string; icon: Lucide
 ];
 
 export default async function Home() {
-  const supabase = createAdminClient();
   const profile = await getCurrentProfile();
+  // Visiteur·se sans compte équipe : accueil public (inscription, connexion
+  // candidat·e, annonces en cours).
+  if (!profile) return <AccueilPublic />;
+  const supabase = createAdminClient();
   const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
   const today = new Date().toISOString().slice(0, 10);
 
