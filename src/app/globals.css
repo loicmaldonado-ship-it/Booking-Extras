@@ -107,3 +107,26 @@ h1, h2, h3, h4 {
     display: none !important;
   }
 }
+
+/* Bandeau des références (accueil public) : défilement continu, la liste
+   est doublée dans le DOM pour boucler sans saut. Pause au survol, et fixe
+   (défilable à la main) si l'appareil demande moins d'animations. */
+@keyframes defilement-references {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.defilement-references {
+  animation: defilement-references var(--duree-defilement, 40s) linear infinite;
+}
+.defilement-references:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .defilement-references {
+    animation: none;
+  }
+}
