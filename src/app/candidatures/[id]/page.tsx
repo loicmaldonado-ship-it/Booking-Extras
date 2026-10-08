@@ -5,7 +5,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
@@ -66,8 +66,13 @@ export default async function CandidatureDetailPage({
   const onglets = await getOngletsForAnnonce(candidature.annonces?.id);
   const ongletActuel = onglets.find((o) => o.id === candidature.onglet_id);
 
-  const [{ data: photosRaw }, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
-    getPhotosByFigurantId([f.id]).then((map) => ({ data: map.get(f.id) ?? [] })),
+  // Photos envoyées ou reprises pour cette annonce ; candidatures d'avant :
+  // photos du compte.
+  const [photosResultat, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
+    Promise.all([getPhotosParCandidature([id]), getPhotosByFigurantId([f.id])]).then(([parCandidature, parFigurant]) => ({
+      data: parCandidature.get(id) ?? parFigurant.get(f.id) ?? [],
+      propres: parCandidature.has(id),
+    })),
     supabase
       .from("candidature_reponses")
       .select("reponse, annonce_questions(label)")
@@ -100,7 +105,8 @@ export default async function CandidatureDetailPage({
   const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
-  const photos = photosRaw ?? [];
+  const photos = photosResultat.data;
+  const photosPropres = photosResultat.propres;
   const portrait = pickPortrait(photos);
   const age = computeAge(f.date_naissance);
 
@@ -300,7 +306,7 @@ export default async function CandidatureDetailPage({
 
       {photos.length > 0 && (
         <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Photos</h2>
+          <h2 className="text-lg font-semibold">{photosPropres ? "Photos pour cette annonce" : "Photos du compte"}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">

@@ -209,3 +209,36 @@ export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined, proj
     .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
   return [...tenue, ...others].slice(0, 3);
 }
+
+// Photos propres à chaque candidature (candidature_photos) : envoyées pour
+// l'annonce ou reprises du compte, dans l'ordre du formulaire. Le type est
+// remplacé par l'emplacement choisi (une photo du compte reprise comme
+// portrait s'affiche comme portrait). Les anciennes candidatures, sans lien,
+// sont absentes du résultat : l'appelant affiche alors les photos du compte.
+export async function getPhotosParCandidature(candidatureIds: string[]) {
+  const supabase = createAdminClient();
+  const map = new Map<string, FigurantPhotoWithUrl[]>();
+  if (candidatureIds.length === 0) return map;
+
+  const lignes: { candidature_id: string; emplacement: FigurantPhoto["type"]; ordre: number; figurant_photos: FigurantPhoto | null }[] = [];
+  for (let i = 0; i < candidatureIds.length; i += 150) {
+    const { data } = await supabase
+      .from("candidature_photos")
+      .select("candidature_id, emplacement, ordre, figurant_photos(*)")
+      .in("candidature_id", candidatureIds.slice(i, i + 150))
+      .order("ordre")
+      .returns<typeof lignes>();
+    lignes.push(...(data ?? []));
+  }
+
+  const paths = lignes.flatMap((l) => (l.figurant_photos ? [l.figurant_photos.storage_path] : [])).sort();
+  const signedUrls = await getCachedSignedUrls("figurant-photos", paths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
+  for (const l of lignes) {
+    if (!l.figurant_photos) continue;
+    const liste = map.get(l.candidature_id) ?? [];
+    liste.push({ ...l.figurant_photos, type: l.emplacement, url: urlByPath.get(l.figurant_photos.storage_path) ?? null });
+    map.set(l.candidature_id, liste);
+  }
+  return map;
+}

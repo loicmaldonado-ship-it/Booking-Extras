@@ -20,7 +20,7 @@ import {
 } from "@/lib/figurants/mensuration-filters";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
@@ -490,9 +490,14 @@ export default async function CandidaturesPage({
   const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
   const pageCandidatures = candidatures.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
 
-  const portraitByFigurant = await getPhotosByFigurantId(
-    pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
-  );
+  // Photos de la candidature (envoyées ou reprises pour cette annonce),
+  // sinon celles du compte pour les candidatures d'avant.
+  const [portraitByFigurant, photosParCandidature] = await Promise.all([
+    getPhotosByFigurantId(pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+    getPhotosParCandidature(pageCandidatures.map((c) => c.id)),
+  ]);
+  const photosDe = (c: (typeof pageCandidatures)[number]) =>
+    photosParCandidature.get(c.id) ?? (c.figurants ? portraitByFigurant.get(c.figurants.id) : undefined);
 
   const candidatureIds = pageCandidatures.map((c) => c.id);
   const [{ data: reponsesRaw }, tournagesPage] = await Promise.all([
@@ -548,8 +553,8 @@ export default async function CandidaturesPage({
             : c.annonces.projets,
         }
       : c.annonces,
-    portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
-    photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
+    portraitUrl: pickPortrait(photosDe(c))?.url ?? null,
+    photos: photosDe(c) ?? [],
   }));
 
   // Partagée par pageHref/tabHref/genreTabHref ci-dessous : les trois ne

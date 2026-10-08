@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { getCandidaturesPourDocuments } from "@/lib/candidatures/documents";
+import { getCandidaturesPourDocuments, getPhotosDesCandidatures } from "@/lib/candidatures/documents";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -36,7 +35,7 @@ export default async function CandidaturesTrombisPage({
   const [{ data: projet }, documentTemplate, photosByFigurant] = await Promise.all([
     supabase.from("projets").select("nom, realisateur, societe_production").eq("id", projetId).single(),
     getDocumentTemplate(supabase, projetId),
-    getPhotosByFigurantId(data.items.map((b) => b.figurant.id)),
+    getPhotosDesCandidatures(data.items),
   ]);
   const pages = paginateGroupedItems(buildTrombiItems(data.items, docSort), (i) => i.headerLabel);
   const letterhead = (

@@ -12,7 +12,7 @@ import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
-import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
 import { getTournagesConfirmesCount } from "./onglets";
 import type { Cachet, TriCandidature } from "./types";
 
@@ -599,6 +599,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
 
   const [
     photosByFigurant,
+    photosParCandidature,
     { data: reponses },
     { data: dispos },
     { data: lien },
@@ -607,6 +608,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     { data: joursPrevus },
   ] = await Promise.all([
     getPhotosByFigurantId([f.id]),
+    getPhotosParCandidature([id]),
     supabase
       .from("candidature_reponses")
       .select("reponse, annonce_questions(label)")
@@ -638,7 +640,8 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     const i = PHOTO_ORDER.indexOf(type);
     return i === -1 ? PHOTO_ORDER.length : i;
   };
-  const photos = (photosByFigurant.get(f.id) ?? [])
+  // Photos envoyées ou reprises pour cette annonce ; sinon celles du compte.
+  const photos = (photosParCandidature.get(id) ?? photosByFigurant.get(f.id) ?? [])
     .filter((p): p is typeof p & { url: string } => !!p.url)
     .sort((a, b) => rank(a.type) - rank(b.type))
     .map((p) => ({ url: p.url, type: p.type }));
