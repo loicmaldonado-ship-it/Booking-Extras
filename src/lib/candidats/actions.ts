@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { retourAutorise } from "@/lib/candidats/retour";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
@@ -20,7 +21,7 @@ function genToken() {
   return randomUUID().replace(/-/g, "");
 }
 
-async function createMagicLinkToken(figurantId: string) {
+async function createMagicLinkToken(figurantId: string, retour?: string | null) {
   const supabase = createAdminClient();
   const token = genToken();
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
@@ -31,7 +32,8 @@ async function createMagicLinkToken(figurantId: string) {
   if (error) return { error: "Une erreur est survenue, réessayez." };
 
   const origin = await getSiteOrigin();
-  return { link: `${origin}/compte/verifier?token=${token}` };
+  const suite = retourAutorise(retour);
+  return { link: `${origin}/compte/verifier?token=${token}${suite ? `&retour=${encodeURIComponent(suite)}` : ""}` };
 }
 
 // Envoi réel (Gmail SMTP) du lien de connexion — utilisé pour une demande
@@ -39,9 +41,10 @@ async function createMagicLinkToken(figurantId: string) {
 // (demande publique, sans contexte cheffe) => boîte partagée par défaut.
 export async function sendMagicLinkEmail(
   figurant: { id: string; prenom: string; email: string },
-  projetId?: string | null
+  projetId?: string | null,
+  retour?: string | null
 ) {
-  const { link, error: linkError } = await createMagicLinkToken(figurant.id);
+  const { link, error: linkError } = await createMagicLinkToken(figurant.id, retour);
   if (linkError || !link) return { error: linkError };
 
   const supabaseForTemplate = createAdminClient();
@@ -125,8 +128,7 @@ export async function requestMagicLink(
 
   if (!figurant?.email) {
     return {
-      error:
-        "Aucun compte ne correspond à cet email. Postulez à une annonce en cours ci-dessous pour en créer un.",
+      error: "Aucun compte ne correspond à cet email. Crée ton compte (gratuit) pour postuler aux annonces.",
     };
   }
   if (!figurant.acces_compte) {
@@ -135,7 +137,7 @@ export async function requestMagicLink(
     };
   }
 
-  const result = await sendMagicLinkEmail(figurant);
+  const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
   if (result.error) return { error: result.error };
 
   return { sentTo: figurant.email };
@@ -165,7 +167,7 @@ export async function loginWithPassword(
   }
 
   await createFigurantSession(figurant.id);
-  redirect("/compte");
+  redirect(retourAutorise(formData.get("retour")) ?? "/compte");
 }
 
 // Appelée depuis l'espace personnel (déjà connecté·e) — que ce soit juste

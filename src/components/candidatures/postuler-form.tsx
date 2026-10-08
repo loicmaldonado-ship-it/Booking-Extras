@@ -9,63 +9,12 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
 import { inscrireCandidat } from "@/lib/candidats/inscription";
-import { setMaPassword } from "@/lib/candidats/actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
 import { CONTACT_RGPD_EMAIL } from "@/lib/legal/contact";
 import { GENRES, PRONOMS } from "@/lib/figurants/types";
 import type { AnnonceQuestion } from "@/lib/annonces/questions";
 import type { AnnonceDate } from "@/lib/annonces/dates";
-
-// Proposé juste après l'envoi de la candidature : la session est déjà
-// active à ce stade (postulerAnnonce connecte automatiquement), donc pas
-// besoin de redemander l'email — juste un mot de passe, optionnel, pour
-// gérer ses infos et suivre ses candidatures sans repasser par le lien
-// magique à chaque fois.
-function SetPasswordCard() {
-  const [state, formAction, pending] = useActionState(setMaPassword, undefined);
-  const [password, setPassword] = useState("");
-
-  if (state?.success) {
-    return (
-      <Card className="flex flex-col gap-1">
-        <p className="text-sm text-turquoise">Mot de passe défini.</p>
-        <Link href="/compte" className="text-sm text-coral hover:underline">
-          Aller à mon espace →
-        </Link>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="flex flex-col gap-3">
-      <div>
-        <h3 className="text-sm font-semibold">Crée un mot de passe (optionnel)</h3>
-        <p className="text-xs text-text-muted">
-          Pour gérer tes infos et suivre tes candidatures sans attendre un email à chaque fois.
-        </p>
-      </div>
-      <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex-1">
-          <Field label="Mot de passe">
-            <Input
-              type="password"
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-              minLength={6}
-            />
-          </Field>
-        </div>
-        <Button type="submit" disabled={pending || password.length < 6}>
-          {pending ? "..." : "Valider"}
-        </Button>
-      </form>
-      {state?.error && <p className="text-sm text-danger">{state.error}</p>}
-    </Card>
-  );
-}
 
 const REQUIRED_PHOTO_SLOTS = [
   { name: "photo_portrait", label: "Portrait" },
@@ -198,6 +147,7 @@ const TAILLE_MAX_ENVOI = 4 * 1024 * 1024;
 export function PostulerForm({
   mode = "candidature",
   publicToken = "",
+  connecte = false,
   questions,
   dates,
   prefill,
@@ -206,6 +156,7 @@ export function PostulerForm({
 }: {
   mode?: "candidature" | "inscription";
   publicToken?: string;
+  connecte?: boolean;
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
   prefill?: {
@@ -235,14 +186,24 @@ export function PostulerForm({
   showAgent?: boolean;
 }) {
   const inscription = mode === "inscription";
+  // Compte obligatoire pour postuler : sans connexion, le mot de passe se
+  // crée en validant la candidature.
+  const creationCompte = inscription || !connecte;
+  const lienConnexion = inscription ? "/compte/connexion" : `/compte/connexion?retour=/postuler/${publicToken}`;
   const [state, formAction, pending] = useActionState<
-    { error?: string; success?: boolean; compteExistant?: boolean } | undefined,
+    { error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean } | undefined,
     FormData
   >(inscription ? inscrireCandidat : postulerAnnonce.bind(null, publicToken), undefined);
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
   const [sansAgent, setSansAgent] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
   const emplacements = useRef(new Map<string, Emplacement>());
+  // Une erreur renvoyée par le serveur s'affiche en haut du formulaire : on
+  // y emmène la personne, qui vient de cliquer tout en bas.
+  const erreurServeurRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (state?.error) erreurServeurRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state]);
   const [photosEnPreparation, setPhotosEnPreparation] = useState(0);
   const [aCorriger, setACorriger] = useState<string[] | null>(null);
   const [photosContexte] = useState(() => ({
@@ -294,7 +255,7 @@ export function PostulerForm({
         premier ??= slot.el;
       }
     }
-    if (inscription) {
+    if (creationCompte) {
       const mdp = form.elements.namedItem("password") as HTMLInputElement | null;
       const confirmation = form.elements.namedItem("password_confirmation") as HTMLInputElement | null;
       if (mdp?.value && confirmation?.value && mdp.value !== confirmation.value) {
@@ -334,15 +295,21 @@ export function PostulerForm({
 
   if (state?.success) {
     return (
-      <div className="flex flex-col gap-4">
-        <Card className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold text-turquoise">Candidature envoyée</h2>
-          <p className="text-sm text-text-muted">
-            Merci ! Ta candidature a bien été enregistrée. On te recontacte si ton profil correspond.
+      <Card className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold text-turquoise">Candidature envoyée</h2>
+        <p className="text-sm text-text-muted">
+          Merci ! Ta candidature a bien été enregistrée. On te recontacte si ton profil correspond.
+        </p>
+        {state.compteCree && (
+          <p className="text-sm">
+            <strong>Ton compte est créé.</strong> La prochaine fois, connecte-toi avec ton email et ton mot de passe :
+            tes infos seront déjà remplies, il ne restera que les photos de l&apos;annonce.
           </p>
-        </Card>
-        <SetPasswordCard />
-      </div>
+        )}
+        <Link href="/compte" className="text-sm font-medium text-coral hover:underline">
+          Aller à mon espace →
+        </Link>
+      </Card>
     );
   }
 
@@ -350,13 +317,21 @@ export function PostulerForm({
     <PhotosContext.Provider value={photosContexte}>
     <form noValidate onSubmit={envoyer} className="flex flex-col gap-4">
       {state?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div ref={erreurServeurRef} className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}
           {state.compteExistant && (
-            <Link href="/compte/connexion" className="mt-2 block font-medium underline">
+            <Link href={lienConnexion} className="mt-2 block font-medium underline">
               Me connecter →
             </Link>
           )}
+        </div>
+      )}
+      {!inscription && !connecte && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3 text-sm">
+          <span>Déjà un compte ? Connecte-toi : tes infos seront remplies automatiquement.</span>
+          <Link href={lienConnexion} className="font-medium text-coral hover:underline">
+            Me connecter →
+          </Link>
         </div>
       )}
       {prefill && (
@@ -373,7 +348,14 @@ export function PostulerForm({
             <Input name="nom" required defaultValue={prefill?.nom} />
           </Field>
           <Field label="Email" required>
-            <Input type="email" name="email" required defaultValue={prefill?.email} />
+            <Input
+              type="email"
+              name="email"
+              required
+              defaultValue={prefill?.email}
+              readOnly={connecte}
+              className={connecte ? "opacity-70" : undefined}
+            />
           </Field>
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
@@ -623,14 +605,25 @@ export function PostulerForm({
         </Card>
       )}
 
-      {inscription && (
+      {creationCompte && (
         <Card className="flex flex-col gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Ton compte</h2>
+            <h2 className="text-lg font-semibold">
+              {inscription ? "Ton compte" : "Crée ton compte pour valider ta candidature"}
+            </h2>
             <p className="text-sm text-text-muted">
-              Tu te connecteras avec ton email et ce mot de passe pour postuler aux annonces : tes infos seront déjà
-              remplies.
+              {inscription
+                ? "Tu te connecteras avec ton email et ce mot de passe pour postuler aux annonces : tes infos seront déjà remplies."
+                : "C'est gratuit. La prochaine fois, tout sera pré-rempli sauf les photos, qui doivent correspondre à chaque annonce."}
             </p>
+            {!inscription && (
+              <p className="mt-1 text-sm text-text-muted">
+                Déjà un compte ?{" "}
+                <Link href={lienConnexion} className="font-medium text-coral hover:underline">
+                  Me connecter
+                </Link>
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Mot de passe (8 caractères minimum)" required>
@@ -665,7 +658,9 @@ export function PostulerForm({
             ? "Préparation des photos…"
             : inscription
               ? "Créer mon compte"
-              : "Postuler"}
+              : connecte
+                ? "Postuler"
+                : "Créer mon compte et postuler"}
       </Button>
 
       <p className="text-center text-xs text-text-muted">

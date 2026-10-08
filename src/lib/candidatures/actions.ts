@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { activerAccesCompte } from "@/lib/candidats/actions";
-import { createFigurantSession } from "@/lib/candidats/session";
+import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
+import { hashPassword } from "@/lib/candidats/password";
+import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
@@ -60,7 +61,10 @@ export async function postulerAnnonce(
   publicToken: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean }> {
+  // Compte obligatoire pour postuler : soit la personne est connectée, soit
+  // elle crée son compte (mot de passe) en validant sa candidature.
+  const session = await getCurrentFigurant();
   const prenom = str(formData, "prenom");
   const nom = str(formData, "nom");
   const email = str(formData, "email");
@@ -150,6 +154,16 @@ export async function postulerAnnonce(
     return { error: "Date de naissance invalide." };
   }
 
+  const motDePasse = String(formData.get("password") ?? "");
+  if (!session) {
+    if (motDePasse.length < MOT_DE_PASSE_MIN) {
+      return { error: `Crée ton mot de passe (au moins ${MOT_DE_PASSE_MIN} caractères) pour valider ta candidature.` };
+    }
+    if (motDePasse !== String(formData.get("password_confirmation") ?? "")) {
+      return { error: "Les deux mots de passe ne sont pas identiques." };
+    }
+  }
+
   const supabase = createAdminClient();
 
   const { data: annonce, error: annonceError } = await supabase
@@ -200,112 +214,105 @@ export async function postulerAnnonce(
     }
   }
 
-  // Une candidature (annonce de figuration) ne doit matcher/rattacher
-  // qu'une fiche figurant·e — jamais une éventuelle fiche comédien·ne
-  // partageant le même email ou nom+téléphone (voir comedien-privacy.ts) :
-  // celle-ci reste privée à son pool, et n'a pas à être mutée par ce flux
-  // public.
-  const { data: existingFigurant } = await supabase
-    .from("figurants")
-    .select("id")
-    .ilike("email", email)
-    .eq("est_comedien", false)
-    .maybeSingle();
+  const champsProfil = {
+    ville,
+    adresse,
+    code_postal: codePostal,
+    commune_naissance: communeNaissance,
+    genre,
+    pronom,
+    taille_cm: tailleCm,
+    poids_kg: poidsKg,
+    pointure,
+    veste,
+    pantalon,
+    a_vehicule: aVehicule,
+    vehicule_voiture: vehiculeVoiture,
+    vehicule_velo: vehiculeVelo,
+    vehicule_moto: vehiculeMoto,
+    vehicule_scooter: vehiculeScooter,
+    vehicule_marque: vehiculeMarque,
+    ...(showAgent && !sansAgent
+      ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
+      : {}),
+  };
 
-  let figurantId = existingFigurant?.id as string | undefined;
-
-  // Même sans email identique, on considère que c'est la même personne si
-  // le nom et le téléphone correspondent déjà à une fiche existante (1
-  // email = 1 fiche, mais une personne ne doit pas se retrouver dupliquée
-  // juste parce qu'elle a postulé avec une autre adresse).
-  if (!figurantId) {
+  let figurantId: string;
+  let compteCree = false;
+  if (session) {
+    // Connecté·e : la candidature va sur son compte, quel que soit l'email
+    // tapé ; la fiche est mise à jour avec ce qui vient d'être confirmé.
+    figurantId = session.id;
+    await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+  } else {
+    // Pas connecté·e : un email déjà connu (ou même nom + même téléphone) ne
+    // se rattache jamais sans connexion — sinon n'importe qui pourrait
+    // postuler, modifier la fiche et entrer dans l'espace d'un·e autre.
+    // Fiches comédien·nes exclues (privées à leur pool, comedien-privacy.ts).
+    const { data: memeEmail } = await supabase
+      .from("figurants")
+      .select("id")
+      .ilike("email", email)
+      .eq("est_comedien", false)
+      .maybeSingle();
+    if (memeEmail) {
+      return {
+        compteExistant: true,
+        error:
+          "Tu as déjà un compte avec cet email (tu as déjà postulé ou été booké·e). Connecte-toi pour valider ta candidature : tes infos seront remplies.",
+      };
+    }
     const telephoneNormalise = telephone.replace(/\s+/g, "");
     const { data: memeNom } = await supabase
       .from("figurants")
-      .select("id, telephone")
+      .select("email, telephone")
       .ilike("nom", nom)
       .eq("est_comedien", false);
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
-    if (doublon) figurantId = doublon.id;
-  }
+    if (doublon) {
+      return {
+        compteExistant: true,
+        error: doublon.email
+          ? `Un compte existe déjà à ton nom avec ce numéro, sous l'adresse ${emailMasque(doublon.email)}. Connecte-toi avec cette adresse pour valider ta candidature.`
+          : "Un profil existe déjà à ton nom avec ce numéro. Contacte le casting pour le récupérer.",
+      };
+    }
 
-  if (!figurantId) {
     const { data: newFigurant, error: figurantError } = await supabase
       .from("figurants")
       .insert({
+        ...champsProfil,
         prenom,
         nom,
-        email,
+        email: email.toLowerCase(),
         telephone,
-        ville,
-        adresse,
-        code_postal: codePostal,
-        commune_naissance: communeNaissance,
         date_naissance: dateNaissance,
-        genre,
-        pronom,
-        taille_cm: tailleCm,
-        poids_kg: poidsKg,
-        pointure,
-        veste,
-        pantalon,
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
-        a_vehicule: aVehicule,
-        vehicule_voiture: vehiculeVoiture,
-        vehicule_velo: vehiculeVelo,
-        vehicule_moto: vehiculeMoto,
-        vehicule_scooter: vehiculeScooter,
-        vehicule_marque: vehiculeMarque,
-        ...(showAgent && !sansAgent
-          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
-          : {}),
+        acces_compte: true,
+        password_hash: await hashPassword(motDePasse),
       })
       .select("id")
       .single();
-
-    if (figurantError) {
-      if (figurantError.code === "23505") {
-        return { error: "Un profil existe déjà avec cet email. Contactez le casting si besoin." };
+    if (figurantError || !newFigurant) {
+      if (figurantError?.code === "23505") {
+        return { compteExistant: true, error: "Tu as déjà un compte avec cet email. Connecte-toi pour postuler." };
       }
-      return { error: figurantError.message };
+      return { error: figurantError?.message ?? "Création du compte impossible." };
     }
     figurantId = newFigurant.id;
-  } else {
-    // Fiche existante : on rafraîchit les mensurations et le véhicule avec
-    // ce qui vient d'être saisi/confirmé sur cette candidature.
-    await supabase
-      .from("figurants")
-      .update({
-        ville,
-        adresse,
-        code_postal: codePostal,
-        commune_naissance: communeNaissance,
-        genre,
-        pronom,
-        taille_cm: tailleCm,
-        poids_kg: poidsKg,
-        pointure,
-        veste,
-        pantalon,
-        a_vehicule: aVehicule,
-        vehicule_voiture: vehiculeVoiture,
-        vehicule_velo: vehiculeVelo,
-        vehicule_moto: vehiculeMoto,
-        vehicule_scooter: vehiculeScooter,
-        vehicule_marque: vehiculeMarque,
-        ...(showAgent && !sansAgent
-          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
-          : {}),
-      })
-      .eq("id", figurantId);
+    compteCree = true;
+    // Connecté·e tout de suite (accès activé à la création, sans l'email
+    // « ajouté·e à une date de tournage », faux ici) : si la suite échoue,
+    // un nouvel essai passe par le compte au lieu de « déjà un compte ».
+    await createFigurantSession(figurantId);
   }
 
   // On n'écrase le lien existant que si un nouveau a été fourni — sinon un
   // candidat qui repostule sans le ressaisir (formulaire pas pré-rempli, pas
   // connecté) ne doit pas effacer celui déjà enregistré sur sa fiche.
   if (lienBandeDemo) {
-    await upsertFigurantLienByLabel(supabase, figurantId!, LIEN_BANDE_DEMO, lienBandeDemo);
+    await upsertFigurantLienByLabel(supabase, figurantId, LIEN_BANDE_DEMO, lienBandeDemo);
   }
 
   const { data: candidature, error: candidatureError } = await supabase
@@ -340,7 +347,7 @@ export async function postulerAnnonce(
   }));
   if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
 
-  await uploadCandidaturePhotos(figurantId!, formData);
+  await uploadCandidaturePhotos(figurantId, formData);
 
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
     figurantId,
@@ -349,15 +356,8 @@ export async function postulerAnnonce(
     lien: `/candidatures/${candidature.id}`,
   });
 
-  // Accès à l'espace personnel activé dès la candidature, plus besoin
-  // d'attendre une validation côté staff (déjà idempotent + envoie déjà
-  // l'email "espace prêt" avec lien magique) — puis connexion immédiate,
-  // pour proposer un mot de passe sans détour par cet email.
-  await activerAccesCompte(figurantId!, annonce.projet_id);
-  await createFigurantSession(figurantId!);
-
   revalidatePath("/candidatures");
-  return { success: true };
+  return { success: true, compteCree };
 }
 
 async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {

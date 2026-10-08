@@ -189,6 +189,7 @@ export default async function PostulerPage({
           questions={await getAnnonceQuestions(annonce.id)}
           dates={annonceDates}
           prefill={prefill}
+          connecte={!!session}
           bandeDemoObligatoire={annonce.bande_demo_obligatoire}
           showAgent={annonce.types_cachet.includes("Rôle")}
         />

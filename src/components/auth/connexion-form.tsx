@@ -23,7 +23,7 @@ function ExpiredLinkNotice() {
 // obligatoire, juste plus rapide une fois défini. `formAction` par bouton
 // (React 19) plutôt que deux <form> séparés, pour ne pas dupliquer le champ
 // email.
-export function ConnexionForm() {
+export function ConnexionForm({ retour }: { retour?: string | null }) {
   const [magicState, magicAction, magicPending] = useActionState(requestMagicLink, undefined);
   const [passwordState, passwordAction, passwordPending] = useActionState(loginWithPassword, undefined);
   const [password, setPassword] = useState("");
@@ -42,6 +42,7 @@ export function ConnexionForm() {
 
   return (
     <form className="flex flex-col gap-4">
+      {retour && <input type="hidden" name="retour" value={retour} />}
       <Suspense fallback={null}>
         <ExpiredLinkNotice />
       </Suspense>
