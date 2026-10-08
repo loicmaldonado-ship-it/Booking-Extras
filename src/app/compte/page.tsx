@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { logoutFigurant } from "@/lib/candidats/actions";
+import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { MessageThread } from "@/components/candidats/message-thread";
@@ -192,6 +193,14 @@ export default async function CompteCandidatPage({
           Se déconnecter
         </Button>
       </form>
+
+      <p className="text-center text-xs text-text-muted">
+        Une question sur le site ?{" "}
+        <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
+          {CONTACT_SUPPORT_EMAIL}
+        </a>
+        . Pour un tournage, réponds directement dans tes messages ci-dessus.
+      </p>
     </div>
   );
 }

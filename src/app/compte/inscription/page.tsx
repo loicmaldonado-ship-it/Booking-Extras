@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { PostulerForm } from "@/components/candidatures/postuler-form";
 import { getCurrentFigurant } from "@/lib/candidats/session";
+import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,13 @@ export default async function InscriptionPage() {
       </div>
 
       <PostulerForm mode="inscription" questions={[]} dates={[]} />
+
+      <p className="text-center text-xs text-text-muted">
+        Une question ?{" "}
+        <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
+          {CONTACT_SUPPORT_EMAIL}
+        </a>
+      </p>
     </div>
   );
 }

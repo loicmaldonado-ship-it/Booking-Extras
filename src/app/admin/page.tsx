@@ -114,6 +114,21 @@ export default async function AdminPage() {
         </Link>
       </Card>
 
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Références</h2>
+          <p className="text-sm text-text-muted">
+            Films et séries affichés en bandeau sur la page d&apos;accueil publique.
+          </p>
+        </div>
+        <Link
+          href="/admin/references"
+          className="rounded-full bg-ink-raised-2 px-4 py-2 text-sm font-medium hover:border hover:border-coral/60"
+        >
+          Gérer les références →
+        </Link>
+      </Card>
+
       <TeamPresenceList title="Qui est connecté·e (toute l'agence)" members={presenceMembers} />
 
       <Card className="flex flex-col gap-3">

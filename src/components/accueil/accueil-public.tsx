@@ -3,6 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { AnnoncesOuvertes } from "@/components/candidats/annonces-ouvertes";
 import { getCurrentFigurant } from "@/lib/candidats/session";
+import { getReferences } from "@/lib/references/data";
+import { BandeauReferences } from "./bandeau-references";
+import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 
 const ETAPES = [
   {
@@ -22,7 +25,7 @@ const ETAPES = [
 // Accueil public (« / » sans compte équipe) : présenter le site, créer son
 // compte candidat·e ou se connecter, voir les annonces ouvertes.
 export async function AccueilPublic() {
-  const candidat = await getCurrentFigurant();
+  const [candidat, references] = await Promise.all([getCurrentFigurant(), getReferences({ visiblesSeulement: true })]);
 
   return (
     <div className="flex flex-col gap-12">
@@ -35,10 +38,10 @@ export async function AccueilPublic() {
 
       <section className="flex flex-col gap-5">
         <h1 className="max-w-2xl text-4xl font-semibold leading-tight [text-wrap:balance] sm:text-5xl">
-          Fais de la figuration sur des tournages près de chez toi.
+          Le site de casting rôles, silhouettes et figuration près de chez toi.
         </h1>
         <p className="max-w-xl text-lg text-text-muted">
-          Crée ton profil une seule fois, puis postule aux annonces des équipes casting en quelques clics.
+          Créé et géré par des chargé·es de casting membres de l&apos;ACFDA.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           {candidat ? (
@@ -70,6 +73,8 @@ export async function AccueilPublic() {
         </p>
       </section>
 
+      <BandeauReferences references={references} />
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {ETAPES.map((e, i) => (
           <Card key={e.titre} className="flex flex-col gap-2">
@@ -85,6 +90,12 @@ export async function AccueilPublic() {
       </section>
 
       <footer className="flex flex-wrap gap-4 border-t border-border pt-6 text-xs text-text-muted">
+        <span>
+          Une question ?{" "}
+          <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
+            {CONTACT_SUPPORT_EMAIL}
+          </a>
+        </span>
         <Link href="/confidentialite" className="hover:text-text">
           Confidentialité
         </Link>
