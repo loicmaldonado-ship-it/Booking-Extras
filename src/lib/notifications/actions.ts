@@ -1,7 +1,8 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { fetchAll } from "@/lib/supabase/fetch-all";
+import { getCurrentProfile, getAccessibleProjetIds, getSupportChefId, idsOrNone } from "@/lib/auth/session";
 import type { AppNotification, CandidatureATrier, NotificationGroup, NotificationType } from "./types";
 
 const RECENT_LIMIT = 150;
@@ -106,18 +107,21 @@ export async function getNotificationsPanel(): Promise<{
   let aTrier: CandidatureATrier[] = [];
   const openIds = (annoncesOuvertes ?? []).map((a) => a.id);
   if (openIds.length > 0) {
-    const [{ data: candidaturesRaw }, { data: bookedCandidatures }] = await Promise.all([
-      supabase.from("candidatures").select("id, annonce_id").is("onglet_id", null).in("annonce_id", openIds),
-      supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
-    ]);
-
-    // Une candidature déjà ajoutée à un booking n'a plus besoin d'être
+    // Une candidature déjà envoyée en booking n'a plus besoin d'être
     // triée — même logique que la page /candidatures, sinon le chiffre
     // affiché ici ne correspond à rien d'actionnable.
-    const bookedIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
+    const { data: candidaturesRaw } = await fetchAll((from, to) =>
+      supabase
+        .from("candidatures")
+        .select("id, annonce_id")
+        .is("onglet_id", null)
+        .is("envoyee_en_booking_le", null)
+        .in("annonce_id", openIds)
+        .order("id")
+        .range(from, to)
+    );
     const counts = new Map<string, number>();
     for (const c of candidaturesRaw ?? []) {
-      if (bookedIds.has(c.id)) continue;
       counts.set(c.annonce_id, (counts.get(c.annonce_id) ?? 0) + 1);
     }
 
@@ -154,6 +158,8 @@ export async function getNotificationsPanel(): Promise<{
 export async function markNotificationsLues(ids: string[]) {
   const profile = await getCurrentProfile();
   if (!profile || ids.length === 0) return;
+  // Mode support : on regarde sans toucher à ce que l'équipe de la cheffe a lu.
+  if (await getSupportChefId(profile)) return;
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
@@ -168,6 +174,7 @@ export async function markNotificationsLues(ids: string[]) {
 export async function markAllNotificationsLues() {
   const profile = await getCurrentProfile();
   if (!profile) return;
+  if (await getSupportChefId(profile)) return;
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];

@@ -90,6 +90,8 @@ export function buildFigurantsQuery(
     query = query.eq("a_vehicule", true);
   } else if (params.vehicule === "non") {
     query = query.eq("a_vehicule", false);
+  } else if (params.vehicule === "voiture") {
+    query = query.eq("vehicule_voiture", true);
   } else if (params.vehicule === "velo") {
     query = query.eq("vehicule_velo", true);
   } else if (params.vehicule === "moto") {

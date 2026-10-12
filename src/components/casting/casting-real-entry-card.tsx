@@ -140,7 +140,6 @@ function CastingRealMediaModal({
                 {v.label}
               </button>
               {isOpen && (
-                // eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir
                 <video controls autoPlay preload="metadata" className="w-full rounded-lg bg-black">
                   <source src={v.url} />
                 </video>

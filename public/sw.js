@@ -1,5 +1,8 @@
-const CACHE_NAME = "booking-extras-shell-v1";
-const PRECACHE_URLS = ["/", "/offline"];
+// BUG-05: Never persist authenticated or candidate pages in Cache Storage.
+// Only the public fallback is available offline; every other navigation is
+// fetched from the network and fails closed if the network is unavailable.
+const CACHE_NAME = "booking-extras-offline-v3";
+const PRECACHE_URLS = ["/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -10,33 +13,25 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith("booking-extras-") && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
       )
+    )
   );
   self.clients.claim();
 });
 
-// Network-first for page navigations, falling back to whatever was last
-// cached for that URL, and finally to a branded offline page. This is the
-// lightweight phase-1 setup (consultation resilience only) — per-route
-// caching for agenda/trombis/listes comes later, alongside Bookings.
 self.addEventListener("fetch", (event) => {
   if (event.request.mode !== "navigate") return;
 
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(async () => {
-        const cached = await caches.match(event.request);
-        return cached || (await caches.match("/offline"));
-      })
+    fetch(event.request).catch(async () => {
+      const cache = await caches.open(CACHE_NAME);
+      return (await cache.match("/offline.html")) || Response.error();
+    })
   );
 });
 

@@ -30,7 +30,7 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
   const admin = createAdminClient();
   const { data: projet } = await admin.from("projets").select("nom").eq("id", projetId).single();
 
-  const { id: profileId, error } = await findOrInviteProfile(email, { projet_nom: projet?.nom ?? "" });
+  const { id: profileId, invited, error } = await findOrInviteProfile(email, { projet_nom: projet?.nom ?? "" });
   if (!profileId) {
     return { error };
   }
@@ -44,7 +44,7 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
   }
 
   revalidatePath("/equipe");
-  return { success: true };
+  return { success: true, invited };
 }
 
 export async function revokeAccess(projetMembreId: string) {

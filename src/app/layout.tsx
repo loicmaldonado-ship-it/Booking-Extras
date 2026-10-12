@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { RegisterServiceWorker } from "@/components/register-service-worker";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { getCurrentProfile, getSupportChef } from "@/lib/auth/session";
 
 // Self-hosted (not fetched from Google Fonts at build time): avoids a build
 // depending on an external CDN being reachable, which matters both for
@@ -38,8 +39,8 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const profile = await getCurrentProfile();
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const [profile, supportChef] = await Promise.all([getCurrentProfile(), getSupportChef()]);
 
   return (
     <html
@@ -48,7 +49,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col text-text">
         <RegisterServiceWorker />
-        <AppShell profile={profile}>{children}</AppShell>
+        <AppShell profile={profile} supportChef={supportChef}>
+          {children}
+        </AppShell>
       </body>
     </html>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { Card, Badge } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
 import { AvailabilityCalendar } from "@/components/figurants/availability-calendar";
 import { PhotoDropzones } from "@/components/figurants/photo-dropzones";
@@ -14,12 +14,14 @@ import { FigurantAgentPanel } from "@/components/figurants/figurant-agent-panel"
 import { CopyEmailButton } from "@/components/figurants/copy-email-button";
 import { AccesCompteToggle } from "@/components/figurants/acces-compte-toggle";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
+import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { AddDatesPanel } from "@/components/figurants/add-dates-panel";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
-import { deleteFigurant, deleteLien } from "@/lib/figurants/actions";
+import { DeleteLienButton } from "@/components/figurants/delete-lien-button";
+import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 
@@ -113,7 +115,6 @@ export default async function FigurantDetailPage({
   const urlByPhotoPath = new Map(signedPhotoUrls.map((s) => [s.path, s.signedUrl ?? null]));
   const photos = (photosRaw ?? []).map((p) => ({ ...p, url: urlByPhotoPath.get(p.storage_path) ?? undefined }));
 
-  const boundDeleteFigurant = deleteFigurant.bind(null, id);
 
   // Rattache chaque message au projet de son booking (quand il en a un), et
   // prépare un résumé des dates confirmées par projet — affichés ensemble
@@ -166,11 +167,7 @@ export default async function FigurantDetailPage({
           <ButtonLink href={`/figurants/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>
-          <form action={boundDeleteFigurant}>
-            <Button type="submit" variant="ghost">
-              Supprimer
-            </Button>
-          </form>
+          {profile?.isOwner && <DeleteFigurantConfirm id={id} label={`${figurant.prenom} ${figurant.nom}`} />}
         </div>
       </div>
 
@@ -179,7 +176,12 @@ export default async function FigurantDetailPage({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} projetId={currentProjetId} />
           {figurant.acces_compte && currentProjetId && (
-            <SendEspacePersoButton figurantId={figurant.id} projetId={currentProjetId} email={figurant.email} />
+            <SendEspacePersoButton
+              figurantId={figurant.id}
+              projetId={currentProjetId}
+              email={figurant.email}
+              aUnCompte={await aCreeSonCompte(figurant.id)}
+            />
           )}
         </div>
         {(figurant.est_comedien || figurant.agent_nom || figurant.agent_email || figurant.agent_telephone) && (
@@ -238,6 +240,7 @@ export default async function FigurantDetailPage({
               <>
                 <Badge tone="turquoise">Oui</Badge>{" "}
                 {[
+                  figurant.vehicule_voiture && "Voiture",
                   figurant.vehicule_velo && "Vélo",
                   figurant.vehicule_moto && "Moto",
                   figurant.vehicule_scooter && "Scooter",
@@ -361,11 +364,7 @@ export default async function FigurantDetailPage({
                 <a href={l.url} target="_blank" rel="noreferrer" className="hover:text-coral">
                   {l.label} — {l.url}
                 </a>
-                <form action={deleteLien.bind(null, l.id, id)}>
-                  <button type="submit" className="text-text-muted hover:text-coral">
-                    Suppr.
-                  </button>
-                </form>
+                <DeleteLienButton lienId={l.id} figurantId={id} />
               </li>
             ))}
           </ul>

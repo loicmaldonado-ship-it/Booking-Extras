@@ -5,12 +5,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { createNotification } from "@/lib/notifications/create";
+import { castingPhotoPathValid, castingVideoPathValid, isCastingSubmissionLocked } from "./upload-paths";
 
 type EntryWithRole = {
   id: string;
   projet_id: string;
   figurant_id: string;
   statut: string;
+  submitted_at: string | null;
   casting_roles: {
     nom: string;
     nb_videos: number;
@@ -26,7 +28,7 @@ async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi), figurants(prenom, nom)"
+      "id, projet_id, figurant_id, statut, submitted_at, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi), figurants(prenom, nom)"
     )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
@@ -115,6 +117,7 @@ export async function createCastingUploadSlot(
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
   if (deadlinePassed(entry.casting_roles)) return { error: "La date limite d'envoi est passée." };
+  if (isCastingSubmissionLocked(entry)) return { error: "Ce casting a déjà été transmis ou clôturé." };
 
   const role = entry.casting_roles;
   if (kind === "video") {
@@ -131,7 +134,7 @@ export async function createCastingUploadSlot(
   const path =
     kind === "video"
       ? `${entry.figurant_id}/${entry.id}-video-${slot}-${crypto.randomUUID()}.${ext}`
-      : `${entry.figurant_id}/casting-${slot}-${crypto.randomUUID()}.${ext}`;
+      : `${entry.figurant_id}/casting-${entry.id}-${encodeURIComponent(slot)}-${crypto.randomUUID()}.${ext}`;
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
@@ -150,13 +153,41 @@ export async function finalizeCastingUpload(
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
   if (deadlinePassed(entry.casting_roles)) return { error: "La date limite d'envoi est passée." };
+  if (isCastingSubmissionLocked(entry)) return { error: "Ce casting a déjà été transmis ou clôturé." };
 
   const role = entry.casting_roles;
-  if ((role?.nb_videos ?? 1) > 0 && payload.videoPaths.length === 0) {
+  const nbVideos = role?.nb_videos ?? 1;
+  const labels = role?.photo_labels ?? [];
+  if (!payload || !Array.isArray(payload.videoPaths) || !Array.isArray(payload.photos)) {
+    return { error: "Fichiers de casting invalides." };
+  }
+  if (nbVideos > 0 && payload.videoPaths.length === 0) {
     return { error: "Au moins une vidéo est obligatoire." };
+  }
+  if (payload.videoPaths.length > nbVideos || payload.photos.length !== labels.length) {
+    return { error: "Nombre de fichiers de casting invalide." };
+  }
+  if (new Set(payload.videoPaths).size !== payload.videoPaths.length ||
+      payload.videoPaths.some((path) => !castingVideoPathValid(path, entry.figurant_id, entry.id, nbVideos))) {
+    return { error: "Chemin vidéo non autorisé." };
+  }
+  if (new Set(payload.photos.map((photo) => photo?.label)).size !== payload.photos.length ||
+      payload.photos.some((photo) => !photo || !labels.includes(photo.label) ||
+        !castingPhotoPathValid(photo.path, entry.figurant_id, entry.id, photo.label))) {
+    return { error: "Chemin photo non autorisé." };
   }
 
   const supabase = createAdminClient();
+  // Check presence of all files before writing any business data. Storage
+  // signed-upload URLs and paths must not be taken as proof of upload.
+  for (const path of payload.videoPaths) {
+    const { error } = await supabase.storage.from("casting-videos").info(path);
+    if (error) return { error: "La vidéo n'a pas été retrouvée dans le stockage." };
+  }
+  for (const photo of payload.photos) {
+    const { error } = await supabase.storage.from("figurant-photos").info(photo.path);
+    if (error) return { error: "La photo n'a pas été retrouvée dans le stockage." };
+  }
 
   for (const photo of payload.photos) {
     const { error } = await supabase.from("figurant_photos").insert({
@@ -184,8 +215,14 @@ export async function finalizeCastingUpload(
   };
   if (entry.statut === "proposé") patch.statut = "envoyé";
 
-  const { error } = await supabase.from("casting_entries").update(patch).eq("id", entry.id);
+  const { data: finalized, error } = await supabase.from("casting_entries")
+    .update(patch)
+    .eq("id", entry.id)
+    .is("submitted_at", null)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: error.message };
+  if (!finalized) return { error: "Ce casting a déjà été transmis." };
 
   if (entry.figurants) {
     await createNotification(

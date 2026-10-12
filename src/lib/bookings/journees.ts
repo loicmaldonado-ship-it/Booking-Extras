@@ -1,3 +1,4 @@
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type Journee = {
@@ -18,6 +19,8 @@ export type Journee = {
   convocation_hmc: string | null;
   convocation_accessoires: string | null;
   convocation_commentaires: string | null;
+  // Journée basculée par une modification du PDT : date de destination.
+  pdt_vers: string | null;
 };
 
 const STATUTS_ARCHIVES = new Set(["annulé", "indisponible"]);
@@ -28,20 +31,23 @@ export async function getJournees(projetId?: string): Promise<Journee[]> {
   let journeesQuery = supabase
     .from("journees")
     .select(
-      "id, projet_id, date, total_requis, lieu, convocation_precisions, convocation_hmc, convocation_accessoires, convocation_commentaires"
+      "id, projet_id, date, total_requis, lieu, convocation_precisions, convocation_hmc, convocation_accessoires, convocation_commentaires, pdt_vers"
     )
     .order("date", { ascending: true });
   if (projetId) journeesQuery = journeesQuery.eq("projet_id", projetId);
 
-  let bookingsQuery = supabase
-    .from("bookings")
-    .select("projet_id, date, statut, figurants!bookings_figurant_id_fkey(genre)");
-  if (projetId) bookingsQuery = bookingsQuery.eq("projet_id", projetId);
+  // Plus de 1000 bookings sur un projet (ex. 200 profils × 10 jours) :
+  // PostgREST tronquerait les compteurs en silence.
+  const lireBookings = (from: number, to: number) => {
+    let q = supabase.from("bookings").select("projet_id, date, statut, figurants!bookings_figurant_id_fkey(genre)");
+    if (projetId) q = q.eq("projet_id", projetId);
+    return q
+      .order("id")
+      .range(from, to)
+      .returns<{ projet_id: string; date: string; statut: string; figurants: { genre: string | null } | null }[]>();
+  };
 
-  const [{ data: journeesRaw }, { data: bookingsRaw }] = await Promise.all([
-    journeesQuery,
-    bookingsQuery.returns<{ projet_id: string; date: string; statut: string; figurants: { genre: string | null } | null }[]>(),
-  ]);
+  const [{ data: journeesRaw }, { data: bookingsRaw }] = await Promise.all([journeesQuery, fetchAll(lireBookings)]);
 
   const counts = new Map<
     string,
@@ -89,6 +95,7 @@ export async function getJournees(projetId?: string): Promise<Journee[]> {
       convocation_hmc: j.convocation_hmc,
       convocation_accessoires: j.convocation_accessoires,
       convocation_commentaires: j.convocation_commentaires,
+      pdt_vers: j.pdt_vers,
     };
   });
 }

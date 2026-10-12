@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentProfile } from "@/lib/auth/session";
 
 function str(fd: FormData, key: string): string {
   const v = fd.get(key);
@@ -9,6 +10,7 @@ function str(fd: FormData, key: string): string {
 }
 
 export async function createTemplate(_prevState: unknown, formData: FormData) {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
   const nom = str(formData, "nom");
   const sujet = str(formData, "sujet");
   const corps = str(formData, "corps");
@@ -28,6 +30,7 @@ export async function createTemplate(_prevState: unknown, formData: FormData) {
 }
 
 export async function updateTemplate(id: string, _prevState: unknown, formData: FormData) {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
   const nom = str(formData, "nom");
   const sujet = str(formData, "sujet");
   const corps = str(formData, "corps");
@@ -47,8 +50,11 @@ export async function updateTemplate(id: string, _prevState: unknown, formData: 
 }
 
 export async function deleteTemplate(id: string) {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
   const supabase = createAdminClient();
-  await supabase.from("message_templates").delete().eq("id", id);
+  const { error } = await supabase.from("message_templates").delete().eq("id", id);
+  if (error) return { error: error.message };
   revalidatePath("/modeles");
   revalidatePath("/bookings/documents");
+  return { success: true as const };
 }

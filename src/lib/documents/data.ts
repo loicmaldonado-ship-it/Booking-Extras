@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { Figurant, FigurantPhoto } from "@/lib/figurants/types";
-import type { CovoiturageRole } from "@/lib/bookings/types";
+import type { BookingStatut, CovoiturageRole } from "@/lib/bookings/types";
 
 export type FigurantPhotoWithUrl = Omit<FigurantPhoto, "url"> & { url: string | null };
 
@@ -13,9 +13,13 @@ export type ConfirmedBooking = {
   figurant: Figurant;
 };
 
+// Par défaut, seulement les confirmé·es (documents de tournage) ; les
+// trombis et fiches mensuration peuvent aussi viser d'autres statuts
+// (proposé·es, PER…), voir lib/documents/statuts.ts.
 export async function getConfirmedBookings(
   projetId: string,
-  date: string
+  date: string,
+  statuts: BookingStatut[] = ["confirmé"]
 ): Promise<ConfirmedBooking[]> {
   const supabase = createAdminClient();
 
@@ -24,7 +28,7 @@ export async function getConfirmedBookings(
     .select("id, heure_convocation, fonction, cachet, figurants!bookings_figurant_id_fkey(*)")
     .eq("projet_id", projetId)
     .eq("date", date)
-    .eq("statut", "confirmé")
+    .in("statut", statuts)
     .returns<
       { id: string; heure_convocation: string | null; fonction: string | null; cachet: string | null; figurants: Figurant | null }[]
     >();
@@ -204,4 +208,37 @@ export function pickFichePhotos(photos: FigurantPhotoWithUrl[] | undefined, proj
     .filter((p) => p.type !== "tenue")
     .sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
   return [...tenue, ...others].slice(0, 3);
+}
+
+// Photos propres à chaque candidature (candidature_photos) : envoyées pour
+// l'annonce ou reprises du compte, dans l'ordre du formulaire. Le type est
+// remplacé par l'emplacement choisi (une photo du compte reprise comme
+// portrait s'affiche comme portrait). Les anciennes candidatures, sans lien,
+// sont absentes du résultat : l'appelant affiche alors les photos du compte.
+export async function getPhotosParCandidature(candidatureIds: string[]) {
+  const supabase = createAdminClient();
+  const map = new Map<string, FigurantPhotoWithUrl[]>();
+  if (candidatureIds.length === 0) return map;
+
+  const lignes: { candidature_id: string; emplacement: FigurantPhoto["type"]; ordre: number; figurant_photos: FigurantPhoto | null }[] = [];
+  for (let i = 0; i < candidatureIds.length; i += 150) {
+    const { data } = await supabase
+      .from("candidature_photos")
+      .select("candidature_id, emplacement, ordre, figurant_photos(*)")
+      .in("candidature_id", candidatureIds.slice(i, i + 150))
+      .order("ordre")
+      .returns<typeof lignes>();
+    lignes.push(...(data ?? []));
+  }
+
+  const paths = lignes.flatMap((l) => (l.figurant_photos ? [l.figurant_photos.storage_path] : [])).sort();
+  const signedUrls = await getCachedSignedUrls("figurant-photos", paths);
+  const urlByPath = new Map(signedUrls.map((s) => [s.path, s.signedUrl ?? null]));
+  for (const l of lignes) {
+    if (!l.figurant_photos) continue;
+    const liste = map.get(l.candidature_id) ?? [];
+    liste.push({ ...l.figurant_photos, type: l.emplacement, url: urlByPath.get(l.figurant_photos.storage_path) ?? null });
+    map.set(l.candidature_id, liste);
+  }
+  return map;
 }

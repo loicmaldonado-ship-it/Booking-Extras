@@ -257,8 +257,10 @@ export default function AidePage() {
               ou directement par le figurant·e via son lien (à copier dans <UI>Disponibilités</UI>).
             </>,
             <>
-              Active l&apos;<strong className="text-text">accès à l&apos;espace personnel</strong> pour qu&apos;il·elle
-              se connecte et te réponde — le lien de connexion s&apos;envoie à la main, jamais automatiquement.
+              Pour une personne <strong className="text-text">ajoutée à la main</strong> (sans compte), active
+              l&apos;accès à l&apos;espace personnel et envoie-lui le lien de création de compte, pour qu&apos;elle
+              se connecte et te réponde. Une personne qui a créé son compte elle-même se connecte seule : la fiche
+              affiche « A créé son compte » et aucun lien ne lui est envoyé.
             </>,
           ]}
         />
@@ -309,16 +311,32 @@ export default function AidePage() {
             </>,
             <>
               Copie le <strong className="text-text">lien public</strong>, télécharge le{" "}
-              <strong className="text-text">QR code</strong> ou génère directement une{" "}
-              <strong className="text-text">affiche</strong> pour Instagram/Facebook.
+              <strong className="text-text">QR code</strong> ou publie l&apos;
+              <strong className="text-text">affiche</strong> : choisis <UI>Post carré</UI> ou <UI>Story</UI>,
+              puis <UI>Partager l&apos;affiche</UI> (sur téléphone, ouvre directement Instagram, WhatsApp,
+              Messages…), <UI>Télécharger</UI> ou <UI>Copier l&apos;image</UI>.
+            </>,
+            <>
+              Pour personnaliser l&apos;affiche, ouvre <UI>Modifier</UI> sur l&apos;annonce. Trois blocs :{" "}
+              <strong className="text-text">Fond</strong> (couleur, ou <UI>Origine</UI> pour le style de base),{" "}
+              <strong className="text-text">Titre</strong> (police et couleur) et{" "}
+              <strong className="text-text">Texte</strong> (police, couleur et taille des infos et de la
+              description). <UI>Auto</UI> = blanc ou noir selon le fond, toujours lisible ; si une couleur choisie
+              se lit mal, un avertissement propose de revenir en Auto. L&apos;aperçu (post ou story) se met à jour
+              en direct ; rien n&apos;est enregistré avant <UI>Enregistrer</UI>.
             </>,
             "Les candidatures arrivent automatiquement dans Candidatures, classées par annonce.",
           ]}
         />
         <Callout>
-          <strong className="text-text">Espace candidat·es (/compte/connexion).</strong> Toutes les annonces
-          ouvertes y sont listées publiquement (avec le nom du·de la chef·fe et les dates), et c&apos;est aussi
-          là qu&apos;un·e figurant·e déjà booké·e demande son lien de connexion pour mettre à jour sa fiche.
+          <strong className="text-text">Compte obligatoire pour postuler.</strong> La page d&apos;accueil du site
+          présente Booking Extras et liste les annonces ouvertes ; on peut y créer son compte sans annonce (profil
+          complet et photos). Sans compte, la personne remplit l&apos;annonce puis crée son mot de passe pour valider
+          sa candidature ; si son email est déjà connu, elle doit d&apos;abord se connecter (mot de passe ou lien
+          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Les candidat·es se
+          connectent sur <UI>Espace candidat·es</UI> (/compte/connexion) ; questions générales :
+          bookingextras.support@gmail.com. Photos : chaque candidature garde les siennes (envoyées pour
+          l&apos;annonce, ou reprises parmi celles du compte avec <UI>Mes photos</UI>).
         </Callout>
         <Callout>
           <strong className="text-text">Agent.</strong> Si l&apos;annonce coche le type{" "}
@@ -358,12 +376,27 @@ export default function AidePage() {
               <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
               au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
               d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
-              journée.
+              journée. Les personnes envoyées quittent la liste, mais le jour garde leur trace : la pastille compte les{" "}
+              <UI>envoyé·es</UI>, et en ouvrant le jour tu vois leur trombi (photo, nom, statut du booking) avec des
+              liens vers le trombi et les fiches mensuration de la journée.
             </>,
             <>
-              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT BE</strong> sont communs
+              <strong className="text-text">Trombi et fiches d&apos;une sélection.</strong> Coche des personnes, puis{" "}
+              <UI>🖼️ Trombi</UI> ou <UI>📏 Fiches mensuration</UI> : les documents s&apos;ouvrent dans un nouvel
+              onglet, à imprimer ou télécharger en PDF (avant tout booking, par exemple pour les montrer à la
+              réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
+            </>,
+            <>
+              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT</strong> sont communs
               à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
               as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
+            </>,
+            <>
+              <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
+              les autres onglets) et n&apos;en reste la trace que dans l&apos;onglet <UI>OUT</UI>. La personne reçoit
+              dans son espace : « Désolé, vous n&apos;avez pas été retenu·e pour l&apos;annonce … Un grand merci pour
+              votre candidature, et à tout bientôt ! L&apos;équipe Booking Extras ». Sortie de OUT par erreur, le
+              message est retiré.
             </>,
             <>
               Depuis la fiche, <UI>+ Ajouter à un booking</UI> pour la faire passer directement en tournage, ou
@@ -571,6 +604,17 @@ export default function AidePage() {
           ]}
         />
         <Callout>
+          <strong className="text-text">Le plan de travail change ?</strong> Sur la journée concernée,{" "}
+          <UI>🔀 Modifier le PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
+          basculer, qui a déclaré une indispo ce jour-là, et qui y est déjà calé·e (non touché·e). Tout le monde
+          réapparaît sur la nouvelle journée en <strong className="text-text">À REBOOKER</strong> — les autres
+          journées ne bougent pas. Coche <UI>Prévenir les profils</UI> pour leur envoyer le message (modifiable,
+          gardé pour le projet ; e-mail en option), ou décoche-la pour un simple déplacement silencieux. Dès que tu
+          changes le statut de quelqu&apos;un sur la nouvelle journée (CONFIRMÉ, Indisponible…), il·elle disparaît
+          de l&apos;ancienne ; quand tout le monde est traité, le bandeau de l&apos;ancienne journée propose{" "}
+          <UI>Supprimer cette journée</UI>.
+        </Callout>
+        <Callout>
           <strong className="text-text">Onglet Covoiturage.</strong> Glisse un profil sur un·e chauffeur·euse
           pour l&apos;ajouter comme passager·ère, ou classe-le·la en <strong className="text-text">PPM</strong>{" "}
           (par ses propres moyens — indemnité individuelle) ou <strong className="text-text">Transport en
@@ -624,6 +668,17 @@ export default function AidePage() {
         <p className="text-sm text-text-muted">
           Sur chaque document, <UI>Champs à afficher</UI> te permet de cocher ce que tu veux montrer (téléphone,
           email, âge, ville...), puis <UI>Télécharger le PDF</UI> ou <UI>Imprimer</UI>.
+        </p>
+        <p className="text-sm text-text-muted">
+          Photos des trombis et fiches : dans la journée, <UI>📷 Photos</UI> à côté d&apos;un nom permet de choisir
+          jusqu&apos;à 3 photos dans l&apos;ordre (la 1 est la photo principale du trombi). Sans choix : photos de
+          l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
+          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.
+        </p>
+        <p className="text-sm text-text-muted">
+          Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}
+          <UI>Confirmé·es</UI> ; aussi <UI>Proposé·es</UI>, <UI>PER</UI> ou <UI>Tout le monde</UI> (sauf annulé·es
+          et indisponibles).
         </p>
       </GuideChapter>
 

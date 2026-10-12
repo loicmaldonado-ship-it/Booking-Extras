@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
 import { getCurrentProjetId } from "@/lib/projet-context";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
+import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import { getProjetEmailCredentials, getOwnerEmailCredentials, type EmailCredentialsResult } from "@/lib/projets/email";
 import type { FigurantMessageCategorie } from "@/lib/candidats/types";
 
@@ -24,21 +25,50 @@ async function resolveSenderCredentials(
   return getOwnerEmailCredentials(supabase, profile?.id ?? null);
 }
 
+// Server Actions bypass the UI. Authorize the staff actor and the requested
+// project before touching private records with the service-role client.
+async function requireStaffMessageAccess(figurantId: string, projetId: string | null) {
+  const actor = await getCurrentProfile();
+  if (!actor) return { error: "Non autorisé." } as const;
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied } as const;
+  }
+  const { data: figurant } = await createAdminClient()
+    .from("figurants")
+    .select("email, prenom, est_comedien, comedien_pool_id")
+    .eq("id", figurantId)
+    .maybeSingle();
+  if (!figurant) return { error: "Profil introuvable." } as const;
+  if (figurant.est_comedien && !actor.isOwner &&
+      figurant.comedien_pool_id !== comedienPoolIdFor(actor)) {
+    return { error: "Profil introuvable." } as const;
+  }
+  return { figurant } as const;
+}
+
 export async function sendStaffMessageToFigurant(figurantId: string, formData: FormData) {
   const corps = String(formData.get("corps") ?? "").trim();
   const categorie = (String(formData.get("categorie") ?? "libre").trim() ||
     "libre") as FigurantMessageCategorie;
-  const email = String(formData.get("email") ?? "").trim() || null;
+  const requestedEmail = String(formData.get("email") ?? "").trim() || null;
   if (!corps) return { error: "Le message ne peut pas être vide." };
 
   const projetId = await getCurrentProjetId();
+  const access = await requireStaffMessageAccess(figurantId, projetId);
+  if ("error" in access) return { error: access.error };
+  // Never trust the email supplied by the browser as the recipient.
+  const storedEmail = access.figurant.email;
+  if (requestedEmail && requestedEmail.toLowerCase() !== storedEmail?.toLowerCase()) {
+    return { error: "Adresse du destinataire invalide." };
+  }
   const supabase = createAdminClient();
 
   let emailError: string | undefined;
-  if (email) {
+  if (requestedEmail && storedEmail) {
     const { credentials, error: credError } = await resolveSenderCredentials(supabase, projetId);
     if (credError) return { error: credError };
-    const result = await sendEmail(email, "Booking Extras", corps, credentials);
+    const result = await sendEmail(storedEmail, "Booking Extras", corps, credentials);
     emailError = result.error;
   }
 
@@ -58,15 +88,21 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
   return { success: true, emailError };
 }
 
-export async function notifyFigurantByEmail(figurantId: string, email: string, prenom: string, siteUrl: string) {
-  const supabase = createAdminClient();
+export async function notifyFigurantByEmail(figurantId: string) {
   const projetId = await getCurrentProjetId();
+  const access = await requireStaffMessageAccess(figurantId, projetId);
+  if ("error" in access) return { error: access.error };
+  if (!access.figurant.email) return { error: "Ce profil n'a pas d'adresse email." };
+
+  const supabase = createAdminClient();
   const { credentials, error } = await resolveSenderCredentials(supabase, projetId);
   if (error) return { error };
+  // URL from trusted server configuration, never a browser-provided URL.
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
   return sendEmail(
-    email,
+    access.figurant.email,
     "Booking Extras — Vous avez un message",
-    `Bonjour ${prenom},\n\nVous avez un nouveau message sur votre espace Booking Extras. Merci de vous connecter dès que possible pour le consulter et vérifier que vos informations sont bien à jour :\n${siteUrl}/compte/connexion\n\nMerci !`,
+    `Bonjour ${access.figurant.prenom ?? ""},\n\nVous avez un nouveau message sur votre espace Booking Extras. Merci de vous connecter dès que possible pour le consulter et vérifier que vos informations sont bien à jour :\n${siteUrl}/compte/connexion\n\nMerci !`,
     credentials
   );
 }
@@ -74,7 +110,17 @@ export async function notifyFigurantByEmail(figurantId: string, email: string, p
 // Coché manuellement par l'équipe dans le suivi des envois — distinct du
 // "BIEN REÇU" que le figurant coche lui-même côté /compte.
 export async function toggleMessageRepondu(messageId: string, value: boolean) {
+  const actor = await getCurrentProfile();
+  if (!actor) return { error: "Non autorisé." };
   const supabase = createAdminClient();
+  const { data: message } = await supabase.from("figurant_messages")
+    .select("figurant_id, projet_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!message) return { error: "Message introuvable." };
+  const access = await requireStaffMessageAccess(message.figurant_id, message.projet_id);
+  if ("error" in access) return { error: access.error };
+
   const { error } = await supabase.from("figurant_messages").update({ repondu: value }).eq("id", messageId);
   if (error) return { error: error.message };
   revalidatePath("/bookings/documents");

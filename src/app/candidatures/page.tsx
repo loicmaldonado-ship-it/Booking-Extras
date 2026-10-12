@@ -7,9 +7,9 @@ import { setCurrentProjet } from "@/lib/projet-context";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row, type CandidatureSummary } from "@/components/candidatures/candidatures-table";
 import { SortChips } from "@/components/documents/sort-chips";
-import { ONGLET_OUT_BE } from "@/lib/candidatures/types";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
-import { JoursTournageBar } from "@/components/candidatures/jours-tournage-bar";
+import { JoursTournageBar, type EnvoyeJour } from "@/components/candidatures/jours-tournage-bar";
+import type { BookingStatut } from "@/lib/bookings/types";
 import { GENRES } from "@/lib/figurants/types";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import {
@@ -19,7 +19,8 @@ import {
 } from "@/lib/figurants/mensuration-filters";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { groupByDimensions, parseDocSort, ageBracket, SORT_DIMENSIONS, type Dimension } from "@/lib/documents/sort";
 import { formatDateShort } from "@/lib/format-date";
@@ -93,6 +94,7 @@ type CandidatureWithFilters = CandidatureRaw & {
         vehicule_velo: boolean;
         vehicule_moto: boolean;
         vehicule_scooter: boolean;
+        vehicule_voiture: boolean;
         code_postal: string | null;
         taille_cm: number | null;
         poids_kg: number | null;
@@ -185,13 +187,24 @@ export default async function CandidaturesPage({
 
   const annonce = (annonces ?? []).find((a) => a.id === params.annonce_id);
 
-  const query = supabase
+  // Toutes les lignes, par paquets de 1000 (voir fetchAll).
+  const query = (from: number, to: number) => supabase
     .from("candidatures")
     .select(
-      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
+      "id, onglet_id, fonction_assignee, cachet_assigne, message, created_at, figurants(id, prenom, nom, ville, email, telephone, compte_myrole, genre, date_naissance, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, code_postal, taille_cm, poids_kg, pointure, tour_poitrine_cm, tour_taille_cm, tour_hanches_cm, tour_tete_cm, tour_cou_cm, jambes_ext_cm, jambes_int_cm, carrure_cm, veste, pantalon, gant), annonces(id, titre, projet_id, projets(nom, confidentiel, nom_code, lieu, signature))"
     )
     .eq("annonce_id", params.annonce_id)
-    .order("created_at", { ascending: false });
+    // Règle de Loïc : une fois envoyée en booking, une candidature ne
+    // réapparaît plus jamais dans cette annonce, même s'il lui reste des
+    // jours prévus (ils restent comptés et envoyables depuis la barre "Jours
+    // de tournage") ou si le booking est supprimé / déplacé. Marque posée
+    // par la base (voir migration 20261007000004). Postuler à une autre
+    // annonce crée une nouvelle candidature.
+    .is("envoyee_en_booking_le", null)
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(from, to)
+    .returns<CandidatureWithFilters[]>();
 
   const [annonceQuestions, annonceDates] = await Promise.all([
     getAnnonceQuestions(params.annonce_id),
@@ -207,7 +220,6 @@ export default async function CandidaturesPage({
 
   const [
     { data: candidaturesRaw, error },
-    { data: bookedCandidatures },
     { data: templates },
     { data: reponsesMatch },
     { data: disposOui },
@@ -216,30 +228,54 @@ export default async function CandidaturesPage({
     { data: bookingsJours },
     { data: journeesBesoins },
   ] = await Promise.all([
-    query.returns<CandidatureWithFilters[]>(),
-    supabase.from("bookings").select("candidature_id").not("candidature_id", "is", null),
+    fetchAll(query),
     supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
     params.question_id && params.question_reponse
-      ? supabase
-          .from("candidature_reponses")
-          .select("candidature_id")
-          .eq("annonce_question_id", params.question_id)
-          .eq("reponse", params.question_reponse === "oui")
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_reponses")
+            .select("candidature_id")
+            .eq("annonce_question_id", params.question_id!)
+            .eq("reponse", params.question_reponse === "oui")
+            .order("candidature_id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: null as { candidature_id: string }[] | null }),
     annonceDateIds.length > 0
-      ? supabase
-          .from("candidature_disponibilites")
-          .select("candidature_id, annonce_date_id")
-          .in("annonce_date_id", annonceDateIds)
-          .eq("disponible", true)
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_disponibilites")
+            .select("candidature_id, annonce_date_id")
+            .in("annonce_date_id", annonceDateIds)
+            .eq("disponible", true)
+            .order("id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     getOngletsForAnnonce(params.annonce_id),
     annonceDateIds.length > 0
-      ? supabase.from("candidature_jours").select("candidature_id, annonce_date_id").in("annonce_date_id", annonceDateIds)
+      ? fetchAll((from, to) =>
+          supabase
+            .from("candidature_jours")
+            .select("candidature_id, annonce_date_id")
+            .in("annonce_date_id", annonceDateIds)
+            .order("candidature_id")
+            .order("annonce_date_id")
+            .range(from, to)
+        )
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     annonce && annonceDatesIso.length > 0
-      ? supabase.from("bookings").select("figurant_id, date").eq("projet_id", annonce.projet_id).in("date", annonceDatesIso)
-      : Promise.resolve({ data: [] as { figurant_id: string; date: string }[] }),
+      ? fetchAll((from, to) =>
+          supabase
+            .from("bookings")
+            .select("id, figurant_id, date, statut")
+            .eq("projet_id", annonce.projet_id)
+            .in("date", annonceDatesIso)
+            .order("id")
+            .range(from, to)
+            .returns<{ id: string; figurant_id: string; date: string; statut: BookingStatut }[]>()
+        )
+      : Promise.resolve({ data: [] as { id: string; figurant_id: string; date: string; statut: BookingStatut }[] }),
     annonce && annonceDatesIso.length > 0
       ? supabase
           .from("journees")
@@ -278,14 +314,7 @@ export default async function CandidaturesPage({
     datesDispoByCandidature.set(d.candidature_id, set);
   }
 
-  const bookedCandidatureIds = new Set((bookedCandidatures ?? []).map((b) => b.candidature_id));
-  // Règle de Loïc : une fois envoyée dans un booking, une candidature ne
-  // réapparaît plus jamais dans cette annonce, même s'il lui reste des jours
-  // prévus (ils restent comptés et envoyables depuis la barre "Jours de
-  // tournage"). Postuler à une autre annonce crée une nouvelle candidature.
-  const estMasquee = (c: CandidatureWithFilters) => bookedCandidatureIds.has(c.id);
-
-  let candidatures = (candidaturesRaw ?? []).filter((c) => !estMasquee(c));
+  let candidatures = candidaturesRaw ?? [];
   if (params.myrole === "oui") {
     candidatures = candidatures.filter((c) => c.figurants?.compte_myrole);
   } else if (params.myrole === "non") {
@@ -298,6 +327,8 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.figurants?.a_vehicule);
   } else if (params.vehicule === "non") {
     candidatures = candidatures.filter((c) => c.figurants?.a_vehicule === false);
+  } else if (params.vehicule === "voiture") {
+    candidatures = candidatures.filter((c) => c.figurants?.vehicule_voiture);
   } else if (params.vehicule === "velo") {
     candidatures = candidatures.filter((c) => c.figurants?.vehicule_velo);
   } else if (params.vehicule === "moto") {
@@ -321,11 +352,15 @@ export default async function CandidaturesPage({
     const matchingIds = new Set(reponsesMatch.map((r) => r.candidature_id));
     candidatures = candidatures.filter((c) => matchingIds.has(c.id));
   }
+  // Onglet fixe « OUT » : ses candidatures disparaissent de l'annonce.
+  const ongletOutId = (onglets ?? []).find((o) => o.fixe)?.id ?? null;
+
   // Compteur par date sur le périmètre de l'onglet affiché, mais avant le
   // filtre de dates lui-même : chaque pastille annonce combien de personnes
   // sont dispo ce jour-là.
   const dispoCountByDate = new Map<string, number>();
   for (const c of candidatures) {
+    if (!params.onglet_id && c.onglet_id === ongletOutId) continue;
     if (params.onglet_id === "a_trier" && c.onglet_id !== null) continue;
     if (params.onglet_id && params.onglet_id !== "a_trier" && c.onglet_id !== params.onglet_id) continue;
     for (const dateId of datesDispoByCandidature.get(c.id) ?? []) {
@@ -342,9 +377,30 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => joursPrevus.get(c.id)?.has(jourFilter));
   }
 
+  // Trace des envoyé·es : candidat·es de cette annonce présent·es dans la
+  // journée de tournage (booking sur le projet à cette date), y compris
+  // celles et ceux qui n'apparaissent plus dans la liste une fois envoyé·es.
+  const figurantsBookes = Array.from(new Set((bookingsJours ?? []).map((b) => b.figurant_id)));
+  const candidatsDeLAnnonce = new Set<string>();
+  for (let i = 0; i < figurantsBookes.length; i += 150) {
+    const { data } = await supabase
+      .from("candidatures")
+      .select("figurant_id")
+      .eq("annonce_id", params.annonce_id)
+      .in("figurant_id", figurantsBookes.slice(i, i + 150));
+    for (const c of data ?? []) candidatsDeLAnnonce.add(c.figurant_id);
+  }
+  const envoyesParDate = new Map<string, { id: string; figurant_id: string; statut: BookingStatut }[]>();
+  for (const b of bookingsJours ?? []) {
+    if (!candidatsDeLAnnonce.has(b.figurant_id)) continue;
+    const liste = envoyesParDate.get(b.date) ?? [];
+    liste.push(b);
+    envoyesParDate.set(b.date, liste);
+  }
+
   // Par jour : toutes les personnes prévues (quel que soit le filtre
-  // affiché), dont celles déjà dans la journée, et le besoin saisi dans
-  // Bookings pour cette journée s'il existe.
+  // affiché), dont celles déjà dans la journée, les envoyé·es, et le besoin
+  // saisi dans Bookings pour cette journée s'il existe.
   const joursTournage = annonceDates.map((d) => {
     const prevues = (joursRows ?? []).filter((j) => j.annonce_date_id === d.id);
     return {
@@ -352,16 +408,43 @@ export default async function CandidaturesPage({
       date: d.date,
       prevues: prevues.length,
       dansLaJournee: prevues.filter((j) => estTransfere(j.candidature_id, d.id)).length,
+      envoyes: envoyesParDate.get(d.date)?.length ?? 0,
       besoin: besoinsByDate.get(d.date) ?? null,
     };
   });
+
+  // Aperçu trombi des envoyé·es, seulement pour le jour ouvert (photos
+  // signées à la demande, pas pour tous les jours).
+  const jourOuvert = jourFilter ? annonceDates.find((d) => d.id === jourFilter) : null;
+  const envoyesJourOuvert = jourOuvert ? (envoyesParDate.get(jourOuvert.date) ?? []) : [];
+  const [{ data: figurantsEnvoyes }, photosEnvoyes] = await Promise.all([
+    envoyesJourOuvert.length > 0
+      ? supabase
+          .from("figurants")
+          .select("id, prenom, nom")
+          .in(
+            "id",
+            envoyesJourOuvert.map((b) => b.figurant_id)
+          )
+      : Promise.resolve({ data: [] as { id: string; prenom: string; nom: string }[] }),
+    getPhotosByFigurantId(envoyesJourOuvert.map((b) => b.figurant_id)),
+  ]);
+  const nomEnvoye = new Map((figurantsEnvoyes ?? []).map((f) => [f.id, `${f.prenom} ${f.nom}`]));
+  const apercuEnvoyes: EnvoyeJour[] = envoyesJourOuvert
+    .map((b) => ({
+      bookingId: b.id,
+      nom: nomEnvoye.get(b.figurant_id) ?? "—",
+      statut: b.statut,
+      portraitUrl: annonce ? (pickPortrait(photosEnvoyes.get(b.figurant_id), annonce.projet_id)?.url ?? null) : null,
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 
   // Compte par onglet pour la barre d'onglets — calculé sur le même
   // périmètre que les filtres actifs (myrole/genre/âge/question), mais
   // avant le découpage par onglet lui-même, pour que chaque pastille
   // annonce le nombre qu'on obtiendra en cliquant dessus.
   const tabCounts: Record<string, number> = {
-    tous: candidatures.length,
+    tous: candidatures.filter((c) => c.onglet_id !== ongletOutId).length,
     a_trier: candidatures.filter((c) => c.onglet_id === null).length,
   };
   for (const o of onglets ?? []) {
@@ -372,6 +455,10 @@ export default async function CandidaturesPage({
     candidatures = candidatures.filter((c) => c.onglet_id === null);
   } else if (params.onglet_id) {
     candidatures = candidatures.filter((c) => c.onglet_id === params.onglet_id);
+  } else {
+    // « Tous » : les candidatures en OUT ne sont plus dans l'annonce, il
+    // n'en reste la trace que dans l'onglet OUT.
+    candidatures = candidatures.filter((c) => c.onglet_id !== ongletOutId);
   }
 
   const tournagesTous =
@@ -410,9 +497,14 @@ export default async function CandidaturesPage({
   const page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
   const pageCandidatures = candidatures.slice((page - 1) * CANDIDATURES_PAR_PAGE, page * CANDIDATURES_PAR_PAGE);
 
-  const portraitByFigurant = await getPhotosByFigurantId(
-    pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)
-  );
+  // Photos de la candidature (envoyées ou reprises pour cette annonce),
+  // sinon celles du compte pour les candidatures d'avant.
+  const [portraitByFigurant, photosParCandidature] = await Promise.all([
+    getPhotosByFigurantId(pageCandidatures.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+    getPhotosParCandidature(pageCandidatures.map((c) => c.id)),
+  ]);
+  const photosDe = (c: (typeof pageCandidatures)[number]) =>
+    photosParCandidature.get(c.id) ?? (c.figurants ? portraitByFigurant.get(c.figurants.id) : undefined);
 
   const candidatureIds = pageCandidatures.map((c) => c.id);
   const [{ data: reponsesRaw }, tournagesPage] = await Promise.all([
@@ -468,8 +560,8 @@ export default async function CandidaturesPage({
             : c.annonces.projets,
         }
       : c.annonces,
-    portraitUrl: c.figurants ? pickPortrait(portraitByFigurant.get(c.figurants.id))?.url ?? null : null,
-    photos: c.figurants ? (portraitByFigurant.get(c.figurants.id) ?? []) : [],
+    portraitUrl: pickPortrait(photosDe(c))?.url ?? null,
+    photos: photosDe(c) ?? [],
   }));
 
   // Partagée par pageHref/tabHref/genreTabHref ci-dessous : les trois ne
@@ -533,7 +625,7 @@ export default async function CandidaturesPage({
       label: o.nom,
       href: tabHref(o.id),
       count: tabCounts[o.id] ?? 0,
-      danger: o.nom === ONGLET_OUT_BE,
+      danger: o.fixe,
     })),
   ];
 
@@ -556,9 +648,9 @@ export default async function CandidaturesPage({
     buildCandidaturesHref(params, docSort, { ongletId: params.onglet_id, genre: params.genre, ordre: o });
 
   const candidaturesAvantGenre = (candidaturesRaw ?? [])
-    .filter((c) => !estMasquee(c))
     .filter((c) => (params.myrole === "oui" ? c.figurants?.compte_myrole : true))
     .filter((c) => (params.myrole === "non" ? !c.figurants?.compte_myrole : true))
+    .filter((c) => (params.onglet_id ? true : c.onglet_id !== ongletOutId))
     .filter((c) => (params.onglet_id === "a_trier" ? c.onglet_id === null : true))
     .filter((c) => (params.onglet_id && params.onglet_id !== "a_trier" ? c.onglet_id === params.onglet_id : true));
   const genreTabs = [
@@ -666,6 +758,7 @@ export default async function CandidaturesPage({
           hrefs={Object.fromEntries(annonceDates.map((d) => [d.id, jourHref(d.id)]))}
           clearHref={jourHref(null)}
           projetId={annonce.projet_id}
+          envoyesDuJour={apercuEnvoyes}
         />
       )}
 
@@ -767,6 +860,7 @@ export default async function CandidaturesPage({
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
             <option value="non">Sans véhicule</option>
+            <option value="voiture">Voiture</option>
             <option value="velo">Vélo</option>
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>
@@ -837,31 +931,60 @@ export default async function CandidaturesPage({
       />
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <Link
-            href={pageHref(page - 1)}
-            aria-disabled={page <= 1}
-            className={cn(
-              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
-              page <= 1 ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
-            )}
-          >
-            ← Précédent
-          </Link>
-          <span className="text-text-muted">
-            Page {page} / {totalPages}
-          </span>
-          <Link
-            href={pageHref(page + 1)}
-            aria-disabled={page >= totalPages}
-            className={cn(
-              "rounded-full border border-border px-4 py-2 font-medium transition-colors",
-              page >= totalPages ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
-            )}
-          >
-            Suivant →
-          </Link>
-        </div>
+        <nav aria-label="Pages" className="flex flex-wrap items-center justify-center gap-2 text-sm">
+          {[
+            { label: "« Première", cible: 1, inactif: page <= 1 },
+            { label: "← Précédent", cible: page - 1, inactif: page <= 1 },
+          ].map((b) => (
+            <Link
+              key={b.label}
+              href={pageHref(b.cible)}
+              aria-disabled={b.inactif}
+              className={cn(
+                "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+                b.inactif ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+              )}
+            >
+              {b.label}
+            </Link>
+          ))}
+          {/* Numéros : la première, la dernière et les deux voisines de la
+              page en cours, « … » entre les trous. */}
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+            .flatMap((p, i, liste) => [
+              ...(i > 0 && p - liste[i - 1] > 1 ? [<span key={`trou-${p}`} className="text-text-muted">…</span>] : []),
+              <Link
+                key={p}
+                href={pageHref(p)}
+                aria-current={p === page ? "page" : undefined}
+                className={cn(
+                  "min-w-9 rounded-full border px-3 py-2 text-center font-medium tabular-nums transition-colors",
+                  p === page
+                    ? "pointer-events-none border-coral bg-coral/15 text-coral"
+                    : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                )}
+              >
+                {p}
+              </Link>,
+            ])}
+          {[
+            { label: "Suivant →", cible: page + 1, inactif: page >= totalPages },
+            { label: "Dernière »", cible: totalPages, inactif: page >= totalPages },
+          ].map((b) => (
+            <Link
+              key={b.label}
+              href={pageHref(b.cible)}
+              aria-disabled={b.inactif}
+              className={cn(
+                "rounded-full border border-border px-4 py-2 font-medium transition-colors",
+                b.inactif ? "pointer-events-none opacity-40" : "hover:border-coral/60 hover:text-text"
+              )}
+            >
+              {b.label}
+            </Link>
+          ))}
+        </nav>
       )}
     </div>
   );

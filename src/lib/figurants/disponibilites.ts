@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentProfile } from "@/lib/auth/session";
 
 async function getFigurantIdByToken(token: string) {
   const supabase = createAdminClient();
@@ -31,7 +32,7 @@ export async function getIndisponibilitesForFigurants(
   figurantIds: string[]
 ): Promise<Map<string, string | null>> {
   const map = new Map<string, string | null>();
-  if (figurantIds.length === 0) return map;
+  if (!(await getCurrentProfile()) || figurantIds.length === 0) return map;
 
   const supabase = createAdminClient();
   const { data } = await supabase
@@ -50,11 +51,12 @@ export async function removeIndisponibilite(token: string, date: string) {
   if (!figurantId) return { error: "Lien invalide." };
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("figurant_indisponibilites")
     .delete()
     .eq("figurant_id", figurantId)
     .eq("date", date);
+  if (error) return { error: error.message };
 
   revalidatePath(`/disponibilites/${token}`);
   revalidatePath(`/figurants/${figurantId}`);

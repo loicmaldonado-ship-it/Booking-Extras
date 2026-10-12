@@ -44,21 +44,22 @@ export async function getCurrentFigurant(): Promise<CandidatSession | null> {
   if (!token) return null;
 
   const supabase = createAdminClient();
-  const { data: session } = await supabase
+  const { data: session, error: sessionError } = await supabase
     .from("figurant_sessions")
     .select("figurant_id, expires_at")
     .eq("token", token)
     .maybeSingle();
 
-  if (!session || new Date(session.expires_at) < new Date()) return null;
+  if (sessionError || !session || new Date(session.expires_at) <= new Date()) return null;
 
   const { data: figurant } = await supabase
     .from("figurants")
-    .select("id, prenom, nom, email, last_seen_at")
+    .select("id, prenom, nom, email, last_seen_at, acces_compte")
     .eq("id", session.figurant_id)
     .maybeSingle();
 
-  if (!figurant) return null;
+  // Revoking access must invalidate *existing* sessions, not just new logins.
+  if (!figurant?.acces_compte) return null;
 
   const lastSeen = figurant.last_seen_at ? new Date(figurant.last_seen_at) : null;
   const isStale = !lastSeen || Date.now() - lastSeen.getTime() > LAST_SEEN_THROTTLE_MS;
@@ -85,7 +86,8 @@ export async function createFigurantSession(figurantId: string): Promise<void> {
   const supabase = createAdminClient();
   const token = randomUUID().replace(/-/g, "");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  await supabase.from("figurant_sessions").insert({ figurant_id: figurantId, token, expires_at: expiresAt.toISOString() });
+  const { error } = await supabase.from("figurant_sessions").insert({ figurant_id: figurantId, token, expires_at: expiresAt.toISOString() });
+  if (error) throw new Error("Impossible de créer la session candidat.");
   await setFigurantSessionCookie(token, expiresAt);
 }
 

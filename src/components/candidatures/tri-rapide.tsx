@@ -48,7 +48,7 @@ export function TriRapide({
   const [jourOverride, setJourOverride] = useState<Record<string, Record<string, boolean>>>({});
   const requested = useRef(new Set<string>());
 
-  // 0 = "À trier", puis 1..9 dans l'ordre des onglets (OUT BE toujours dernier).
+  // 0 = "À trier", puis 1..9 dans l'ordre des onglets (OUT toujours dernier).
   const options: Option[] = [
     { id: null, nom: "À trier", couleur: "default", key: "0" },
     ...onglets.slice(0, 9).map((o, i) => ({ id: o.id, nom: o.nom, couleur: o.couleur, key: String(i + 1) })),

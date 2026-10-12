@@ -111,6 +111,7 @@ export type CastingEntry = {
     vehicule_velo: boolean;
     vehicule_moto: boolean;
     vehicule_scooter: boolean;
+    vehicule_voiture: boolean;
     compte_myrole: boolean;
     est_comedien: boolean;
     agent_nom: string | null;

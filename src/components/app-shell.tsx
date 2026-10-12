@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOut } from "@/lib/auth/actions";
+import { quitterModeSupport } from "@/lib/auth/support";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { MyAvatarMenu } from "@/components/my-avatar-menu";
@@ -67,14 +68,18 @@ const PUBLIC_PREFIXES = [
 export function AppShell({
   children,
   profile,
+  supportChef,
 }: {
   children: React.ReactNode;
   profile: CurrentProfile | null;
+  supportChef?: { id: string; nom: string } | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isPublic = PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
+  // « / » sans compte équipe = accueil public, sans la navigation interne.
+  const isAccueilPublic = pathname === "/" && !profile;
+  const isPublic = isAccueilPublic || PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
   // The documents/essayages share pages render full-width landscape PDF
   // sheets (up to 1123px) — they need a much wider container than the
   // narrow candidate-facing forms (postuler, disponibilites, login).
@@ -92,7 +97,12 @@ export function AppShell({
 
   if (isPublic) {
     return (
-      <main className={cn("mx-auto w-full px-6 py-10", isWidePublic ? "max-w-6xl" : "max-w-2xl")}>
+      <main
+        className={cn(
+          "mx-auto w-full px-6 py-10",
+          isAccueilPublic ? "max-w-5xl" : isWidePublic ? "max-w-6xl" : "max-w-2xl"
+        )}
+      >
         {children}
       </main>
     );
@@ -200,6 +210,26 @@ export function AppShell({
           </div>
         )}
       </header>
+      {supportChef && (
+        // Mode support (compte propriétaire) : rappel permanent qu'on est
+        // dans l'espace d'une autre cheffe, pas dans le sien.
+        <div className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 bg-yellow px-6 py-2 text-sm text-white md:px-10 print:hidden">
+          <p>
+            <strong>Mode support</strong> · Tu vois l&apos;espace de <strong>{supportChef.nom}</strong>. Ce que tu
+            modifies s&apos;applique à ses projets.
+          </p>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/support" className="rounded-full px-3 py-1 text-xs font-medium hover:bg-white/15">
+              Autres cheffes
+            </Link>
+            <form action={quitterModeSupport}>
+              <button type="submit" className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-yellow">
+                Quitter le mode support
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <main className="flex-1 px-6 py-8 md:px-10 md:py-10 print:p-0">{children}</main>
     </div>
   );

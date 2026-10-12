@@ -96,7 +96,7 @@ export function MessageriePanel({
     if (!figurantEmail) return;
     setError(null);
     startTransition(async () => {
-      const result = await notifyFigurantByEmail(figurantId, figurantEmail, figurantPrenom, window.location.origin);
+      const result = await notifyFigurantByEmail(figurantId);
       if (result?.error) setError(result.error);
     });
   }

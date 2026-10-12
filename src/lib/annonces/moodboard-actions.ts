@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { MAX_MOODBOARD_PHOTOS } from "./moodboard";
 
@@ -29,15 +30,20 @@ export async function addAnnoncePhoto(annonceId: string, formData: FormData) {
     return { error: "Choisis une image." };
   }
 
-  const ext = photo.name.split(".").pop() || "jpg";
+  const validated = await validateImageUpload(photo);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
   const path = `annonce/${annonceId}/${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("annonce-medias")
-    .upload(path, photo, { contentType: photo.type, upsert: false });
+    .upload(path, photo, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
   const { error } = await supabase.from("annonce_photos").insert({ annonce_id: annonceId, storage_path: path });
-  if (error) return { error: error.message };
+  if (error) {
+    await supabase.storage.from("annonce-medias").remove([path]);
+    return { error: error.message };
+  }
 
   revalidatePath(`/annonces/${annonceId}`);
   return { success: true as const };

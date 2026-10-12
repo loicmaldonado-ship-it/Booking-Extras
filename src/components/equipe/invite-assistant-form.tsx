@@ -38,7 +38,9 @@ export function InviteAssistantForm({ projets }: { projets: { id: string; nom: s
       {state?.error && <p className="md:col-span-3 text-sm text-danger">{state.error}</p>}
       {state?.success && (
         <p className="md:col-span-3 text-sm text-turquoise">
-          Accès accordé. Si c&apos;est une nouvelle personne, une invitation par email lui a été envoyée.
+          {state.invited
+            ? "Accès accordé : une invitation par email a été envoyée."
+            : "Accès accordé. Cette personne avait déjà un compte : aucun nouvel email envoyé, elle voit le projet à sa prochaine connexion."}
         </p>
       )}
     </form>

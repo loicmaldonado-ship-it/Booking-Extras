@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload, validatePdfUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
@@ -42,7 +43,8 @@ async function uploadRolePdfIfProvided(
 ): Promise<{ error?: string; pdf_storage_path?: string; pdf_filename?: string }> {
   const pdf = formData.get("pdf");
   if (!(pdf instanceof File) || pdf.size === 0) return {};
-  if (pdf.type !== "application/pdf") return { error: "Le fichier joint doit être un PDF." };
+  const validated = await validatePdfUpload(pdf);
+  if (validated.error) return { error: validated.error };
 
   const path = `${roleId}/${crypto.randomUUID()}.pdf`;
   const { error } = await supabase.storage.from("casting-role-documents").upload(path, pdf, {
@@ -58,7 +60,7 @@ export async function createCastingRole(
   projetId: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: true }> {
+): Promise<{ error?: string; success?: true; roleId?: string }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
@@ -110,24 +112,18 @@ export async function createCastingRole(
     .single();
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
 
-  const pdfResult = await uploadRolePdfIfProvided(supabase, inserted.id, formData);
-  if (pdfResult.error) return { error: pdfResult.error };
-  if (pdfResult.pdf_storage_path) {
-    await supabase
-      .from("casting_roles")
-      .update({ pdf_storage_path: pdfResult.pdf_storage_path, pdf_filename: pdfResult.pdf_filename })
-      .eq("id", inserted.id);
-  }
+  // The optional PDF is uploaded separately after creation via the
+  // authenticated /casting/roles/[roleId]/pdf route.
 
   revalidatePath("/casting");
-  return { success: true };
+  return { success: true, roleId: inserted.id };
 }
 
 export async function updateCastingRoleCalibration(
   roleId: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: true }> {
+): Promise<{ error?: string; success?: true; roleId?: string }> {
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
@@ -570,11 +566,13 @@ export async function addCastingPhoto(
   const photo = formData.get("photo");
   if (!(photo instanceof File) || photo.size === 0) return { error: "Choisis une image." };
 
-  const ext = photo.name.split(".").pop() || "jpg";
+  const validated = await validateImageUpload(photo);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
   const path = `${entry.figurant_id}/casting-${label}-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("figurant-photos")
-    .upload(path, photo, { contentType: photo.type, upsert: false });
+    .upload(path, photo, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
   const { error } = await supabase.from("figurant_photos").insert({
@@ -585,7 +583,10 @@ export async function addCastingPhoto(
     casting_entry_id: entryId,
     label,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    await supabase.storage.from("figurant-photos").remove([path]);
+    return { error: error.message };
+  }
 
   revalidatePath("/casting");
   return { success: true };

@@ -20,6 +20,7 @@ async function requireAccessOrThrow(projetId: string) {
 }
 
 export async function getPartageToken(projetId: string, type: PartageType) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
@@ -34,6 +35,7 @@ export async function getPartageToken(projetId: string, type: PartageType) {
 // (ex. "Casting — LD"), vide si non renseigné (la page retombe alors sur
 // son titre générique habituel).
 export async function getPartageTitre(projetId: string, type: PartageType) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_liens")
@@ -57,10 +59,11 @@ export async function createPartageLien(projetId: string, type: PartageType) {
 
   const supabase = createAdminClient();
   const token = genToken();
-  await supabase.from("partage_liens").upsert(
+  const { error } = await supabase.from("partage_liens").upsert(
     { projet_id: projetId, type, token },
     { onConflict: "projet_id,type" }
   );
+  if (error) throw new Error("Impossible de créer le lien de partage.");
   revalidatePath("/partage");
   revalidatePath("/essayages");
   return token;
@@ -113,6 +116,7 @@ export async function revokePartageLien(projetId: string, type: PartageType) {
 }
 
 export async function getJourneePartageLien(projetId: string, date: string) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("partage_journee_liens")
@@ -128,10 +132,11 @@ export async function createJourneePartageLien(projetId: string, date: string, s
 
   const supabase = createAdminClient();
   const token = genToken();
-  await supabase.from("partage_journee_liens").upsert(
+  const { error } = await supabase.from("partage_journee_liens").upsert(
     { projet_id: projetId, date, show_contacts: showContacts, token },
     { onConflict: "projet_id,date" }
   );
+  if (error) throw new Error("Impossible de créer le lien de partage de journée.");
   revalidatePath("/bookings/documents");
   return token;
 }

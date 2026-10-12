@@ -5,7 +5,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
@@ -18,6 +18,7 @@ import { findPossibleDuplicates } from "@/lib/figurants/duplicates";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import { DuplicateWarning } from "@/components/figurants/duplicate-warning";
 import { SendEspacePersoButton } from "@/components/figurants/send-espace-perso-button";
+import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 
 type CandidatureDetail = {
   id: string;
@@ -65,8 +66,13 @@ export default async function CandidatureDetailPage({
   const onglets = await getOngletsForAnnonce(candidature.annonces?.id);
   const ongletActuel = onglets.find((o) => o.id === candidature.onglet_id);
 
-  const [{ data: photosRaw }, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
-    getPhotosByFigurantId([f.id]).then((map) => ({ data: map.get(f.id) ?? [] })),
+  // Photos envoyées ou reprises pour cette annonce ; candidatures d'avant :
+  // photos du compte.
+  const [photosResultat, { data: reponsesRaw }, { data: disposRaw }, { data: liens }] = await Promise.all([
+    Promise.all([getPhotosParCandidature([id]), getPhotosByFigurantId([f.id])]).then(([parCandidature, parFigurant]) => ({
+      data: parCandidature.get(id) ?? parFigurant.get(f.id) ?? [],
+      propres: parCandidature.has(id),
+    })),
     supabase
       .from("candidature_reponses")
       .select("reponse, annonce_questions(label)")
@@ -99,7 +105,8 @@ export default async function CandidatureDetailPage({
   const lienBandeDemo = (liens ?? []).find((l) => l.label === LIEN_BANDE_DEMO)?.url ?? null;
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
-  const photos = photosRaw ?? [];
+  const photos = photosResultat.data;
+  const photosPropres = photosResultat.propres;
   const portrait = pickPortrait(photos);
   const age = computeAge(f.date_naissance);
 
@@ -149,7 +156,12 @@ export default async function CandidatureDetailPage({
             </ButtonLink>
           )}
           {candidature.annonces?.projet_id && (
-            <SendEspacePersoButton figurantId={f.id} projetId={candidature.annonces.projet_id} email={f.email} />
+            <SendEspacePersoButton
+              figurantId={f.id}
+              projetId={candidature.annonces.projet_id}
+              email={f.email}
+              aUnCompte={await aCreeSonCompte(f.id)}
+            />
           )}
         </div>
       </div>
@@ -254,7 +266,7 @@ export default async function CandidatureDetailPage({
             ) : f.a_vehicule ? (
               <>
                 <Badge tone="turquoise">Oui</Badge>{" "}
-                {[f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
+                {[f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"]
                   .filter(Boolean)
                   .join(", ")}
                 {f.vehicule_marque ? ` (${f.vehicule_marque})` : ""}
@@ -294,7 +306,7 @@ export default async function CandidatureDetailPage({
 
       {photos.length > 0 && (
         <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Photos</h2>
+          <h2 className="text-lg font-semibold">{photosPropres ? "Photos pour cette annonce" : "Photos du compte"}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {photos.map((p) => (
               <div key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">

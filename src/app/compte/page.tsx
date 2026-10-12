@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { logoutFigurant } from "@/lib/candidats/actions";
+import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { MessageThread } from "@/components/candidats/message-thread";
@@ -21,6 +22,16 @@ import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant, type FigurantPhoto } fr
 
 export const dynamic = "force-dynamic";
 
+type CandidatureCompte = { id: string; annonce_id: string; created_at: string };
+type AnnonceCandidature = {
+  id: string;
+  titre: string;
+  lieu: string | null;
+  statut: string;
+  public_token: string;
+  projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
+};
+
 type AnnonceOuverte = {
   id: string;
   titre: string;
@@ -32,7 +43,12 @@ type AnnonceOuverte = {
   projets: { nom: string; confidentiel: boolean; nom_code: string | null } | null;
 };
 
-export default async function CompteCandidatPage() {
+export default async function CompteCandidatPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bienvenue?: string }>;
+}) {
+  const { bienvenue } = await searchParams;
   const session = await getCurrentFigurant();
 
   if (!session) {
@@ -49,7 +65,7 @@ export default async function CompteCandidatPage() {
         .eq("figurant_id", session.id)
         .order("created_at", { ascending: true })
         .returns<FigurantMessage[]>(),
-      supabase.from("candidatures").select("annonce_id").eq("figurant_id", session.id),
+      supabase.from("candidatures").select("id, annonce_id, created_at").eq("figurant_id", session.id).order("created_at", { ascending: false }).returns<CandidatureCompte[]>(),
       supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
       supabase.from("figurant_photos").select("*").eq("figurant_id", session.id).returns<FigurantPhoto[]>(),
     ]);
@@ -59,10 +75,15 @@ export default async function CompteCandidatPage() {
   );
   const { data: projetsMessages } =
     projetIdsAvecMessage.length > 0
-      ? await supabase.from("projets").select("id, nom, archive").in("id", projetIdsAvecMessage)
-      : { data: [] as { id: string; nom: string; archive: boolean }[] };
+      ? await supabase
+          .from("projets")
+          .select("id, nom, archive, confidentiel, nom_code")
+          .in("id", projetIdsAvecMessage)
+      : { data: [] as { id: string; nom: string; archive: boolean; confidentiel: boolean; nom_code: string | null }[] };
+  // Nom public (nom de code si le projet est confidentiel), comme sur les
+  // annonces : les candidat·es ne voient jamais le vrai nom d'un projet confidentiel.
   const projetInfoById: Record<string, { label: string; archive: boolean }> = Object.fromEntries(
-    (projetsMessages ?? []).map((p) => [p.id, { label: p.nom, archive: p.archive }])
+    (projetsMessages ?? []).map((p) => [p.id, { label: projetNomPublic(p), archive: p.archive }])
   );
 
   const photoPaths = Array.from(new Set((photosRaw ?? []).map((p) => p.storage_path))).sort();
@@ -83,6 +104,13 @@ export default async function CompteCandidatPage() {
   const lienInstagram = (liens ?? []).find((l) => l.label === LIEN_INSTAGRAM)?.url ?? null;
 
   const annonceIdsDejaPostulees = new Set((candidaturesExistantes ?? []).map((c) => c.annonce_id));
+  const { data: annoncesCandidatures } = annonceIdsDejaPostulees.size > 0
+    ? await supabase.from("annonces")
+        .select("id, titre, lieu, statut, public_token, projets(nom, confidentiel, nom_code)")
+        .in("id", [...annonceIdsDejaPostulees])
+        .returns<AnnonceCandidature[]>()
+    : { data: [] as AnnonceCandidature[] };
+  const annonceCandidatureById = new Map((annoncesCandidatures ?? []).map((a) => [a.id, a]));
 
   const { data: annoncesRaw } = await supabase
     .from("annonces")
@@ -116,6 +144,15 @@ export default async function CompteCandidatPage() {
         <p className="mt-1 text-text-muted">Votre espace personnel.</p>
       </div>
 
+      {bienvenue && (
+        <Card className="border-turquoise/40 bg-turquoise/10">
+          <p className="text-sm">
+            <strong>Ton compte est créé.</strong> Pour postuler, choisis une annonce ci-dessous : tes infos seront
+            déjà remplies. Tu peux modifier ta fiche et tes photos ici à tout moment.
+          </p>
+        </Card>
+      )}
+
       <PushSubscribe />
 
       <MaFicheForm figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
@@ -123,6 +160,53 @@ export default async function CompteCandidatPage() {
       <IndisponibilitesPanel indisponibilites={indisponibilites ?? []} />
 
       <MesPhotosPanel photos={photos} />
+
+      <Card className="flex flex-col gap-3" id="mes-candidatures">
+        <div>
+          <h2 className="text-lg font-semibold">Mes candidatures</h2>
+          <p className="mt-1 text-sm text-text-muted">
+            Retrouve les annonces auxquelles tu as postulé, y compris celles qui ne sont plus ouvertes.
+          </p>
+        </div>
+        {(candidaturesExistantes ?? []).length === 0 ? (
+          <p className="rounded-xl border border-border bg-ink px-4 py-4 text-sm text-text-muted">
+            Aucune candidature pour le moment. Découvre les annonces ouvertes ci-dessous pour postuler.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {(candidaturesExistantes ?? []).map((c) => {
+              const annonce = annonceCandidatureById.get(c.annonce_id);
+              return (
+                <li key={c.id} className="rounded-xl border border-border bg-ink px-4 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{annonce?.titre ?? "Annonce retirée"}</p>
+                      <p className="mt-1 text-xs text-text-muted">
+                        {annonce ? projetNomPublic(annonce.projets, "Projet confidentiel") : "Annonce non disponible"}
+                        {annonce?.lieu ? ` · ${annonce.lieu}` : ""}
+                      </p>
+                    </div>
+                    <Badge tone="turquoise">Candidature reçue</Badge>
+                  </div>
+                  <p className="mt-2 text-xs text-text-muted">
+                    Envoyée le {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(c.created_at))}
+                    {annonce && annonce.statut !== "ouverte" ? " · Annonce clôturée" : ""}
+                  </p>
+                  {annonce?.statut === "ouverte" && (
+                    <Link href={`/postuler/${annonce.public_token}`} className="mt-2 inline-block text-sm font-medium text-coral hover:underline">
+                      Revoir l&apos;annonce →
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="text-xs text-text-muted">
+          Le statut « Candidature reçue » confirme son enregistrement. Les décisions internes du casting ne sont pas
+          affichées ici tant que l’équipe ne te les a pas communiquées.
+        </p>
+      </Card>
 
       {annonces.length > 0 && (
         <Card className="flex flex-col gap-3">
@@ -178,6 +262,14 @@ export default async function CompteCandidatPage() {
           Se déconnecter
         </Button>
       </form>
+
+      <p className="text-center text-xs text-text-muted">
+        Une question sur le site ?{" "}
+        <a href={`mailto:${CONTACT_SUPPORT_EMAIL}`} className="text-coral hover:underline">
+          {CONTACT_SUPPORT_EMAIL}
+        </a>
+        . Pour un tournage, réponds directement par email à l&apos;équipe casting.
+      </p>
     </div>
   );
 }

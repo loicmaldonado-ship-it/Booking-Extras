@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -8,6 +9,8 @@ import { type EssayageRow, type BookedFigurant } from "@/components/bookings/ess
 import { type CovoiturageRow } from "@/components/bookings/covoiturage-board";
 import { JourneeTabs } from "@/components/bookings/journee-tabs";
 import { QuickAddFigurant } from "@/components/bookings/quick-add-figurant";
+import { ModifierPdt, BandeauJourneeBasculee } from "@/components/bookings/modifier-pdt";
+import { MODELE_PDT_DEFAUT } from "@/lib/bookings/pdt";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { getJournees } from "@/lib/bookings/journees";
 import { getBesoinsByJournee } from "@/lib/bookings/besoins";
@@ -65,13 +68,13 @@ export default async function JourneeDashboardPage({
     await Promise.all([
     supabase
       .from("projets")
-      .select("nom, confidentiel, lieu, convention, covoiturage_tarif_base, covoiturage_tarif_passager")
+      .select("nom, confidentiel, lieu, convention, covoiturage_tarif_base, covoiturage_tarif_passager, modele_message_pdt")
       .eq("id", projet_id)
       .single(),
     supabase
       .from("bookings")
       .select(
-        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, code_postal, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter), projets(nom, confidentiel, nom_code, lieu, signature)"
+        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, code_postal, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter), projets(nom, confidentiel, nom_code, lieu, signature)"
       )
       .eq("projet_id", projet_id)
       .eq("date", date)
@@ -98,7 +101,12 @@ export default async function JourneeDashboardPage({
 
   const rawBookings = bookingsRaw ?? [];
   const figurantIds = rawBookings.map((b) => b.figurant_id);
-  const photosByFigurant = await getPhotosByFigurantId(figurantIds);
+  // Photothèque complète (galerie) + photo principale choisie pour les
+  // trombis de ce projet (Booking → 📷 Photos).
+  const [photosByFigurant, photosTrombi] = await Promise.all([
+    getPhotosByFigurantId(figurantIds),
+    getPhotosDocumentsProjet(projet_id, figurantIds),
+  ]);
 
   const { data: messagesRaw } =
     figurantIds.length > 0
@@ -212,7 +220,8 @@ export default async function JourneeDashboardPage({
     // cheffe propriétaire (jamais une formule générique type "L'équipe
     // casting") — voir getProjetSignatureOrOwnerName.
     projets: b.projets ? { ...b.projets, signature: b.projets.signature || resolvedSignature } : b.projets,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
+    portraitUrl:
+      photosTrombi.get(b.figurant_id)?.[0]?.url ?? pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
     photos: photosByFigurant.get(b.figurant_id) ?? [],
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
@@ -224,7 +233,8 @@ export default async function JourneeDashboardPage({
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
-    portraitUrl: pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
+    portraitUrl:
+      photosTrombi.get(b.figurant_id)?.[0]?.url ?? pickPortrait(photosByFigurant.get(b.figurant_id), projet_id)?.url ?? null,
   }));
 
   const essayageFigurants: BookedFigurant[] = rawBookings
@@ -236,6 +246,19 @@ export default async function JourneeDashboardPage({
   const enAttente = bookings.filter((b) =>
     ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide"].includes(b.statut)
   ).length;
+
+  // Ancienne journée d'une modification du PDT : combien attendent encore
+  // d'être traité·es sur la nouvelle date.
+  let rebookEnAttente = 0;
+  if (currentJournee?.pdt_vers) {
+    for (let i = 0; i < bookingIds.length; i += 150) {
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .in("rebook_depuis_booking_id", bookingIds.slice(i, i + 150));
+      rebookEnAttente += count ?? 0;
+    }
+  }
 
   const [journeePartage, publicOrigin, initialReplies] = await Promise.all([
     getJourneePartageLien(projet_id, date),
@@ -299,8 +322,19 @@ export default async function JourneeDashboardPage({
             figurants={allFigurants ?? []}
             alreadyBookedIds={figurantIds}
           />
+          <ModifierPdt projetId={projet_id} date={date} modeleInitial={projet?.modele_message_pdt || MODELE_PDT_DEFAUT} />
         </div>
       </div>
+
+      {currentJournee?.pdt_vers && (
+        <BandeauJourneeBasculee
+          projetId={projet_id}
+          date={date}
+          pdtVers={currentJournee.pdt_vers}
+          enAttente={rebookEnAttente}
+          restants={bookings.length}
+        />
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-1">
         {journees.map((j) => (

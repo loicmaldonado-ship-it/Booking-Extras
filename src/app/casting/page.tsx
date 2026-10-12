@@ -139,31 +139,37 @@ export default async function CastingPage({
             {entriesFiltered ? ` sur ${entries.length}` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          <ButtonLink href="/casting/trombis" variant="secondary">
-            🖼️ Trombis
-          </ButtonLink>
-          <ButtonLink href="/casting/presentiel" variant="secondary">
-            📅 Présentiel
-          </ButtonLink>
-          <ButtonLink href="/casting/liste-artistique" variant="secondary">
-            📋 Liste artistique
-          </ButtonLink>
-          <ButtonLink href="/casting/fiches-roles" variant="secondary">
-            🪪 Fiches rôles validés
-          </ButtonLink>
-          <ButtonLink href="/casting/distribution" variant="secondary">
-            🎬 Distribution
-          </ButtonLink>
-          <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
-            <Button type="submit" variant="secondary">
-              📋 Bookings
-            </Button>
-          </form>
-        </div>
       </div>
+      {roles.length > 0 && (
+        <details className="rounded-2xl border border-border bg-ink-raised/50 p-4">
+          <summary className="cursor-pointer font-medium">Documents, exports et outils du casting</summary>
+          <p className="mt-2 mb-3 text-sm text-text-muted">Trombinoscopes, casting présentiel, distribution et documents à partager.</p>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/casting/trombis" variant="secondary">
+              🖼️ Trombis
+            </ButtonLink>
+            <ButtonLink href="/casting/presentiel" variant="secondary">
+              📅 Présentiel
+            </ButtonLink>
+            <ButtonLink href="/casting/liste-artistique" variant="secondary">
+              📋 Liste artistique
+            </ButtonLink>
+            <ButtonLink href="/casting/fiches-roles" variant="secondary">
+              🪪 Fiches rôles validés
+            </ButtonLink>
+            <ButtonLink href="/casting/distribution" variant="secondary">
+              🎬 Distribution
+            </ButtonLink>
+            <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+              <Button type="submit" variant="secondary">
+                📋 Bookings
+              </Button>
+            </form>
+          </div>
+        </details>
+      )}
 
-      <form className="flex flex-wrap items-center gap-2" method="get">
+      {entries.length > 0 && <form className="flex flex-wrap items-center gap-2" method="get">
         <Select name="mode" defaultValue={params.mode ?? ""} className="w-44">
           <option value="">Mode (tous)</option>
           <option value="selftape">{CASTING_MODE_LABELS.selftape}</option>
@@ -188,9 +194,9 @@ export default async function CastingPage({
             Réinitialiser
           </Link>
         )}
-      </form>
+      </form>}
 
-      <NewCastingRoleCard projetId={currentProjetId} />
+      {roles.length > 0 && <NewCastingRoleCard projetId={currentProjetId} />}
 
       {roles.map((role, i) => (
         <CastingRoleSection
@@ -213,15 +219,25 @@ export default async function CastingPage({
       ))}
 
       {roles.length === 0 && (
-        <Card>
-          <p className="text-sm text-text-muted">
-            Aucun rôle pour l&apos;instant — crée-en un ci-dessus, ou envoie une sélection depuis Base Profils,
-            Bookings ou Candidatures (bouton « Envoyer au casting »).
-          </p>
+        <Card className="flex flex-col gap-4 border border-coral/25">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-coral">Première étape</p>
+            <h2 className="mt-1 text-xl font-semibold">Crée ton premier rôle</h2>
+            <p className="mt-2 text-sm text-text-muted">
+              Un rôle correspond à un profil que tu recherches pour le projet. Une fois créé,
+              tu pourras y ajouter des figurants depuis la base, puis gérer leurs vidéos et documents.
+            </p>
+          </div>
+          <ol className="grid gap-2 text-sm sm:grid-cols-3">
+            <li className="rounded-xl border border-coral/40 bg-ink p-3"><strong>1. Créer un rôle</strong><span className="mt-1 block text-text-muted">Nom et critères recherchés</span></li>
+            <li className="rounded-xl border border-border bg-ink p-3"><strong>2. Ajouter des profils</strong><span className="mt-1 block text-text-muted">Recherche dans la base</span></li>
+            <li className="rounded-xl border border-border bg-ink p-3"><strong>3. Examiner et choisir</strong><span className="mt-1 block text-text-muted">Vidéos, PDF et sélection</span></li>
+          </ol>
+          <NewCastingRoleCard projetId={currentProjetId} />
         </Card>
       )}
 
-      <PartageCard
+      {roles.length > 0 && <PartageCard
         projetId={currentProjetId}
         type="casting"
         label={`Partage réal — Casting « ${projet.nom} »`}
@@ -238,7 +254,7 @@ export default async function CastingPage({
           distribution={docsVisibility.distribution}
           fichesRolesMasquerContact={docsVisibility.fichesRolesMasquerContact}
         />
-      </PartageCard>
+      </PartageCard>}
     </div>
   );
 }

@@ -64,6 +64,7 @@ export function DateNaissanceField({
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Select
           aria-label="Jour de naissance"
+          required={required}
           value={clampedDay ?? ""}
           onChange={(e) => setDay(e.target.value ? Number(e.target.value) : null)}
         >
@@ -76,6 +77,7 @@ export function DateNaissanceField({
         </Select>
         <Select
           aria-label="Mois de naissance"
+          required={required}
           value={month ?? ""}
           onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : null)}
         >
@@ -88,6 +90,7 @@ export function DateNaissanceField({
         </Select>
         <Select
           aria-label="Année de naissance"
+          required={required}
           value={year ?? ""}
           onChange={(e) => setYear(e.target.value ? Number(e.target.value) : null)}
         >

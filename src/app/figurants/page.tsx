@@ -130,7 +130,7 @@ export default async function FigurantsPage({
         </div>
       </div>
 
-      <DoublonsPanel groupes={doublons} />
+      <DoublonsPanel groupes={doublons} canDelete={isOwner(profile)} />
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Profil :</span>
@@ -191,6 +191,7 @@ export default async function FigurantsPage({
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
             <option value="non">Sans véhicule</option>
+            <option value="voiture">Voiture</option>
             <option value="velo">Vélo</option>
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>
@@ -245,8 +246,9 @@ export default async function FigurantsPage({
           canSelectAll={isOwner(profile)}
         />
       ) : (
-      <Card className="p-0">
-        <table className="w-full text-sm">
+      <Card className="overflow-x-auto p-0">
+        <p className="px-4 pt-3 text-xs text-text-muted md:hidden">Tableau défilant : glisse horizontalement pour consulter les autres colonnes.</p>
+        <table className="w-full min-w-[740px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium"></th>

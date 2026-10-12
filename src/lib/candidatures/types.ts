@@ -20,7 +20,9 @@ export const CACHETS: Cachet[] = [
 
 // Nom de l'onglet spécial fixe (protégé contre la suppression) — un simple
 // rangement parmi d'autres, le profil reste visible dans la candidature.
-export const ONGLET_OUT_BE = "OUT BE";
+// Onglet fixe commun : les candidatures rangées là disparaissent de
+// l'annonce (voir lib/candidatures/out.ts).
+export const ONGLET_OUT = "OUT";
 
 export type CandidatureOngletCouleur = "default" | "coral" | "turquoise" | "yellow" | "danger";
 

@@ -9,22 +9,30 @@ export function SendEspacePersoButton({
   figurantId,
   projetId,
   email,
+  aUnCompte = false,
 }: {
   figurantId: string;
   projetId: string;
   email: string | null;
+  aUnCompte?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
 
   if (!email) return null;
+  // Le lien ne sert qu'aux profils ajoutés à la main : une personne qui a
+  // créé son compte se connecte seule.
+  if (aUnCompte) return <p className="text-xs text-text-muted">A créé son compte (se connecte seul·e)</p>;
 
   function send() {
     setResult(null);
     startTransition(async () => {
       const res = await sendEspacePersoLinkBulk([figurantId], projetId);
-      setResult(res.error ?? (res.sent ? "Lien envoyé." : res.lastError ?? "Échec de l'envoi."));
+      setResult(
+        res.error ??
+          (res.sent ? "Lien envoyé." : res.dejaCompte ? "A déjà créé son compte : pas de lien à envoyer." : (res.lastError ?? "Échec de l'envoi."))
+      );
       router.refresh();
     });
   }

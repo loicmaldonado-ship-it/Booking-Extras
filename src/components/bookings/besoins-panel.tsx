@@ -8,7 +8,7 @@ import { updateTotalJournee } from "@/lib/bookings/actions";
 import type { JourneeBesoin } from "@/lib/bookings/besoins";
 import type { Row } from "@/components/bookings/bookings-table";
 
-const STATUTS_EXCLUS = new Set(["annulé", "indisponible"]);
+const STATUTS_EXCLUS = new Set(["annulé", "indisponible", "a_rebooker"]);
 
 function normalize(s: string) {
   return s.trim().toLowerCase();

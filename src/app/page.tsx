@@ -16,11 +16,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { Card, Badge } from "@/components/ui/card";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { setCurrentProjet } from "@/lib/projet-context";
 import { projetNomPublic } from "@/lib/projets/types";
 import { formatDateShort } from "@/lib/format-date";
+import { AccueilPublic } from "@/components/accueil/accueil-public";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +60,11 @@ const SECTIONS: { label: string; href: string; description: string; icon: Lucide
 ];
 
 export default async function Home() {
-  const supabase = createAdminClient();
   const profile = await getCurrentProfile();
+  // Visiteur·se sans compte équipe : accueil public (inscription, connexion
+  // candidat·e, annonces en cours).
+  if (!profile) return <AccueilPublic />;
+  const supabase = createAdminClient();
   const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
   const today = new Date().toISOString().slice(0, 10);
 
@@ -90,7 +95,9 @@ export default async function Home() {
   const annonceIds = (annonces ?? []).map((a) => a.id);
   const { data: candidaturesRaw } =
     annonceIds.length > 0
-      ? await supabase.from("candidatures").select("annonce_id").in("annonce_id", annonceIds)
+      ? await fetchAll((from, to) =>
+          supabase.from("candidatures").select("annonce_id, id").in("annonce_id", annonceIds).order("id").range(from, to)
+        )
       : { data: [] as { annonce_id: string }[] };
   const candidatureCounts = new Map<string, number>();
   for (const c of candidaturesRaw ?? []) {

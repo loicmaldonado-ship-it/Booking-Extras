@@ -11,7 +11,7 @@ export function NewCastingRoleCard({ projetId }: { projetId: string }) {
   if (!open) {
     return (
       <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-        + Nouveau casting
+        + Créer un rôle
       </Button>
     );
   }
@@ -19,11 +19,12 @@ export function NewCastingRoleCard({ projetId }: { projetId: string }) {
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Nouveau casting</h2>
+        <h2 className="text-lg font-semibold">Créer un rôle de casting</h2>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
           Fermer
         </Button>
       </div>
+      <p className="text-sm text-text-muted">Décris le profil recherché. Tu pourras ensuite ajouter des candidat·es, des photos et des vidéos.</p>
       <CastingRoleForm projetId={projetId} onDone={() => setOpen(false)} />
     </Card>
   );

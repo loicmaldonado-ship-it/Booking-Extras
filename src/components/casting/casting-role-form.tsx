@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import { Field, Input, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
 import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole } from "@/lib/casting/types";
@@ -21,12 +22,67 @@ export function CastingRoleForm({
   const [state, formAction, pending] = useActionState(action, undefined);
   const [labels, setLabels] = useState<string[]>(role?.photo_labels ?? DEFAULT_LABELS);
   const [labelInput, setLabelInput] = useState("");
+  const router = useRouter();
+  const [pdfUploading, setPdfUploading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const pendingPdfRef = useRef<File | null>(null);
+  const completedRoleRef = useRef<string | null>(null);
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
-    // Un nouveau rôle vient d'être créé : on referme le formulaire côté
-    // parent plutôt que de laisser un formulaire vide affiché.
-    if (state?.success && !role) onDone?.();
-  }, [state, role, onDone]);
+    if (state?.error && !role) {
+      Promise.resolve().then(() => setPdfUploading(false));
+      return;
+    }
+    if (!state?.success || role) return;
+    const roleId = state.roleId;
+    if (!roleId || completedRoleRef.current === roleId) return;
+    completedRoleRef.current = roleId;
+    const pdf = pendingPdfRef.current;
+    if (!pdf) {
+      onDone?.();
+      router.refresh();
+      return;
+    }
+    const body = new FormData();
+    body.set("pdf", pdf);
+    fetch(`/casting/roles/${roleId}/pdf`, { method: "POST", body })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error ?? "Envoi du PDF impossible.");
+        onDone?.();
+      })
+      .catch((error: unknown) => {
+        setPdfError(
+          `Le rôle a été créé, mais le PDF n'a pas été enregistré : ${error instanceof Error ? error.message : "erreur inconnue"}. ` +
+          "Tu peux joindre le PDF depuis « Calibrer » sur le rôle créé ci-dessous."
+        );
+      })
+      .finally(() => {
+        pendingPdfRef.current = null;
+        setPdfUploading(false);
+        router.refresh();
+      });
+  }, [state, role, onDone, router]);
+
+  function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    if (role) return;
+    const data = new FormData(event.currentTarget);
+    const pdf = data.get("pdf");
+    // Always use the separate upload endpoint for create; never send the PDF
+    // in the same multipart Server Action as the new role.
+    event.preventDefault();
+    setPdfError(null);
+    const attachment = pdf instanceof File && pdf.size > 0 ? pdf : null;
+    if (attachment && attachment.size > 20 * 1024 * 1024) {
+      setPdfError("PDF trop volumineux (20 Mo maximum).");
+      return;
+    }
+    pendingPdfRef.current = attachment;
+    setPdfUploading(Boolean(attachment));
+    data.delete("pdf");
+    startTransition(() => formAction(data));
+  }
 
   function addLabel() {
     const v = labelInput.trim();
@@ -40,8 +96,9 @@ export function CastingRoleForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
-      {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+    <form action={formAction} onSubmit={handleCreateSubmit} className="flex flex-col gap-3">
+      {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
+      {pdfError && <p role="alert" className="text-sm text-danger">{pdfError}</p>}
       {state?.success && role && <p className="text-sm text-turquoise">Rôle mis à jour.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Field label="Nom du rôle" required>
@@ -134,13 +191,24 @@ export function CastingRoleForm({
         Visible sur le lien de partage réal
       </label>
 
-      <Field label="PDF à joindre aux mails envoyés aux profils du rôle (optionnel)">
+      <Field label="Document PDF du rôle (optionnel)">
+        <p className="mb-1 text-xs text-text-muted">Extrait de texte ou consignes de casting. Tu pourras aussi l&apos;ajouter plus tard via « Calibrer ». 20 Mo maximum.</p>
         <div className="flex flex-col gap-1.5">
-          {role?.pdf_filename && (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="remove_pdf" className="accent-coral" />
-              Retirer « {role.pdf_filename} »
-            </label>
+          {role?.pdf_filename && role.pdf_storage_path && (
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <a
+                href={`/casting/roles/${role.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-coral underline underline-offset-2 hover:opacity-80"
+              >
+                Ouvrir le PDF « {role.pdf_filename} » (nouvel onglet)
+              </a>
+              <label className="flex items-center gap-2 text-text-muted">
+                <input type="checkbox" name="remove_pdf" className="accent-coral" />
+                Retirer le PDF
+              </label>
+            </div>
           )}
           <input
             type="file"
@@ -167,8 +235,8 @@ export function CastingRoleForm({
         />
       </Field>
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "Enregistrement..." : role ? "Enregistrer" : "Créer le rôle"}
+      <Button type="submit" disabled={pending || pdfUploading || !!(pdfError && state?.success)}>
+        {pending || pdfUploading ? "Enregistrement..." : role ? "Enregistrer" : "Créer le rôle"}
       </Button>
     </form>
   );

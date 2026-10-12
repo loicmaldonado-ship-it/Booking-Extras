@@ -55,6 +55,7 @@ export async function removeAnnonceQuestion(id: string, annonceId: string) {
   if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
-  await supabase.from("annonce_questions").delete().eq("id", id);
+  const { error } = await supabase.from("annonce_questions").delete().eq("id", id).eq("annonce_id", annonceId);
+  if (error) throw new Error(error.message);
   revalidatePath(`/annonces/${annonceId}`);
 }

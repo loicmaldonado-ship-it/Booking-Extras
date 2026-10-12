@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { AnnonceStatut } from "./types";
+import {
+  normalizeAfficheCouleur,
+  normalizeAffichePolice,
+  normalizeAffichePoliceCorps,
+  normalizeAfficheTaille,
+} from "./affiche";
 
 function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -25,6 +31,12 @@ function buildAnnoncePayload(fd: FormData) {
     bande_demo_obligatoire: fd.get("bande_demo_obligatoire") === "on",
     limite_candidatures: limiteRaw ? Number(limiteRaw) : null,
     types_cachet: fd.getAll("types_cachet").map(String),
+    affiche_couleur: normalizeAfficheCouleur(str(fd, "affiche_couleur")),
+    affiche_police: normalizeAffichePolice(str(fd, "affiche_police")),
+    affiche_couleur_titre: normalizeAfficheCouleur(str(fd, "affiche_couleur_titre")),
+    affiche_police_corps: normalizeAffichePoliceCorps(str(fd, "affiche_police_corps")),
+    affiche_couleur_corps: normalizeAfficheCouleur(str(fd, "affiche_couleur_corps")),
+    affiche_taille_corps: normalizeAfficheTaille(str(fd, "affiche_taille_corps")),
   };
 }
 

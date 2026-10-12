@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -104,6 +105,7 @@ export type Row = {
     vehicule_velo?: boolean;
     vehicule_moto?: boolean;
     vehicule_scooter?: boolean;
+    vehicule_voiture?: boolean;
   } | null;
   projets: { nom: string; confidentiel: boolean; nom_code?: string | null; lieu: string | null; signature: string | null } | null;
   portraitUrl: string | null;
@@ -263,7 +265,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
     const f = r.figurants;
     if (!f || f.a_vehicule === null || f.a_vehicule === undefined) return "Véhicule non renseigné";
     if (!f.a_vehicule) return "Sans véhicule";
-    const types = [f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"].filter(
+    const types = [f.vehicule_voiture && "Voiture", f.vehicule_velo && "Vélo", f.vehicule_moto && "Moto", f.vehicule_scooter && "Scooter"].filter(
       Boolean
     );
     return types.length > 0 ? types.join(" + ") : "Véhicule (type non précisé)";
@@ -363,7 +365,7 @@ export function BookingsTable({
   const [changeDateOpen, setChangeDateOpen] = useState(false);
   const [changeDateMessage, setChangeDateMessage] = useState<string | null>(null);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
-  const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number } | null>(null);
+  const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number; dejaCompte?: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
   const [essayageResult, setEssayageResult] = useState<string | null>(null);
@@ -550,7 +552,7 @@ export function BookingsTable({
         setEspacePersoResult({ sent: 0, failed: selectedWithEmail.length });
         return;
       }
-      setEspacePersoResult({ sent: result.sent ?? 0, failed: result.failed ?? 0 });
+      setEspacePersoResult({ sent: result.sent ?? 0, failed: result.failed ?? 0, dejaCompte: result.dejaCompte ?? 0 });
       if (!result.failed) {
         setSelected(new Set());
         setEspacePersoOpen(false);
@@ -873,6 +875,14 @@ export function BookingsTable({
             {previewIndexByBookingId.has(r.id) && (
               <PreviewButton items={previewItems} index={previewIndexByBookingId.get(r.id)!} />
             )}
+            {projetId && r.figurant_id && (
+              <PhotosTrombiPicker
+                projetId={projetId}
+                figurantId={r.figurant_id}
+                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                compact
+              />
+            )}
           </div>
           {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         </td>
@@ -1022,6 +1032,23 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
+          {projetId && r.figurant_id && (
+            // La carte entière est un lien : le choix des photos ne doit pas
+            // ouvrir le booking.
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <PhotosTrombiPicker
+                projetId={projetId}
+                figurantId={r.figurant_id}
+                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                compact
+              />
+            </span>
+          )}
           <label
             onClick={(e) => {
               e.preventDefault();
@@ -1616,7 +1643,11 @@ export function BookingsTable({
               {espacePersoResult && (
                 <span className="text-xs text-text-muted">
                   {espacePersoResult.sent} envoyé{espacePersoResult.sent > 1 ? "s" : ""}
-                  {espacePersoResult.failed > 0 ? `, ${espacePersoResult.failed} échec(s)` : ""}.
+                  {espacePersoResult.failed > 0 ? `, ${espacePersoResult.failed} échec(s)` : ""}
+                  {espacePersoResult.dejaCompte
+                    ? `, ${espacePersoResult.dejaCompte} ignoré${espacePersoResult.dejaCompte > 1 ? "s" : ""} (compte déjà créé)`
+                    : ""}
+                  .
                 </span>
               )}
             </div>

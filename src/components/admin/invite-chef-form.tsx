@@ -26,7 +26,9 @@ export function InviteChefForm() {
       {state?.error && <p className="md:col-span-2 text-sm text-danger">{state.error}</p>}
       {state?.success && (
         <p className="md:col-span-2 text-sm text-turquoise">
-          Compte chef·fe créé. Si c&apos;est une nouvelle personne, une invitation par email lui a été envoyée.
+          {state.invited
+            ? "Compte chef·fe créé : une invitation par email a été envoyée."
+            : "Cette personne avait déjà un compte : elle est maintenant chef·fe. Aucun nouvel email envoyé (bouton « Renvoyer l'invitation » si besoin)."}
         </p>
       )}
     </form>

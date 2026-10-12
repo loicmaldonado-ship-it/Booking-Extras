@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getConfirmedBookings, getPhotosByFigurantId } from "@/lib/documents/data";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
+import { getConfirmedBookings } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -14,6 +15,8 @@ import { parseDocSort } from "@/lib/documents/sort";
 import { buildTrombiItems, paginateGroupedItems, type TrombiItem } from "@/lib/documents/trombi";
 import { formatDateLong } from "@/lib/format-date";
 import { requireProjetAccess } from "@/lib/auth/session";
+import { parseDocStatut } from "@/lib/documents/statuts";
+import { StatutChips } from "@/components/documents/statut-chips";
 
 export default async function TrombisPage({
   searchParams,
@@ -24,9 +27,10 @@ export default async function TrombisPage({
     fields?: string | string[];
     booking_ids?: string;
     sort?: string | string[];
+    statut?: string;
   }>;
 }) {
-  const { projet_id, date, fields, booking_ids, sort } = await searchParams;
+  const { projet_id, date, fields, booking_ids, sort, statut } = await searchParams;
   await requireProjetAccess(projet_id);
 
   if (!projet_id || !date) {
@@ -36,17 +40,18 @@ export default async function TrombisPage({
   const selectedFields = parseFields(fields);
   const selectedIds = parseIds(booking_ids);
   const docSort = parseDocSort(sort);
+  const docStatut = parseDocStatut(statut, !!booking_ids);
 
   const supabase = createAdminClient();
   const [{ data: projet }, allBookings] = await Promise.all([
     supabase.from("projets").select("nom, realisateur, societe_production").eq("id", projet_id).single(),
-    getConfirmedBookings(projet_id, date),
+    getConfirmedBookings(projet_id, date, docStatut.statuts),
   ]);
 
   const bookings = selectedIds ? allBookings.filter((b) => selectedIds.has(b.id)) : allBookings;
   const documentTemplate = await getDocumentTemplate(supabase, projet_id);
 
-  const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
+  const photosByFigurant = await getPhotosDocumentsProjet(projet_id, bookings.map((b) => b.figurant.id));
   const items: TrombiItem[] = buildTrombiItems(bookings, docSort);
   const pages = paginateGroupedItems(items, (i) => i.headerLabel);
 
@@ -62,8 +67,10 @@ export default async function TrombisPage({
         </div>
       </div>
 
+      <StatutChips baseParams={{ projet_id, date, fields, booking_ids, sort: docSort }} current={docStatut.key} />
+
       <SortChips
-        baseParams={{ projet_id, date, fields, booking_ids }}
+        baseParams={{ projet_id, date, fields, booking_ids, statut: docStatut.key }}
         current={docSort}
       />
 
@@ -71,7 +78,7 @@ export default async function TrombisPage({
         projetId={projet_id}
         date={date}
         selected={selectedFields}
-        extraHidden={{ booking_ids, sort: docSort }}
+        extraHidden={{ booking_ids, sort: docSort, statut: docStatut.key }}
       />
 
       {pages.length === 0 && (
@@ -84,7 +91,7 @@ export default async function TrombisPage({
             logoUrl={documentTemplate.logoUrl}
             accentColor={documentTemplate.accentColor}
           />
-          <p className="py-6 text-center text-gray-500">Aucun booking confirmé pour cette journée.</p>
+          <p className="py-6 text-center text-gray-500">Aucune personne ({docStatut.label.toLowerCase()}) pour cette journée.</p>
         </PrintSheet>
       )}
 

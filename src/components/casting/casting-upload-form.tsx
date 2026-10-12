@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
-import { compressImage } from "@/lib/media/compress-image";
+import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
@@ -27,6 +27,11 @@ function FileSlot({
   const [preview, setPreview] = useState<{ name: string; isImage: boolean; url: string | null } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  useEffect(() => {
+    const url = preview?.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [preview?.url]);
+
   function selectFile(file: File | null) {
     onSelect(file);
     if (!file) {
@@ -43,7 +48,9 @@ function FileSlot({
         {label}
         {required ? " *" : ""}
       </span>
-      <div
+      <button
+        type="button"
+        aria-label={`Choisir le fichier : ${label}${required ? " (obligatoire)" : ""}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -57,7 +64,7 @@ function FileSlot({
           if (file) selectFile(file);
         }}
         className={cn(
-          "relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 px-4 text-center transition-colors",
+          "relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 px-4 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral",
           dragOver ? "border-coral bg-coral/10" : "border-border hover:border-coral/60"
         )}
       >
@@ -73,12 +80,14 @@ function FileSlot({
             <span className="text-xs text-text-muted">Choisir ou glisser</span>
           </>
         )}
-      </div>
+      </button>
       <input
         ref={inputRef}
         type="file"
         accept={accept}
-        className="hidden"
+        aria-label={`Fichier : ${label}`}
+        tabIndex={-1}
+        className="sr-only"
         onChange={(e) => selectFile(e.target.files?.[0] ?? null)}
       />
     </div>
@@ -172,9 +181,14 @@ export function CastingUploadForm({
         const file = photos[label];
         if (!file) continue;
         setStep(`Compression de la photo « ${label} »...`);
-        const compressed = await compressImage(file);
+        const prepare = await prepareImage(file);
+        if ("error" in prepare) {
+          setError(`Photo « ${label} » : ${prepare.error}`);
+          setStep(null);
+          return;
+        }
         setStep(`Envoi de la photo « ${label} »...`);
-        uploadedPhotos.push({ label, path: await uploadOnePhoto(label, compressed, controller.signal) });
+        uploadedPhotos.push({ label, path: await uploadOnePhoto(label, prepare.file, controller.signal) });
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
@@ -232,7 +246,7 @@ export function CastingUploadForm({
               <FileSlot
                 key={label}
                 label={label}
-                accept="image/*"
+                accept={ACCEPT_IMAGES}
                 onSelect={(file) => setPhotos((prev) => ({ ...prev, [label]: file }))}
               />
             ))}

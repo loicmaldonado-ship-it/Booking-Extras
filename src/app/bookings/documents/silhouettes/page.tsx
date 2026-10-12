@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -6,7 +7,7 @@ import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { getDocumentTemplate } from "@/lib/documents/templates";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { requireProjetAccess } from "@/lib/auth/session";
 import type { Figurant } from "@/lib/figurants/types";
@@ -53,7 +54,7 @@ export default async function SilhouettesPage({
     `${a.figurant.prenom} ${a.figurant.nom}`.localeCompare(`${b.figurant.prenom} ${b.figurant.nom}`)
   );
 
-  const photosByFigurant = await getPhotosByFigurantId(rows.map((r) => r.figurant.id));
+  const photosByFigurant = await getPhotosDocumentsProjet(projet_id, rows.map((r) => r.figurant.id));
   const documentTemplate = await getDocumentTemplate(supabase, projet_id);
   const backHref = date ? `/bookings/documents?projet_id=${projet_id}&date=${date}` : `/bookings?projet_id=${projet_id}`;
 

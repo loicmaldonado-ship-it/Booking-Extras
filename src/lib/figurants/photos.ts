@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PhotoType } from "./types";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 
 export { MAX_PHOTOS_PAR_FIGURANT } from "./types";
 
@@ -21,16 +22,17 @@ export async function insertFigurantPhoto(
   type: PhotoType,
   file: File,
   extra?: { priseLe?: string | null; projetId?: string | null; castingEntryId?: string | null; label?: string | null }
-): Promise<{ error?: string }> {
-  const ext = file.name.split(".").pop() || "jpg";
-  const path = `${figurantId}/${type}-${crypto.randomUUID()}.${ext}`;
+): Promise<{ error?: string; id?: string }> {
+  const validated = await validateImageUpload(file);
+  if (validated.error) return { error: validated.error };
+  const path = `${figurantId}/${type}-${crypto.randomUUID()}.${validated.extension}`;
 
   const { error: uploadError } = await supabase.storage
     .from("figurant-photos")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, file, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
-  const { error: insertError } = await supabase.from("figurant_photos").insert({
+  const { data: photo, error: insertError } = await supabase.from("figurant_photos").insert({
     figurant_id: figurantId,
     type,
     storage_path: path,
@@ -38,8 +40,11 @@ export async function insertFigurantPhoto(
     projet_id: extra?.projetId ?? null,
     casting_entry_id: extra?.castingEntryId ?? null,
     label: extra?.label ?? null,
-  });
-  if (insertError) return { error: insertError.message };
+  }).select("id").single();
+  if (insertError || !photo) {
+    await supabase.storage.from("figurant-photos").remove([path]);
+    return { error: insertError?.message ?? "Photo non enregistrée." };
+  }
 
-  return {};
+  return { id: photo.id };
 }

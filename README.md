@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Booking Extras — reprise locale de développement
 
-## Getting Started
+Application de casting et gestion de figurant·es (projets, annonces, candidatures, bookings, essayages, casting, médias, notifications, exports). Stack : Next.js 16.3.0, React 19.2.8, TypeScript, Supabase/PostgreSQL et Vercel.
 
-First, run the development server:
+> **Attention : cette archive est une proposition locale de correctifs, pas une version certifiée ou déployable en l’état.** Aucun push GitHub, aucune écriture Trello et aucune modification de production n’ont été effectués.
+
+## Démarrage
+
+- Installer Node.js 22, Docker Desktop et le CLI Supabase. Lire `AGENTS.md` ; après `npm ci`, consulter la documentation Next.js de la version installée dans `node_modules/next/dist/docs/`.
+- `npm ci`
+- `npx supabase start`
+- `cp .env.example .env.local`, récupérer les clés **locales** avec `npx supabase status -o env`, renseigner `.env.local` (ne pas utiliser les secrets de production).
+- `npx supabase db reset` (**local uniquement** ; efface les données locales et rejoue les migrations/seed).
+- `npm run dev` ; ouvrir <http://localhost:3000>.
+
+## Contrôles avant toute PR
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Les 24 tests Node fournis ont réussi dans l’environnement de préparation ; `npm ci` et les autres vérifications ont été bloqués par l’absence de dépendances complètes. Les migrations SQL n’ont PAS été exécutées faute de Docker.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Parcours du code
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/app/` : pages Next.js
+- `src/components/` : UI
+- `src/lib/` : auth, sessions candidates, logique métier, Supabase, casting, uploads
+- `supabase/migrations/` : migrations Postgres / RLS
+- `public/sw.js` et `public/offline.html` : Service Worker, secours hors ligne statique et non sensible
+- `tests/` : tests unitaires Node
+- `docs/trello-report.md` : inventaire 96 cartes et statut réel du travail local
 
-## Learn More
+## Documentation détaillée
 
-To learn more about Next.js, take a look at the following resources:
+Lire `README_Booking_Extras.md` pour la passation historique et `docs/{architecture,database,security,development,testing,deployment,recette,trello-report,technical-debt}.md` pour la reprise actuelle.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Précaution :** ne jamais travailler directement sur `main` ni appliquer les nouvelles migrations sur la production sans préproduction, tests, sauvegarde et décision explicite.

@@ -22,7 +22,7 @@ export async function inviteChef(_prevState: unknown, formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return { error: "Email obligatoire." };
 
-  const { id: profileId, error } = await findOrInviteProfile(email);
+  const { id: profileId, invited, error } = await findOrInviteProfile(email);
   if (!profileId) return { error };
 
   const admin = createAdminClient();
@@ -30,7 +30,7 @@ export async function inviteChef(_prevState: unknown, formData: FormData) {
   if (updateError) return { error: updateError.message };
 
   revalidatePath("/admin");
-  return { success: true };
+  return { success: true, invited };
 }
 
 // Bloque la connexion d'une cheffe sans rien supprimer (projets, historique

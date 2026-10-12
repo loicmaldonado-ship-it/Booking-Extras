@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { EssayageStatut } from "./types";
@@ -38,18 +39,23 @@ export async function uploadTenuePhoto(figurantId: string, projetId: string, for
   if (!(file instanceof File) || file.size === 0) return { error: "Aucune photo sélectionnée." };
 
   const supabase = createAdminClient();
-  const ext = file.name.split(".").pop() || "jpg";
+  const validated = await validateImageUpload(file);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
   const path = `${figurantId}/tenue-${crypto.randomUUID()}.${ext}`;
 
   const { error: uploadError } = await supabase.storage
     .from("figurant-photos")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, file, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
   const { error: insertError } = await supabase
     .from("figurant_photos")
     .insert({ figurant_id: figurantId, type: "tenue", storage_path: path, projet_id: projetId });
-  if (insertError) return { error: insertError.message };
+  if (insertError) {
+    await supabase.storage.from("figurant-photos").remove([path]);
+    return { error: insertError.message };
+  }
 
   revalidatePath("/essayages/journee");
   revalidatePath("/bookings/documents");

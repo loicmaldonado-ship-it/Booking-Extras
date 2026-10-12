@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getConfirmedBookings, getCovoiturageByFigurant, getPhotosByFigurantId } from "@/lib/documents/data";
+import { getConfirmedBookings, getCovoiturageByFigurant } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
@@ -192,7 +193,7 @@ async function TrombiCovoiturage({
   date: string;
   bookingIds: string | undefined;
 }) {
-  const photosByFigurant = await getPhotosByFigurantId(bookings.map((b) => b.figurant.id));
+  const photosByFigurant = await getPhotosDocumentsProjet(projetId, bookings.map((b) => b.figurant.id));
   const pages = paginateGroupedItems(items, (i) => i.headerLabel);
 
   return (

@@ -4,15 +4,17 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { activerAccesCompte } from "@/lib/candidats/actions";
-import { createFigurantSession } from "@/lib/candidats/session";
-import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
+import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
+import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
+import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
+import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
-import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
+import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
-import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
 import { getTournagesConfirmesCount } from "./onglets";
+import { appliquerMessagesOut, lireOngletsAvant } from "./out";
 import type { Cachet, TriCandidature } from "./types";
 
 // candidatures n'a pas de projet_id direct — il vit sur son annonce.
@@ -40,7 +42,30 @@ export async function recordCandidatureMessage(
   subject?: string,
   projetId?: string | null
 ) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email, subject, projetId });
+  // The action is callable directly from the web, not only from staff UI.
+  if (!projetId) return { error: "Projet requis pour envoyer un message." };
+  const denied = await checkProjetAccess(projetId);
+  if (denied) return { error: denied };
+  const supabase = createAdminClient();
+  // Neither the recipient address nor their candidate ID may be freely
+  // replaced by a direct Server Action caller.
+  const { data: candidature } = await supabase
+    .from("candidatures")
+    .select("id, annonces!inner(projet_id)")
+    .eq("figurant_id", figurantId)
+    .eq("annonces.projet_id", projetId)
+    .limit(1)
+    .maybeSingle();
+  if (!candidature) return { error: "Candidature introuvable pour ce projet." };
+  const { data: recipient } = await supabase
+    .from("figurants")
+    .select("email")
+    .eq("id", figurantId)
+    .maybeSingle();
+  if (!recipient?.email || (email && recipient.email.toLowerCase() !== email.toLowerCase())) {
+    return { error: "Adresse du destinataire invalide." };
+  }
+  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email: recipient.email, subject, projetId });
 }
 
 function str(fd: FormData, key: string): string | null {
@@ -60,7 +85,10 @@ export async function postulerAnnonce(
   publicToken: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean }> {
+  // Compte obligatoire pour postuler : soit la personne est connectée, soit
+  // elle crée son compte (mot de passe) en validant sa candidature.
+  const session = await getCurrentFigurant();
   const prenom = str(formData, "prenom");
   const nom = str(formData, "nom");
   const email = str(formData, "email");
@@ -82,6 +110,7 @@ export async function postulerAnnonce(
   const temporaire = formData.get("temporaire") === "on";
   const aVehiculeRaw = str(formData, "a_vehicule");
   const vehiculeMarque = str(formData, "vehicule_marque");
+  const vehiculeVoiture = formData.get("vehicule_voiture") === "on";
   const vehiculeVelo = formData.get("vehicule_velo") === "on";
   const vehiculeMoto = formData.get("vehicule_moto") === "on";
   const vehiculeScooter = formData.get("vehicule_scooter") === "on";
@@ -118,14 +147,13 @@ export async function postulerAnnonce(
   if (!veste || !pantalon) {
     return { error: "Les tailles de veste et de pantalon sont obligatoires." };
   }
-  const photoPortrait = formData.get("photo_portrait");
-  const photoPied = formData.get("photo_pied");
-  const photoSelfie = formData.get("photo_selfie");
-  if (
-    !(photoPortrait instanceof File && photoPortrait.size > 0) ||
-    !(photoPied instanceof File && photoPied.size > 0) ||
-    !(photoSelfie instanceof File && photoSelfie.size > 0)
-  ) {
+  // Chaque photo obligatoire : un nouveau fichier, ou une photo déjà sur le
+  // compte (« Mes photos », vérifiée plus bas).
+  const photoFournie = (nom: string) => {
+    const f = formData.get(nom);
+    return (f instanceof File && f.size > 0) || !!str(formData, `${nom}__existante`);
+  };
+  if (!photoFournie("photo_portrait") || !photoFournie("photo_pied") || !photoFournie("photo_selfie")) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
   }
   if (!str(formData, "selfie_date")) {
@@ -136,8 +164,8 @@ export async function postulerAnnonce(
   }
   const aVehicule = aVehiculeRaw === "oui";
   if (aVehicule) {
-    if (!vehiculeVelo && !vehiculeMoto && !vehiculeScooter) {
-      return { error: "Merci de préciser le type de véhicule (vélo, moto ou scooter)." };
+    if (!vehiculeVoiture && !vehiculeVelo && !vehiculeMoto && !vehiculeScooter) {
+      return { error: "Merci de préciser le type de véhicule (voiture, vélo, moto ou scooter)." };
     }
     if (!vehiculeMarque) {
       return { error: "La marque du véhicule est obligatoire." };
@@ -147,6 +175,16 @@ export async function postulerAnnonce(
   const age = computeAge(dateNaissance);
   if (age === null || age < 0 || age > 120) {
     return { error: "Date de naissance invalide." };
+  }
+
+  const motDePasse = String(formData.get("password") ?? "");
+  if (!session) {
+    if (motDePasse.length < MOT_DE_PASSE_MIN) {
+      return { error: `Crée ton mot de passe (au moins ${MOT_DE_PASSE_MIN} caractères) pour valider ta candidature.` };
+    }
+    if (motDePasse !== String(formData.get("password_confirmation") ?? "")) {
+      return { error: "Les deux mots de passe ne sont pas identiques." };
+    }
   }
 
   const supabase = createAdminClient();
@@ -199,110 +237,109 @@ export async function postulerAnnonce(
     }
   }
 
-  // Une candidature (annonce de figuration) ne doit matcher/rattacher
-  // qu'une fiche figurant·e — jamais une éventuelle fiche comédien·ne
-  // partageant le même email ou nom+téléphone (voir comedien-privacy.ts) :
-  // celle-ci reste privée à son pool, et n'a pas à être mutée par ce flux
-  // public.
-  const { data: existingFigurant } = await supabase
-    .from("figurants")
-    .select("id")
-    .ilike("email", email)
-    .eq("est_comedien", false)
-    .maybeSingle();
+  const champsProfil = {
+    ville,
+    adresse,
+    code_postal: codePostal,
+    commune_naissance: communeNaissance,
+    genre,
+    pronom,
+    taille_cm: tailleCm,
+    poids_kg: poidsKg,
+    pointure,
+    veste,
+    pantalon,
+    a_vehicule: aVehicule,
+    vehicule_voiture: vehiculeVoiture,
+    vehicule_velo: vehiculeVelo,
+    vehicule_moto: vehiculeMoto,
+    vehicule_scooter: vehiculeScooter,
+    vehicule_marque: vehiculeMarque,
+    ...(showAgent && !sansAgent
+      ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
+      : {}),
+  };
 
-  let figurantId = existingFigurant?.id as string | undefined;
-
-  // Même sans email identique, on considère que c'est la même personne si
-  // le nom et le téléphone correspondent déjà à une fiche existante (1
-  // email = 1 fiche, mais une personne ne doit pas se retrouver dupliquée
-  // juste parce qu'elle a postulé avec une autre adresse).
-  if (!figurantId) {
+  let figurantId: string;
+  let compteCree = false;
+  if (session) {
+    // Connecté·e : la candidature va sur son compte, quel que soit l'email
+    // tapé ; la fiche est mise à jour avec ce qui vient d'être confirmé.
+    figurantId = session.id;
+    await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+  } else {
+    // Pas connecté·e : un email déjà connu (ou même nom + même téléphone) ne
+    // se rattache jamais sans connexion — sinon n'importe qui pourrait
+    // postuler, modifier la fiche et entrer dans l'espace d'un·e autre.
+    // Fiches comédien·nes exclues (privées à leur pool, comedien-privacy.ts).
+    const { data: memeEmail } = await supabase
+      .from("figurants")
+      .select("id")
+      .ilike("email", email)
+      .eq("est_comedien", false)
+      .maybeSingle();
+    if (memeEmail) {
+      return {
+        compteExistant: true,
+        error:
+          "Tu as déjà un compte avec cet email (tu as déjà postulé ou été booké·e). Connecte-toi pour valider ta candidature : tes infos seront remplies.",
+      };
+    }
     const telephoneNormalise = telephone.replace(/\s+/g, "");
     const { data: memeNom } = await supabase
       .from("figurants")
-      .select("id, telephone")
+      .select("email, telephone")
       .ilike("nom", nom)
       .eq("est_comedien", false);
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
-    if (doublon) figurantId = doublon.id;
-  }
+    if (doublon) {
+      return {
+        compteExistant: true,
+        error: doublon.email
+          ? `Un compte existe déjà à ton nom avec ce numéro, sous l'adresse ${emailMasque(doublon.email)}. Connecte-toi avec cette adresse pour valider ta candidature.`
+          : "Un profil existe déjà à ton nom avec ce numéro. Contacte le casting pour le récupérer.",
+      };
+    }
 
-  if (!figurantId) {
     const { data: newFigurant, error: figurantError } = await supabase
       .from("figurants")
       .insert({
+        ...champsProfil,
         prenom,
         nom,
-        email,
+        email: email.toLowerCase(),
         telephone,
-        ville,
-        adresse,
-        code_postal: codePostal,
-        commune_naissance: communeNaissance,
         date_naissance: dateNaissance,
-        genre,
-        pronom,
-        taille_cm: tailleCm,
-        poids_kg: poidsKg,
-        pointure,
-        veste,
-        pantalon,
         temporaire,
         temporaire_projet_id: temporaire ? annonce.projet_id : null,
-        a_vehicule: aVehicule,
-        vehicule_velo: vehiculeVelo,
-        vehicule_moto: vehiculeMoto,
-        vehicule_scooter: vehiculeScooter,
-        vehicule_marque: vehiculeMarque,
-        ...(showAgent && !sansAgent
-          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
-          : {}),
+        acces_compte: true,
       })
       .select("id")
       .single();
-
-    if (figurantError) {
-      if (figurantError.code === "23505") {
-        return { error: "Un profil existe déjà avec cet email. Contactez le casting si besoin." };
+    if (figurantError || !newFigurant) {
+      if (figurantError?.code === "23505") {
+        return { compteExistant: true, error: "Tu as déjà un compte avec cet email. Connecte-toi pour postuler." };
       }
-      return { error: figurantError.message };
+      return { error: figurantError?.message ?? "Création du compte impossible." };
     }
     figurantId = newFigurant.id;
-  } else {
-    // Fiche existante : on rafraîchit les mensurations et le véhicule avec
-    // ce qui vient d'être saisi/confirmé sur cette candidature.
-    await supabase
-      .from("figurants")
-      .update({
-        ville,
-        adresse,
-        code_postal: codePostal,
-        commune_naissance: communeNaissance,
-        genre,
-        pronom,
-        taille_cm: tailleCm,
-        poids_kg: poidsKg,
-        pointure,
-        veste,
-        pantalon,
-        a_vehicule: aVehicule,
-        vehicule_velo: vehiculeVelo,
-        vehicule_moto: vehiculeMoto,
-        vehicule_scooter: vehiculeScooter,
-        vehicule_marque: vehiculeMarque,
-        ...(showAgent && !sansAgent
-          ? { agent_nom: agentNom, agent_email: agentEmail, agent_telephone: agentTelephone, agent_agence: agentAgence }
-          : {}),
-      })
-      .eq("id", figurantId);
+    const mdp = await definirMotDePasse(figurantId, motDePasse);
+    if (mdp.error) {
+      await supabase.from("figurants").delete().eq("id", figurantId);
+      return { error: "Création du compte impossible, réessaie." };
+    }
+    compteCree = true;
+    // Connecté·e tout de suite (accès activé à la création, sans l'email
+    // « ajouté·e à une date de tournage », faux ici) : si la suite échoue,
+    // un nouvel essai passe par le compte au lieu de « déjà un compte ».
+    await createFigurantSession(figurantId);
   }
 
   // On n'écrase le lien existant que si un nouveau a été fourni — sinon un
   // candidat qui repostule sans le ressaisir (formulaire pas pré-rempli, pas
   // connecté) ne doit pas effacer celui déjà enregistré sur sa fiche.
   if (lienBandeDemo) {
-    await upsertFigurantLienByLabel(supabase, figurantId!, LIEN_BANDE_DEMO, lienBandeDemo);
+    await upsertFigurantLienByLabel(supabase, figurantId, LIEN_BANDE_DEMO, lienBandeDemo);
   }
 
   const { data: candidature, error: candidatureError } = await supabase
@@ -337,7 +374,13 @@ export async function postulerAnnonce(
   }));
   if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
 
-  await uploadCandidaturePhotos(figurantId!, formData);
+  const photosResultat = await enregistrerPhotosCandidature(figurantId, candidature.id, formData);
+  if (photosResultat.error) {
+    // Candidature annulée (réponses et dispos suivent en cascade) : un
+    // nouvel essai repart de zéro au lieu de « déjà postulé ».
+    await supabase.from("candidatures").delete().eq("id", candidature.id);
+    return { error: photosResultat.error };
+  }
 
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
     figurantId,
@@ -346,41 +389,74 @@ export async function postulerAnnonce(
     lien: `/candidatures/${candidature.id}`,
   });
 
-  // Accès à l'espace personnel activé dès la candidature, plus besoin
-  // d'attendre une validation côté staff (déjà idempotent + envoie déjà
-  // l'email "espace prêt" avec lien magique) — puis connexion immédiate,
-  // pour proposer un mot de passe sans détour par cet email.
-  await activerAccesCompte(figurantId!, annonce.projet_id);
-  await createFigurantSession(figurantId!);
-
   revalidatePath("/candidatures");
-  return { success: true };
+  return { success: true, compteCree };
 }
 
-async function uploadCandidaturePhotos(figurantId: string, formData: FormData) {
+// Photos d'une candidature : chaque emplacement reçoit soit un nouveau
+// fichier (ajouté aussi à la photothèque du compte, sans limite — jamais
+// ignoré), soit une photo déjà sur le compte (champ « <emplacement>__existante »,
+// qui doit appartenir à ce compte). Le lien candidature ↔ photos est gardé
+// dans candidature_photos.
+async function enregistrerPhotosCandidature(
+  figurantId: string,
+  candidatureId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const selfieDate = str(formData, "selfie_date") ?? new Date().toISOString().slice(0, 10);
+  const emplacements: { champ: string; type: "portrait" | "pied" | "selfie" | "vehicule" | "autre" }[] = [
+    { champ: "photo_portrait", type: "portrait" },
+    { champ: "photo_pied", type: "pied" },
+    { champ: "photo_selfie", type: "selfie" },
+    { champ: "photo_vehicule", type: "vehicule" },
+    { champ: "photo_extra", type: "autre" },
+  ];
 
-  const files: { file: File; type: "portrait" | "pied" | "selfie" | "autre" | "vehicule"; priseLe?: string | null }[] =
-    [];
-  const portrait = formData.get("photo_portrait");
-  if (portrait instanceof File && portrait.size > 0) files.push({ file: portrait, type: "portrait" });
-  const pied = formData.get("photo_pied");
-  if (pied instanceof File && pied.size > 0) files.push({ file: pied, type: "pied" });
-  const selfie = formData.get("photo_selfie");
-  if (selfie instanceof File && selfie.size > 0) files.push({ file: selfie, type: "selfie", priseLe: selfieDate });
-  const vehicule = formData.get("photo_vehicule");
-  if (vehicule instanceof File && vehicule.size > 0) files.push({ file: vehicule, type: "vehicule" });
-  for (const extra of formData.getAll("photo_extra")) {
-    if (extra instanceof File && extra.size > 0) files.push({ file: extra, type: "autre" });
+  const existantes = emplacements.flatMap(({ champ, type }) =>
+    formData
+      .getAll(`${champ}__existante`)
+      .filter((v): v is string => typeof v === "string" && v.length > 0)
+      .map((id) => ({ id, type }))
+  );
+  const { data: autorisees } =
+    existantes.length > 0
+      ? await supabase
+          .from("figurant_photos")
+          .select("id")
+          .eq("figurant_id", figurantId)
+          .in(
+            "id",
+            existantes.map((e) => e.id)
+          )
+      : { data: [] as { id: string }[] };
+  const idsAutorises = new Set((autorisees ?? []).map((p) => p.id));
+
+  const liens: { candidature_id: string; photo_id: string; emplacement: string; ordre: number }[] = [];
+  const ajouter = (photoId: string, emplacement: string) => {
+    if (liens.some((l) => l.photo_id === photoId)) return;
+    liens.push({ candidature_id: candidatureId, photo_id: photoId, emplacement, ordre: liens.length });
+  };
+
+  for (const { champ, type } of emplacements) {
+    for (const fichier of formData.getAll(champ)) {
+      if (!(fichier instanceof File) || fichier.size === 0) continue;
+      const res = await insertFigurantPhoto(supabase, figurantId, type, fichier, {
+        priseLe: type === "selfie" ? selfieDate : null,
+      });
+      if (res.error || !res.id) return { error: `Une photo n'a pas pu être enregistrée (${res.error ?? "erreur"}). Réessaie.` };
+      ajouter(res.id, type);
+    }
+    for (const e of existantes.filter((x) => x.type === type)) {
+      if (idsAutorises.has(e.id)) ajouter(e.id, type);
+    }
   }
 
-  let remaining = MAX_PHOTOS_PAR_FIGURANT - (await countFigurantPhotos(supabase, figurantId));
-  for (const { file, type, priseLe } of files) {
-    if (remaining <= 0) break;
-    const result = await insertFigurantPhoto(supabase, figurantId, type, file, { priseLe });
-    if (!result.error) remaining -= 1;
+  if (liens.length > 0) {
+    const { error } = await supabase.from("candidature_photos").insert(liens);
+    if (error) return { error: error.message };
   }
+  return {};
 }
 
 // Ne touche jamais onglet_id — c'est OngletPicker (setCandidatureOnglet) qui
@@ -411,9 +487,11 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
     const ongletError = await checkOngletMatchesAnnonces(ongletId, [id]);
     if (ongletError) return { error: ongletError };
   }
+  const avant = await lireOngletsAvant([id]);
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
+  await appliquerMessagesOut(avant, ongletId);
   return { success: true as const };
 }
 
@@ -437,9 +515,11 @@ export async function setCandidaturesOngletBulk(ids: string[], ongletId: string 
     if (ongletError) return { error: ongletError };
   }
 
+  const avant = await lireOngletsAvant(ids);
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
   revalidatePath("/candidatures");
   if (error) return { error: error.message };
+  await appliquerMessagesOut(avant, ongletId);
   return { success: true as const };
 }
 
@@ -462,7 +542,7 @@ async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: stri
 }
 
 // Créé sur l'annonce en cours, jamais en commun : les onglets communs sont
-// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT BE).
+// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT).
 export async function createCandidatureOnglet(nom: string, annonceId: string) {
   const trimmed = nom.trim();
   if (!trimmed) return { error: "Nom d'onglet requis." };
@@ -511,7 +591,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
   const { data: c } = await supabase
     .from("candidatures")
     .select(
-      "id, annonce_id, onglet_id, message, created_at, annonces(projet_id), figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
+      "id, annonce_id, onglet_id, message, created_at, annonces(projet_id), figurants(id, prenom, nom, ville, code_postal, genre, date_naissance, taille_cm, poids_kg, pointure, veste, pantalon, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole)"
     )
     .eq("id", id)
     .single<{
@@ -538,6 +618,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
         vehicule_velo: boolean;
         vehicule_moto: boolean;
         vehicule_scooter: boolean;
+        vehicule_voiture: boolean;
         compte_myrole: boolean;
       } | null;
     }>();
@@ -546,6 +627,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
 
   const [
     photosByFigurant,
+    photosParCandidature,
     { data: reponses },
     { data: dispos },
     { data: lien },
@@ -554,6 +636,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     { data: joursPrevus },
   ] = await Promise.all([
     getPhotosByFigurantId([f.id]),
+    getPhotosParCandidature([id]),
     supabase
       .from("candidature_reponses")
       .select("reponse, annonce_questions(label)")
@@ -585,7 +668,8 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     const i = PHOTO_ORDER.indexOf(type);
     return i === -1 ? PHOTO_ORDER.length : i;
   };
-  const photos = (photosByFigurant.get(f.id) ?? [])
+  // Photos envoyées ou reprises pour cette annonce ; sinon celles du compte.
+  const photos = (photosParCandidature.get(id) ?? photosByFigurant.get(f.id) ?? [])
     .filter((p): p is typeof p & { url: string } => !!p.url)
     .sort((a, b) => rank(a.type) - rank(b.type))
     .map((p) => ({ url: p.url, type: p.type }));
@@ -594,7 +678,7 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     f.a_vehicule === null
       ? null
       : f.a_vehicule
-        ? [f.vehicule_velo && "vélo", f.vehicule_moto && "moto", f.vehicule_scooter && "scooter"].filter(Boolean).join(", ") ||
+        ? [f.vehicule_voiture && "voiture", f.vehicule_velo && "vélo", f.vehicule_moto && "moto", f.vehicule_scooter && "scooter"].filter(Boolean).join(", ") ||
           "oui"
         : "non";
 

@@ -7,6 +7,7 @@ import { addFigurantsToCastingRole, listCastingRolesForProjet } from "@/lib/cast
 import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 
 type RoleOption = { id: string; nom: string; categorie_cachet: CategorieCachet };
+type RolesLoad = { projetId: string; roles: RoleOption[]; error?: string };
 
 export function AddToCastingBar({
   figurantIds,
@@ -19,24 +20,28 @@ export function AddToCastingBar({
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
-  const [roles, setRoles] = useState<RoleOption[]>([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
+  // Conserve l'identifiant du projet associé au dernier chargement pour
+  // éviter d'afficher les rôles d'un autre projet pendant une requête.
+  const [rolesData, setRolesData] = useState<RolesLoad | null>(null);
   const [roleId, setRoleId] = useState("");
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: number; deja: number; echecs: number } | string | null>(null);
+  const roles = rolesData?.projetId === projetId ? rolesData.roles : [];
+  const rolesLoading = Boolean(projetId) && rolesData?.projetId !== projetId;
+  const rolesError = rolesData?.projetId === projetId ? rolesData.error : null;
 
   useEffect(() => {
-    if (!projetId) {
-      setRoles([]);
-      setRoleId("");
-      return;
-    }
-    setRolesLoading(true);
-    setRoleId("");
-    listCastingRolesForProjet(projetId).then((res) => {
-      setRoles(res.roles ?? []);
-      setRolesLoading(false);
-    });
+    if (!projetId) return;
+    let active = true;
+    listCastingRolesForProjet(projetId)
+      .then((res) => {
+        if (active) setRolesData({ projetId, roles: res.roles ?? [] });
+      })
+      .catch(() => {
+        if (active) setRolesData({ projetId, roles: [], error: "Impossible de charger les rôles." });
+      });
+    // Ignore les réponses qui arrivent après un changement de projet.
+    return () => { active = false; };
   }, [projetId]);
 
   function submit() {
@@ -63,7 +68,11 @@ export function AddToCastingBar({
         <label className="text-xs text-text-muted">Projet</label>
         <select
           value={projetId}
-          onChange={(e) => setProjetId(e.target.value)}
+          onChange={(e) => {
+            setProjetId(e.target.value);
+            setRoleId("");
+            setResult(null);
+          }}
           disabled={pending}
           className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         >
@@ -86,7 +95,7 @@ export function AddToCastingBar({
           className="w-48 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         >
           <option value="" disabled>
-            {rolesLoading ? "Chargement..." : roles.length === 0 ? "Aucun rôle sur ce projet" : "Choisir un rôle"}
+            {rolesLoading ? "Chargement..." : rolesError ? "Chargement impossible" : roles.length === 0 ? "Aucun rôle sur ce projet" : "Choisir un rôle"}
           </option>
           {roles.map((r) => (
             <option key={r.id} value={r.id}>
@@ -95,14 +104,15 @@ export function AddToCastingBar({
           ))}
         </select>
       </div>
-      <Button type="button" disabled={pending || !roleId} onClick={submit}>
+      <Button type="button" disabled={pending || rolesLoading || !roleId} onClick={submit}>
         {pending ? "Envoi..." : "Ajouter au casting"}
       </Button>
-      {!rolesLoading && projetId && roles.length === 0 && (
+      {!rolesLoading && projetId && roles.length === 0 && !rolesError && (
         <span className="text-xs text-text-muted">
           Crée d&apos;abord un rôle depuis la page Casting de ce projet.
         </span>
       )}
+      {rolesError && <span className="text-xs text-danger">{rolesError}</span>}
       {result && typeof result === "string" && <span className="text-xs text-danger">{result}</span>}
       {result && typeof result === "object" && (
         <span className="text-xs text-text-muted">

@@ -11,7 +11,7 @@ import { AgentNomInput } from "@/components/agents/agent-nom-input";
 import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
-import { compressImage } from "@/lib/media/compress-image";
+import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
 import { cn } from "@/lib/cn";
 import {
@@ -45,9 +45,13 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
   function upload(file: File) {
     setError(null);
     startTransition(async () => {
-      const compressed = await compressImage(file);
+      const prepare = await prepareImage(file);
+      if ("error" in prepare) {
+        setError(prepare.error);
+        return;
+      }
       const fd = new FormData();
-      fd.set("photo", compressed);
+      fd.set("photo", prepare.file);
       const result = await addCastingPhoto(entryId, label, fd);
       if (result?.error) setError(result.error);
       else router.refresh();
@@ -82,7 +86,7 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={ACCEPT_IMAGES}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -197,7 +201,6 @@ function VideoWithRemove({
           className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
         />
       </div>
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
         <source src={url} />
       </video>
