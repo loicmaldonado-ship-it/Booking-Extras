@@ -1,5 +1,8 @@
-name: Qualité (Pull Request)
+name: Qualité du code
 on:
+  push:
+    branches:
+      - elea
   pull_request:
   workflow_dispatch:
 jobs:
