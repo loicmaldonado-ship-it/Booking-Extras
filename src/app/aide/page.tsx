@@ -600,6 +600,12 @@ export default function AidePage() {
               et le « bien reçu » repartent à zéro, et par défaut le statut repasse en PER pour que la personne
               reconfirme. <UI>📅 Ajouter des dates</UI>, lui, garde la date actuelle et en ajoute d&apos;autres.
             </>,
+            <>
+              Pour <strong className="text-text">enlever quelqu&apos;un de la journée</strong>, coche-le·la puis{" "}
+              <UI>🗑 Retirer de la journée</UI> (après confirmation, sans message envoyé). Pour garder une trace,
+              passe plutôt son statut en <strong className="text-text">Annulé</strong> : il·elle sort de la liste
+              et des documents, mais reste consultable via <UI>Afficher</UI> (« indisponibles/annulés masqués »).
+            </>,
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />

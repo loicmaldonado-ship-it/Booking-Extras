@@ -17,6 +17,7 @@ import {
   sendBulkConvocations,
   sendEspacePersoLinkBulk,
   resetConvocationEnvoyee,
+  retirerBookings,
 } from "@/lib/bookings/actions";
 import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
@@ -530,6 +531,26 @@ export function BookingsTable({
     const ids = Array.from(selected);
     startTransition(async () => {
       await applyMajorationToBookings(ids, baremeMajorationId);
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  function retirerSelection() {
+    const cibles = rows.filter((r) => selected.has(r.id));
+    if (cibles.length === 0) return;
+    const noms = cibles
+      .slice(0, 10)
+      .map((r) => `${r.figurants?.prenom ?? ""} ${r.figurants?.nom ?? ""}`.trim())
+      .join(", ");
+    const suite = cibles.length > 10 ? ` et ${cibles.length - 10} autre${cibles.length - 10 > 1 ? "s" : ""}` : "";
+    if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
+    startTransition(async () => {
+      const res = await retirerBookings(cibles.map((r) => r.id));
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
       setSelected(new Set());
       router.refresh();
     });
@@ -1558,6 +1579,9 @@ export function BookingsTable({
           )}
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             ✖️ Masquer la sélection
+          </Button>
+          <Button type="button" variant="danger" disabled={pending} onClick={retirerSelection}>
+            🗑 Retirer de la journée
           </Button>
           {changeDateOpen && projetId && (
             <div className="w-full border-t border-coral/40 pt-3">
