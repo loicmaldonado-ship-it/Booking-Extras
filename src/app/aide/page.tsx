@@ -593,7 +593,9 @@ export default function AidePage() {
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
               <strong className="text-text">cachet</strong> et <strong className="text-text">statut</strong>{" "}
-              pour chaque profil.
+              pour chaque profil. Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
+              fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
+              nom ou la quantité (les profils qui l&apos;ont sont renommés avec).
             </>,
             "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
             <>

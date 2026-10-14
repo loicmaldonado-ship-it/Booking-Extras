@@ -50,3 +50,53 @@ export async function deleteBesoin(id: string) {
   await supabase.from("journee_besoins").delete().eq("id", id);
   revalidatePath("/bookings/documents");
 }
+
+// Modifie une fonction déjà créée (nom et/ou quantité). En cas de
+// renommage, les bookings de la journée qui portaient l'ancien nom peuvent
+// suivre — sinon ils ne seraient plus comptés dans ce besoin.
+export async function updateBesoin(
+  id: string,
+  fonction: string,
+  quantite: number,
+  renommerBookings: boolean
+): Promise<{ error?: string; renommes?: number }> {
+  const nom = fonction.trim();
+  if (!nom) return { error: "Fonction requise." };
+  if (!Number.isInteger(quantite) || quantite <= 0) return { error: "Quantité invalide." };
+
+  const supabase = createAdminClient();
+  const { data: besoin } = await supabase
+    .from("journee_besoins")
+    .select("journee_id, fonction, journees(projet_id, date)")
+    .eq("id", id)
+    .maybeSingle<{ journee_id: string; fonction: string; journees: { projet_id: string; date: string } | null }>();
+  if (!besoin?.journees) return { error: "Besoin introuvable." };
+  const accessError = await checkProjetAccess(besoin.journees.projet_id);
+  if (accessError) return { error: accessError };
+
+  const { error } = await supabase.from("journee_besoins").update({ fonction: nom, quantite }).eq("id", id);
+  if (error) {
+    if (error.code === "23505") return { error: `La fonction « ${nom} » existe déjà pour cette journée.` };
+    return { error: error.message };
+  }
+
+  let renommes = 0;
+  const ancien = besoin.fonction.trim().toLowerCase();
+  if (renommerBookings && ancien !== nom.toLowerCase()) {
+    const { data: bookings } = await supabase
+      .from("bookings")
+      .select("id, fonction")
+      .eq("projet_id", besoin.journees.projet_id)
+      .eq("date", besoin.journees.date)
+      .not("fonction", "is", null);
+    const ids = (bookings ?? []).filter((b) => b.fonction!.trim().toLowerCase() === ancien).map((b) => b.id);
+    if (ids.length > 0) {
+      const { error: errBookings } = await supabase.from("bookings").update({ fonction: nom }).in("id", ids);
+      if (errBookings) return { error: errBookings.message };
+      renommes = ids.length;
+    }
+  }
+
+  revalidatePath("/bookings/documents");
+  return { renommes };
+}
