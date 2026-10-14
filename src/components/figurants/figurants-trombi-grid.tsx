@@ -18,6 +18,7 @@ type FigurantCard = {
   prenom: string;
   nom: string;
   ville: string | null;
+  age: number | null;
   telephone?: string | null;
   email?: string | null;
   portraitUrl: string | null;
@@ -118,7 +119,7 @@ export function FigurantsTrombiGrid({
               <div className="text-sm font-medium">
                 {f.prenom} {f.nom}
               </div>
-              <div className="text-xs text-text-muted">{f.ville ?? "—"}</div>
+              <div className="text-xs text-text-muted">{[f.age != null ? `${f.age} ans` : null, f.ville].filter(Boolean).join(" · ") || "—"}</div>
             </Link>
             <ContactIcons telephone={f.telephone} email={f.email} />
             <PreviewButton

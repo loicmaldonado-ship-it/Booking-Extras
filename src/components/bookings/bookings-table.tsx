@@ -319,6 +319,12 @@ const fieldClass =
 
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
 
+// « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+function ageEtVille(r: Row) {
+  const age = computeAge(r.figurants?.date_naissance ?? null);
+  return [age != null ? `${age} ans` : null, r.figurants?.ville].filter(Boolean).join(" · ");
+}
+
 export function BookingsTable({
   rows,
   projetId,
@@ -887,7 +893,7 @@ export function BookingsTable({
               </Badge>
             ))}
           </Link>
-          <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
+          <div className="truncate text-xs text-text-muted">{ageEtVille(r)}</div>
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
           )}
@@ -1053,6 +1059,7 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
+          {ageEtVille(r) && <div className="-mt-1 text-xs text-text-muted">{ageEtVille(r)}</div>}
           {projetId && r.figurant_id && (
             // La carte entière est un lien : le choix des photos ne doit pas
             // ouvrir le booking.
