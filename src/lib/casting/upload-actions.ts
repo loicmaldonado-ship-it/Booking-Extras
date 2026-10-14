@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkProjetAccess } from "@/lib/auth/session";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { createNotification } from "@/lib/notifications/create";
@@ -63,27 +64,38 @@ export async function logCastingUploadEvent(input: {
   userAgent?: string;
 }): Promise<void> {
   try {
-    const supabase = createAdminClient();
-    let entryId = input.entryId;
-    let projetId: string | undefined;
+    // Server Actions are public endpoints. Never trust a client-supplied
+    // entry ID as proof of staff authorization.
+    if (!input ||
+        !["candidat", "equipe"].includes(input.source) ||
+        !["video", "photo"].includes(input.kind) ||
+        !["reussi", "repli_original", "erreur", "annule"].includes(input.outcome)) return;
 
-    if (!entryId && input.requestToken) {
+    const supabase = createAdminClient();
+    let entryId: string;
+    let projetId: string;
+
+    if (input.source === "equipe") {
+      // Staff must be authenticated AND a member of this casting's project.
+      if (typeof input.entryId !== "string" || input.requestToken) return;
+      const { data: entry } = await supabase.from("casting_entries")
+        .select("id, projet_id")
+        .eq("id", input.entryId)
+        .maybeSingle<{ id: string; projet_id: string }>();
+      if (!entry || await checkProjetAccess(entry.projet_id)) return;
+      entryId = entry.id;
+      projetId = entry.projet_id;
+    } else {
+      // Candidates only have a single-entry bearer link, never staff rights.
+      if (typeof input.requestToken !== "string" || input.entryId) return;
       const entry = await loadEntry(input.requestToken);
       if (!entry) return;
       entryId = entry.id;
       projetId = entry.projet_id;
     }
-    if (!entryId) return;
 
-    if (!projetId) {
-      const { data } = await supabase
-        .from("casting_entries")
-        .select("projet_id")
-        .eq("id", entryId)
-        .maybeSingle<{ projet_id: string }>();
-      projetId = data?.projet_id;
-    }
-    if (!projetId) return;
+    const safeMetric = (value: number | undefined, max: number): number | null =>
+      typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= max ? value : null;
 
     await supabase.from("casting_upload_events").insert({
       entry_id: entryId,
@@ -91,11 +103,11 @@ export async function logCastingUploadEvent(input: {
       source: input.source,
       kind: input.kind,
       outcome: input.outcome,
-      error_message: input.errorMessage ?? null,
-      original_bytes: input.originalBytes ?? null,
-      final_bytes: input.finalBytes ?? null,
-      duration_ms: input.durationMs ?? null,
-      user_agent: input.userAgent ?? null,
+      error_message: typeof input.errorMessage === "string" ? input.errorMessage.slice(0, 500) : null,
+      original_bytes: safeMetric(input.originalBytes, 5_000_000_000_000),
+      final_bytes: safeMetric(input.finalBytes, 5_000_000_000_000),
+      duration_ms: safeMetric(input.durationMs, 2_147_483_647),
+      user_agent: typeof input.userAgent === "string" ? input.userAgent.slice(0, 300) : null,
     });
   } catch (e) {
     console.warn("[logCastingUploadEvent] Échec de l'enregistrement (sans impact sur l'envoi).", e);

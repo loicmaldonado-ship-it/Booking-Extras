@@ -97,6 +97,7 @@ export async function setFigurantSessionCookie(token: string, expiresAt: Date) {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     expires: expiresAt,
   });
 }
