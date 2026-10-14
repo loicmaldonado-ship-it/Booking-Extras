@@ -325,6 +325,40 @@ export async function removeBooking(id: string) {
   revalidatePath("/bookings");
 }
 
+// Retire des profils d'une journée (suppression des bookings sélectionnés).
+// Les passager·ères d'un·e conducteur·rice retiré·e perdent leur covoiturage.
+export async function retirerBookings(ids: string[]): Promise<{ retires: number; error?: string }> {
+  if (ids.length === 0) return { retires: 0 };
+  const supabase = createAdminClient();
+  const { data: bookings, error: lectureError } = await supabase
+    .from("bookings")
+    .select("id, projet_id, date, figurant_id")
+    .in("id", ids);
+  if (lectureError) return { retires: 0, error: lectureError.message };
+  const list = bookings ?? [];
+  const projetIds = Array.from(new Set(list.map((b) => b.projet_id)));
+  if (projetIds.length !== 1) return { retires: 0, error: "Sélection sur plusieurs projets." };
+  const accessError = await checkProjetAccess(projetIds[0]);
+  if (accessError) return { retires: 0, error: accessError };
+
+  const { error } = await supabase.from("bookings").delete().in("id", list.map((b) => b.id));
+  if (error) return { retires: 0, error: error.message };
+
+  for (const date of Array.from(new Set(list.map((b) => b.date)))) {
+    await supabase
+      .from("bookings")
+      .update({ covoiturage_conducteur_id: null })
+      .eq("projet_id", projetIds[0])
+      .eq("date", date)
+      .in("covoiturage_conducteur_id", list.filter((b) => b.date === date).map((b) => b.figurant_id));
+  }
+
+  revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  revalidatePath("/bookings/planning");
+  return { retires: list.length };
+}
+
 export async function bulkUpdateBookings(
   ids: string[],
   changes: Partial<{
