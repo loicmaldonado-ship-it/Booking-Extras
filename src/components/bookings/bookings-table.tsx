@@ -10,6 +10,7 @@ import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { Modale } from "@/components/ui/modale";
 import { cn } from "@/lib/cn";
 import {
   bulkUpdateBookings,
@@ -318,6 +319,12 @@ const fieldClass =
   "w-full rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60";
 
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
+
+// « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+function ageEtVille(r: Row) {
+  const age = computeAge(r.figurants?.date_naissance ?? null);
+  return [age != null ? `${age} ans` : null, r.figurants?.ville].filter(Boolean).join(" · ");
+}
 
 export function BookingsTable({
   rows,
@@ -887,7 +894,7 @@ export function BookingsTable({
               </Badge>
             ))}
           </Link>
-          <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
+          <div className="truncate text-xs text-text-muted">{ageEtVille(r)}</div>
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
           )}
@@ -1053,6 +1060,7 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
           </div>
+          {ageEtVille(r) && <div className="-mt-1 text-xs text-text-muted">{ageEtVille(r)}</div>}
           {projetId && r.figurant_id && (
             // La carte entière est un lien : le choix des photos ne doit pas
             // ouvrir le booking.
@@ -1646,7 +1654,8 @@ export function BookingsTable({
           )}
 
           {espacePersoOpen && projetId && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
+            <Modale titre="🔗 Lien espace perso" onClose={() => setEspacePersoOpen(false)} bloquee={pending}>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm">
                 Envoyer le lien d&apos;espace perso à {selectedWithEmail.length} personne
                 {selectedWithEmail.length > 1 ? "s" : ""}
@@ -1675,10 +1684,12 @@ export function BookingsTable({
                 </span>
               )}
             </div>
+            </Modale>
           )}
 
           {messageMode === "convocation-confirm" && (
-            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+            <Modale titre="📨 Envoyer la convocation" onClose={cancelMessageComposer} bloquee={sendPending}>
+            <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Envoyer la convocation par email à {convocationAEnvoyer.length} personne
@@ -1754,10 +1765,12 @@ export function BookingsTable({
                 </Button>
               </div>
             </div>
+            </Modale>
           )}
 
           {(messageMode === "libre-compose" || messageMode === "libre-confirm") && (
-            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+            <Modale titre="💬 Message libre" onClose={cancelMessageComposer} bloquee={sendPending}>
+            <div className="flex flex-col gap-3">
               <span className="text-sm font-medium">
                 Message libre pour {selectedWithEmail.length} personne{selectedWithEmail.length > 1 ? "s" : ""}
                 {selectedWithoutEmail > 0 && (
@@ -1796,7 +1809,7 @@ export function BookingsTable({
                     value={libreMessage}
                     onChange={(e) => setLibreMessage(e.target.value)}
                     placeholder="Votre message"
-                    rows={4}
+                    rows={8}
                     className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
                   />
                   <div className="flex justify-end gap-2">
@@ -1845,6 +1858,7 @@ export function BookingsTable({
                 </>
               )}
             </div>
+            </Modale>
           )}
         </div>
       )}

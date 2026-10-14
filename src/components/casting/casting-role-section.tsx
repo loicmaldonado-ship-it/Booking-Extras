@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
+import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Select } from "@/components/ui/field";
@@ -79,6 +80,7 @@ export function CastingRoleSection({
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [messageOuvert, setMessageOuvert] = useState(false);
   const [bulkSubject, setBulkSubject] = useState(`Booking Extras — casting « ${role.nom} »`);
   const [bulkMessage, setBulkMessage] = useState(() => defaultCastingInviteMessage(role));
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
@@ -489,95 +491,111 @@ export function CastingRoleSection({
               {presentielError && <span className="text-xs text-danger">{presentielError}</span>}
             </div>
           )}
-          {sendError && <p className="text-sm text-danger">{sendError}</p>}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
-            </span>
-            <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendToAll}>
-              Envoyer à tous
+          <div>
+            <Button type="button" variant="secondary" onClick={() => setMessageOuvert(true)}>
+              💬 Message ({selected.size})
             </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-text-muted">Modèle :</span>
-            <button
-              type="button"
-              onClick={applyInviteTemplate}
-              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+          {messageOuvert && (
+            <Modale
+              titre="💬 Message"
+              sousTitre={`Pour ${selected.size} sélectionné·e${selected.size > 1 ? "s" : ""}`}
+              onClose={() => setMessageOuvert(false)}
+              large
             >
-              Invitation (avec le lien)
-            </button>
-            <button
-              type="button"
-              onClick={applyPresentielTemplate}
-              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
-            >
-              Convocation présentiel
-            </button>
-            <button
-              type="button"
-              onClick={() => applyTemplate()}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
-            >
-              Vierge
-            </button>
-            {templates.length > 0 &&
-              templates.map((t) => (
+            <div className="flex flex-col gap-3">
+              {sendError && <p className="text-sm text-danger">{sendError}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-text-muted">Modèle :</span>
                 <button
-                  key={t.id}
                   type="button"
-                  onClick={() => applyTemplate(t)}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                  onClick={applyInviteTemplate}
+                  className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
                 >
-                  {t.nom}
+                  Invitation (avec le lien)
                 </button>
-              ))}
-          </div>
-          <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
-          <textarea
-            value={bulkMessage}
-            onChange={(e) => setBulkMessage(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-          />
-          {role.pdf_filename && (
-            <p className="text-xs text-text-muted">📎 {role.pdf_filename} sera joint automatiquement.</p>
+                <button
+                  type="button"
+                  onClick={applyPresentielTemplate}
+                  className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+                >
+                  Convocation présentiel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate()}
+                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                >
+                  Vierge
+                </button>
+                {templates.length > 0 &&
+                  templates.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => applyTemplate(t)}
+                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                    >
+                      {t.nom}
+                    </button>
+                  ))}
+              </div>
+              <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
+              <textarea
+                value={bulkMessage}
+                onChange={(e) => setBulkMessage(e.target.value)}
+                rows={8}
+                className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              {role.pdf_filename && (
+                <p className="text-xs text-text-muted">📎 {role.pdf_filename} sera joint automatiquement.</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {entries
+                  .filter((e) => selected.has(e.id))
+                  .map((e) => (
+                    <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span>
+                        {e.figurants?.prenom} {e.figurants?.nom}
+                        {!e.figurants?.email && !e.figurants?.agent_email && (
+                          <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
+                        )}
+                        {e.figurants?.agent_email && (
+                          <span className="ml-2 text-xs text-text-muted">
+                            {e.figurants?.email ? "— agent en copie" : "— envoyé à l'agent (pas de contact direct)"}
+                          </span>
+                        )}
+                        {presentielAssignments.get(e.figurant_id) && (
+                          <span className="ml-2 text-xs text-text-muted">
+                            — {presentielAssignments.get(e.figurant_id)!.dateLabel}
+                            {presentielAssignments.get(e.figurant_id)!.heureLabel
+                              ? ` ${presentielAssignments.get(e.figurant_id)!.heureLabel}`
+                              : ""}
+                          </span>
+                        )}
+                      </span>
+                      <Button
+                        type="button"
+                        variant={sentBulk.has(e.id) ? "ghost" : "secondary"}
+                        disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
+                        onClick={() => sendTo(e)}
+                      >
+                        {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${e.figurants?.prenom ?? ""}`}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border pt-3">
+                <Button type="button" variant="ghost" onClick={() => setMessageOuvert(false)}>
+                  Fermer
+                </Button>
+                <Button type="button" disabled={!bulkMessage.trim()} onClick={sendToAll}>
+                  Envoyer à tous
+                </Button>
+              </div>
+            </div>
+            </Modale>
           )}
-          <div className="flex flex-col gap-2">
-            {entries
-              .filter((e) => selected.has(e.id))
-              .map((e) => (
-                <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span>
-                    {e.figurants?.prenom} {e.figurants?.nom}
-                    {!e.figurants?.email && !e.figurants?.agent_email && (
-                      <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
-                    )}
-                    {e.figurants?.agent_email && (
-                      <span className="ml-2 text-xs text-text-muted">
-                        {e.figurants?.email ? "— agent en copie" : "— envoyé à l'agent (pas de contact direct)"}
-                      </span>
-                    )}
-                    {presentielAssignments.get(e.figurant_id) && (
-                      <span className="ml-2 text-xs text-text-muted">
-                        — {presentielAssignments.get(e.figurant_id)!.dateLabel}
-                        {presentielAssignments.get(e.figurant_id)!.heureLabel
-                          ? ` ${presentielAssignments.get(e.figurant_id)!.heureLabel}`
-                          : ""}
-                      </span>
-                    )}
-                  </span>
-                  <Button
-                    type="button"
-                    variant={sentBulk.has(e.id) ? "ghost" : "secondary"}
-                    disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
-                    onClick={() => sendTo(e)}
-                  >
-                    {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${e.figurants?.prenom ?? ""}`}
-                  </Button>
-                </div>
-              ))}
-          </div>
         </div>
       )}
         </>

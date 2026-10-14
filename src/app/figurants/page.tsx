@@ -8,6 +8,7 @@ import { GENRES, type Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
@@ -237,6 +238,7 @@ export default async function FigurantsPage({
             prenom: f.prenom,
             nom: f.nom,
             ville: f.ville,
+            age: computeAge(f.date_naissance),
             telephone: f.telephone,
             email: f.email,
             portraitUrl: pickPortrait(portraitByFigurant.get(f.id))?.url ?? null,
@@ -252,6 +254,7 @@ export default async function FigurantsPage({
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium"></th>
               <th className="px-6 py-3 font-medium">Nom</th>
+              <th className="px-6 py-3 font-medium">Âge</th>
               <th className="px-6 py-3 font-medium">Ville</th>
               <th className="px-6 py-3 font-medium">Contact</th>
               <th className="px-6 py-3 font-medium">Myrole</th>
@@ -281,6 +284,9 @@ export default async function FigurantsPage({
                     {f.prenom} {f.nom}
                   </Link>
                 </td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">
+                  {computeAge(f.date_naissance) != null ? `${computeAge(f.date_naissance)} ans` : "—"}
+                </td>
                 <td className="px-6 py-3 text-text-muted">{f.ville ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
                   <div className="flex items-center gap-2">
@@ -308,7 +314,7 @@ export default async function FigurantsPage({
             ))}
             {(figurants ?? []).length === 0 && !error && (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-text-muted">
+                <td colSpan={7} className="px-6 py-10 text-center text-text-muted">
                   Aucun·e figurant·e pour l&apos;instant.
                 </td>
               </tr>

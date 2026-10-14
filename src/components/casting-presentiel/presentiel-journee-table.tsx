@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Select, Input } from "@/components/ui/field";
+import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
@@ -52,6 +53,7 @@ export function PresentielJourneeTable({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [convocationOuverte, setConvocationOuverte] = useState(false);
   const [subject, setSubject] = useState(`Convocation casting — ${projetNom ?? ""}`);
   const [message, setMessage] = useState(defaultPresentielConvocationMessage());
   const [sent, setSent] = useState<Set<string>>(new Set());
@@ -247,46 +249,61 @@ export function PresentielJourneeTable({
             </Button>
             {bulkStatutError && <span className="text-xs text-danger">{bulkStatutError}</span>}
           </div>
-          {sendError && <p className="text-sm text-danger">{sendError}</p>}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">
-              Convocation pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
-            </span>
-            <Button type="button" variant="secondary" disabled={!message.trim()} onClick={sendToAll}>
-              Envoyer à tous
+          <div>
+            <Button type="button" variant="secondary" onClick={() => setConvocationOuverte(true)}>
+              📨 Convocation ({selected.size})
             </Button>
           </div>
-          <p className="text-xs text-text-muted">
-            {"{lieu}"} et {"{horaire}"} sont remplis automatiquement par profil (lieu de la journée, créneau
-            assigné).
-          </p>
-          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Sujet" />
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={5}
-            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-          />
-          <div className="flex flex-col gap-2">
-            {rows
-              .filter((r) => selected.has(r.id))
-              .map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span>
-                    {r.figurants?.prenom} {r.figurants?.nom}
-                    {!r.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
-                  </span>
-                  <Button
-                    type="button"
-                    variant={sent.has(r.id) ? "ghost" : "secondary"}
-                    disabled={!r.figurants?.email || !message.trim()}
-                    onClick={() => sendTo(r)}
-                  >
-                    {sent.has(r.id) ? "Envoyé" : `Envoyer à ${r.figurants?.prenom ?? ""}`}
-                  </Button>
-                </div>
-              ))}
-          </div>
+          {convocationOuverte && (
+            <Modale
+              titre="📨 Convocation au casting"
+              sousTitre={`Pour ${selected.size} sélectionné·e${selected.size > 1 ? "s" : ""}`}
+              onClose={() => setConvocationOuverte(false)}
+            >
+            <div className="flex flex-col gap-3">
+              {sendError && <p className="text-sm text-danger">{sendError}</p>}
+              <p className="text-xs text-text-muted">
+                {"{lieu}"} et {"{horaire}"} sont remplis automatiquement par profil (lieu de la journée, créneau
+                assigné).
+              </p>
+              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Sujet" />
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={8}
+                className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              <div className="flex flex-col gap-2">
+                {rows
+                  .filter((r) => selected.has(r.id))
+                  .map((r) => (
+                    <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span>
+                        {r.figurants?.prenom} {r.figurants?.nom}
+                        {!r.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
+                      </span>
+                      <Button
+                        type="button"
+                        variant={sent.has(r.id) ? "ghost" : "secondary"}
+                        disabled={!r.figurants?.email || !message.trim()}
+                        onClick={() => sendTo(r)}
+                      >
+                        {sent.has(r.id) ? "Envoyé" : `Envoyer à ${r.figurants?.prenom ?? ""}`}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex justify-end gap-2 border-t border-border pt-3">
+                <Button type="button" variant="ghost" onClick={() => setConvocationOuverte(false)}>
+                  Fermer
+                </Button>
+                <Button type="button" disabled={!message.trim()} onClick={sendToAll}>
+                  Envoyer à tous
+                </Button>
+              </div>
+            </div>
+            </Modale>
+          )}
         </div>
       )}
     </div>
