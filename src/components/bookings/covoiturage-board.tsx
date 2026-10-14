@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { bulkUpdateBookings, copyCovoiturageToDate, recordCovoiturageMessage } from "@/lib/bookings/actions";
 import { formatDateShort } from "@/lib/format-date";
@@ -584,15 +585,11 @@ export function CovoiturageBoard({
       )}
 
       {bulkOpen && (
-        <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              Envoyer le texto/email de covoiturage à chacun ({sentIds.size}/{eligibles.length} envoyés)
-            </span>
-            <button type="button" onClick={() => setBulkOpen(false)} className="text-text-muted hover:text-coral">
-              Fermer
-            </button>
-          </div>
+        <Modale
+          titre="🚗 Messages de covoiturage"
+          sousTitre={`Texto ou email à chacun · ${sentIds.size}/${eligibles.length} envoyés`}
+          onClose={() => setBulkOpen(false)}
+        >
           <div className="flex flex-col gap-1">
             {eligibles.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
@@ -616,7 +613,7 @@ export function CovoiturageBoard({
               </div>
             ))}
           </div>
-        </div>
+        </Modale>
       )}
 
       {viewMode === "trombi" && (

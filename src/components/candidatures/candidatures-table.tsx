@@ -22,6 +22,7 @@ import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant
 import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
+import { Modale } from "@/components/ui/modale";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { MessageTemplate } from "@/lib/templates/types";
@@ -93,6 +94,7 @@ export function CandidaturesTable({
   const [bulkSubject, setBulkSubject] = useState("");
   const [bulkMessage, setBulkMessage] = useState(DEFAULT_BODY);
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
+  const [messageGroupeOuvert, setMessageGroupeOuvert] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
@@ -298,6 +300,9 @@ export function CandidaturesTable({
             >
               📏 Fiches mensuration ({selected.size})
             </a>
+            <Button type="button" variant="secondary" onClick={() => setMessageGroupeOuvert(true)}>
+              💬 Message ({selected.size})
+            </Button>
           </div>
 
           {showPreview && (() => {
@@ -359,16 +364,13 @@ export function CandidaturesTable({
         </div>
       )}
 
-      {selected.size > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
-            </span>
-            <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendBulkToAll}>
-              Envoyer à tous
-            </Button>
-          </div>
+      {messageGroupeOuvert && selected.size > 0 && (
+        <Modale
+          titre="💬 Message"
+          sousTitre={`Pour ${selected.size} sélectionné·e${selected.size > 1 ? "s" : ""}`}
+          onClose={() => setMessageGroupeOuvert(false)}
+        >
+        <div className="flex flex-col gap-3">
           {templates.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-text-muted">Modèle :</span>
@@ -395,7 +397,7 @@ export function CandidaturesTable({
           <textarea
             value={bulkMessage}
             onChange={(e) => setBulkMessage(e.target.value)}
-            rows={4}
+            rows={8}
             className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
           />
           <div className="flex flex-col gap-2">
@@ -418,7 +420,17 @@ export function CandidaturesTable({
                 </div>
               ))}
           </div>
+          {sendError && <p className="text-sm text-danger">{sendError}</p>}
+          <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <Button type="button" variant="ghost" onClick={() => setMessageGroupeOuvert(false)}>
+              Fermer
+            </Button>
+            <Button type="button" disabled={!bulkMessage.trim()} onClick={sendBulkToAll}>
+              Envoyer à tous ({rows.filter((r) => selected.has(r.id) && r.figurants?.email && !sentBulk.has(r.id)).length})
+            </Button>
+          </div>
         </div>
+        </Modale>
       )}
 
       {isTrombi ? (
@@ -616,52 +628,6 @@ export function CandidaturesTable({
                       )}
                     </td>
                   </tr>
-                  {openRowId === r.id && (
-                    <tr className="border-b border-border last:border-0 bg-ink-raised-2/40">
-                      <td colSpan={7} className="px-6 py-4">
-                        <div className="flex flex-col gap-2">
-                          {templates.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs text-text-muted">Modèle :</span>
-                              <button
-                                type="button"
-                                onClick={() => openComposer(r)}
-                                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
-                              >
-                                Vierge
-                              </button>
-                              {templates.map((t) => (
-                                <button
-                                  key={t.id}
-                                  type="button"
-                                  onClick={() => openComposer(r, t)}
-                                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
-                                >
-                                  {t.nom}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Sujet" />
-                          <textarea
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            rows={5}
-                            autoFocus
-                            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="ghost" onClick={() => setOpenRowId(null)}>
-                              Annuler
-                            </Button>
-                            <Button type="button" disabled={!message.trim()} onClick={() => sendFree(r)}>
-                              Envoyer
-                            </Button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </Fragment>
               ))}
               {rows.length === 0 && (
@@ -675,6 +641,60 @@ export function CandidaturesTable({
           </table>
         </Card>
       )}
+
+
+      {openRowId &&
+        (() => {
+          const r = rows.find((x) => x.id === openRowId);
+          if (!r) return null;
+          return (
+            <Modale
+              titre={`💬 Message à ${r.figurants?.prenom ?? ""} ${r.figurants?.nom ?? ""}`}
+              onClose={() => setOpenRowId(null)}
+            >
+              <div className="flex flex-col gap-2">
+              {templates.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-text-muted">Modèle :</span>
+                  <button
+                    type="button"
+                    onClick={() => openComposer(r)}
+                    className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                  >
+                    Vierge
+                  </button>
+                  {templates.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => openComposer(r, t)}
+                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                    >
+                      {t.nom}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Sujet" />
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={8}
+                autoFocus
+                className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" onClick={() => setOpenRowId(null)}>
+                  Annuler
+                </Button>
+                <Button type="button" disabled={!message.trim()} onClick={() => sendFree(r)}>
+                  Envoyer
+                </Button>
+              </div>
+            </div>
+            </Modale>
+          );
+        })()}
 
       {triOpen && (
         <TriRapide
