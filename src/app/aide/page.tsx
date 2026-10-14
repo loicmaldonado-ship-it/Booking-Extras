@@ -761,6 +761,12 @@ export default function AidePage() {
                 Toujours dans Équipe, section <UI>Ta boîte d&apos;envoi Gmail</UI>.
               </>,
               "Crée un mot de passe d'application sur ton compte Google (guide affiché juste en dessous), puis colle-le avec ton adresse.",
+              <>
+                Clique <UI>Tester la boîte d&apos;envoi</UI> : si Gmail refuse (mot de passe faux ou révoqué, par
+                exemple après un changement du mot de passe Google), le message l&apos;indique — recrée alors un mot
+                de passe d&apos;application. Le même bouton existe dans les réglages d&apos;un projet qui a sa propre
+                boîte.
+              </>,
             ]}
           />
         </div>

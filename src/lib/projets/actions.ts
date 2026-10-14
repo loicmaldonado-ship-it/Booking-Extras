@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto/secrets";
+import { motDePasseApp } from "@/lib/projets/email";
 import { checkProjetAccess, requireChef } from "@/lib/auth/session";
 import { projetEstSupprimable } from "./types";
 import type { Convention, ProjetType } from "./types";
@@ -63,7 +64,7 @@ export async function createProjet(_prevState: unknown, formData: FormData) {
 
   const gmailAppPasswordInput = str(formData, "gmail_smtp_app_password");
   const gmailAppPasswordEncrypted =
-    payload.gmail_smtp_user && gmailAppPasswordInput ? encryptSecret(gmailAppPasswordInput) : null;
+    payload.gmail_smtp_user && gmailAppPasswordInput ? encryptSecret(motDePasseApp(gmailAppPasswordInput)) : null;
   const gmailError = validateGmailFields(payload.gmail_smtp_user, gmailAppPasswordEncrypted);
   if (gmailError) {
     return { error: gmailError };
@@ -122,7 +123,7 @@ export async function updateProjet(
   if (!payload.gmail_smtp_user) {
     gmailAppPasswordEncrypted = null;
   } else if (gmailAppPasswordInput) {
-    gmailAppPasswordEncrypted = encryptSecret(gmailAppPasswordInput);
+    gmailAppPasswordEncrypted = encryptSecret(motDePasseApp(gmailAppPasswordInput));
   } else {
     const { data: existing } = await supabase
       .from("projets")
