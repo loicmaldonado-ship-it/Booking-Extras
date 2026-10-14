@@ -313,18 +313,6 @@ export async function updateConvocationSettings(journeeId: string, _prevState: u
   return { success: true as const };
 }
 
-export async function removeBooking(id: string) {
-  const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) return { error: accessError };
-  }
-  await supabase.from("bookings").delete().eq("id", id);
-  revalidatePath("/bookings/planning");
-  revalidatePath("/bookings");
-}
-
 // Retire des profils d'une journée (suppression des bookings sélectionnés).
 // Les passager·ères d'un·e conducteur·rice retiré·e perdent leur covoiturage.
 export async function retirerBookings(ids: string[]): Promise<{ retires: number; error?: string }> {

@@ -613,7 +613,7 @@ export default function AidePage() {
         />
         <Callout>
           <strong className="text-text">Le plan de travail change ?</strong> Sur la journée concernée,{" "}
-          <UI>🔀 Modifier le PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
+          <UI>🔀 Nouvelle journée PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
           basculer, qui a déclaré une indispo ce jour-là, et qui y est déjà calé·e (non touché·e). Tout le monde
           réapparaît sur la nouvelle journée en <strong className="text-text">À REBOOKER</strong> — les autres
           journées ne bougent pas. Coche <UI>Prévenir les profils</UI> pour leur envoyer le message (modifiable,
