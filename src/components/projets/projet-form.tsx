@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { CONVENTIONS, PROJET_TYPES, type Projet } from "@/lib/projets/types";
 import { IndemnitesManager } from "./indemnites-manager";
 import { IndemniteListEditor } from "./indemnite-list-editor";
+import { TesterBoiteButton } from "./tester-boite-button";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
 
 type Action = (
@@ -173,6 +174,7 @@ export function ProjetForm({
             correspondant.
           </p>
         )}
+        {projet?.id && projet.gmail_smtp_app_password && <TesterBoiteButton projetId={projet.id} />}
         <div className="rounded-xl border border-border bg-ink px-4 py-3 text-sm text-text-muted">
           <p className="font-medium text-text">Procédure rapide (sur le compte Gmail du projet) :</p>
           <ol className="mt-2 list-decimal space-y-1 pl-4">

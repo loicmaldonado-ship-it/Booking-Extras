@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { updateMyGmailSmtp } from "@/lib/auth/email-actions";
+import { TesterBoiteButton } from "@/components/projets/tester-boite-button";
 
 export function MyEmailPanel({ gmailUser }: { gmailUser: string | null }) {
   const [state, formAction, pending] = useActionState(updateMyGmailSmtp, undefined);
@@ -59,6 +60,7 @@ export function MyEmailPanel({ gmailUser }: { gmailUser: string | null }) {
           </div>
           {state?.error && <p className="text-sm text-danger">{state.error}</p>}
           {state?.success && <p className="text-sm text-turquoise">Enregistré.</p>}
+          {gmailUser && <TesterBoiteButton />}
           <Button type="submit" disabled={pending} className="w-full md:w-auto">
             {pending ? "Enregistrement..." : "Enregistrer"}
           </Button>
