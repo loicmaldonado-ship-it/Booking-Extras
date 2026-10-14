@@ -108,14 +108,14 @@ export function ModifierPdt({
   return (
     <>
       <Button type="button" variant="secondary" onClick={() => setOuvert(true)}>
-        🔀 Modifier le PDT
+        🔀 Nouvelle journée PDT
       </Button>
       {ouvert &&
         createPortal(
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Modifier le plan de travail"
+            aria-label="Nouvelle journée PDT"
             className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center"
             onClick={fermer}
           >
@@ -125,7 +125,7 @@ export function ModifierPdt({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-semibold">Modifier le PDT</h3>
+                  <h3 className="text-lg font-semibold">Nouvelle journée PDT</h3>
                   <p className="text-sm text-text-muted">
                     Bascule la journée du <strong>{formatDateLong(date)}</strong> vers une nouvelle date. Tout le monde y
                     réapparaît en <strong>À REBOOKER</strong> ; les autres journées ne bougent pas.

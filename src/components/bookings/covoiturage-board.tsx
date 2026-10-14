@@ -325,7 +325,7 @@ export function CovoiturageBoard({
         }}
         className={cn(
           "group relative flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border p-2 text-center active:cursor-grabbing",
-          checked ? "border-coral bg-coral/10" : "glass-subtle"
+          checked ? "border-coral bg-coral/10" : "border-border bg-ink"
         )}
       >
         <label

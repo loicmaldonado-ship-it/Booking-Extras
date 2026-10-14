@@ -114,7 +114,7 @@ export default async function ResumeProjetPage({
       <BackLink href="/bookings" label="Retour" />
 
       <div>
-        <h1 className="text-2xl font-semibold">Résumé — {projet?.nom}</h1>
+        <h1 className="text-2xl font-semibold">Vue globale du projet — {projet?.nom}</h1>
         <p className="mt-1 text-text-muted">
           Toutes les journées d&apos;un coup d&apos;œil, rangées par cachet — fonction affichée sur chaque profil.
         </p>

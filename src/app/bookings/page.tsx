@@ -81,10 +81,7 @@ export default async function BookingsPage({
         </div>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/bookings/resume?projet_id=${currentProjetId}`} variant="secondary">
-            Résumé projet
-          </ButtonLink>
-          <ButtonLink href="/bookings/planning" variant="secondary">
-            Planning
+            Vue globale du projet
           </ButtonLink>
           <ButtonLink href="/candidatures" variant="secondary">
             📄 Candidatures
