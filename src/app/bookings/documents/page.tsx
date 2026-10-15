@@ -11,6 +11,7 @@ import { JourneeTabs } from "@/components/bookings/journee-tabs";
 import { QuickAddFigurant } from "@/components/bookings/quick-add-figurant";
 import { ModifierPdt, BandeauJourneeBasculee } from "@/components/bookings/modifier-pdt";
 import { MODELE_PDT_DEFAUT } from "@/lib/bookings/pdt";
+import { DupliquerJournee } from "@/components/bookings/dupliquer-journee";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { getJournees } from "@/lib/bookings/journees";
 import { getBesoinsByJournee } from "@/lib/bookings/besoins";
@@ -323,6 +324,13 @@ export default async function JourneeDashboardPage({
             alreadyBookedIds={figurantIds}
           />
           <ModifierPdt projetId={projet_id} date={date} modeleInitial={projet?.modele_message_pdt || MODELE_PDT_DEFAUT} />
+          {currentJournee && (
+            <DupliquerJournee
+              projetId={projet_id}
+              date={date}
+              nbProfils={bookings.filter((b) => !["annulé", "indisponible", "a_rebooker"].includes(b.statut)).length}
+            />
+          )}
         </div>
       </div>
 

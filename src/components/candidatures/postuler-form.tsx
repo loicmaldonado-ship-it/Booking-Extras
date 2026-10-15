@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendrierIndispos } from "@/components/candidatures/calendrier-indispos";
 import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -250,6 +251,7 @@ export function PostulerForm({
   mesPhotos = [],
   questions,
   dates,
+  disposParCalendrier = false,
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
@@ -260,6 +262,7 @@ export function PostulerForm({
   mesPhotos?: PhotoDuCompte[];
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
+  disposParCalendrier?: boolean;
   prefill?: {
     prenom: string;
     nom: string;
@@ -688,7 +691,14 @@ export function PostulerForm({
         </Card>
       )}
 
-      {dates.length > 0 && (
+      {dates.length > 0 && disposParCalendrier && (
+        <Card className="flex flex-col gap-4">
+          <h2 className="text-sm font-semibold text-text-muted">Disponibilités</h2>
+          <CalendrierIndispos dates={dates} />
+        </Card>
+      )}
+
+      {dates.length > 0 && !disposParCalendrier && (
         <Card className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-text-muted">Disponibilités</h2>
           {dates.map((d) => (
