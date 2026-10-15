@@ -7,7 +7,8 @@ import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import type { CategorieCachet, CastingMode } from "./types";
-import type { BookingStatut } from "@/lib/bookings/types";
+import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
+import { validateCastingBulkStatusRequest } from "./bulk-status";
 
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
@@ -470,24 +471,42 @@ export async function updateCastingEntriesStatutBulk(
   entryIds: string[],
   statut: BookingStatut
 ): Promise<{ error?: string; ok?: number }> {
-  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+  // Server Actions reçoivent des valeurs non fiables, même si TypeScript
+  // annonce string[] / BookingStatut côté appelant.
+  const validated = validateCastingBulkStatusRequest(entryIds, statut, STATUTS.map((s) => s.value));
+  if (!validated.ok) return { error: validated.error };
 
   const supabase = createAdminClient();
-  const { data: entries } = await supabase.from("casting_entries").select("id, projet_id").in("id", entryIds);
-  const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
+  const { data: entries, error: readError } = await supabase
+    .from("casting_entries")
+    .select("id, projet_id")
+    .in("id", validated.ids);
+  // Ne jamais poursuivre une mutation service_role si l'autorisation
+  // n'a pas pu être entièrement établie.
+  if (readError || !entries || entries.length !== validated.ids.length) {
+    return { error: "Sélection impossible à vérifier. Actualise la page et réessaie." };
+  }
+  const projetIds = Array.from(new Set(entries.map((e) => e.projet_id)));
   for (const projetId of projetIds) {
     const accessError = await checkProjetAccess(projetId);
     if (accessError) return { error: accessError };
   }
 
-  const { error } = await supabase.from("casting_entries").update({ statut }).in("id", entryIds);
+  const { data: updated, error } = await supabase.from("casting_entries")
+    .update({ statut })
+    .in("id", validated.ids)
+    .select("id");
   if (error) return { error: error.message };
+  if (!updated || updated.length !== validated.ids.length) {
+    return { error: "Mise à jour incomplète. Actualise la page pour voir les statuts réels." };
+  }
 
   revalidatePath("/casting");
-  return { ok: entryIds.length };
+  return { ok: updated.length };
 }
 
 export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
+  if (!STATUTS.some((s) => s.value === statut)) return { error: "Statut invalide." };
   const supabase = createAdminClient();
   const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
   if (!entry) return { error: "Introuvable." };
