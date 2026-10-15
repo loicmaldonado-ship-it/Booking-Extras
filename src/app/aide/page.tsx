@@ -303,6 +303,12 @@ export default function AidePage() {
           items={[
             "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es.",
             <>
+              Pour un tournage sur plusieurs semaines, ajoute une <strong className="text-text">période</strong>{" "}
+              (du … au …) dans les dates de l&apos;annonce : un jour est créé par date (retire ceux sans tournage
+              avec ×), et les candidat·es cochent seulement leurs <strong className="text-text">indispos</strong>{" "}
+              sur un calendrier au lieu de répondre date par date.
+            </>,
+            <>
               Coche le·s <strong className="text-text">type·s de profil recherché</strong> (Figurant, Silhouette,
               Doublure...) — affiché sur l&apos;annonce publique pour que les candidat·es sachent d&apos;emblée ce
               qui est recherché.
@@ -613,6 +619,12 @@ export default function AidePage() {
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />
+        <Callout>
+          <strong className="text-text">Une journée qui ressemble à une autre ?</strong>{" "}
+          <UI>📋 Dupliquer la journée</UI> la recopie à une autre date : lieu, message de convocation, besoins, et au
+          choix les profils calés (passés en PER pour reconfirmer, ou avec leur statut actuel). Les annulé·es ne sont
+          pas repris et personne n&apos;est doublé.
+        </Callout>
         <Callout>
           <strong className="text-text">Le plan de travail change ?</strong> Sur la journée concernée,{" "}
           <UI>🔀 Nouvelle journée PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont

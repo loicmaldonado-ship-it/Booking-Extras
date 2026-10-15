@@ -168,7 +168,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet")
+    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet, dispos_par_calendrier")
     .eq("public_token", publicToken)
     .single();
 
@@ -208,9 +208,16 @@ export async function postulerAnnonce(
       return { error: "Merci de répondre à toutes les questions." };
     }
   }
-  for (const d of annonceDates ?? []) {
-    if (!str(formData, `date_${d.id}`)) {
-      return { error: "Merci d'indiquer ta disponibilité pour toutes les dates proposées." };
+  // Période de tournage : seuls les jours d'indispo sont cochés (champ
+  // `indispos`), tous les autres jours comptent comme disponibles.
+  const indispos = new Set((str(formData, "indispos") ?? "").split(",").filter(Boolean));
+  const estDispo = (dateId: string) =>
+    annonce.dispos_par_calendrier ? !indispos.has(dateId) : str(formData, `date_${dateId}`) === "oui";
+  if (!annonce.dispos_par_calendrier) {
+    for (const d of annonceDates ?? []) {
+      if (!str(formData, `date_${d.id}`)) {
+        return { error: "Merci d'indiquer ta disponibilité pour toutes les dates proposées." };
+      }
     }
   }
 
@@ -347,7 +354,7 @@ export async function postulerAnnonce(
   const disponibilites = (annonceDates ?? []).map((d) => ({
     candidature_id: candidature.id,
     annonce_date_id: d.id,
-    disponible: str(formData, `date_${d.id}`) === "oui",
+    disponible: estDispo(d.id),
   }));
   if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
 

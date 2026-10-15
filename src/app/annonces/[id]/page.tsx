@@ -156,10 +156,10 @@ export default async function AnnonceDetailPage({
         <div>
           <h2 className="text-lg font-semibold">Dates de disponibilité à demander</h2>
           <p className="text-sm text-text-muted">
-            Chaque candidat·e indiquera s&apos;il·elle est disponible ou non pour chacune de ces dates.
+            Ajoute des jours un par un, ou toute une période de tournage (du … au …).
           </p>
         </div>
-        <DatesManager annonceId={id} dates={dates} />
+        <DatesManager annonceId={id} dates={dates} disposParCalendrier={annonce.dispos_par_calendrier} />
       </Card>
 
       <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text-muted hover:text-coral">

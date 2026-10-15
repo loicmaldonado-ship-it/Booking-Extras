@@ -30,7 +30,24 @@ export function formatAnnonceDatesLabel(
   dateRecherchee: string | null
 ): string | null {
   if (annonceDates.length > 0) {
-    return annonceDates.map((d) => formatDateShort(d.date)).join(", ");
+    // Jours qui se suivent (période de tournage) : « du 20/10/2026 au
+    // 20/11/2026 » plutôt que la liste de toutes les dates.
+    const triees = Array.from(new Set(annonceDates.map((d) => d.date.slice(0, 10)))).sort();
+    const suites: string[][] = [];
+    for (const date of triees) {
+      const derniere = suites[suites.length - 1];
+      const veille = derniere ? new Date(`${derniere[derniere.length - 1]}T12:00:00Z`) : null;
+      if (veille) veille.setUTCDate(veille.getUTCDate() + 1);
+      if (derniere && veille && veille.toISOString().slice(0, 10) === date) derniere.push(date);
+      else suites.push([date]);
+    }
+    return suites
+      .map((suite) =>
+        suite.length >= 3
+          ? `du ${formatDateShort(suite[0])} au ${formatDateShort(suite[suite.length - 1])}`
+          : suite.map(formatDateShort).join(", ")
+      )
+      .join(", ");
   }
   return dateRecherchee ? formatDateShort(dateRecherchee) : null;
 }
