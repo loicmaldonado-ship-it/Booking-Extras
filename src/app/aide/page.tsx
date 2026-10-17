@@ -455,8 +455,10 @@ export default function AidePage() {
               <>
                 Ajoute des <strong className="text-text">questions</strong> (une par ligne, ex. « Parlez-vous anglais
                 ? ») : la personne répond oui / non (avec une précision si elle veut) en envoyant ses photos et
-                vidéos. Les réponses s&apos;affichent sur sa carte, et sur le lien réal avec son âge et ses
-                mensurations.
+                vidéos. Les réponses s&apos;affichent sur sa carte, et sur le lien réal avec son âge, ses
+                mensurations et les photos de son profil. Pour les rôles <strong className="text-text">silhouette</strong>{" "}
+                et <strong className="text-text">doublure</strong>, le lien réal propose aussi d&apos;office les{" "}
+                <UI>📏 Fiches de mensuration</UI> du rôle (sans téléphone ni email).
               </>,
             ]}
           />
