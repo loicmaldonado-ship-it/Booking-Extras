@@ -8,6 +8,24 @@ import { Modale } from "@/components/ui/modale";
 import { inviterAuCasting, modeleInvitationCasting } from "@/lib/casting/invitations-actions";
 
 const PAQUET = 20;
+
+// Copie un texte, y compris quand il arrive d'une requête (Safari iOS exige
+// que l'écriture parte du clic : ClipboardItem accepte une promesse).
+export async function copierTexte(texte: string | Promise<string>) {
+  try {
+    if (typeof texte !== "string" && typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({ "text/plain": texte.then((t) => new Blob([t], { type: "text/plain" })) }),
+      ]);
+      return true;
+    }
+    await navigator.clipboard.writeText(await texte);
+    return true;
+  } catch {
+    window.prompt("Copie ce message :", await texte);
+    return false;
+  }
+}
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Colle une liste d'emails (une par ligne, ou séparées par virgules /
@@ -26,7 +44,7 @@ function lireEmails(texte: string) {
   return { valides, invalides };
 }
 
-export function InviterCasting({ roleId, roleNom }: { roleId: string; roleNom: string }) {
+export function InviterCasting({ roleId, roleNom, lien }: { roleId: string; roleNom: string; lien: string }) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const [chargement, setChargement] = useState(false);
@@ -39,6 +57,14 @@ export function InviterCasting({ roleId, roleNom }: { roleId: string; roleNom: s
   const [progression, setProgression] = useState<string | null>(null);
   const [bilan, setBilan] = useState<{ envoyes: number; echecs: { email: string; raison: string }[] } | null>(null);
   const [pending, demarrer] = useTransition();
+  const [texteCopie, setTexteCopie] = useState(false);
+
+  async function copierEnTexto() {
+    if (await copierTexte(corps.replaceAll("{lien}", lien))) {
+      setTexteCopie(true);
+      setTimeout(() => setTexteCopie(false), 2000);
+    }
+  }
 
   const { valides, invalides } = useMemo(() => lireEmails(listeBrute), [listeBrute]);
   const aEnvoyer = renvoyer ? valides : valides.filter((e) => !dejaInvites.has(e));
@@ -180,9 +206,18 @@ export function InviterCasting({ roleId, roleNom }: { roleId: string; roleNom: s
               </label>
               {erreur && <p className="text-sm text-danger">{erreur}</p>}
               {progression && <p className="text-sm text-text-muted">{progression}</p>}
-              <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
                 <Button type="button" variant="ghost" onClick={fermer} disabled={pending}>
                   Annuler
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={copierEnTexto}
+                  disabled={!corps.trim()}
+                  title="Copie le message avec le lien, à coller dans un SMS / WhatsApp"
+                >
+                  {texteCopie ? "Copié !" : "📱 Copier en texto"}
                 </Button>
                 <Button
                   type="button"

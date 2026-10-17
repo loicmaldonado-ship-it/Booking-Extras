@@ -473,9 +473,10 @@ export default function AidePage() {
                 (une par ligne ou séparées par des virgules, même une colonne Excel) et vérifie le message : tout le
                 monde reçoit le lien d&apos;un coup. Chaque personne crée son compte (ou se connecte), envoie ses photos
                 et vidéos calibrées et apparaît toute seule dans le rôle. Le bloc indique combien ont été invité·es,
-                ont rejoint et ont tout envoyé ; les adresses déjà invitées ne reçoivent pas le mail deux fois. Tu
-                peux aussi simplement <UI>Copier</UI> le lien (SMS, réseaux…), et <UI>Couper le lien</UI> quand tu
-                as assez de monde.
+                ont rejoint et ont tout envoyé ; les adresses déjà invitées ne reçoivent pas le mail deux fois. Pour
+                un SMS ou WhatsApp, <UI>📱 Copier le texto</UI> copie le message d&apos;invitation avec le lien (ou{" "}
+                <UI>📱 Copier en texto</UI> dans la fenêtre, après l&apos;avoir modifié) ; <UI>Copier</UI> ne copie
+                que le lien. <UI>Couper le lien</UI> le ferme quand tu as assez de monde.
               </>,
               "Une fois la vidéo reçue, clique sur le profil pour la visionner et zoomer les photos, directement dans la page.",
             ]}

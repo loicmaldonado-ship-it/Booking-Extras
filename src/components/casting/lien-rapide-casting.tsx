@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setLienRapideActif } from "@/lib/casting/actions";
-import { InviterCasting } from "@/components/casting/inviter-casting";
+import { InviterCasting, copierTexte } from "@/components/casting/inviter-casting";
+import { modeleInvitationCasting } from "@/lib/casting/invitations-actions";
 import type { InvitationsRole } from "@/lib/casting/data";
 
 // Lien rapide d'un rôle : à envoyer à plusieurs personnes (SMS, réseaux…).
@@ -24,6 +25,16 @@ export function LienRapideCasting({
 }) {
   const router = useRouter();
   const [copie, setCopie] = useState(false);
+  const [texteCopie, setTexteCopie] = useState(false);
+
+  // Message d'invitation tout prêt (lien compris) pour un SMS / WhatsApp.
+  async function copierTexto() {
+    const texte = modeleInvitationCasting(roleId).then((m) => (m.corps ?? lien).replaceAll("{lien}", lien));
+    if (await copierTexte(texte)) {
+      setTexteCopie(true);
+      setTimeout(() => setTexteCopie(false), 2000);
+    }
+  }
   const [pending, demarrer] = useTransition();
 
   async function copier() {
@@ -62,7 +73,17 @@ export function LienRapideCasting({
       ) : (
         <span className="flex-1 text-xs text-text-muted">Coupé : le lien n&apos;accepte plus personne.</span>
       )}
-      {actif && <InviterCasting roleId={roleId} roleNom={roleNom} />}
+      {actif && (
+        <button
+          type="button"
+          onClick={copierTexto}
+          title="Copie le message d'invitation avec le lien, à coller dans un SMS / WhatsApp"
+          className="rounded-full border border-coral px-3 py-1 text-xs font-semibold text-coral hover:bg-coral/10"
+        >
+          {texteCopie ? "Copié !" : "📱 Copier le texto"}
+        </button>
+      )}
+      {actif && <InviterCasting roleId={roleId} roleNom={roleNom} lien={lien} />}
       <button
         type="button"
         onClick={basculer}
