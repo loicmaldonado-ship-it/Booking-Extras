@@ -83,9 +83,12 @@ export function AppShell({
   const isPublic = isAccueilPublic || PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
   // The documents/essayages share pages render full-width landscape PDF
   // sheets (up to 1123px) — they need a much wider container than the
-  // narrow candidate-facing forms (postuler, disponibilites, login).
+  // narrow candidate-facing forms (postuler, disponibilites, login). Le lien
+  // réal (/partage/casting) aussi : grandes vignettes de profils.
   const isWidePublic =
-    pathname?.startsWith("/partage/documents") || pathname?.startsWith("/partage/essayages");
+    pathname?.startsWith("/partage/documents") ||
+    pathname?.startsWith("/partage/essayages") ||
+    pathname?.startsWith("/partage/casting");
 
   // Fiche membre obligatoire pour les cheffes (photo, nom, prénom,
   // téléphone) — tant qu'elle n'est pas complète, on bloque le reste de
