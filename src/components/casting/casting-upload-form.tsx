@@ -8,6 +8,7 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { GENRES } from "@/lib/figurants/types";
 import type { FicheCasting } from "@/lib/casting/fiche";
+import type { ReponseCasting } from "@/lib/casting/types";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
@@ -95,6 +96,7 @@ export function CastingUploadForm({
   demandeBandeDemo,
   apresEnvoi = null,
   fiche,
+  questions = [],
 }: {
   token: string;
   nbVideos: number;
@@ -104,6 +106,8 @@ export function CastingUploadForm({
   apresEnvoi?: ReactNode;
   // Fiche à compléter / vérifier (pré-remplie avec ce qu'on sait déjà).
   fiche: FicheCasting;
+  // Questions oui / non du rôle (réponse obligatoire, précision libre).
+  questions?: string[];
 }) {
   const ficheRef = useRef<HTMLFormElement>(null);
   const [videos, setVideos] = useState<(File | null)[]>(Array.from({ length: nbVideos }, () => null));
@@ -177,11 +181,34 @@ export function CastingUploadForm({
     };
   }
 
+  function lireReponses(): ReponseCasting[] | null {
+    const form = ficheRef.current;
+    if (!form || questions.length === 0) return [];
+    const fd = new FormData(form);
+    const reponses: ReponseCasting[] = [];
+    for (let i = 0; i < questions.length; i++) {
+      const r = fd.get(`question_${i}`);
+      if (r !== "oui" && r !== "non") return null;
+      const precision = String(fd.get(`precision_${i}`) ?? "").trim();
+      reponses.push({ question: questions[i], reponse: r, precision: precision || null });
+    }
+    return reponses;
+  }
+
   async function submit() {
     setError(null);
     const ficheRemplie = lireFiche();
+    const reponses = lireReponses();
+    if (ficheRemplie && !reponses) {
+      setError("Réponds à toutes les questions (oui ou non).");
+      return;
+    }
     if (!ficheRemplie) {
-      setError("Complète ta fiche (date de naissance, mensurations…) avant d'envoyer.");
+      setError(
+        questions.length > 0
+          ? "Complète ta fiche et réponds aux questions avant d'envoyer (les champs manquants sont signalés)."
+          : "Complète ta fiche (date de naissance, mensurations…) avant d'envoyer."
+      );
       return;
     }
     if (!ficheRemplie.date_naissance) {
@@ -229,7 +256,7 @@ export function CastingUploadForm({
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
       setStep("Finalisation...");
-      const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo, fiche: ficheRemplie });
+      const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo, fiche: ficheRemplie, reponses: reponses ?? [] });
       if (result?.error) {
         setError(result.error);
         setStep(null);
@@ -313,6 +340,32 @@ export function CastingUploadForm({
               <Input name="pantalon" placeholder="Ex. 42" required defaultValue={fiche.pantalon ?? undefined} />
             </Field>
           </div>
+          {questions.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-border pt-3">
+              <span className="text-xs font-medium text-text-muted">Questions</span>
+              {questions.map((q, i) => (
+                <div key={i} className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">{q} *</span>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-sm">
+                      <input type="radio" name={`question_${i}`} value="oui" required className="accent-turquoise" />
+                      Oui
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm">
+                      <input type="radio" name={`question_${i}`} value="non" required className="accent-coral" />
+                      Non
+                    </label>
+                    <Input
+                      name={`precision_${i}`}
+                      placeholder="Précision (facultatif)"
+                      maxLength={200}
+                      className="min-w-0 flex-1"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </Card>
       {nbVideos > 0 && (

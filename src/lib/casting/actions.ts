@@ -8,6 +8,15 @@ import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import type { CategorieCachet, CastingMode } from "./types";
 import type { BookingStatut } from "@/lib/bookings/types";
 
+// Questions oui / non posées sur la page d'envoi : une par ligne.
+function parseQuestions(formData: FormData): string[] {
+  return String(formData.get("questions") ?? "")
+    .split("\n")
+    .map((q) => q.trim().slice(0, 200))
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
     .getAll("photo_label")
@@ -74,6 +83,7 @@ export async function createCastingRole(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const questions = parseQuestions(formData);
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
 
@@ -103,6 +113,7 @@ export async function createCastingRole(
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
+      questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
     })
@@ -150,6 +161,7 @@ export async function updateCastingRoleCalibration(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const questions = parseQuestions(formData);
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
 
@@ -180,6 +192,7 @@ export async function updateCastingRoleCalibration(
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
+      questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
       ...pdfPatch,

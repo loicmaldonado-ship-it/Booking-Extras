@@ -705,6 +705,20 @@ export function CastingEntryManageCard({
         </Link>
       )}
 
+      {(entry.reponses ?? []).length > 0 && (
+        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-ink px-2 py-1.5 text-xs">
+          {entry.reponses.map((r) => (
+            <p key={r.question}>
+              {r.question}{" "}
+              <strong className={r.reponse === "oui" ? "text-turquoise" : "text-danger"}>
+                {r.reponse === "oui" ? "Oui" : "Non"}
+              </strong>
+              {r.precision ? <span className="text-text-muted"> — {r.precision}</span> : null}
+            </p>
+          ))}
+        </div>
+      )}
+
       <EntryNotesField initialValue={entry.notes} onSave={(notes) => updateCastingEntryNotes(entry.id, notes)} />
 
       <Button type="button" variant="ghost" disabled={pending} onClick={removeEntry}>

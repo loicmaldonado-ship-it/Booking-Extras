@@ -11,6 +11,8 @@ import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
+import { computeAge } from "@/lib/documents/fields";
+import type { CastingEntry } from "@/lib/casting/types";
 import { formatTournageLabel } from "@/lib/casting/types";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -132,6 +134,9 @@ export default async function PartageCastingPage({
                   portraitUrl: pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null,
                   videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
                   photos: entryPhotosByEntry.get(entry.id) ?? [],
+                  age: computeAge(entry.figurants?.date_naissance ?? null),
+                  mensurations: mensurationsDe(entry.figurants),
+                  reponses: entry.reponses ?? [],
                 }));
                 return items.map((item, i) => (
                   <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
@@ -148,4 +153,16 @@ export default async function PartageCastingPage({
       {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
     </div>
   );
+}
+
+// Mensurations montrées au·à la réal (seulement celles renseignées).
+function mensurationsDe(f: CastingEntry["figurants"]): CastingRealEntryItem["mensurations"] {
+  if (!f) return [];
+  const liste: CastingRealEntryItem["mensurations"] = [];
+  if (f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
+  if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
+  if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
+  if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
+  if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  return liste;
 }

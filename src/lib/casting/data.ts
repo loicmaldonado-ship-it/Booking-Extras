@@ -7,7 +7,7 @@ export async function getCastingRoles(projetId: string): Promise<CastingRole[]> 
   const { data } = await supabase
     .from("casting_roles")
     .select(
-      "id, projet_id, nom, date_tournage, date_tournage_fin, date_limite_envoi, categorie_cachet, ordre, mode, nb_videos, photo_labels, demande_bande_demo, message_corps, visible_partage, pdf_storage_path, pdf_filename, created_at, public_token, lien_public_actif"
+      "id, projet_id, nom, date_tournage, date_tournage_fin, date_limite_envoi, categorie_cachet, ordre, mode, nb_videos, photo_labels, demande_bande_demo, message_corps, visible_partage, pdf_storage_path, pdf_filename, created_at, public_token, lien_public_actif, questions"
     )
     .eq("projet_id", projetId)
     .order("ordre", { ascending: true })
@@ -21,7 +21,7 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, video_labels, requested_at, submitted_at, statut, mode, notes, visible_partage, figurants(prenom, nom, email, telephone, adresse, code_postal, ville, genre, date_naissance, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence)"
+      "id, projet_id, role_id, figurant_id, booking_id, candidature_id, request_token, video_storage_paths, video_labels, requested_at, submitted_at, statut, mode, notes, visible_partage, reponses, figurants(prenom, nom, email, telephone, adresse, code_postal, ville, genre, date_naissance, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter, compte_myrole, est_comedien, agent_nom, agent_email, agent_telephone, agent_agence, taille_cm, poids_kg, pointure, veste, pantalon)"
     )
     .eq("projet_id", projetId)
     .order("requested_at", { ascending: false })

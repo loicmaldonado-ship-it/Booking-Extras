@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Textarea, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
 import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole } from "@/lib/casting/types";
 
@@ -88,6 +88,19 @@ export function CastingRoleForm({
       <Field label="Nombre de vidéos demandées">
         <Input type="number" name="nb_videos" min={0} defaultValue={role?.nb_videos ?? 1} className="w-24" />
       </Field>
+
+      <Field label="Questions (oui / non) — une par ligne">
+        <Textarea
+          name="questions"
+          rows={3}
+          placeholder={"Parlez-vous anglais ?\nAvez-vous le permis de conduire ?"}
+          defaultValue={(role?.questions ?? []).join("\n")}
+        />
+      </Field>
+      <p className="-mt-2 text-xs text-text-muted">
+        Posées sur la page d&apos;envoi des photos / vidéos (réponse oui / non, précision facultative). Les réponses
+        sont visibles dans le rôle et sur le lien réal.
+      </p>
 
       <Field label="Photos demandées (nom du matériau)">
         <div className="flex flex-col gap-2">

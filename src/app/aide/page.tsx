@@ -452,6 +452,12 @@ export default function AidePage() {
                 l&apos;envoi côté candidat une fois passée.
               </>,
               "Personnalise, si besoin, le corps du mail d'invitation — sinon un message par défaut est généré avec le lien.",
+              <>
+                Ajoute des <strong className="text-text">questions</strong> (une par ligne, ex. « Parlez-vous anglais
+                ? ») : la personne répond oui / non (avec une précision si elle veut) en envoyant ses photos et
+                vidéos. Les réponses s&apos;affichent sur sa carte, et sur le lien réal avec son âge et ses
+                mensurations.
+              </>,
             ]}
           />
         </div>
