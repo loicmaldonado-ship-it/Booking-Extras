@@ -9,17 +9,39 @@ on run argv
 	set modeEnvoi to item 3 of argv
 	tell application "Messages"
 		if modeEnvoi is "verifier" then
-			return (service type of every account) as text
+			set listeTypes to {}
+			repeat with unCompte in (every account)
+				try
+					set end of listeTypes to (service type of unCompte) as text
+				end try
+			end repeat
+			return listeTypes as text
 		end if
+		-- Comptes vérifiés un par un : sur certains Mac, lire le type d'un
+		-- compte échoue (-10000) et ferait tout basculer en iMessage
+		-- (« Non distribué » pour les numéros sans iMessage).
 		set leService to missing value
 		if modeEnvoi is "sms" then
-			try
-				set leService to 1st account whose service type = SMS
-			end try
+			repeat with unCompte in (every account)
+				try
+					if (service type of unCompte) is SMS and (enabled of unCompte) then
+						set leService to contents of unCompte
+						exit repeat
+					end if
+				end try
+			end repeat
 		end if
 		if leService is missing value then
-			set leService to 1st account whose service type = iMessage
+			repeat with unCompte in (every account)
+				try
+					if (service type of unCompte) is iMessage and (enabled of unCompte) then
+						set leService to contents of unCompte
+						exit repeat
+					end if
+				end try
+			end repeat
 		end if
+		if leService is missing value then error "Aucun compte Messages utilisable (SMS ou iMessage)."
 		set leContact to participant numero of leService
 		send texte to leContact
 	end tell
