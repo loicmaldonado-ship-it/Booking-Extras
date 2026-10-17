@@ -1,6 +1,7 @@
 "use server";
 
 import type { FicheCasting } from "./fiche";
+import type { ReponseCasting } from "./types";
 import { GENRES } from "@/lib/figurants/types";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,6 +20,7 @@ type EntryWithRole = {
     photo_labels: string[];
     demande_bande_demo: boolean;
     date_limite_envoi: string | null;
+    questions: string[];
   } | null;
   figurants: { prenom: string; nom: string } | null;
 };
@@ -28,7 +30,7 @@ async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi), figurants(prenom, nom)"
+      "id, projet_id, figurant_id, statut, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi, questions), figurants(prenom, nom)"
     )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
@@ -152,6 +154,7 @@ export async function finalizeCastingUpload(
     photos: { label: string; path: string }[];
     bandeDemo?: string;
     fiche?: FicheCasting;
+    reponses?: ReponseCasting[];
   }
 ): Promise<{ error?: string; success?: boolean }> {
   const entry = await loadEntry(requestToken);
@@ -217,10 +220,25 @@ export async function finalizeCastingUpload(
   // "Complet" directement, ça reste un choix du staff une fois relu. Ne
   // fait jamais régresser un statut déjà avancé à la main (ex. si le staff
   // a déjà relancé ou validé avant un renvoi via ce même lien).
-  const patch: { video_storage_paths: string[]; submitted_at: string; statut?: "envoyé" } = {
+  // Réponses aux questions du rôle : une par question, oui / non.
+  const questions = role?.questions ?? [];
+  const reponses: ReponseCasting[] = [];
+  for (const question of questions) {
+    const r = (payload.reponses ?? []).find((x) => x.question === question);
+    if (!r || (r.reponse !== "oui" && r.reponse !== "non")) return { error: "Réponds à toutes les questions." };
+    reponses.push({ question, reponse: r.reponse, precision: r.precision?.trim().slice(0, 200) || null });
+  }
+
+  const patch: {
+    video_storage_paths: string[];
+    submitted_at: string;
+    statut?: "envoyé";
+    reponses?: ReponseCasting[];
+  } = {
     video_storage_paths: payload.videoPaths,
     submitted_at: new Date().toISOString(),
   };
+  if (questions.length > 0) patch.reponses = reponses;
   if (entry.statut === "proposé") patch.statut = "envoyé";
 
   const { error } = await supabase.from("casting_entries").update(patch).eq("id", entry.id);

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
+import type { ReponseCasting } from "@/lib/casting/types";
 
 export type CastingRealEntryItem = {
   id: string;
@@ -14,6 +15,10 @@ export type CastingRealEntryItem = {
   valide: boolean;
   videoUrls: { url: string; label: string }[];
   photos: { label: string; url: string }[];
+  // Pour le·la réal : âge, mensurations et réponses aux questions du rôle.
+  age: number | null;
+  mensurations: { cle: "mens_taille" | "mens_poids" | "mens_pointure" | "mens_veste" | "mens_pantalon"; valeur: string }[];
+  reponses: ReponseCasting[];
 };
 
 // Une fenêtre à la fois pour tout le rôle (au lieu d'un déplié par profil
@@ -127,6 +132,33 @@ function CastingRealMediaModal({
           </div>
         </div>
 
+        {(item.age !== null || item.mensurations.length > 0) && (
+          <div className="flex flex-wrap gap-1.5 text-xs">
+            {item.age !== null && (
+              <span className="rounded-full bg-ink px-2.5 py-1 font-semibold">{t(lang, "age_ans", { n: String(item.age) })}</span>
+            )}
+            {item.mensurations.map((m) => (
+              <span key={m.cle} className="rounded-full bg-ink px-2.5 py-1">
+                <span className="text-text-muted">{t(lang, m.cle)} </span>
+                <span className="font-semibold">{m.valeur}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {item.reponses.length > 0 && (
+          <div className="flex flex-col gap-1 rounded-xl border border-border bg-ink px-3 py-2 text-sm">
+            <span className="text-xs font-medium text-text-muted">{t(lang, "reponses_titre")}</span>
+            {item.reponses.map((r) => (
+              <p key={r.question}>
+                {r.question}{" "}
+                <strong className={r.reponse === "oui" ? "text-turquoise" : "text-danger"}>{t(lang, r.reponse)}</strong>
+                {r.precision ? <span className="text-text-muted"> — {r.precision}</span> : null}
+              </p>
+            ))}
+          </div>
+        )}
+
         {item.videoUrls.map((v) => {
           const isOpen = openVideo === v.url;
           return (
@@ -209,17 +241,19 @@ export function CastingRealEntryCard({
   const item = items[index];
   if (!item) return null;
   const hasMedia = item.videoUrls.length > 0 || item.photos.length > 0;
+  // La fiche s'ouvre aussi sans vidéo/photo dès qu'il y a des infos à lire.
+  const peutOuvrir = hasMedia || item.reponses.length > 0 || item.age !== null || item.mensurations.length > 0;
 
   return (
     <>
       <button
         type="button"
         onClick={() => {
-          if (!hasMedia) return;
+          if (!peutOuvrir) return;
           setCurrent(index);
           setOpen(true);
         }}
-        disabled={!hasMedia}
+        disabled={!peutOuvrir}
         className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-ink-raised-2">
@@ -242,6 +276,16 @@ export function CastingRealEntryCard({
         </div>
         <div className="flex flex-col gap-1.5 px-3 py-2.5">
           <span className="truncate font-medium">{item.nom}</span>
+          {(item.age !== null || item.mensurations.some((m) => m.cle === "mens_taille")) && (
+            <span className="-mt-1 truncate text-xs text-text-muted">
+              {[
+                item.age !== null ? t(lang, "age_ans", { n: String(item.age) }) : null,
+                item.mensurations.find((m) => m.cle === "mens_taille")?.valeur ?? null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {roleLabel && <Badge>{roleLabel}</Badge>}
             <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>

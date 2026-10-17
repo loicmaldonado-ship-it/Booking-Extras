@@ -97,6 +97,15 @@ const DICT = {
   fermer: { fr: "Fermer", en: "Close" },
   profil_precedent: { fr: "Profil précédent", en: "Previous profile" },
   profil_suivant: { fr: "Profil suivant", en: "Next profile" },
+  age_ans: { fr: "{n} ans", en: "{n} y.o." },
+  mens_taille: { fr: "Taille", en: "Height" },
+  mens_poids: { fr: "Poids", en: "Weight" },
+  mens_pointure: { fr: "Pointure", en: "Shoe size" },
+  mens_veste: { fr: "Veste", en: "Jacket" },
+  mens_pantalon: { fr: "Pantalon", en: "Trousers" },
+  reponses_titre: { fr: "Réponses", en: "Answers" },
+  oui: { fr: "Oui", en: "Yes" },
+  non: { fr: "Non", en: "No" },
 
   // Essayages
   planning_essayages_jour: { fr: "Planning des essayages par jour — lecture seule.", en: "Fitting schedule by day — read only." },

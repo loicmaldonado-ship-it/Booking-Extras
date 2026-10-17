@@ -23,7 +23,7 @@ export default async function CastingUploadPage({
   const { data: entry } = await supabase
     .from("casting_entries")
     .select(
-      "id, submitted_at, figurants(prenom, cree_via_casting, date_naissance, genre, code_postal, ville, taille_cm, poids_kg, pointure, veste, pantalon), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
+      "id, submitted_at, figurants(prenom, cree_via_casting, date_naissance, genre, code_postal, ville, taille_cm, poids_kg, pointure, veste, pantalon), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi, questions)"
     )
     .eq("request_token", token)
     .maybeSingle<{
@@ -36,6 +36,7 @@ export default async function CastingUploadPage({
         photo_labels: string[];
         demande_bande_demo: boolean;
         date_limite_envoi: string | null;
+        questions: string[];
       } | null;
     }>();
 
@@ -92,6 +93,7 @@ export default async function CastingUploadPage({
           photoLabels={entry.casting_roles?.photo_labels ?? []}
           demandeBandeDemo={entry.casting_roles?.demande_bande_demo ?? false}
           apresEnvoi={proposerCompte ? <InviteCompte /> : null}
+          questions={entry.casting_roles?.questions ?? []}
           fiche={{
             date_naissance: entry.figurants?.date_naissance ?? null,
             genre: entry.figurants?.genre ?? null,

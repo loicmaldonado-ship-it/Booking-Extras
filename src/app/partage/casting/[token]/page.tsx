@@ -11,6 +11,8 @@ import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
+import { computeAge } from "@/lib/documents/fields";
+import type { CastingEntry } from "@/lib/casting/types";
 import { formatTournageLabel } from "@/lib/casting/types";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -116,11 +118,24 @@ export default async function PartageCastingPage({
         const roleEntries = entriesByRole.get(role.id) ?? [];
         return (
           <Card key={role.id} className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">{role.nom}</h2>
-              {formatTournageLabel(role.date_tournage, role.date_tournage_fin) && (
-                <Badge>{formatTournageLabel(role.date_tournage, role.date_tournage_fin)}</Badge>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {formatTournageLabel(role.date_tournage, role.date_tournage_fin) && (
+                  <Badge>{formatTournageLabel(role.date_tournage, role.date_tournage_fin)}</Badge>
+                )}
+                {(role.categorie_cachet === "silhouette" || role.categorie_cachet === "doublure") &&
+                  roleEntries.length > 0 && (
+                    <a
+                      href={`/partage/casting/${token}/fiches-mensuration?role=${role.id}${lang === "en" ? "&lang=en" : ""}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+                    >
+                      📏 {t(lang, "fiches_mensuration_titre")}
+                    </a>
+                  )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -131,7 +146,13 @@ export default async function PartageCastingPage({
                   valide: entry.statut === "valide",
                   portraitUrl: pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null,
                   videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
-                  photos: entryPhotosByEntry.get(entry.id) ?? [],
+                  photos: [
+                    ...(entryPhotosByEntry.get(entry.id) ?? []),
+                    ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
+                  ],
+                  age: computeAge(entry.figurants?.date_naissance ?? null),
+                  mensurations: mensurationsDe(entry.figurants),
+                  reponses: entry.reponses ?? [],
                 }));
                 return items.map((item, i) => (
                   <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
@@ -148,4 +169,36 @@ export default async function PartageCastingPage({
       {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
     </div>
   );
+}
+
+// Mensurations montrées au·à la réal (seulement celles renseignées).
+function mensurationsDe(f: CastingEntry["figurants"]): CastingRealEntryItem["mensurations"] {
+  if (!f) return [];
+  const liste: CastingRealEntryItem["mensurations"] = [];
+  if (f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
+  if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
+  if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
+  if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
+  if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  return liste;
+}
+
+// Photos du profil (portrait, en pied, selfie…), montrées au·à la réal en
+// plus de celles envoyées pour le casting. Les essayages d'autres projets
+// et les photos de véhicule restent de côté.
+const LIBELLES_PHOTO: Record<string, { fr: string; en: string }> = {
+  portrait: { fr: "Portrait", en: "Portrait" },
+  pied: { fr: "En pied", en: "Full length" },
+  selfie: { fr: "Selfie", en: "Selfie" },
+  autre: { fr: "Photo", en: "Photo" },
+  tenue: { fr: "Essayage", en: "Fitting" },
+};
+function photosDuProfil(
+  photos: { type: string; url: string | null; projet_id: string | null }[] | undefined,
+  projetId: string,
+  lang: "fr" | "en"
+): { label: string; url: string }[] {
+  return (photos ?? [])
+    .filter((p) => p.url && p.type in LIBELLES_PHOTO && (p.type !== "tenue" || p.projet_id === projetId))
+    .map((p) => ({ label: LIBELLES_PHOTO[p.type][lang], url: p.url! }));
 }
