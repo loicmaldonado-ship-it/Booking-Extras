@@ -3,18 +3,24 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setLienRapideActif } from "@/lib/casting/actions";
+import { InviterCasting } from "@/components/casting/inviter-casting";
+import type { InvitationsRole } from "@/lib/casting/data";
 
 // Lien rapide d'un rôle : à envoyer à plusieurs personnes (SMS, réseaux…).
 // Chacune se connecte ou crée son compte puis envoie ses photos / vidéos ;
 // elle apparaît alors dans ce rôle.
 export function LienRapideCasting({
   roleId,
+  roleNom,
   lien,
   actif,
+  invitations,
 }: {
   roleId: string;
+  roleNom: string;
   lien: string;
   actif: boolean;
+  invitations: InvitationsRole | null;
 }) {
   const router = useRouter();
   const [copie, setCopie] = useState(false);
@@ -56,6 +62,7 @@ export function LienRapideCasting({
       ) : (
         <span className="flex-1 text-xs text-text-muted">Coupé : le lien n&apos;accepte plus personne.</span>
       )}
+      {actif && <InviterCasting roleId={roleId} roleNom={roleNom} />}
       <button
         type="button"
         onClick={basculer}
@@ -65,9 +72,15 @@ export function LienRapideCasting({
         {actif ? "Couper le lien" : "Réactiver le lien"}
       </button>
       <p className="w-full text-xs text-text-muted">
-        Envoie-le à qui tu veux : chaque personne se connecte (ou crée son compte) puis envoie les photos et vidéos
-        calibrées pour ce rôle — elle apparaît ici automatiquement.
+        Copie-le ou <strong>invite par email</strong> des personnes pas encore dans la base : chacune crée son compte
+        (ou se connecte) puis envoie les photos et vidéos calibrées pour ce rôle — elle apparaît ici automatiquement.
       </p>
+      {invitations && invitations.invites > 0 && (
+        <p className="w-full text-xs">
+          ✉️ {invitations.invites} invité·e{invitations.invites > 1 ? "s" : ""} par email · {invitations.inscrits} ont
+          rejoint le rôle · {invitations.envoyes} ont tout envoyé
+        </p>
+      )}
     </div>
   );
 }

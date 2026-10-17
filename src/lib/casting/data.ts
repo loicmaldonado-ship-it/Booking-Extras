@@ -92,3 +92,37 @@ export async function getCastingEntryPhotos(
 
   return map;
 }
+
+export type InvitationsRole = { invites: number; inscrits: number; envoyes: number };
+
+// Suivi des invitations par email d'un projet, par rôle : combien invité·es,
+// combien ont rejoint le rôle (fiche créée), combien ont tout envoyé.
+export async function getInvitationsParRole(projetId: string): Promise<Map<string, InvitationsRole>> {
+  const supabase = createAdminClient();
+  const [{ data: invitations }, { data: entrees }] = await Promise.all([
+    supabase
+      .from("casting_invitations")
+      .select("role_id, email, casting_roles!inner(projet_id)")
+      .eq("casting_roles.projet_id", projetId),
+    supabase
+      .from("casting_entries")
+      .select("role_id, submitted_at, figurants(email)")
+      .eq("projet_id", projetId)
+      .returns<{ role_id: string; submitted_at: string | null; figurants: { email: string | null } | null }[]>(),
+  ]);
+  const entreeParRoleEmail = new Map<string, { submitted: boolean }>();
+  for (const e of entrees ?? []) {
+    const email = e.figurants?.email?.toLowerCase();
+    if (email) entreeParRoleEmail.set(`${e.role_id}|${email}`, { submitted: !!e.submitted_at });
+  }
+  const resultat = new Map<string, InvitationsRole>();
+  for (const i of invitations ?? []) {
+    const stats = resultat.get(i.role_id) ?? { invites: 0, inscrits: 0, envoyes: 0 };
+    stats.invites += 1;
+    const entree = entreeParRoleEmail.get(`${i.role_id}|${i.email}`);
+    if (entree) stats.inscrits += 1;
+    if (entree?.submitted) stats.envoyes += 1;
+    resultat.set(i.role_id, stats);
+  }
+  return resultat;
+}
