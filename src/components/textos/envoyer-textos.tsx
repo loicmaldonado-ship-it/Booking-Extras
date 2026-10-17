@@ -17,10 +17,13 @@ export function EnvoyerTextos({
   destinataires,
   libelle = "📱 Envoyer en textos",
   disabled = false,
+  onEnvoye,
 }: {
   destinataires: DestinataireTexto[];
   libelle?: string;
   disabled?: boolean;
+  // Appelé une fois les textos partis / mis en file (ex. garder le message).
+  onEnvoye?: () => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
@@ -44,6 +47,7 @@ export function EnvoyerTextos({
       ok: true,
       texte: `Liste de ${valides.length} texto${valides.length > 1 ? "s" : ""} copiée : le raccourci les envoie.`,
     });
+    onEnvoye?.();
     window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(NOM_RACCOURCI)}`;
   }
 
@@ -52,9 +56,12 @@ export function EnvoyerTextos({
     if (!confirm(`Envoyer ${valides.length} texto${valides.length > 1 ? "s" : ""} depuis ton Mac ?`)) return;
     demarrer(async () => {
       const res = await mettreEnFileTextos(valides.map((d) => ({ nom: d.nom, telephone: d.tel, texte: d.texte })));
-      if (res.error) setMessage({ ok: false, texte: res.error });
-      else
-        setMessage({
+      if (res.error) {
+        setMessage({ ok: false, texte: res.error });
+        return;
+      }
+      onEnvoye?.();
+      setMessage({
           ok: true,
           texte: `${res.enFile} texto${res.enFile > 1 ? "s" : ""} en file : ton Mac les envoie un par un (environ 10 s d'écart).`,
         });
