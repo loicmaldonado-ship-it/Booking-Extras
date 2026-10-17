@@ -820,6 +820,25 @@ export default function AidePage() {
             ]}
           />
         </div>
+        <div>
+          <p className="mb-2 text-sm font-semibold">Textos en masse (depuis ton numéro)</p>
+          <Steps
+            items={[
+              <>
+                Dans Équipe, section <UI>📱 Textos en masse</UI> : installe le{" "}
+                <strong className="text-text">raccourci iPhone</strong> (un fichier à ajouter dans l&apos;app
+                Raccourcis) et/ou le <strong className="text-text">relais Mac</strong> (une commande à coller dans le
+                Terminal du Mac). Le bouton « Texto d&apos;essai à mon numéro » vérifie que tout marche.
+              </>,
+              <>
+                Ensuite, dans un message de journée (convocation, message libre) ou de casting :{" "}
+                <UI>📱 En textos</UI> → <UI>Depuis mon iPhone</UI> (site ouvert sur l&apos;iPhone) ou{" "}
+                <UI>Depuis mon Mac</UI> (le Mac allumé les envoie un par un, toutes les 8 à 15 secondes, avec Messages).
+                Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle.
+              </>,
+            ]}
+          />
+        </div>
         <Callout tone="yellow">
           <strong className="text-text">Obligatoire si tu n&apos;es pas le compte principal.</strong> Sans
           boîte configurée, l&apos;envoi de tout message (convocations, casting, espace perso...) est bloqué —

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Modale } from "@/components/ui/modale";
+import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
 import { cn } from "@/lib/cn";
 import {
   bulkUpdateBookings,
@@ -1752,10 +1753,20 @@ export function BookingsTable({
                   {sendResult.failed > 0 ? `, ${sendResult.failed} échec(s)` : ""}.
                 </p>
               )}
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="ghost" disabled={sendPending} onClick={cancelMessageComposer}>
                   Annuler
                 </Button>
+                <EnvoyerTextos
+                  libelle={`📱 En textos (${selectedRows.length})`}
+                  destinataires={selectedRows
+                    .filter((r) => r.figurants)
+                    .map((r) => ({
+                      nom: `${r.figurants!.prenom} ${r.figurants!.nom}`,
+                      telephone: r.figurants!.telephone,
+                      texte: convocationFor(r).body,
+                    }))}
+                />
                 <Button
                   type="button"
                   disabled={sendPending || convocationAEnvoyer.length === 0}
@@ -1812,10 +1823,21 @@ export function BookingsTable({
                     rows={8}
                     className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
                   />
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="ghost" onClick={cancelMessageComposer}>
                       Annuler
                     </Button>
+                    <EnvoyerTextos
+                      libelle={`📱 En textos (${selectedRows.length})`}
+                      disabled={!libreMessage.trim()}
+                      destinataires={selectedRows
+                        .filter((r) => r.figurants)
+                        .map((r) => ({
+                          nom: `${r.figurants!.prenom} ${r.figurants!.nom}`,
+                          telephone: r.figurants!.telephone,
+                          texte: substituteTokens(libreMessage, rowTokens(r, journeeLieu)),
+                        }))}
+                    />
                     <Button
                       type="button"
                       disabled={!libreMessage.trim() || selectedWithEmail.length === 0}
