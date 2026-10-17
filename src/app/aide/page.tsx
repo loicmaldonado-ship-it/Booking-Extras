@@ -834,7 +834,9 @@ export default function AidePage() {
                 Ensuite, dans un message de journée (convocation, message libre) ou de casting :{" "}
                 <UI>📱 En textos</UI> → <UI>Depuis mon iPhone</UI> (site ouvert sur l&apos;iPhone) ou{" "}
                 <UI>Depuis mon Mac</UI> (le Mac allumé les envoie un par un, toutes les 8 à 15 secondes, avec Messages).
-                Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle.
+                Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle. La fenêtre
+                reprend toujours ton <strong className="text-text">dernier message envoyé</strong> (journée, rôle de
+                casting, candidatures), sur tous tes appareils : plus besoin de le retaper.
               </>,
             ]}
           />

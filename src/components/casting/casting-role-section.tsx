@@ -6,6 +6,7 @@ import { Card, Badge } from "@/components/ui/card";
 import type { InvitationsRole } from "@/lib/casting/data";
 import { LienRapideCasting } from "@/components/casting/lien-rapide-casting";
 import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
+import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -173,6 +174,16 @@ export function CastingRoleSection({
     setSentBulk((prev) => new Set([...prev, entry.id]));
   }
 
+  // Reprend le dernier message envoyé pour ce rôle (sur tous les appareils).
+  function ouvrirMessage() {
+    setMessageOuvert(true);
+    lireDernierMessage(`casting:${role.id}`).then((dernier) => {
+      if (!dernier) return;
+      if (dernier.sujet) setBulkSubject(dernier.sujet);
+      setBulkMessage(dernier.corps);
+    });
+  }
+
   function sendToAll() {
     const targets = entries.filter(
       (e) => selected.has(e.id) && (e.figurants?.email || e.figurants?.agent_email) && !sentBulk.has(e.id)
@@ -200,6 +211,7 @@ export function CastingRoleSection({
       if (errors.length > 0) {
         setSendError(`Échec de l'envoi pour ${errors.length} profil${errors.length > 1 ? "s" : ""}.`);
       }
+      if (errors.length < results.length) enregistrerDernierMessage(`casting:${role.id}`, bulkSubject, bulkMessage);
     });
     setSentBulk((prev) => new Set([...prev, ...targets.map((e) => e.id)]));
   }
@@ -508,7 +520,7 @@ export function CastingRoleSection({
             </div>
           )}
           <div>
-            <Button type="button" variant="secondary" onClick={() => setMessageOuvert(true)}>
+            <Button type="button" variant="secondary" onClick={ouvrirMessage}>
               💬 Message ({selected.size})
             </Button>
           </div>
@@ -608,6 +620,7 @@ export function CastingRoleSection({
                 <EnvoyerTextos
                   libelle={`📱 En textos (${selected.size})`}
                   disabled={!bulkMessage.trim()}
+                  onEnvoye={() => enregistrerDernierMessage(`casting:${role.id}`, bulkSubject, bulkMessage)}
                   destinataires={entries
                     .filter((e) => selected.has(e.id) && e.figurants)
                     .map((e) => ({

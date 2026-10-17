@@ -23,6 +23,7 @@ import type { PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
 import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import { Modale } from "@/components/ui/modale";
+import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
 import type { MessageTemplate } from "@/lib/templates/types";
@@ -189,6 +190,17 @@ export function CandidaturesTable({
   function sendBulkToAll() {
     const targets = rows.filter((r) => selected.has(r.id) && r.figurants?.email && r.figurants.id && !sentBulk.has(r.id));
     for (const r of targets) sendBulkTo(r);
+    if (targets.length > 0) enregistrerDernierMessage("candidatures", bulkSubject, bulkMessage);
+  }
+
+  // Reprend le dernier message groupé envoyé (sur tous les appareils).
+  function ouvrirMessageGroupe() {
+    setMessageGroupeOuvert(true);
+    lireDernierMessage("candidatures").then((dernier) => {
+      if (!dernier) return;
+      if (dernier.sujet) setBulkSubject(dernier.sujet);
+      setBulkMessage(dernier.corps);
+    });
   }
 
   function bulkSetOnglet(ongletId: string | null) {
@@ -300,7 +312,7 @@ export function CandidaturesTable({
             >
               📏 Fiches mensuration ({selected.size})
             </a>
-            <Button type="button" variant="secondary" onClick={() => setMessageGroupeOuvert(true)}>
+            <Button type="button" variant="secondary" onClick={ouvrirMessageGroupe}>
               💬 Message ({selected.size})
             </Button>
           </div>

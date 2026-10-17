@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Modale } from "@/components/ui/modale";
 import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
+import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import { cn } from "@/lib/cn";
 import {
   bulkUpdateBookings,
@@ -676,6 +677,12 @@ export function BookingsTable({
     setLibreSubject(`Message – ${date ?? ""}`);
     setLibreMessage(DEFAULT_LIBRE_BODY);
     setMessageMode("libre-compose");
+    // Reprend le dernier message libre envoyé (sur tous les appareils).
+    lireDernierMessage("journee-libre").then((dernier) => {
+      if (!dernier) return;
+      if (dernier.sujet) setLibreSubject(dernier.sujet);
+      setLibreMessage(dernier.corps);
+    });
   }
 
   function applyLibreTemplate(template?: MessageTemplate) {
@@ -735,6 +742,7 @@ export function BookingsTable({
       }
       setSendPending(false);
       setSendResult({ sent, failed });
+      if (sent > 0) enregistrerDernierMessage("journee-libre", libreSubject, libreMessage);
       if (failed === 0) {
         setSelected(new Set());
         setMessageMode("none");
@@ -1830,6 +1838,7 @@ export function BookingsTable({
                     <EnvoyerTextos
                       libelle={`📱 En textos (${selectedRows.length})`}
                       disabled={!libreMessage.trim()}
+                      onEnvoye={() => enregistrerDernierMessage("journee-libre", libreSubject, libreMessage)}
                       destinataires={selectedRows
                         .filter((r) => r.figurants)
                         .map((r) => ({
