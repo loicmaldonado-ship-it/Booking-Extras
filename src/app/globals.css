@@ -67,7 +67,16 @@ h1, h2, h3, h4 {
   color: var(--color-ink);
 }
 
+/* Feuilles A4 réduites à l'écran (FeuilleAjustee) : vraie taille pour la
+   capture PDF et l'impression. */
+.capture-pdf .feuille-ajustee {
+  zoom: 1 !important;
+}
+
 @media print {
+  .feuille-ajustee {
+    zoom: 1 !important;
+  }
   body {
     background: white;
     color: black;

@@ -1,3 +1,4 @@
+import { FeuilleAjustee } from "@/components/documents/feuille-ajustee";
 import { cn } from "@/lib/cn";
 
 // A4 at 96dpi: 794x1123 portrait, 1123x794 landscape — keeps on-screen
@@ -17,13 +18,12 @@ export function PrintSheet({
   // document multi-pages une fois imprimé/mélangé.
   pageLabel?: string;
 }) {
-  // Le format papier ne doit jamais rétrécir pour tenir dans une fenêtre
-  // étroite : ça fausse le nombre de colonnes de la grille (flex-wrap) et
-  // fait déborder le contenu hors du cadre — silencieusement perdu à la
-  // capture PDF (overflow-hidden). Le conteneur défile plutôt que la page
-  // ne rétrécisse.
+  // Le format papier garde toujours sa vraie largeur (sinon la grille
+  // change de colonnes et le contenu déborde, perdu à la capture PDF) : sur
+  // un écran étroit, la feuille entière est réduite à l'affichage (zoom),
+  // jamais recoupée ni remise en page.
   return (
-    <div className="overflow-x-auto print:overflow-visible">
+    <FeuilleAjustee largeur={orientation === "landscape" ? 1123 : 794}>
       <div
         data-print-sheet
         className={cn(
@@ -39,6 +39,6 @@ export function PrintSheet({
           <span className="absolute bottom-3 right-4 text-[10px] text-gray-400">{pageLabel}</span>
         )}
       </div>
-    </div>
+    </FeuilleAjustee>
   );
 }
