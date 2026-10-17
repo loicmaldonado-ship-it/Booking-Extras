@@ -548,6 +548,13 @@ export default function AidePage() {
           d&apos;un coup tous les profils de ce rôle (pas les autres rôles du casting).
         </Callout>
         <Callout>
+          <strong className="text-text">🖼️ Photo de la vignette.</strong> Sur la carte d&apos;un profil, le bouton{" "}
+          <UI>🖼️</UI> choisit la photo affichée en vignette, parmi les photos de sa fiche et celles envoyées pour
+          ce rôle. Elle s&apos;applique dans Casting, sur le lien réal, les trombis et les documents du casting
+          (liste artistique, fiches rôles, distribution). <UI>Revenir à l&apos;automatique</UI> reprend la photo
+          d&apos;essayage du projet, sinon le portrait.
+        </Callout>
+        <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du
           mode du rôle à l&apos;ajout, mais se rebascule individuellement d&apos;un clic — pratique pour repérer
           d&apos;un coup d&apos;œil qui doit recevoir un lien vidéo et qui doit avoir un créneau en présentiel.

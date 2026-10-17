@@ -76,6 +76,9 @@ export type FigurantPhoto = {
   projet_id: string | null;
   created_at: string;
   url?: string;
+  // Photos envoyées pour un casting : rattachées à l'entrée du rôle.
+  casting_entry_id?: string | null;
+  label?: string | null;
 };
 
 export type FigurantLien = {

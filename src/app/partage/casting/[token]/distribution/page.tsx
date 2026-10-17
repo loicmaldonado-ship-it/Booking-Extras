@@ -3,7 +3,8 @@ import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { DistributionSheet } from "@/components/casting/distribution-sheet";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
 import { resolvePartageToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -36,7 +37,7 @@ export default async function PartageDistributionPage({ params }: { params: Prom
   const items = await getListeArtistiqueItems(projet.id);
   const portraitByFigurant = await getPhotosByFigurantId(items.map((i) => i.entry.figurant_id));
   const portraitUrlByFigurant = new Map(
-    items.map((i) => [i.entry.figurant_id, pickPortrait(portraitByFigurant.get(i.entry.figurant_id), projet.id)?.url ?? null])
+    items.map((i) => [i.entry.figurant_id, vignetteCasting(i.entry, portraitByFigurant.get(i.entry.figurant_id), projet.id)])
   );
   const pages = chunk(items, ROLES_PAR_PAGE);
   const nom = projetNomPublic(projet);

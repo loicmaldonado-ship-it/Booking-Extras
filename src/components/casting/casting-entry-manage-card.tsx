@@ -27,7 +27,10 @@ import {
   updateCastingEntryMode,
   updateCastingEntryNotes,
   updateCastingEntryVisiblePartage,
+  choisirVignetteCasting,
 } from "@/lib/casting/actions";
+import { Modale } from "@/components/ui/modale";
+import type { PhotoVignette } from "@/lib/casting/vignette";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
 import { statutTone, type BookingStatut } from "@/lib/bookings/types";
@@ -353,6 +356,90 @@ function AddVideoButton({ entryId }: { entryId: string }) {
   );
 }
 
+// Choix de la photo montrée sur la vignette (Casting, lien réal, trombis et
+// documents du casting) parmi les photos du profil et celles envoyées pour
+// ce rôle.
+function ChoixVignette({
+  entryId,
+  photos,
+  choisieId,
+  onClose,
+}: {
+  entryId: string;
+  photos: PhotoVignette[];
+  choisieId: string | null;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const choisie = photos.some((p) => p.id === choisieId) ? choisieId : null;
+
+  function choisir(photoId: string | null) {
+    setError(null);
+    startTransition(async () => {
+      const res = await choisirVignetteCasting(entryId, photoId);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <Modale
+      titre="🖼️ Photo de la vignette"
+      sousTitre="Celle qui apparaît dans Casting, sur le lien réal, les trombis et les documents du casting."
+      onClose={onClose}
+      bloquee={pending}
+    >
+      {photos.length === 0 ? (
+        <p className="text-sm text-text-muted">Aucune photo sur ce profil pour l&apos;instant.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          {photos.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={pending}
+              onClick={() => choisir(p.id)}
+              className="flex flex-col gap-1 text-left disabled:opacity-60"
+            >
+              <div
+                className={cn(
+                  "relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-ink-raised-2",
+                  choisie === p.id ? "border-coral" : "border-transparent hover:border-coral/50"
+                )}
+              >
+                <Image src={p.url} alt={p.label} fill sizes="150px" className="object-cover" />
+                {choisie === p.id && (
+                  <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-coral text-xs text-ink">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <span className="text-center text-[11px] text-text-muted">{p.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-text-muted">
+          {choisie ? "Photo choisie à la main." : "Automatique : essayage du projet, sinon portrait."}
+        </span>
+        {choisie && (
+          <Button type="button" variant="ghost" disabled={pending} onClick={() => choisir(null)}>
+            Revenir à l&apos;automatique
+          </Button>
+        )}
+      </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
+    </Modale>
+  );
+}
+
 const AGENT_INPUT_CLASS =
   "w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1 text-xs outline-none focus:border-coral";
 
@@ -475,6 +562,7 @@ function AgentSection({
 export function CastingEntryManageCard({
   entry,
   portraitUrl,
+  photosVignette = [],
   videoUrls,
   photoLabels,
   photos,
@@ -487,6 +575,7 @@ export function CastingEntryManageCard({
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
+  photosVignette?: PhotoVignette[];
   videoUrls: { url: string; path: string; label: string }[];
   photoLabels: string[];
   photos: CastingEntryPhoto[];
@@ -500,6 +589,7 @@ export function CastingEntryManageCard({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [vignetteOpen, setVignetteOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [statutPending, startStatutTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
@@ -649,7 +739,23 @@ export function CastingEntryManageCard({
         >
           ✏️
         </button>
+        <button
+          type="button"
+          onClick={() => setVignetteOpen(true)}
+          title="Choisir la photo de la vignette"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
+        >
+          🖼️
+        </button>
         {editOpen && <FigurantEditModal figurantId={entry.figurant_id} onClose={() => setEditOpen(false)} />}
+        {vignetteOpen && (
+          <ChoixVignette
+            entryId={entry.id}
+            photos={photosVignette}
+            choisieId={entry.photo_vignette_id}
+            onClose={() => setVignetteOpen(false)}
+          />
+        )}
       </div>
       {showAgent && (
         <AgentSection
