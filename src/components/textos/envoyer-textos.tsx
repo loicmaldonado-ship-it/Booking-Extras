@@ -106,7 +106,7 @@ export function EnvoyerTextos({
               </Button>
               <p className="text-xs text-text-muted">
                 Site ouvert sur ton iPhone : la liste est copiée et le raccourci les envoie. Le raccourci
-                s&apos;installe une fois (Équipe → Textos).
+                s&apos;installe une fois (Mon compte → Textos).
               </p>
             </div>
             <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
@@ -119,7 +119,7 @@ export function EnvoyerTextos({
             </div>
           </div>
           {message && <p className={message.ok ? "text-sm text-turquoise" : "text-sm text-danger"}>{message.texte}</p>}
-          <Link href="/equipe#textos" className="text-xs text-coral hover:underline">
+          <Link href="/mon-compte#textos" className="text-xs text-coral hover:underline">
             Installer / vérifier le raccourci iPhone et le relais Mac →
           </Link>
         </Modale>
