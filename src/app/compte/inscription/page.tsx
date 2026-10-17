@@ -3,14 +3,21 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { PostulerForm } from "@/components/candidatures/postuler-form";
 import { getCurrentFigurant } from "@/lib/candidats/session";
+import { retourAutorise } from "@/lib/candidats/retour";
 import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 
 export const dynamic = "force-dynamic";
 
 // Création de compte candidat·e sans annonce : profil complet (mêmes champs
 // que la candidature) + photos + mot de passe.
-export default async function InscriptionPage() {
-  if (await getCurrentFigurant()) redirect("/compte");
+export default async function InscriptionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ retour?: string }>;
+}) {
+  // Venu·e d'un lien rapide de casting : retour sur ce lien une fois inscrit·e.
+  const retour = retourAutorise((await searchParams).retour);
+  if (await getCurrentFigurant()) redirect(retour ?? "/compte");
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-10">
@@ -26,13 +33,16 @@ export default async function InscriptionPage() {
         </p>
         <p className="mt-2 text-sm text-text-muted">
           Déjà un compte ?{" "}
-          <Link href="/compte/connexion" className="font-medium text-coral hover:underline">
+          <Link
+            href={retour ? `/compte/connexion?retour=${encodeURIComponent(retour)}` : "/compte/connexion"}
+            className="font-medium text-coral hover:underline"
+          >
             Me connecter
           </Link>
         </p>
       </div>
 
-      <PostulerForm mode="inscription" questions={[]} dates={[]} />
+      <PostulerForm mode="inscription" questions={[]} dates={[]} retour={retour} />
 
       <p className="text-center text-xs text-text-muted">
         Une question ?{" "}

@@ -79,6 +79,9 @@ export type CastingRole = {
   pdf_storage_path: string | null;
   pdf_filename: string | null;
   created_at: string;
+  // Lien rapide (public) : /casting/rejoindre/<public_token>.
+  public_token: string;
+  lien_public_actif: boolean;
 };
 
 export type CastingEntry = {

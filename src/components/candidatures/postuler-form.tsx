@@ -252,6 +252,7 @@ export function PostulerForm({
   questions,
   dates,
   disposParCalendrier = false,
+  retour,
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
@@ -263,6 +264,8 @@ export function PostulerForm({
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
   disposParCalendrier?: boolean;
+  // Inscription : page où revenir une fois le compte créé (lien de casting).
+  retour?: string | null;
   prefill?: {
     prenom: string;
     nom: string;
@@ -423,6 +426,7 @@ export function PostulerForm({
   return (
     <PhotosContext.Provider value={photosContexte}>
     <form noValidate onSubmit={envoyer} className="flex flex-col gap-4">
+      {retour && <input type="hidden" name="retour" value={retour} />}
       {state?.error && (
         <div ref={erreurServeurRef} className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}

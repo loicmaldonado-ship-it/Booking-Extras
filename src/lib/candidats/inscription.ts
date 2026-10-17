@@ -1,5 +1,6 @@
 "use server";
 
+import { retourAutorise } from "@/lib/candidats/retour";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
@@ -113,5 +114,6 @@ export async function inscrireCandidat(
   }
 
   await createFigurantSession(figurant.id);
-  redirect("/compte?bienvenue=1");
+  // Compte créé depuis un lien rapide de casting : on y retourne directement.
+  redirect(retourAutorise(formData.get("retour")) ?? "/compte?bienvenue=1");
 }

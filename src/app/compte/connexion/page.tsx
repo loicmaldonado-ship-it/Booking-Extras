@@ -29,7 +29,9 @@ export default async function ConnexionCandidatPage({
 
       {retour && (
         <div className="rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm">
-          Connecte-toi : tu reviendras directement sur l&apos;annonce, avec tes infos déjà remplies.
+          {retour.startsWith("/casting/")
+            ? "Connecte-toi : tu reviendras directement sur le casting pour envoyer tes photos et vidéos."
+            : "Connecte-toi : tu reviendras directement sur l'annonce, avec tes infos déjà remplies."}
         </div>
       )}
 
@@ -41,7 +43,7 @@ export default async function ConnexionCandidatPage({
           <p className="text-sm text-text-muted">C&apos;est gratuit, et tes infos seront remplies pour chaque candidature.</p>
         </div>
         <Link
-          href="/compte/inscription"
+          href={retour ? `/compte/inscription?retour=${encodeURIComponent(retour)}` : "/compte/inscription"}
           className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-coral-hover"
         >
           Créer mon compte
