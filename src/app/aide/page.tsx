@@ -468,10 +468,15 @@ export default function AidePage() {
                 <UI>Envoyer</UI> — l&apos;envoi est toujours manuel.
               </>,
               <>
-                Ou plus rapide : copie le <UI>🔗 Lien rapide du casting</UI> du rôle et envoie-le à qui tu veux (SMS,
-                réseaux…). Chaque personne se connecte ou crée son compte, puis envoie les photos et vidéos
-                calibrées : elle apparaît toute seule dans le rôle. <UI>Couper le lien</UI> le ferme quand tu as
-                assez de monde.
+                Pour des personnes <strong className="text-text">pas encore dans la base</strong> : dans le bloc{" "}
+                <UI>🔗 Lien rapide du casting</UI> du rôle, clique <UI>✉️ Inviter par email</UI>, colle les adresses
+                (une par ligne ou séparées par des virgules, même une colonne Excel) et vérifie le message : tout le
+                monde reçoit le lien d&apos;un coup. Chaque personne crée son compte (ou se connecte), envoie ses photos
+                et vidéos calibrées et apparaît toute seule dans le rôle. Le bloc indique combien ont été invité·es,
+                ont rejoint et ont tout envoyé ; les adresses déjà invitées ne reçoivent pas le mail deux fois. Pour
+                un SMS ou WhatsApp, <UI>📱 Copier le texto</UI> copie le message d&apos;invitation avec le lien (ou{" "}
+                <UI>📱 Copier en texto</UI> dans la fenêtre, après l&apos;avoir modifié) ; <UI>Copier</UI> ne copie
+                que le lien. <UI>Couper le lien</UI> le ferme quand tu as assez de monde.
               </>,
               "Une fois la vidéo reçue, clique sur le profil pour la visionner et zoomer les photos, directement dans la page.",
             ]}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
+import type { InvitationsRole } from "@/lib/casting/data";
 import { LienRapideCasting } from "@/components/casting/lien-rapide-casting";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ export function CastingRoleSection({
   presentielJournees,
   presentielAssignments,
   position,
+  invitations = null,
 }: {
   projetId: string;
   projetNom: string;
@@ -75,6 +77,7 @@ export function CastingRoleSection({
   // juste role.ordre brut (qui peut être décalé/non contigu) : ce que le
   // champ numéro doit montrer et permettre de changer directement.
   position: number;
+  invitations?: InvitationsRole | null;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(true);
@@ -370,6 +373,8 @@ export function CastingRoleSection({
         roleId={role.id}
         lien={`${origin}/casting/rejoindre/${role.public_token}`}
         actif={role.lien_public_actif}
+        roleNom={role.nom}
+        invitations={invitations}
       />
       {calibrateOpen && (
         <div className="rounded-xl border border-border bg-ink px-4 py-3">
