@@ -810,3 +810,16 @@ export async function recordCastingMessagesBulk(
   }
   return { results };
 }
+
+// Active / coupe le lien rapide (public) d'un rôle.
+export async function setLienRapideActif(roleId: string, actif: boolean): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { data: role } = await supabase.from("casting_roles").select("projet_id").eq("id", roleId).maybeSingle();
+  if (!role) return { error: "Rôle introuvable." };
+  const accessError = await checkProjetAccess(role.projet_id);
+  if (accessError) return { error: accessError };
+  const { error } = await supabase.from("casting_roles").update({ lien_public_actif: actif }).eq("id", roleId);
+  if (error) return { error: error.message };
+  revalidatePath("/casting");
+  return {};
+}

@@ -467,6 +467,12 @@ export default function AidePage() {
                 Sélectionne les profils ajoutés, clique <UI>Invitation (avec le lien)</UI> puis{" "}
                 <UI>Envoyer</UI> — l&apos;envoi est toujours manuel.
               </>,
+              <>
+                Ou plus rapide : copie le <UI>🔗 Lien rapide du casting</UI> du rôle et envoie-le à qui tu veux (SMS,
+                réseaux…). Chaque personne se connecte ou crée son compte, puis envoie les photos et vidéos
+                calibrées : elle apparaît toute seule dans le rôle. <UI>Couper le lien</UI> le ferme quand tu as
+                assez de monde.
+              </>,
               "Une fois la vidéo reçue, clique sur le profil pour la visionner et zoomer les photos, directement dans la page.",
             ]}
           />

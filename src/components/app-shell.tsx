@@ -62,6 +62,7 @@ const PUBLIC_PREFIXES = [
   "/partage/essayages",
   "/partage/casting",
   "/casting/upload",
+  "/casting/rejoindre",
   "/compte",
 ];
 

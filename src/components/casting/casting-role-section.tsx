@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
+import { LienRapideCasting } from "@/components/casting/lien-rapide-casting";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -365,6 +366,11 @@ export function CastingRoleSection({
 
       {!collapsed && (
         <>
+      <LienRapideCasting
+        roleId={role.id}
+        lien={`${origin}/casting/rejoindre/${role.public_token}`}
+        actif={role.lien_public_actif}
+      />
       {calibrateOpen && (
         <div className="rounded-xl border border-border bg-ink px-4 py-3">
           <CastingRoleForm projetId={projetId} role={role} />
