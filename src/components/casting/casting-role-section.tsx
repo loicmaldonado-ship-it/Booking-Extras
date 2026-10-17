@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import type { InvitationsRole } from "@/lib/casting/data";
 import { LienRapideCasting } from "@/components/casting/lien-rapide-casting";
+import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
@@ -600,10 +601,21 @@ export function CastingRoleSection({
                     </div>
                   ))}
               </div>
-              <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
                 <Button type="button" variant="ghost" onClick={() => setMessageOuvert(false)}>
                   Fermer
                 </Button>
+                <EnvoyerTextos
+                  libelle={`📱 En textos (${selected.size})`}
+                  disabled={!bulkMessage.trim()}
+                  destinataires={entries
+                    .filter((e) => selected.has(e.id) && e.figurants)
+                    .map((e) => ({
+                      nom: `${e.figurants!.prenom} ${e.figurants!.nom}`,
+                      telephone: e.figurants!.telephone,
+                      texte: substituteTokens(bulkMessage, tokens(e)),
+                    }))}
+                />
                 <Button type="button" disabled={!bulkMessage.trim()} onClick={sendToAll}>
                   Envoyer à tous
                 </Button>

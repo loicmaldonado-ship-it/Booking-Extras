@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 
@@ -21,9 +21,14 @@ export function Modale({
   large?: boolean;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     function surTouche(e: KeyboardEvent) {
-      if (e.key === "Escape" && !bloquee) onClose();
+      if (e.key !== "Escape" || bloquee) return;
+      // Fenêtres empilées : seule celle du dessus se ferme.
+      const fenetres = document.querySelectorAll('[role="dialog"]');
+      if (fenetres[fenetres.length - 1] !== ref.current) return;
+      onClose();
     }
     document.addEventListener("keydown", surTouche);
     const overflow = document.body.style.overflow;
@@ -38,6 +43,7 @@ export function Modale({
 
   return createPortal(
     <div
+      ref={ref}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 p-4 sm:items-center"
