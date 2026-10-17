@@ -151,7 +151,7 @@ export default async function FigurantsPage({
             isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
           )}
         >
-          Comédien·nes
+          Comédien·nes &amp; casting
         </Link>
       </div>
 
@@ -283,6 +283,11 @@ export default async function FigurantsPage({
                   <Link href={`/figurants/${f.id}`} className="font-medium hover:text-coral">
                     {f.prenom} {f.nom}
                   </Link>
+                  {f.cree_via_casting && (
+                    <span className="ml-2" title="Venu·e par un lien de casting, sans compte">
+                      <Badge tone="coral">Lien casting</Badge>
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-3 text-text-muted tabular-nums">
                   {computeAge(f.date_naissance) != null ? `${computeAge(f.date_naissance)} ans` : "—"}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,11 +90,14 @@ export function CastingUploadForm({
   nbVideos,
   photoLabels,
   demandeBandeDemo,
+  apresEnvoi = null,
 }: {
   token: string;
   nbVideos: number;
   photoLabels: string[];
   demandeBandeDemo: boolean;
+  // Affiché sous « Envoyé ! » (ex. proposition de créer un compte).
+  apresEnvoi?: ReactNode;
 }) {
   const [videos, setVideos] = useState<(File | null)[]>(Array.from({ length: nbVideos }, () => null));
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
@@ -207,6 +210,7 @@ export function CastingUploadForm({
       <Card className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-turquoise">Envoyé !</h2>
         <p className="text-sm text-text-muted">Merci, tout a bien été reçu.</p>
+        {apresEnvoi}
       </Card>
     );
   }

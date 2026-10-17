@@ -143,6 +143,13 @@ export default async function CastingPage({
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
+          <ButtonLink
+            href="/figurants?profil=comediens&vue=liste"
+            variant="secondary"
+            title="Ta base privée : comédien·nes et personnes venues par un lien de casting sans compte"
+          >
+            📇 Base casting
+          </ButtonLink>
           <ButtonLink href="/casting/trombis" variant="secondary">
             🖼️ Trombis
           </ButtonLink>

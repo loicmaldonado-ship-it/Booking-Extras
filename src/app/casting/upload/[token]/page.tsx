@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
@@ -21,13 +22,13 @@ export default async function CastingUploadPage({
   const { data: entry } = await supabase
     .from("casting_entries")
     .select(
-      "id, submitted_at, figurants(prenom), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
+      "id, submitted_at, figurants(prenom, cree_via_casting), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
     )
     .eq("request_token", token)
     .maybeSingle<{
       id: string;
       submitted_at: string | null;
-      figurants: { prenom: string } | null;
+      figurants: { prenom: string; cree_via_casting: boolean } | null;
       casting_roles: {
         nom: string;
         nb_videos: number;
@@ -47,6 +48,9 @@ export default async function CastingUploadPage({
   }
 
   const dateLimite = entry.casting_roles?.date_limite_envoi ?? null;
+  // Venu·e par le lien casting sans compte : on propose (sans obliger) d'en
+  // créer un, indispensable pour postuler aux annonces.
+  const proposerCompte = !!entry.figurants?.cree_via_casting;
   const deadlinePassed = !!dateLimite && dateLimite < new Date().toISOString().slice(0, 10);
 
   return (
@@ -70,6 +74,7 @@ export default async function CastingUploadPage({
           <p className="text-sm text-text-muted">
             Tout a bien été reçu. L&apos;équipe de casting te recontacte si besoin.
           </p>
+          {proposerCompte && <InviteCompte />}
         </Card>
       ) : deadlinePassed ? (
         <Card className="flex flex-col gap-2">
@@ -85,8 +90,23 @@ export default async function CastingUploadPage({
           nbVideos={entry.casting_roles?.nb_videos ?? 1}
           photoLabels={entry.casting_roles?.photo_labels ?? []}
           demandeBandeDemo={entry.casting_roles?.demande_bande_demo ?? false}
+          apresEnvoi={proposerCompte ? <InviteCompte /> : null}
         />
       )}
+    </div>
+  );
+}
+
+function InviteCompte() {
+  return (
+    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-border bg-ink px-4 py-3 text-sm">
+      <p>
+        Envie de recevoir d&apos;autres propositions ? Crée ton compte Booking Extras (gratuit) : il te permet de
+        postuler aux annonces de figuration en quelques clics.
+      </p>
+      <Link href="/compte/inscription" className="self-start font-semibold text-coral hover:underline">
+        Créer mon compte →
+      </Link>
     </div>
   );
 }
