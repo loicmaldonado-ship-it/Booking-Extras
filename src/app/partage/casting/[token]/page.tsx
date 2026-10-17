@@ -5,7 +5,8 @@ import {
   getCastingVideoUrlPairsByEntries,
   getCastingEntryPhotos,
 } from "@/lib/casting/data";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
@@ -165,7 +166,7 @@ export default async function PartageCastingPage({
                   id: entry.id,
                   nom: `${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim(),
                   valide: entry.statut === "valide",
-                  portraitUrl: pickPortrait(photosByFigurant.get(entry.figurant_id), projet.id)?.url ?? null,
+                  portraitUrl: vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id),
                   videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
                   photos: [
                     ...(entryPhotosByEntry.get(entry.id) ?? []),

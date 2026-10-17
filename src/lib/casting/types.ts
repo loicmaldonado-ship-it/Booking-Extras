@@ -105,6 +105,7 @@ export type CastingEntry = {
   notes: string | null;
   visible_partage: boolean;
   reponses: ReponseCasting[];
+  photo_vignette_id: string | null;
   figurants: {
     prenom: string;
     nom: string;

@@ -398,6 +398,34 @@ export async function updateCastingEntryVisiblePartage(
   return { success: true };
 }
 
+// Photo affichée sur la vignette du profil dans ce rôle (null = choix
+// automatique). Seulement une photo de ce profil.
+export async function choisirVignetteCasting(
+  entryId: string,
+  photoId: string | null
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, figurant_id")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  if (photoId) {
+    const { data: photo } = await supabase.from("figurant_photos").select("figurant_id").eq("id", photoId).maybeSingle();
+    if (!photo || photo.figurant_id !== entry.figurant_id) return { error: "Photo introuvable." };
+  }
+
+  const { error } = await supabase.from("casting_entries").update({ photo_vignette_id: photoId }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 // Bascule rapide, indépendante du reste du calibrage — pour ne pas rouvrir
 // tout le formulaire "Calibrer" juste pour montrer/cacher un rôle entier
 // sur le lien de partage réal.

@@ -41,6 +41,7 @@ import {
 } from "@/lib/casting/types";
 import type { BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
+import type { PhotoVignette } from "@/lib/casting/vignette";
 import type { MessageTemplate } from "@/lib/templates/types";
 import type { PresentielJourneeAvecCreneaux, PresentielAssignment } from "@/lib/casting-presentiel/journees";
 
@@ -53,7 +54,8 @@ export function CastingRoleSection({
   signature,
   role,
   entries,
-  portraitByFigurant,
+  vignetteByEntry,
+  photosVignetteByEntry,
   videoUrlsByEntry,
   entryPhotosByEntry,
   allFigurants,
@@ -69,7 +71,8 @@ export function CastingRoleSection({
   signature: string;
   role: CastingRole;
   entries: CastingEntry[];
-  portraitByFigurant: Map<string, string | null>;
+  vignetteByEntry: Map<string, string | null>;
+  photosVignetteByEntry: Map<string, PhotoVignette[]>;
   videoUrlsByEntry: Map<string, { path: string; url: string; label: string }[]>;
   entryPhotosByEntry: Map<string, CastingEntryPhoto[]>;
   allFigurants: { id: string; prenom: string; nom: string }[];
@@ -107,7 +110,7 @@ export function CastingRoleSection({
     prenom: e.figurants?.prenom ?? "",
     nom: e.figurants?.nom ?? "",
     ville: null,
-    portraitUrl: portraitByFigurant.get(e.figurant_id) ?? null,
+    portraitUrl: vignetteByEntry.get(e.id) ?? null,
   }));
 
   function toggleSelect(id: string) {
@@ -444,7 +447,8 @@ export function CastingRoleSection({
           <CastingEntryManageCard
             key={entry.id}
             entry={entry}
-            portraitUrl={portraitByFigurant.get(entry.figurant_id) ?? null}
+            portraitUrl={vignetteByEntry.get(entry.id) ?? null}
+            photosVignette={photosVignetteByEntry.get(entry.id) ?? []}
             videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
             photoLabels={role.photo_labels}
             photos={entryPhotosByEntry.get(entry.id) ?? []}

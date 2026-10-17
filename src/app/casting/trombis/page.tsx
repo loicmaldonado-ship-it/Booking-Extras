@@ -8,7 +8,8 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
 import { computeAge } from "@/lib/documents/fields";
 import { paginateGroupedItems } from "@/lib/documents/trombi";
 import { GENRES } from "@/lib/figurants/types";
@@ -189,7 +190,7 @@ export default async function CastingTrombisPage({
             <div className="flex flex-wrap gap-x-3 gap-y-2">
               {page.map((item, index) => {
                 const showHeader = index === 0 || item.headerLabel !== page[index - 1].headerLabel;
-                const portraitUrl = pickPortrait(portraitByFigurant.get(item.entry.figurant_id), projetId)?.url ?? null;
+                const portraitUrl = vignetteCasting(item.entry, portraitByFigurant.get(item.entry.figurant_id), projetId);
                 return (
                   <Fragment key={item.entry.id}>
                     {showHeader && (

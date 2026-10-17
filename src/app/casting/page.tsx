@@ -14,7 +14,8 @@ import {
   getInvitationsParRole,
 } from "@/lib/casting/data";
 import { getPresentielJourneesWithCreneaux, getPresentielAssignmentsByRole } from "@/lib/casting-presentiel/journees";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { photosPourVignette, vignetteCasting } from "@/lib/casting/vignette";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
@@ -110,8 +111,11 @@ export default async function CastingPage({
     ),
     getCastingEntryPhotos(entryIds),
   ]);
-  const portraitByFigurant = new Map(
-    figurantIds.map((id) => [id, pickPortrait(photosByFigurant.get(id), currentProjetId)?.url ?? null])
+  const vignetteByEntry = new Map(
+    filteredEntries.map((e) => [e.id, vignetteCasting(e, photosByFigurant.get(e.figurant_id), currentProjetId)])
+  );
+  const photosVignetteByEntry = new Map(
+    filteredEntries.map((e) => [e.id, photosPourVignette(e, photosByFigurant.get(e.figurant_id), currentProjetId)])
   );
   const videoUrlsByEntry = new Map(filteredEntries.map((e) => [e.id, videoPairsByEntry.get(e.id) ?? []]));
 
@@ -211,7 +215,8 @@ export default async function CastingPage({
           signature={signature}
           role={role}
           entries={entriesByRole.get(role.id) ?? []}
-          portraitByFigurant={portraitByFigurant}
+          vignetteByEntry={vignetteByEntry}
+          photosVignetteByEntry={photosVignetteByEntry}
           videoUrlsByEntry={videoUrlsByEntry}
           entryPhotosByEntry={entryPhotosByEntry}
           allFigurants={allFigurants ?? []}

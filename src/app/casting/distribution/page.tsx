@@ -4,7 +4,8 @@ import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { BackLink } from "@/components/ui/back-link";
 import { DistributionSheet } from "@/components/casting/distribution-sheet";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,7 +35,7 @@ export default async function DistributionPage() {
 
   const portraitByFigurant = await getPhotosByFigurantId(items.map((i) => i.entry.figurant_id));
   const portraitUrlByFigurant = new Map(
-    items.map((i) => [i.entry.figurant_id, pickPortrait(portraitByFigurant.get(i.entry.figurant_id), projetId)?.url ?? null])
+    items.map((i) => [i.entry.figurant_id, vignetteCasting(i.entry, portraitByFigurant.get(i.entry.figurant_id), projetId)])
   );
   const pages = chunk(items, ROLES_PAR_PAGE);
 
