@@ -8,7 +8,7 @@ import { formatDateTime } from "@/lib/format-date";
 import { annulerFileTextos, envoyerTextoTest, genererCleRelais, type StatutRelais } from "@/lib/textos/actions";
 import { NOM_RACCOURCI } from "@/components/textos/envoyer-textos";
 
-// Équipe → Textos : installation du raccourci iPhone et du relais Mac.
+// Mon compte → Textos : installation du raccourci iPhone et du relais Mac.
 export function PanneauTextos({ statut, origin }: { statut: StatutRelais | null; origin: string }) {
   const router = useRouter();
   const [cle, setCle] = useState<string | null>(null);
@@ -127,7 +127,11 @@ export function PanneauTextos({ statut, origin }: { statut: StatutRelais | null;
             <Button type="button" onClick={copierCommande} className="self-start">
               {copie ? "Copié !" : "Copier la commande"}
             </Button>
-            <p className="text-xs text-text-muted">La clé n&apos;est affichée qu&apos;une fois : garde cette commande pour toi.</p>
+            <p className="text-xs text-text-muted">
+              La clé n&apos;est affichée qu&apos;une fois et elle est <strong>à toi</strong> : un·e assistant·e ou
+              collègue installe le relais depuis <strong>son propre compte</strong> (Mon compte → Textos), sur son Mac,
+              pour envoyer depuis son numéro.
+            </p>
           </div>
         ) : (
           <Button type="button" variant="secondary" onClick={generer} disabled={pending} className="self-start">

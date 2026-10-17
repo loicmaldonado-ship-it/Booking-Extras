@@ -68,7 +68,7 @@ export async function mettreEnFileTextos(
   if (!profile) return { error: "Non connecté·e.", enFile: 0, sansNumero: [] };
   const supabase = createAdminClient();
   const { data: relais } = await supabase.from("relais_textos").select("profile_id").eq("profile_id", profile.id).maybeSingle();
-  if (!relais) return { error: "Relais Mac pas encore installé (Équipe → Textos).", enFile: 0, sansNumero: [] };
+  if (!relais) return { error: "Relais Mac pas encore installé (Mon compte → Textos).", enFile: 0, sansNumero: [] };
 
   const sansNumero: string[] = [];
   const lignes: { profile_id: string; telephone: string; destinataire: string; message: string }[] = [];

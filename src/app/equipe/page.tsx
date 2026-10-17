@@ -6,9 +6,6 @@ import { InviteAssistantForm } from "@/components/equipe/invite-assistant-form";
 import { MembresList, type Membre } from "@/components/equipe/membres-list";
 import { TeamPresenceList } from "@/components/equipe/team-presence-list";
 import { MyEmailPanel } from "@/components/equipe/my-email-panel";
-import { PanneauTextos } from "@/components/textos/panneau-textos";
-import { statutRelais } from "@/lib/textos/actions";
-import { getSiteOrigin } from "@/lib/partage/data";
 import { MyEmailTemplatesPanel } from "@/components/equipe/my-email-templates-panel";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +59,6 @@ export default async function EquipePage() {
       <TeamPresenceList title="Qui est connecté·e" members={teamPresence} />
 
       <MyEmailPanel gmailUser={myProfile?.gmail_smtp_user ?? null} />
-      <PanneauTextos statut={await statutRelais()} origin={await getSiteOrigin()} />
 
       <MyEmailTemplatesPanel
         espacePerso={myProfile?.email_espace_perso_template ?? null}

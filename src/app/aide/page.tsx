@@ -825,7 +825,7 @@ export default function AidePage() {
           <Steps
             items={[
               <>
-                Dans Équipe, section <UI>📱 Textos en masse</UI> : installe le{" "}
+                Dans <UI>Mon compte</UI> (chaque membre, assistant·es compris), section <UI>📱 Textos en masse</UI> : installe le{" "}
                 <strong className="text-text">raccourci iPhone</strong> (un fichier à ajouter dans l&apos;app
                 Raccourcis) et/ou le <strong className="text-text">relais Mac</strong> (une commande à coller dans le
                 Terminal du Mac). Le bouton « Texto d&apos;essai à mon numéro » vérifie que tout marche.
