@@ -15,7 +15,7 @@ import { computeAge } from "@/lib/documents/fields";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CastingEntry } from "@/lib/casting/types";
-import { formatTournageLabel } from "@/lib/casting/types";
+import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export default async function PartageCastingPage({
@@ -135,8 +135,15 @@ export default async function PartageCastingPage({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">{role.nom}</h2>
               <div className="flex flex-wrap items-center gap-2">
-                {formatTournageLabel(role.date_tournage, role.date_tournage_fin) && (
-                  <Badge>{formatTournageLabel(role.date_tournage, role.date_tournage_fin)}</Badge>
+                {role.date_tournage && (
+                  <Badge>
+                    {role.date_tournage_fin && role.date_tournage_fin !== role.date_tournage
+                      ? t(lang, "tournage_du_au", {
+                          debut: formatDateShort(role.date_tournage),
+                          fin: formatDateShort(role.date_tournage_fin),
+                        })
+                      : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")}
+                  </Badge>
                 )}
                 {(role.categorie_cachet === "silhouette" || role.categorie_cachet === "doublure") &&
                   roleEntries.length > 0 && (

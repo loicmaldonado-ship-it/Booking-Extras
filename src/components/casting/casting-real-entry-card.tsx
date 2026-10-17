@@ -275,7 +275,7 @@ export function CastingRealEntryCard({
           )}
         </div>
         <div className="flex flex-col gap-1.5 px-3 py-2.5">
-          <span className="truncate font-medium">{item.nom}</span>
+          <span className="break-words text-sm font-medium leading-snug sm:text-base">{item.nom}</span>
           {(item.age !== null || item.mensurations.some((m) => m.cle === "mens_taille")) && (
             <span className="-mt-1 truncate text-xs text-text-muted">
               {[

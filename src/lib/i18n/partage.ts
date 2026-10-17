@@ -98,6 +98,7 @@ const DICT = {
   profil_precedent: { fr: "Profil précédent", en: "Previous profile" },
   profil_suivant: { fr: "Profil suivant", en: "Next profile" },
   age_ans: { fr: "{n} ans", en: "{n} y.o." },
+  tournage_du_au: { fr: "Du {debut} au {fin}", en: "From {debut} to {fin}" },
   mens_taille: { fr: "Taille", en: "Height" },
   mens_poids: { fr: "Poids", en: "Weight" },
   mens_pointure: { fr: "Pointure", en: "Shoe size" },
