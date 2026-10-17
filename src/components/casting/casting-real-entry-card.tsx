@@ -262,7 +262,7 @@ export function CastingRealEntryCard({
               src={item.portraitUrl}
               alt=""
               fill
-              sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
+              sizes="(min-width: 1024px) 280px, (min-width: 640px) 33vw, 50vw"
               className="object-cover transition-transform duration-200 group-hover:scale-105"
             />
           )}
