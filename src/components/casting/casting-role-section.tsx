@@ -27,6 +27,7 @@ import { CastingEntryManageCard } from "@/components/casting/casting-entry-manag
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
+import { AjoutRapideCasting } from "@/components/casting/ajout-rapide-casting";
 import {
   CATEGORIE_CACHET_LABELS,
   CASTING_MODE_LABELS,
@@ -382,11 +383,14 @@ export function CastingRoleSection({
         </div>
       )}
 
-      <QuickAddFigurantCasting
-        roleId={role.id}
-        figurants={allFigurants}
-        alreadyAddedIds={entries.map((e) => e.figurant_id)}
-      />
+      <div className="flex flex-wrap items-start gap-2">
+        <QuickAddFigurantCasting
+          roleId={role.id}
+          figurants={allFigurants}
+          alreadyAddedIds={entries.map((e) => e.figurant_id)}
+        />
+        <AjoutRapideCasting roleId={role.id} />
+      </div>
 
       {entries.length > 0 && (
         <div className="flex items-center gap-1.5">

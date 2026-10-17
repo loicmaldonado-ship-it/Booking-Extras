@@ -464,6 +464,12 @@ export default function AidePage() {
                 <UI>Ajouter au casting</UI> — choisis le rôle existant dans le menu déroulant.
               </>,
               <>
+                Quelqu&apos;un qui n&apos;est pas dans la base ? Dans le rôle, <UI>⚡ Ajout rapide</UI> : une photo,
+                prénom, nom, email et téléphone suffisent (enchaîne plusieurs personnes à la suite). La fiche va dans
+                ta <UI>📇 Base casting</UI> ; envoie ensuite l&apos;invitation avec le lien : en envoyant ses photos
+                et vidéos, la personne complète elle-même sa fiche (date de naissance, ville, mensurations).
+              </>,
+              <>
                 Sélectionne les profils ajoutés, clique <UI>Invitation (avec le lien)</UI> puis{" "}
                 <UI>Envoyer</UI> — l&apos;envoi est toujours manuel.
               </>,

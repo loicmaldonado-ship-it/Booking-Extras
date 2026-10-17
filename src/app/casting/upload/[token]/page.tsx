@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingUploadForm } from "@/components/casting/casting-upload-form";
+import type { FicheCasting } from "@/lib/casting/fiche";
 import { formatDateLong } from "@/lib/format-date";
 
 // Marge de sécurité pour les Server Actions de cette page (génération d'URL
@@ -22,13 +23,13 @@ export default async function CastingUploadPage({
   const { data: entry } = await supabase
     .from("casting_entries")
     .select(
-      "id, submitted_at, figurants(prenom, cree_via_casting), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
+      "id, submitted_at, figurants(prenom, cree_via_casting, date_naissance, genre, code_postal, ville, taille_cm, poids_kg, pointure, veste, pantalon), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
     )
     .eq("request_token", token)
     .maybeSingle<{
       id: string;
       submitted_at: string | null;
-      figurants: { prenom: string; cree_via_casting: boolean } | null;
+      figurants: ({ prenom: string; cree_via_casting: boolean } & FicheCasting) | null;
       casting_roles: {
         nom: string;
         nb_videos: number;
@@ -91,6 +92,17 @@ export default async function CastingUploadPage({
           photoLabels={entry.casting_roles?.photo_labels ?? []}
           demandeBandeDemo={entry.casting_roles?.demande_bande_demo ?? false}
           apresEnvoi={proposerCompte ? <InviteCompte /> : null}
+          fiche={{
+            date_naissance: entry.figurants?.date_naissance ?? null,
+            genre: entry.figurants?.genre ?? null,
+            code_postal: entry.figurants?.code_postal ?? null,
+            ville: entry.figurants?.ville ?? null,
+            taille_cm: entry.figurants?.taille_cm ?? null,
+            poids_kg: entry.figurants?.poids_kg ?? null,
+            pointure: entry.figurants?.pointure !== null && entry.figurants?.pointure !== undefined ? Number(entry.figurants.pointure) : null,
+            veste: entry.figurants?.veste ?? null,
+            pantalon: entry.figurants?.pantalon ?? null,
+          }}
         />
       )}
     </div>
