@@ -1,5 +1,7 @@
 "use server";
 
+import type { FicheCasting } from "./fiche";
+import { GENRES } from "@/lib/figurants/types";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
@@ -145,7 +147,12 @@ export async function createCastingUploadSlot(
 // fichier — payload minuscule, aucun risque de timeout ici.
 export async function finalizeCastingUpload(
   requestToken: string,
-  payload: { videoPaths: string[]; photos: { label: string; path: string }[]; bandeDemo?: string }
+  payload: {
+    videoPaths: string[];
+    photos: { label: string; path: string }[];
+    bandeDemo?: string;
+    fiche?: FicheCasting;
+  }
 ): Promise<{ error?: string; success?: boolean }> {
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
@@ -168,6 +175,38 @@ export async function finalizeCastingUpload(
       label: photo.label,
     });
     if (error) return { error: error.message };
+  }
+
+  // Fiche complétée par la personne (naissance, mensurations…) : seules les
+  // valeurs plausibles sont gardées, les champs vides ne touchent à rien.
+  if (payload.fiche) {
+    const f = payload.fiche;
+    const nombre = (v: number | null, min: number, max: number) =>
+      typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : undefined;
+    const texte = (v: string | null, max = 60) => (v && v.trim() ? v.trim().slice(0, max) : undefined);
+    const maj: Record<string, string | number> = {};
+    if (f.date_naissance && /^\d{4}-\d{2}-\d{2}$/.test(f.date_naissance) && f.date_naissance < new Date().toISOString().slice(0, 10)) {
+      maj.date_naissance = f.date_naissance;
+    }
+    if (f.genre && GENRES.includes(f.genre as (typeof GENRES)[number])) maj.genre = f.genre;
+    const cp = texte(f.code_postal, 10);
+    if (cp) maj.code_postal = cp;
+    const ville = texte(f.ville, 80);
+    if (ville) maj.ville = ville;
+    const taille = nombre(f.taille_cm, 50, 250);
+    if (taille !== undefined) maj.taille_cm = Math.round(taille);
+    const poids = nombre(f.poids_kg, 10, 300);
+    if (poids !== undefined) maj.poids_kg = Math.round(poids);
+    const pointure = nombre(f.pointure, 15, 60);
+    if (pointure !== undefined) maj.pointure = pointure;
+    const veste = texte(f.veste, 20);
+    if (veste) maj.veste = veste;
+    const pantalon = texte(f.pantalon, 20);
+    if (pantalon) maj.pantalon = pantalon;
+    if (Object.keys(maj).length > 0) {
+      const { error: errFiche } = await supabase.from("figurants").update(maj).eq("id", entry.figurant_id);
+      if (errFiche) return { error: `Ta fiche n'a pas pu être enregistrée : ${errFiche.message}` };
+    }
   }
 
   if (role?.demande_bande_demo && payload.bandeDemo?.trim()) {

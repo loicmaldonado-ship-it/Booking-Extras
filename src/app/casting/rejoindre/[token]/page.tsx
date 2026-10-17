@@ -7,6 +7,7 @@ import { projetNomPublic } from "@/lib/projets/types";
 import { formatTournageLabel } from "@/lib/casting/types";
 import { formatDateLong } from "@/lib/format-date";
 import { RejoindreBouton } from "@/components/casting/rejoindre-bouton";
+import { PostulerCastingSansCompte } from "@/components/casting/postuler-casting-sans-compte";
 
 export const dynamic = "force-dynamic";
 
@@ -122,23 +123,44 @@ export default async function RejoindreCastingPage({ params }: { params: Promise
           <RejoindreBouton token={token} libelle="Envoyer mes photos et vidéos →" />
         </Card>
       ) : (
-        <Card className="flex flex-col gap-4">
-          <p>Pour participer, connecte-toi à ton espace — ou crée ton compte, c&apos;est gratuit.</p>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/compte/connexion?retour=${encodeURIComponent(retour)}`}
-              className="rounded-full bg-coral px-5 py-2.5 text-sm font-semibold text-ink hover:bg-coral-hover"
-            >
-              J&apos;ai déjà un compte
-            </Link>
-            <Link
-              href={`/compte/inscription?retour=${encodeURIComponent(retour)}`}
-              className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold hover:border-coral/60"
-            >
-              Créer mon compte
-            </Link>
-          </div>
-        </Card>
+        <>
+          <Card className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-lg font-semibold">Participer</h2>
+              <p className="text-sm text-text-muted">
+                Pas besoin de compte : indique qui tu es, puis envoie tes photos et vidéos.
+              </p>
+            </div>
+            <PostulerCastingSansCompte token={token} />
+            <p className="text-xs text-text-muted">
+              Ces informations (et tes photos / vidéos) sont destinées à l&apos;équipe de casting de ce projet pour
+              étudier ta candidature et te recontacter. Elles sont conservées 2 ans maximum sans nouveau contact.{" "}
+              <Link href="/confidentialite" target="_blank" className="text-coral hover:underline">
+                En savoir plus →
+              </Link>
+            </p>
+          </Card>
+          <Card className="flex flex-col gap-3">
+            <p className="text-sm">
+              <strong>Tu as un compte Booking Extras</strong>, ou tu veux en créer un ? Tes infos seront déjà
+              remplies, et un compte te permet aussi de postuler aux annonces.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/compte/connexion?retour=${encodeURIComponent(retour)}`}
+                className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold hover:border-coral/60"
+              >
+                Me connecter
+              </Link>
+              <Link
+                href={`/compte/inscription?retour=${encodeURIComponent(retour)}`}
+                className="rounded-full border border-border px-5 py-2.5 text-sm font-semibold hover:border-coral/60"
+              >
+                Créer mon compte
+              </Link>
+            </div>
+          </Card>
+        </>
       )}
     </div>
   );

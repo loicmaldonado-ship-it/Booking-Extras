@@ -1,10 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Field, Input, Select } from "@/components/ui/field";
+import { DateNaissanceField } from "@/components/ui/date-naissance-field";
+import { GENRES } from "@/lib/figurants/types";
+import type { FicheCasting } from "@/lib/casting/fiche";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
@@ -90,12 +93,19 @@ export function CastingUploadForm({
   nbVideos,
   photoLabels,
   demandeBandeDemo,
+  apresEnvoi = null,
+  fiche,
 }: {
   token: string;
   nbVideos: number;
   photoLabels: string[];
   demandeBandeDemo: boolean;
+  // Affiché sous « Envoyé ! » (ex. proposition de créer un compte).
+  apresEnvoi?: ReactNode;
+  // Fiche à compléter / vérifier (pré-remplie avec ce qu'on sait déjà).
+  fiche: FicheCasting;
 }) {
+  const ficheRef = useRef<HTMLFormElement>(null);
   const [videos, setVideos] = useState<(File | null)[]>(Array.from({ length: nbVideos }, () => null));
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
   const [bandeDemo, setBandeDemo] = useState("");
@@ -141,8 +151,43 @@ export function CastingUploadForm({
     });
   }
 
+  function lireFiche(): FicheCasting | null {
+    const form = ficheRef.current;
+    if (!form) return null;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return null;
+    }
+    const fd = new FormData(form);
+    const texte = (k: string) => String(fd.get(k) ?? "").trim() || null;
+    const nombre = (k: string) => {
+      const v = texte(k);
+      return v === null ? null : Number(v.replace(",", "."));
+    };
+    return {
+      date_naissance: texte("date_naissance"),
+      genre: texte("genre"),
+      code_postal: texte("code_postal"),
+      ville: texte("ville"),
+      taille_cm: nombre("taille_cm"),
+      poids_kg: nombre("poids_kg"),
+      pointure: nombre("pointure"),
+      veste: texte("veste"),
+      pantalon: texte("pantalon"),
+    };
+  }
+
   async function submit() {
     setError(null);
+    const ficheRemplie = lireFiche();
+    if (!ficheRemplie) {
+      setError("Complète ta fiche (date de naissance, mensurations…) avant d'envoyer.");
+      return;
+    }
+    if (!ficheRemplie.date_naissance) {
+      setError("Indique ta date de naissance.");
+      return;
+    }
     if (nbVideos > 0 && !videos[0]) {
       setError("Au moins une vidéo est obligatoire.");
       return;
@@ -184,7 +229,7 @@ export function CastingUploadForm({
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
       setStep("Finalisation...");
-      const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo });
+      const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo, fiche: ficheRemplie });
       if (result?.error) {
         setError(result.error);
         setStep(null);
@@ -207,6 +252,7 @@ export function CastingUploadForm({
       <Card className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-turquoise">Envoyé !</h2>
         <p className="text-sm text-text-muted">Merci, tout a bien été reçu.</p>
+        {apresEnvoi}
       </Card>
     );
   }
@@ -216,6 +262,59 @@ export function CastingUploadForm({
       {error && (
         <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</div>
       )}
+      <Card className="flex flex-col gap-3">
+        <div>
+          <h2 className="text-sm font-semibold">Ta fiche</h2>
+          <p className="text-xs text-text-muted">Vérifie ou complète tes infos : elles servent pour le casting et les costumes.</p>
+        </div>
+        <form ref={ficheRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DateNaissanceField name="date_naissance" required defaultValue={fiche.date_naissance} />
+            <Field label="Genre" required>
+              <Select name="genre" required defaultValue={fiche.genre ?? ""}>
+                <option value="" disabled></option>
+                {GENRES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Code postal" required>
+              <Input name="code_postal" required defaultValue={fiche.code_postal ?? undefined} />
+            </Field>
+            <Field label="Ville" required>
+              <Input name="ville" required defaultValue={fiche.ville ?? undefined} />
+            </Field>
+          </div>
+          <span className="text-xs font-medium text-text-muted">Mensurations</span>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Field label="Taille (cm)" required>
+              <Input type="number" name="taille_cm" required min={50} max={250} defaultValue={fiche.taille_cm ?? undefined} />
+            </Field>
+            <Field label="Poids (kg)" required>
+              <Input type="number" name="poids_kg" required min={10} max={300} defaultValue={fiche.poids_kg ?? undefined} />
+            </Field>
+            <Field label="Pointure" required>
+              <Input
+                type="number"
+                name="pointure"
+                required
+                min={15}
+                max={60}
+                step={0.5}
+                defaultValue={fiche.pointure ?? undefined}
+              />
+            </Field>
+            <Field label="Taille de veste" required>
+              <Input name="veste" placeholder="Ex. 48/50" required defaultValue={fiche.veste ?? undefined} />
+            </Field>
+            <Field label="Taille de pantalon" required>
+              <Input name="pantalon" placeholder="Ex. 42" required defaultValue={fiche.pantalon ?? undefined} />
+            </Field>
+          </div>
+        </form>
+      </Card>
       {nbVideos > 0 && (
         <Card className="flex flex-col gap-4">
           {videos.map((_, i) => (
