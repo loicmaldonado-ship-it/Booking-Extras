@@ -12,6 +12,8 @@ import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/ca
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
+import { getDocumentTemplate } from "@/lib/documents/templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CastingEntry } from "@/lib/casting/types";
 import { formatTournageLabel } from "@/lib/casting/types";
 import { projetNomPublic } from "@/lib/projets/types";
@@ -36,11 +38,12 @@ export default async function PartageCastingPage({
     );
   }
 
-  const [roles, entries, titre, docsVisibility] = await Promise.all([
+  const [roles, entries, titre, docsVisibility, documentTemplate] = await Promise.all([
     getCastingRoles(projet.id),
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
     getCastingDocsVisibilityByToken(token),
+    getDocumentTemplate(createAdminClient(), projet.id),
   ]);
   // Le staff décide seul de la visibilité — dès qu'un profil ou un rôle est
   // coché visible, il apparaît, même sans vidéo envoyée ou sans aucun
@@ -76,6 +79,17 @@ export default async function PartageCastingPage({
           <Logo iconSize={26} textClassName="text-lg" />
           <LangToggle lang={lang} basePath={`/partage/casting/${token}`} />
         </div>
+        {(documentTemplate.logoUrl || projet.societe_production) && (
+          <div className="mt-5 flex items-center gap-3">
+            {documentTemplate.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- logo de la production (URL signée)
+              <img src={documentTemplate.logoUrl} alt={projet.societe_production ?? ""} className="h-14 w-auto max-w-[220px] object-contain" />
+            )}
+            {projet.societe_production && (
+              <span className="text-sm font-semibold uppercase tracking-wide text-text-muted">{projet.societe_production}</span>
+            )}
+          </div>
+        )}
         <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
         <p className="mt-1 text-sm text-text-muted">{t(lang, "clique_profil")}</p>
         {(docsVisibility.listeArtistique || docsVisibility.fichesRoles || docsVisibility.distribution) && (
