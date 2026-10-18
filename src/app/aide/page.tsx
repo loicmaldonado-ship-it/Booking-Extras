@@ -680,19 +680,20 @@ export default function AidePage() {
           deux jours).
         </Callout>
         <Callout>
-          <strong className="text-text">Onglet Messages.</strong> En haut, le point sur les deux messages
-          principaux (proposition : combien ont répondu ; convocation : combien envoyées et BIEN REÇU). Dessous,
-          tous les profils de la journée en <UI>🖼️ Trombi</UI> ou <UI>☰ Liste</UI>, avec leurs pastilles
-          (Proposition, Convoc, et chaque message d&apos;info) et des filtres (proposition sans réponse,
-          convocation sans BIEN REÇU, sans nouvelles d&apos;un message) ; coche des profils puis{" "}
-          <UI>✉️ Message à la sélection</UI>.{" "}
-          <UI>✉️ Nouveau message</UI> envoie un message d&apos;info à une sélection (tous, confirmés, par
-          fonction…), par email ou en textos, sous un <strong className="text-text">nom</strong> (Parking,
-          Horaire avancé…). Avec l&apos;accusé de réception, chaque message contient un lien{" "}
-          <UI>👍 Bien reçu</UI> : un clic suffit, sans compte. Chaque envoi affiche qui l&apos;a bien reçu, qui
-          a répondu, qui est sans nouvelles ; <UI>🔁 Relancer</UI> renvoie le message aux seules personnes sans
-          nouvelles, et <UI>Marquer reçu</UI> note une confirmation donnée par téléphone. La pastille ⏳ sur
-          l&apos;onglet compte les personnes sans nouvelles.
+          <strong className="text-text">Onglet Messages.</strong> À gauche, tous les profils de la journée en{" "}
+          <UI>🖼️ Trombi</UI> ou <UI>☰ Liste</UI> : statut modifiable directement, pastilles (Proposition,
+          Convoc, chaque message d&apos;info), filtres (proposition sans réponse, convocation sans BIEN REÇU,
+          sans nouvelles, ont répondu). Un tap sur une carte la coche. À droite, le panneau{" "}
+          <strong className="text-text">Envois de la journée</strong> avec deux sections séparées{" "}
+          <UI>✉️ Mail</UI> et <UI>📱 Texto</UI> : on écrit un message nommé (Parking, Horaire avancé…) pour les
+          profils cochés, on confirme dans le panneau, puis on suit qui l&apos;a bien reçu (lien{" "}
+          <UI>👍 Bien reçu</UI> en un clic), qui a répondu (réponse citée sous son nom) et qui est sans
+          nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. <UI>📥 Vérifier les réponses</UI> fait
+          remonter les réponses par mail ; les réponses par texto arrivent sur le téléphone, à marquer à la
+          main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
+          <UI>Répondu booking</UI> (passe en CONFIRMÉ), <UI>Répondu convocation</UI> (carte en jaune), chaque
+          message d&apos;info, et toute la conversation, avec une réponse rapide par mail ou par texto. Sur iPad
+          debout et téléphone, le bouton <UI>✉️ Envois</UI> en bas à droite ouvre le panneau.
         </Callout>
       </GuideChapter>
 
