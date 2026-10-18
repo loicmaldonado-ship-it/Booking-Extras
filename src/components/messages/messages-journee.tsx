@@ -1041,7 +1041,10 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
           <span className="font-semibold">
             {envoi.titre} <span className="text-text-muted">{ouvert ? "▾" : "▸"}</span>
           </span>
-          <span className="whitespace-nowrap text-[11px] text-text-muted">{formatDateTime(envoi.created_at)}</span>
+          <span className="whitespace-nowrap text-[11px] text-text-muted">
+            {formatDateTime(envoi.created_at)}
+            {envoi.auteur ? ` · ${envoi.auteur}` : ""}
+          </span>
         </span>
         <span className="flex h-2 overflow-hidden rounded-full bg-ink-raised-2">
           <span className="bg-turquoise" style={{ width: `${(compte("recu") / total) * 100}%` }} />
@@ -1296,7 +1299,7 @@ function FicheProfil({
               )}
             >
               <span className="text-[10px] opacity-80">
-                {m.sender === "staff" ? categorieLabel(m.categorie) : prenom} · {formatDateTime(m.created_at)}
+                {m.sender === "staff" ? `${categorieLabel(m.categorie)}${m.auteur ? ` · ${m.auteur}` : ""}` : prenom} · {formatDateTime(m.created_at)}
               </span>
               {m.sujet && <span className="text-xs font-semibold">{m.sujet}</span>}
               <span className="whitespace-pre-line">{m.corps.length > 600 ? `${m.corps.slice(0, 600)}…` : m.corps}</span>

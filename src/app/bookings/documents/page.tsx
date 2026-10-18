@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { getEnvoisJournee } from "@/lib/messages/envois";
 import { listerFonctionsProjet } from "@/lib/projets/fonctions";
 import { trierParNom } from "@/lib/noms";
@@ -121,16 +122,16 @@ export default async function JourneeDashboardPage({
     figurantIds.length > 0
       ? await supabase
           .from("figurant_messages")
-          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu, mail_message_id, lu_gmail_le")
+          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu, mail_message_id, lu_gmail_le, auteur:profiles!figurant_messages_envoye_par_fkey(prenom, nom)")
           .in("figurant_id", figurantIds)
           .neq("categorie", "espace_perso")
           .or(`projet_id.is.null,projet_id.eq.${projet_id}`)
           .order("created_at", { ascending: false })
-          .returns<(MessageRow & { figurant_id: string })[]>()
-      : { data: [] as (MessageRow & { figurant_id: string })[] };
+          .returns<(Omit<MessageRow, "auteur"> & { figurant_id: string; auteur: { prenom: string | null; nom: string | null } | null })[]>()
+      : { data: [] as (Omit<MessageRow, "auteur"> & { figurant_id: string; auteur: { prenom: string | null; nom: string | null } | null })[] };
   const messagesByFigurant: Record<string, MessageRow[]> = {};
   for (const m of messagesRaw ?? []) {
-    (messagesByFigurant[m.figurant_id] ??= []).push(m);
+    (messagesByFigurant[m.figurant_id] ??= []).push({ ...m, auteur: m.auteur ? nomComplet(m.auteur) : null });
   }
 
   const { data: essayagesRaw } =

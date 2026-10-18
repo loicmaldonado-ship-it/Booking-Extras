@@ -1,6 +1,7 @@
 "use server";
 
 import { formatPrenom } from "@/lib/noms";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -313,6 +314,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     figurant_id: figurantId,
     projet_id: projetId ?? null,
     sender: "staff",
+    envoye_par: (await getCurrentProfile())?.id ?? null,
     corps: "Lien d'accès à l'espace personnel envoyé.",
     categorie: "espace_perso",
   });
