@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
@@ -19,7 +20,6 @@ import { getJourneePartageLien } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
@@ -81,7 +81,7 @@ export default async function JourneeDashboardPage({
       .eq("date", date)
       .order("heure_convocation")
       .returns<BookingRow[]>(),
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    getModelesEquipe().then((data) => ({ data })),
     figurantsQuery,
     supabase
       .from("projet_indemnites")

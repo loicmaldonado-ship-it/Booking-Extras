@@ -51,7 +51,7 @@ export default async function AnnonceDetailPage({
 
   const [questions, templates, dates, moodboardPhotos, qrCodeDataUrl] = await Promise.all([
     getAnnonceQuestions(id),
-    getQuestionTemplates(),
+    getQuestionTemplates(id),
     getAnnonceDates(id),
     getAnnoncePhotos(supabase, id),
     generateQrCodeDataUrl(publicUrl),

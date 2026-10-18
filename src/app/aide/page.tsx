@@ -856,7 +856,7 @@ export default function AidePage() {
       >
         <MiniGrid
           items={[
-            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message." },
+            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message. Ils restent propres à ton équipe : les autres cheffes ne les voient pas." },
             { title: "Barème", body: "Référence des cachets et majorations ACFDA appliqués automatiquement selon la convention du projet." },
             { title: "RGPD", body: "Outils d'anonymisation pour les profils qui demandent la suppression de leurs données." },
           ]}
