@@ -60,7 +60,7 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
 

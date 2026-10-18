@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
@@ -118,7 +119,7 @@ export default async function RejoindreCastingPage({ params }: { params: Promise
       ) : session ? (
         <Card className="flex flex-col gap-3">
           <p>
-            Connecté·e en tant que <strong>{session.prenom} {session.nom}</strong>.
+            Connecté·e en tant que <strong>{nomComplet(session)}</strong>.
           </p>
           <RejoindreBouton token={token} libelle="Envoyer mes photos et vidéos →" />
         </Card>

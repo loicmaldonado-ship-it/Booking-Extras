@@ -21,7 +21,7 @@ export default async function NouveauBookingPage({
   let projetsQuery = supabase.from("projets").select("id, nom, convention").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 

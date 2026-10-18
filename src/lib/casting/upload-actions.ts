@@ -1,5 +1,6 @@
 "use server";
 
+import { nomComplet } from "@/lib/noms";
 import type { FicheCasting } from "./fiche";
 import type { ReponseCasting } from "./types";
 import { GENRES } from "@/lib/figurants/types";
@@ -247,7 +248,7 @@ export async function finalizeCastingUpload(
   if (entry.figurants) {
     await createNotification(
       "casting",
-      `${entry.figurants.prenom} ${entry.figurants.nom} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
+      `${nomComplet(entry.figurants)} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
       { figurantId: entry.figurant_id, projetId: entry.projet_id, lien: "/casting" }
     );
   }

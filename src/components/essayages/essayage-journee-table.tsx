@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -77,7 +78,7 @@ export function EssayageJourneeTable({
   // journée d'essayage, dans l'ordre affiché.
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     nom: r.figurants?.nom ?? "",
     ville: null,
     portraitUrl: r.portraitUrl,
@@ -187,7 +188,7 @@ export function EssayageJourneeTable({
     setSendError(null);
     startTransition(async () => {
       const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
   }
 
@@ -208,7 +209,7 @@ export function EssayageJourneeTable({
     setSendError(null);
     startTransition(async () => {
       const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
   }
 
@@ -311,7 +312,7 @@ export function EssayageJourneeTable({
                 })()}
               </div>
               <div className="text-sm font-medium">
-                {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                {r.figurants ? nomComplet(r.figurants) : "—"}
               </div>
               <div className="flex items-center gap-1 text-xs text-text-muted">
                 {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}

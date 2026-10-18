@@ -1,5 +1,6 @@
 "use server";
 
+import { nomComplet } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 
@@ -49,7 +50,7 @@ export async function searchGlobal(query: string): Promise<SearchResult[]> {
   for (const f of figurantsRes.data ?? []) {
     results.push({
       id: f.id,
-      label: `${f.prenom} ${f.nom}`,
+      label: nomComplet(f),
       sublabel: f.ville,
       href: `/figurants/${f.id}`,
       kind: "figurant",

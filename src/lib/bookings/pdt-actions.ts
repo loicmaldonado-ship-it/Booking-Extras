@@ -1,5 +1,6 @@
 "use server";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAll } from "@/lib/supabase/fetch-all";
@@ -288,7 +289,7 @@ export async function prevenirProfilsPdt(
   const echecs: string[] = [];
   for (const b of bookings ?? []) {
     const corps = remplirModelePdt(modele, {
-      prenom: b.figurants?.prenom ?? "",
+      prenom: formatPrenom(b.figurants?.prenom),
       projet: nomProjet,
       ancienneDate: formatDateLong(ancienneDate),
       nouvelleDate: formatDateLong(nouvelleDate),
@@ -303,7 +304,7 @@ export async function prevenirProfilsPdt(
       email: parEmail ? b.figurants?.email : null,
       subject: `${nomProjet} — changement de date de tournage`,
     });
-    if (res.error) echecs.push(`${b.figurants?.prenom ?? ""} ${b.figurants?.nom ?? ""}`.trim() || "?");
+    if (res.error) echecs.push(nomComplet(b.figurants).trim() || "?");
     else envoyes += 1;
   }
   return { envoyes, echecs };

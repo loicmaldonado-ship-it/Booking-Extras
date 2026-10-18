@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { NextResponse } from "next/server";
 import { buildXlsxResponse, sanitizeFilenamePart, type ExportColumn } from "@/lib/export/xlsx";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
@@ -32,7 +33,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     return {
       numero,
       role: role.nom,
-      comedien: f ? `${f.prenom} ${f.nom}` : "",
+      comedien: f ? nomComplet(f) : "",
       telephone: f?.telephone ?? "",
       email: f?.email ?? "",
       agent: f?.agent_nom ?? "",

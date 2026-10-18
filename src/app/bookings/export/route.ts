@@ -1,3 +1,4 @@
+import { formatPrenom, formatNom } from "@/lib/noms";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildXlsxResponse, sanitizeFilenamePart } from "@/lib/export/xlsx";
@@ -52,8 +53,8 @@ export async function GET(request: NextRequest) {
   const rows = (bookingsRaw ?? []).map((b) => {
     const f = b.figurants;
     return {
-      prenom: f?.prenom ?? "",
-      nom: f?.nom ?? "",
+      prenom: formatPrenom(f?.prenom),
+      nom: formatNom(f?.nom),
       telephone: f?.telephone ?? "",
       email: f?.email ?? "",
       heure: b.heure_convocation ? b.heure_convocation.slice(0, 5) : "",

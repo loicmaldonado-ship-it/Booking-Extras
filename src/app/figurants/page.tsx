@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
@@ -281,7 +282,7 @@ export default async function FigurantsPage({
                 </td>
                 <td className="px-6 py-3">
                   <Link href={`/figurants/${f.id}`} className="font-medium hover:text-coral">
-                    {f.prenom} {f.nom}
+                    {nomComplet(f)}
                   </Link>
                   {f.cree_via_casting && (
                     <span className="ml-2" title="Venu·e par un lien de casting, sans compte">

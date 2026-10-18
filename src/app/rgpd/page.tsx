@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
 import { getFigurantsInactifs } from "@/lib/rgpd/data";
@@ -62,14 +63,14 @@ export default async function RgpdPage({
             {figurants.map((f) => (
               <tr key={f.id} className="border-b border-border last:border-0">
                 <td className="px-6 py-3 font-medium">
-                  {f.prenom} {f.nom}
+                  {nomComplet(f)}
                 </td>
                 <td className="px-6 py-3 text-text-muted">{f.email ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
                   {f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}
                 </td>
                 <td className="px-6 py-3">
-                  <AnonymiserButton figurantId={f.id} nom={`${f.prenom} ${f.nom}`} />
+                  <AnonymiserButton figurantId={f.id} nom={nomComplet(f)} />
                 </td>
               </tr>
             ))}

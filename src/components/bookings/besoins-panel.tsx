@@ -6,6 +6,8 @@ import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { addBesoin, deleteBesoin, updateBesoin } from "@/lib/bookings/besoins-actions";
 import { updateTotalJournee } from "@/lib/bookings/actions";
+import { oublierFonctionProjet } from "@/lib/projets/fonctions";
+import { Modale } from "@/components/ui/modale";
 import type { JourneeBesoin } from "@/lib/bookings/besoins";
 import type { Row } from "@/components/bookings/bookings-table";
 
@@ -179,20 +181,89 @@ function BesoinPastille({ besoin, count }: { besoin: JourneeBesoin; count: numbe
   );
 }
 
+// Fonctions enregistrées du projet : on peut retirer une faute de frappe ou
+// une fonction abandonnée de la liste proposée.
+function FonctionsProjetModale({
+  projetId,
+  fonctions,
+  onClose,
+}: {
+  projetId: string;
+  fonctions: string[];
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  function oublier(nom: string) {
+    setErreur(null);
+    demarrer(async () => {
+      const res = await oublierFonctionProjet(projetId, nom);
+      if (res.error) setErreur(res.error);
+      else router.refresh();
+    });
+  }
+
+  return (
+    <Modale
+      titre="Fonctions du projet"
+      sousTitre="Enregistrées d'office dès qu'une fonction est saisie, et proposées dans les déroulants. Retirer une fonction ne modifie pas les profils qui la portent."
+      onClose={onClose}
+      bloquee={pending}
+    >
+      {fonctions.length === 0 ? (
+        <p className="text-sm text-text-muted">Aucune fonction enregistrée pour l&apos;instant.</p>
+      ) : (
+        <ul className="flex flex-col divide-y divide-border rounded-xl border border-border">
+          {fonctions.map((f) => (
+            <li key={f} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <span>{f}</span>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => oublier(f)}
+                className="text-xs text-text-muted hover:text-danger disabled:opacity-50"
+              >
+                Retirer de la liste
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {erreur && <p className="text-sm text-danger">{erreur}</p>}
+    </Modale>
+  );
+}
+
+const NOUVELLE = "__nouvelle__";
+
 export function BesoinsPanel({
   besoins,
   bookings,
   journeeId,
   totalRequis,
+  projetId,
+  fonctionsProjet = [],
 }: {
   besoins: JourneeBesoin[];
   bookings: Row[];
   journeeId: string;
   totalRequis: number | null;
+  projetId?: string;
+  fonctionsProjet?: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const [gestionOuverte, setGestionOuverte] = useState(false);
   const [state, formAction, pending] = useActionState(addBesoin.bind(null, journeeId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
+  // Fonctions enregistrées pas encore dans les besoins de cette journée.
+  const proposees = useMemo(() => {
+    const deja = new Set(besoins.map((b) => normalize(b.fonction)));
+    return fonctionsProjet.filter((f) => !deja.has(normalize(f)));
+  }, [fonctionsProjet, besoins]);
+  const [choix, setChoix] = useState("");
+  const nouvelle = proposees.length === 0 || choix === NOUVELLE;
 
   useEffect(() => {
     if (state?.success) formRef.current?.reset();
@@ -222,10 +293,32 @@ export function BesoinsPanel({
             totalBooked={bookingsActifs.length}
           />
         </div>
-        {!open && (
-          <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-            + Ajouter une fonction
-          </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {projetId && (
+            <button
+              type="button"
+              onClick={() => setGestionOuverte(true)}
+              className="text-xs text-text-muted hover:text-coral"
+              title="Voir et nettoyer les fonctions enregistrées du projet"
+            >
+              ⚙️ Fonctions du projet ({fonctionsProjet.length})
+            </button>
+          )}
+          {!open && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setChoix("");
+                setOpen(true);
+              }}
+            >
+              + Ajouter une fonction
+            </Button>
+          )}
+        </div>
+        {gestionOuverte && projetId && (
+          <FonctionsProjetModale projetId={projetId} fonctions={fonctionsProjet} onClose={() => setGestionOuverte(false)} />
         )}
       </div>
 
@@ -243,14 +336,37 @@ export function BesoinsPanel({
         <form ref={formRef} action={formAction} className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-text-muted">Fonction</label>
-            <input
-              name="fonction"
-              list="fonctions-suggestions"
-              placeholder="Passant, Silhouette videur..."
-              required
-              disabled={pending}
-              className="w-56 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
-            />
+            {proposees.length > 0 && (
+              <select
+                key={besoins.length}
+                name={nouvelle ? undefined : "fonction"}
+                defaultValue=""
+                onChange={(e) => setChoix(e.target.value)}
+                required
+                disabled={pending}
+                className="w-56 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
+              >
+                <option value="" disabled>
+                  Choisir une fonction…
+                </option>
+                {proposees.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+                <option value={NOUVELLE}>➕ Nouvelle fonction…</option>
+              </select>
+            )}
+            {nouvelle && (
+              <input
+                name="fonction"
+                placeholder="Passant, Silhouette videur..."
+                required
+                autoFocus={proposees.length > 0}
+                disabled={pending}
+                className="w-56 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
+              />
+            )}
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs text-text-muted">Quantité</label>

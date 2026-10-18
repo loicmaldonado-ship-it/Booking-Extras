@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildXlsxResponse, sanitizeFilenamePart, type ExportColumn } from "@/lib/export/xlsx";
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     return {
       numero,
       role: role.nom,
-      comedien: f ? `${f.prenom} ${f.nom}` : "",
+      comedien: f ? nomComplet(f) : "",
       telephone: f?.telephone ?? "",
       email: f?.email ?? "",
       agent: f?.agent_nom ?? "",

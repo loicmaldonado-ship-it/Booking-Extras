@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -47,7 +48,7 @@ export function EssayagesPanel({
           <Card key={f.id} className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="font-medium">
-                {f.prenom} {f.nom}
+                {nomComplet(f)}
               </span>
               <ButtonLink
                 href={`/essayages/nouveau?figurant_id=${f.id}&projet_id=${projetId}`}

@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -55,7 +56,7 @@ export function DoublonsPanel({ groupes }: { groupes: DoublonGroupe[] }) {
                 {g.profils.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
                     <Link href={`/figurants/${p.id}`} className="hover:text-coral">
-                      {p.prenom} {g.nom} — {p.email ?? "sans email"}
+                      {nomComplet({ prenom: p.prenom, nom: g.nom })} — {p.email ?? "sans email"}
                     </Link>
                     <Button type="button" variant="ghost" disabled={pending} onClick={() => supprimer(p.id)}>
                       Supprimer ce doublon

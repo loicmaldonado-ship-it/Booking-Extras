@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Image from "next/image";
 import type { CastingRole, CastingEntry } from "@/lib/casting/types";
 
@@ -34,7 +35,7 @@ export function FicheRoleValideSheet({
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Comédien·ne</p>
           <p className="text-lg font-semibold text-gray-900">
-            {f?.prenom} {f?.nom}
+            {nomComplet(f)}
           </p>
           {!hideContact && (
             <>

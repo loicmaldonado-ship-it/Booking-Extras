@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -132,7 +133,7 @@ export default async function CandidatureDetailPage({
           </div>
           <div>
             <h1 className="text-3xl font-semibold">
-              {f.prenom} {f.nom}
+              {nomComplet(f)}
             </h1>
             <p className="mt-1 text-text-muted">
               {candidature.annonces?.titre} · {projetNomPublic(candidature.annonces?.projets)}
@@ -166,7 +167,7 @@ export default async function CandidatureDetailPage({
         </div>
       </div>
 
-      <DuplicateWarning figurantId={f.id} figurantNom={`${f.prenom} ${f.nom}`} duplicates={duplicates} />
+      <DuplicateWarning figurantId={f.id} figurantNom={nomComplet(f)} duplicates={duplicates} />
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Rangement de la candidature</h2>
@@ -177,6 +178,8 @@ export default async function CandidatureDetailPage({
           onglets={onglets}
           fonctionAssignee={candidature.fonction_assignee}
           cachetAssigne={candidature.cachet_assigne}
+          projetId={candidature.annonces?.projet_id}
+          avecListe
         />
         <p className="text-xs text-text-muted">Reçue le {formatDateShort(candidature.created_at)}</p>
       </Card>

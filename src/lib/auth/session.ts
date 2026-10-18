@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import "server-only";
 import { cache } from "react";
 import { notFound } from "next/navigation";
@@ -36,7 +37,7 @@ const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
 // séparés) — reste utilisable tel quel pour les profils pas encore migrés
 // (assistant·es notamment, pas soumis à l'obligation de fiche complète).
 export function profileDisplayName(p: { prenom?: string | null; nom: string | null; email: string | null }): string | null {
-  if (p.prenom && p.nom) return `${p.prenom} ${p.nom}`;
+  if (p.prenom && p.nom) return nomComplet(p);
   return p.nom || p.email;
 }
 

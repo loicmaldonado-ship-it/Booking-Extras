@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -117,7 +118,7 @@ export function FigurantsTrombiGrid({
                 })()}
               </div>
               <div className="text-sm font-medium">
-                {f.prenom} {f.nom}
+                {nomComplet(f)}
               </div>
               <div className="text-xs text-text-muted">{[f.age != null ? `${f.age} ans` : null, f.ville].filter(Boolean).join(" · ") || "—"}</div>
             </Link>

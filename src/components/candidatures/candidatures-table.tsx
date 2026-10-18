@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { Fragment, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
@@ -56,7 +58,7 @@ const DEFAULT_BODY = "Bonjour {prenom},\n\n";
 function rowTokens(r: Row) {
   const projet = r.annonces?.projets;
   return {
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     projet: projetNomPublic(projet, "notre projet"),
     lieu: projet?.lieu ?? "",
     cachet: r.cachet_assigne ?? "",
@@ -157,7 +159,7 @@ export function CandidaturesTable({
         subject,
         r.annonces?.projet_id
       );
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
     setOpenRowId(null);
     setMessage("");
@@ -182,7 +184,7 @@ export function CandidaturesTable({
         subj,
         r.annonces?.projet_id
       );
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
     setSentBulk((prev) => new Set([...prev, r.id]));
   }
@@ -212,8 +214,13 @@ export function CandidaturesTable({
     });
   }
 
+  const projetIds = Array.from(new Set(rows.map((r) => r.annonces?.projet_id).filter((x): x is string => !!x)));
+
   return (
     <div className="flex flex-col gap-3">
+      {projetIds.map((pid) => (
+        <FonctionsDatalist key={pid} id={`fonctions-projet-${pid}`} projetId={pid} />
+      ))}
       {sendError && (
         <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
       )}
@@ -347,7 +354,7 @@ export function CandidaturesTable({
                         })()}
                       </div>
                       <div className="text-sm font-medium">
-                        {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                        {r.figurants ? nomComplet(r.figurants) : "—"}
                       </div>
                     </div>
                   ))}
@@ -418,7 +425,7 @@ export function CandidaturesTable({
               .map((r) => (
                 <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
                   <span>
-                    {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                    {r.figurants ? nomComplet(r.figurants) : "—"}
                     {!r.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
                   </span>
                   <Button
@@ -427,7 +434,7 @@ export function CandidaturesTable({
                     disabled={!r.figurants?.email || !bulkMessage.trim()}
                     onClick={() => sendBulkTo(r)}
                   >
-                    {sentBulk.has(r.id) ? "Envoyé" : `Envoyer à ${r.figurants?.prenom ?? ""}`}
+                    {sentBulk.has(r.id) ? "Envoyé" : `Envoyer à ${formatPrenom(r.figurants?.prenom)}`}
                   </Button>
                 </div>
               ))}
@@ -515,7 +522,7 @@ export function CandidaturesTable({
                 className="flex w-full flex-col items-center gap-1"
               >
                 <div className="text-sm font-medium">
-                  {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                  {r.figurants ? nomComplet(r.figurants) : "—"}
                 </div>
                 <div className="text-xs text-text-muted">
                   {[summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville]
@@ -592,7 +599,7 @@ export function CandidaturesTable({
                           onClick={(e) => openFiche(e, r.id)}
                           className="hover:text-coral"
                         >
-                          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                          {r.figurants ? nomComplet(r.figurants) : "—"}
                         </Link>
                         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
                         {previewIndexByCandidatureId.has(r.id) && (
@@ -624,6 +631,7 @@ export function CandidaturesTable({
                         onglets={onglets}
                         fonctionAssignee={r.fonction_assignee}
                         cachetAssigne={r.cachet_assigne}
+                        projetId={r.annonces?.projet_id}
                       />
                     </td>
                     <td className="px-6 py-3">
@@ -661,7 +669,7 @@ export function CandidaturesTable({
           if (!r) return null;
           return (
             <Modale
-              titre={`💬 Message à ${r.figurants?.prenom ?? ""} ${r.figurants?.nom ?? ""}`}
+              titre={`💬 Message à ${nomComplet(r.figurants)}`}
               onClose={() => setOpenRowId(null)}
             >
               <div className="flex flex-col gap-2">

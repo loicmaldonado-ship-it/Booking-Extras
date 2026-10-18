@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -280,7 +281,7 @@ function ListeCovoiturage({
           const isConducteur = b.items[0]?.badge === "🚗";
           const autres = isConducteur ? b.items.slice(1) : b.items;
           const nomEt = (i: TrombiItem) =>
-            `${i.booking.figurant.prenom} ${i.booking.figurant.nom}${i.booking.figurant.telephone ? ` (${i.booking.figurant.telephone})` : ""}`;
+            `${nomComplet(i.booking.figurant)}${i.booking.figurant.telephone ? ` (${i.booking.figurant.telephone})` : ""}`;
 
           return (
             <div key={b.headerLabel} className={isConducteur ? "rounded border border-gray-400 p-3" : ""}>

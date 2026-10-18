@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Image from "next/image";
 import type { ListeArtistiqueItem } from "@/lib/casting/liste-artistique";
 import { computeAge } from "@/lib/documents/fields";
@@ -40,7 +41,7 @@ export function DistributionSheet({
                   )}
                 </p>
                 <p className="text-lg font-bold text-gray-900">
-                  {f?.prenom} {f?.nom}
+                  {nomComplet(f)}
                 </p>
               </div>
 

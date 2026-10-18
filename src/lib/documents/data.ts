@@ -1,3 +1,4 @@
+import { comparerNoms } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { Figurant, FigurantPhoto } from "@/lib/figurants/types";
@@ -42,7 +43,7 @@ export async function getConfirmedBookings(
       cachet: b.cachet,
       figurant: b.figurants,
     }))
-    .sort((a, b) => (a.heure_convocation ?? "").localeCompare(b.heure_convocation ?? ""));
+    .sort((a, b) => comparerNoms(a.figurant, b.figurant));
 }
 
 export type CovoiturageInfo = {

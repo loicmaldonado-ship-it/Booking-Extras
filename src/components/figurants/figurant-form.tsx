@@ -1,5 +1,6 @@
 "use client";
 
+import { formatPrenom } from "@/lib/noms";
 import { useActionState, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -427,7 +428,7 @@ export function FigurantForm({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Indisponibilité</h2>
         <p className="text-sm text-text-muted">
-          Ajoute rapidement une date où {figurant.prenom} n&apos;est pas disponible.
+          Ajoute rapidement une date où {formatPrenom(figurant.prenom)} n&apos;est pas disponible.
         </p>
         <div className="flex items-center gap-3">
           <input

@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { mailtoHref } from "./convocation";
 
 export function smsHref(telephone: string, body: string) {
@@ -39,10 +40,10 @@ export function buildChauffeurMessage(params: {
   tarifPassager?: number;
 }) {
   const { prenom, lieu, date, heure, passagers, tarifBase, tarifPassager } = params;
-  const noms = passagers.map((p) => `${p.prenom} ${p.nom}`).join(" et ");
+  const noms = passagers.map((p) => nomComplet(p)).join(" et ");
   const contacts = passagers
     .filter((p) => p.telephone)
-    .map((p) => `${p.prenom} : ${p.telephone}`)
+    .map((p) => `${nomComplet(p)} : ${p.telephone}`)
     .join(", ");
 
   return [
@@ -68,7 +69,7 @@ export function buildPassagerMessage(params: {
 
   return [
     `Bonjour ${prenom},`,
-    `votre covoiturage du ${date}${heure ? ` (RDV ${heure})` : ""} est avec ${chauffeur.prenom} ${chauffeur.nom}` +
+    `votre covoiturage du ${date}${heure ? ` (RDV ${heure})` : ""} est avec ${nomComplet(chauffeur)}` +
       (chauffeur.telephone ? ` (${chauffeur.telephone})` : "") +
       ".",
     `On se retrouve à : ${lieu ?? "lieu à confirmer"}.`,

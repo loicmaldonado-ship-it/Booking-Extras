@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom, comparerNoms } from "@/lib/noms";
 import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -174,7 +175,7 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
     const chauffeur = rows.find((c) => c.figurant_id === r.covoiturage_conducteur_id);
     if (!chauffeur?.figurants) return null;
     const tel = chauffeur.figurants.telephone ? ` (${chauffeur.figurants.telephone})` : "";
-    return `Rappel covoiturage : vous êtes avec ${chauffeur.figurants.prenom} ${chauffeur.figurants.nom}${tel}. Départ : ${chauffeur.covoiturage_lieu_depart ?? "à confirmer"}.`;
+    return `Rappel covoiturage : vous êtes avec ${nomComplet(chauffeur.figurants)}${tel}. Départ : ${chauffeur.covoiturage_lieu_depart ?? "à confirmer"}.`;
   }
   return null;
 }
@@ -186,7 +187,7 @@ function rowTokens(r: Row, journeeLieu?: string | null) {
   const allDates = Array.from(new Set([r.date, ...autresDates])).sort();
 
   return {
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     projet: projetNomPublic(r.projets, "notre tournage"),
     date: allDates.map((d) => formatDateLong(d)).join(", "),
     lieu: journeeLieu || r.projets?.lieu || "",
@@ -323,6 +324,24 @@ const fieldClass =
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
 
 // « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+// Notes du profil sur ce booking (spécificités, retours…), comme sur les
+// cartes de casting : enregistrées en quittant le champ.
+function NotesBooking({ r, disabled, onSave }: { r: Row; disabled: boolean; onSave: (notes: string | null) => void }) {
+  return (
+    <textarea
+      defaultValue={r.notes ?? ""}
+      placeholder="Notes (spécificités...)"
+      rows={2}
+      disabled={disabled}
+      className="w-full resize-none rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
+      onBlur={(e) => {
+        const value = e.target.value.trim() || null;
+        if (value !== r.notes) onSave(value);
+      }}
+    />
+  );
+}
+
 function ageEtVille(r: Row) {
   const age = computeAge(r.figurants?.date_naissance ?? null);
   return [age != null ? `${age} ans` : null, r.figurants?.ville].filter(Boolean).join(" · ");
@@ -331,6 +350,7 @@ function ageEtVille(r: Row) {
 export function BookingsTable({
   rows,
   projetId,
+  fonctionsProjet = [],
   date,
   templates = [],
   journeeLieu = null,
@@ -343,6 +363,8 @@ export function BookingsTable({
 }: {
   rows: Row[];
   projetId?: string;
+  // Fonctions enregistrées du projet, proposées dans les champs Fonction.
+  fonctionsProjet?: string[];
   date?: string;
   templates?: MessageTemplate[];
   journeeLieu?: string | null;
@@ -421,10 +443,13 @@ export function BookingsTable({
 
   const now = nowIso();
 
-  const fonctions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.fonction).filter((f): f is string => !!f))).sort(),
-    [rows]
-  );
+  const fonctions = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...fonctionsProjet, ...rows.map((r) => r.fonction)]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [fonctionsProjet, rows]);
 
   const cachetCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -461,7 +486,7 @@ export function BookingsTable({
     .filter((r) => !!r.figurant_id)
     .map((r) => ({
       id: r.figurant_id!,
-      prenom: r.figurants?.prenom ?? "",
+      prenom: formatPrenom(r.figurants?.prenom),
       nom: r.figurants?.nom ?? "",
       ville: r.figurants?.ville ?? null,
       portraitUrl: r.portraitUrl,
@@ -550,7 +575,7 @@ export function BookingsTable({
     if (cibles.length === 0) return;
     const noms = cibles
       .slice(0, 10)
-      .map((r) => `${r.figurants?.prenom ?? ""} ${r.figurants?.nom ?? ""}`.trim())
+      .map((r) => nomComplet(r.figurants).trim())
       .join(", ");
     const suite = cibles.length > 10 ? ` et ${cibles.length - 10} autre${cibles.length - 10 > 1 ? "s" : ""}` : "";
     if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
@@ -877,7 +902,7 @@ export function BookingsTable({
         <td className="px-6 py-4 align-middle">
           <Link href={`/bookings/${r.id}`} className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium hover:text-coral">
             <span className="min-w-0 max-w-full truncate">
-              {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+              {r.figurants ? nomComplet(r.figurants) : "—"}
             </span>
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
@@ -916,7 +941,7 @@ export function BookingsTable({
               <PhotosTrombiPicker
                 projetId={projetId}
                 figurantId={r.figurant_id}
-                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                nom={r.figurants ? nomComplet(r.figurants) : ""}
                 compact
               />
             )}
@@ -995,16 +1020,7 @@ export function BookingsTable({
               />
               Répondu
             </label>
-            <input
-              defaultValue={r.notes ?? ""}
-              placeholder="Note..."
-              disabled={pending}
-              className={fieldClass}
-              onBlur={(e) => {
-                const value = e.target.value.trim() || null;
-                if (value !== r.notes) updateRow(r.id, { notes: value });
-              }}
-            />
+            <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
             {r.figurants && (
               <button
                 type="button"
@@ -1067,7 +1083,7 @@ export function BookingsTable({
             )}
           </div>
           <div className="text-sm font-medium">
-            {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+            {r.figurants ? nomComplet(r.figurants) : "—"}
           </div>
           {ageEtVille(r) && <div className="-mt-1 text-xs text-text-muted">{ageEtVille(r)}</div>}
           {projetId && r.figurant_id && (
@@ -1082,7 +1098,7 @@ export function BookingsTable({
               <PhotosTrombiPicker
                 projetId={projetId}
                 figurantId={r.figurant_id}
-                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                nom={r.figurants ? nomComplet(r.figurants) : ""}
                 compact
               />
             </span>
@@ -1176,6 +1192,7 @@ export function BookingsTable({
             </option>
           ))}
         </StatusSelect>
+        <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
         {r.figurants && (
           <button
             type="button"
@@ -1256,7 +1273,7 @@ export function BookingsTable({
                   href={`/figurants/${r.figurantId}`}
                   className="flex flex-wrap items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-ink-raised-2"
                 >
-                  <span className="shrink-0 font-medium">{r.prenom} {r.nom}</span>
+                  <span className="shrink-0 font-medium">{nomComplet(r)}</span>
                   {r.sentiment === "positif" && <Badge tone="turquoise">Semble positif</Badge>}
                   {r.sentiment === "negatif" && <Badge tone="danger">Semble négatif</Badge>}
                   {r.sujet && <span className="shrink-0 font-medium text-text-muted">« {r.sujet} »</span>}
@@ -1713,7 +1730,7 @@ export function BookingsTable({
               <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
                 {convocationAEnvoyer.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-2 py-0.5">
-                    <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                    <span>{nomComplet(r.figurants)}</span>
                     <span className="text-text-muted">
                       {r.heure_convocation ? r.heure_convocation.slice(0, 5) : "heure à confirmer"}
                     </span>
@@ -1742,7 +1759,7 @@ export function BookingsTable({
                   </div>
                   {convocationDejaEnvoyee.map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-2 text-text-muted">
-                      <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                      <span>{nomComplet(r.figurants)}</span>
                       <button
                         type="button"
                         disabled={pending}
@@ -1770,7 +1787,7 @@ export function BookingsTable({
                   destinataires={selectedRows
                     .filter((r) => r.figurants)
                     .map((r) => ({
-                      nom: `${r.figurants!.prenom} ${r.figurants!.nom}`,
+                      nom: nomComplet(r.figurants),
                       telephone: r.figurants!.telephone,
                       texte: convocationFor(r).body,
                     }))}
@@ -1842,7 +1859,7 @@ export function BookingsTable({
                       destinataires={selectedRows
                         .filter((r) => r.figurants)
                         .map((r) => ({
-                          nom: `${r.figurants!.prenom} ${r.figurants!.nom}`,
+                          nom: nomComplet(r.figurants),
                           telephone: r.figurants!.telephone,
                           texte: substituteTokens(libreMessage, rowTokens(r, journeeLieu)),
                         }))}
@@ -1863,7 +1880,7 @@ export function BookingsTable({
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
                     {selectedWithEmail.map((r) => (
                       <div key={r.id} className="py-0.5">
-                        {r.figurants?.prenom} {r.figurants?.nom}
+                        {nomComplet(r.figurants)}
                       </div>
                     ))}
                   </div>
@@ -1974,7 +1991,7 @@ export function BookingsTable({
               )}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {[...group.rows]
-                  .sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""))
+                  .sort((a, b) => comparerNoms(a.figurants, b.figurants))
                   .map(renderTrombiCard)}
               </div>
             </div>

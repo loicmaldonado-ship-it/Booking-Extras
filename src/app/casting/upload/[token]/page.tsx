@@ -1,3 +1,4 @@
+import { formatPrenom } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
@@ -59,7 +60,7 @@ export default async function CastingUploadPage({
     <div className="flex flex-col gap-6">
       <div>
         <Logo iconSize={26} textClassName="text-lg" />
-        <h1 className="mt-4 text-2xl font-semibold">Bonjour {entry.figurants?.prenom}</h1>
+        <h1 className="mt-4 text-2xl font-semibold">Bonjour {formatPrenom(entry.figurants?.prenom)}</h1>
         <p className="mt-1 text-text-muted">
           {entry.casting_roles
             ? `Pour le rôle « ${entry.casting_roles.nom} », envoie-nous ce qui est demandé ci-dessous.`

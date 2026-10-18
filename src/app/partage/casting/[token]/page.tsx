@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
 import {
   getCastingRoles,
@@ -164,7 +165,7 @@ export default async function PartageCastingPage({
               {(() => {
                 const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
                   id: entry.id,
-                  nom: `${entry.figurants?.prenom ?? ""} ${entry.figurants?.nom ?? ""}`.trim(),
+                  nom: nomComplet(entry.figurants).trim(),
                   valide: entry.statut === "valide",
                   portraitUrl: vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id),
                   videoUrls: videoUrlsByEntry.get(entry.id) ?? [],

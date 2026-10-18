@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -76,7 +77,7 @@ function PreviewBody({ item }: { item: PreviewItem }) {
                   >
                     <div className="flex items-center justify-between text-xs text-text-muted">
                       <span>
-                        {m.sender === "staff" ? "Vous" : item.prenom}
+                        {m.sender === "staff" ? "Vous" : formatPrenom(item.prenom)}
                         {m.projetLabel ? ` · ${m.projetLabel}` : ""}
                       </span>
                       <span>{formatDateTime(m.created_at)}</span>
@@ -172,7 +173,7 @@ function PreviewModal({
           </div>
           <div className="flex flex-1 flex-col gap-0.5">
             <span className="font-semibold">
-              {item.prenom} {item.nom}
+              {nomComplet(item)}
             </span>
             <span className="text-xs text-text-muted">{item.ville ?? "—"}</span>
           </div>
