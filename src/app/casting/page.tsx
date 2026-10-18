@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
@@ -25,7 +26,6 @@ import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { CASTING_MODE_LABELS, CASTING_STATUTS } from "@/lib/casting/types";
 import { Select } from "@/components/ui/field";
 import Link from "next/link";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { Video } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +84,7 @@ export default async function CastingPage({
     getCastingDocsVisibility(currentProjetId),
     getSiteOrigin(),
     allFigurantsQuery,
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    getModelesEquipe().then((data) => ({ data })),
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),
     getPresentielAssignmentsByRole(currentProjetId),

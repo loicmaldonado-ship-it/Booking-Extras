@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card, Badge } from "@/components/ui/card";
 import { Select, Input } from "@/components/ui/field";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -28,7 +29,6 @@ import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
 import { getProjetSignaturesOrOwnerNames } from "@/lib/projets/signature";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { FileText } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -229,7 +229,7 @@ export default async function CandidaturesPage({
     { data: journeesBesoins },
   ] = await Promise.all([
     fetchAll(query),
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    getModelesEquipe().then((data) => ({ data })),
     params.question_id && params.question_reponse
       ? fetchAll((from, to) =>
           supabase

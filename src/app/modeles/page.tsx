@@ -1,19 +1,13 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { TemplateForm } from "@/components/templates/template-form";
 import { TemplatesList } from "@/components/templates/templates-list";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModelesPage() {
-  const supabase = createAdminClient();
-  const { data: templates } = await supabase
-    .from("message_templates")
-    .select("*")
-    .order("nom")
-    .returns<MessageTemplate[]>();
+  const templates = await getModelesEquipe();
 
   return (
     <div className="flex flex-col gap-6">
