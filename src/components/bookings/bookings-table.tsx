@@ -253,6 +253,7 @@ const STATUT_ROW_CLASSES: Record<string, { rowBorderL: string; rowBg: string; ca
   confirme: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/20", cardBorder: "border-turquoise", cardBg: "bg-turquoise/25" },
   yellow: { rowBorderL: "border-l-yellow", rowBg: "bg-yellow/5", cardBorder: "border-yellow/40", cardBg: "bg-yellow/10" },
   danger: { rowBorderL: "border-l-danger", rowBg: "bg-danger/5", cardBorder: "border-danger/40", cardBg: "bg-danger/10" },
+  indispo: { rowBorderL: "border-l-danger", rowBg: "bg-danger/20", cardBorder: "border-danger", cardBg: "bg-danger/25" },
 };
 
 function statutRowClasses(statut: BookingStatut) {

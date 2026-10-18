@@ -8,6 +8,7 @@ const TONE_CLASSES: Record<string, string> = {
   confirme: "bg-turquoise text-white font-semibold",
   yellow: "bg-yellow/15 text-yellow",
   danger: "bg-danger/15 text-danger",
+  indispo: "bg-danger text-white font-semibold",
 };
 
 // Un <select> stylé comme un badge coloré : édition en ligne fluide, sans
