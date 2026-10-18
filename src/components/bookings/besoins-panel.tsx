@@ -39,7 +39,7 @@ function TotalJourneeField({
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-text-muted hover:text-coral"
+          className="text-text hover:text-coral"
           title="Modifier le total journée"
         >
           ✎
@@ -68,7 +68,7 @@ function TotalJourneeField({
         {pending ? "..." : "OK"}
       </button>
       {totalRequis !== null && (
-        <button type="button" onClick={() => setEditing(false)} className="text-text-muted hover:text-coral">
+        <button type="button" onClick={() => setEditing(false)} className="text-text hover:text-coral">
           Annuler
         </button>
       )}
@@ -144,7 +144,7 @@ function BesoinPastille({ besoin, count }: { besoin: JourneeBesoin; count: numbe
         >
           {pending ? "..." : "OK"}
         </button>
-        <button type="button" onClick={() => setEdition(false)} className="text-xs text-text-muted hover:text-coral">
+        <button type="button" onClick={() => setEdition(false)} className="text-xs text-text hover:text-coral">
           Annuler
         </button>
         {renomme && count > 0 && (
@@ -169,11 +169,11 @@ function BesoinPastille({ besoin, count }: { besoin: JourneeBesoin; count: numbe
       <Badge tone={complet ? "turquoise" : "yellow"}>
         {count}/{besoin.quantite}
       </Badge>
-      <button type="button" onClick={ouvrir} className="text-text-muted hover:text-coral" title="Modifier cette fonction">
+      <button type="button" onClick={ouvrir} className="text-text hover:text-coral" title="Modifier cette fonction">
         ✎
       </button>
       <form action={deleteBesoin.bind(null, besoin.id)}>
-        <button type="submit" className="text-text-muted hover:text-coral" title="Supprimer ce besoin">
+        <button type="submit" className="text-text hover:text-coral" title="Supprimer ce besoin">
           ×
         </button>
       </form>
@@ -223,7 +223,7 @@ function FonctionsProjetModale({
                 type="button"
                 disabled={pending}
                 onClick={() => oublier(f)}
-                className="text-xs text-text-muted hover:text-danger disabled:opacity-50"
+                className="text-xs text-text hover:text-danger disabled:opacity-50"
               >
                 Retirer de la liste
               </button>
@@ -298,7 +298,7 @@ export function BesoinsPanel({
             <button
               type="button"
               onClick={() => setGestionOuverte(true)}
-              className="text-xs text-text-muted hover:text-coral"
+              className="text-xs text-text hover:text-coral"
               title="Voir et nettoyer les fonctions enregistrées du projet"
             >
               ⚙️ Fonctions du projet ({fonctionsProjet.length})

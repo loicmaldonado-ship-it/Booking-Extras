@@ -36,7 +36,7 @@ export function ForgotPasswordForm() {
         <Button type="submit" disabled={pending} className="mt-2">
           {pending ? "Envoi..." : "Envoyer le lien"}
         </Button>
-        <Link href="/login" className="text-center text-sm text-text-muted hover:underline">
+        <Link href="/login" className="text-center text-sm text-text hover:underline">
           ← Retour à la connexion
         </Link>
       </form>

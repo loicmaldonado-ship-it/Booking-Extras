@@ -147,7 +147,7 @@ export function AfficheEditor({
               setCouleurCorps(null);
               setTailleCorps("normal");
             }}
-            className="text-xs text-text-muted hover:text-text hover:underline"
+            className="text-xs text-text hover:text-text hover:underline"
           >
             Revenir au style d&apos;origine
           </button>
@@ -277,7 +277,7 @@ function Pastille({ actif, onClick, children }: { actif: boolean; onClick: () =>
       aria-pressed={actif}
       className={cn(
         "h-7 rounded-full border px-3 text-xs font-medium",
-        actif ? "border-coral bg-coral/10 text-coral" : "border-border text-text-muted hover:text-text"
+        actif ? "border-coral bg-coral/10 text-coral" : "border-border-strong text-text hover:text-text"
       )}
     >
       {children}
@@ -352,7 +352,7 @@ function ChoixCouleur({
         title={titreDefaut}
         className={cn(
           "h-8 rounded-full border px-3 text-xs font-medium",
-          valeur === null ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
+          valeur === null ? "border-coral text-coral ring-2 ring-coral/40" : "border-border-strong text-text hover:text-text"
         )}
       >
         {libelleDefaut}
@@ -376,7 +376,7 @@ function ChoixCouleur({
         title="Autre couleur"
         className={cn(
           "relative flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium",
-          couleurPerso ? "border-coral text-coral ring-2 ring-coral/40" : "border-border text-text-muted hover:text-text"
+          couleurPerso ? "border-coral text-coral ring-2 ring-coral/40" : "border-border-strong text-text hover:text-text"
         )}
       >
         <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: couleurPerso ?? "#888888" }} />

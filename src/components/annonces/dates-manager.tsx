@@ -71,7 +71,7 @@ export function DatesManager({
               <button
                 type="button"
                 onClick={() => remove(d.id)}
-                className="text-text-muted hover:text-coral"
+                className="text-text hover:text-coral"
                 title="Supprimer cette date"
               >
                 ×

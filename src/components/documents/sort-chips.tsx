@@ -45,7 +45,7 @@ export function SortChips({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               active
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {active ? `${idx + 1}. ` : ""}
@@ -54,7 +54,7 @@ export function SortChips({
         );
       })}
       {current.length > 0 && (
-        <Link href={hrefFor([])} className="text-xs text-text-muted hover:text-text hover:underline">
+        <Link href={hrefFor([])} className="text-xs text-text hover:text-text hover:underline">
           Réinitialiser
         </Link>
       )}

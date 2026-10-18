@@ -77,7 +77,7 @@ export function JoursTournageBar({
               }}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium tabular-nums transition-colors",
-                isActive ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+                isActive ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
               )}
             >
               Jour {formatDayMonth(j.date)} ·{" "}
@@ -179,20 +179,20 @@ export function JoursTournageBar({
                   <Link
                     href={`/bookings/documents/trombis?projet_id=${projetId}&date=${active.date}&statut=tous`}
                     target="_blank"
-                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                    className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
                   >
                     🖼️ Trombi de la journée
                   </Link>
                   <Link
                     href={`/bookings/documents/fiches?projet_id=${projetId}&date=${active.date}&statut=tous`}
                     target="_blank"
-                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                    className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
                   >
                     📏 Fiches mensuration
                   </Link>
                   <Link
                     href={`/bookings/documents?projet_id=${projetId}&date=${active.date}`}
-                    className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+                    className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
                   >
                     Voir la journée →
                   </Link>

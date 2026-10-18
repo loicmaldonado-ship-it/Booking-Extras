@@ -61,7 +61,7 @@ export default async function SilhouettesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href={backHref} className="print-hide text-sm text-text-muted hover:text-coral">
+      <Link href={backHref} className="print-hide text-sm text-text hover:text-coral">
         ← Retour
       </Link>
 

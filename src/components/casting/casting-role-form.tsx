@@ -111,7 +111,7 @@ export function CastingRoleForm({
               <button
                 type="button"
                 onClick={() => removeLabel(l)}
-                className="text-xs text-text-muted hover:text-danger"
+                className="text-xs text-text hover:text-danger"
               >
                 Retirer
               </button>

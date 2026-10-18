@@ -31,7 +31,7 @@ export async function AccueilPublic() {
     <div className="flex flex-col gap-12">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <Logo iconSize={28} textClassName="text-lg" />
-        <Link href="/login" className="text-sm text-text-muted hover:text-text">
+        <Link href="/login" className="text-sm text-text hover:text-text">
           Espace équipe casting →
         </Link>
       </header>

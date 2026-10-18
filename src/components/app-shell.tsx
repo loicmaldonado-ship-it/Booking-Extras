@@ -63,6 +63,7 @@ const PUBLIC_PREFIXES = [
   "/partage/casting",
   "/casting/upload",
   "/casting/rejoindre",
+  "/recu/",
   "/compte",
 ];
 
@@ -159,7 +160,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex items-center gap-1 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+              className="flex items-center gap-1 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
             >
               ← <span className="hidden sm:inline">Retour</span>
             </button>
@@ -226,7 +227,7 @@ export function AppShell({
             <form action={signOut} className="hidden sm:block">
               <button
                 type="submit"
-                className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+                className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
               >
                 Se déconnecter
               </button>

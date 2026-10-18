@@ -8,6 +8,9 @@
   --color-ink-raised: #ece4f7;
   --color-ink-raised-2: #ddceef;
   --color-border: #c7b5e3;
+  /* Contour des boutons et pastilles cliquables : nettement plus marqué que
+     --color-border (cartes), pour voir d'un coup d'œil ce qui se clique. */
+  --color-border-strong: #8f78bd;
 
   --color-text: #180f26;
   --color-text-muted: #4b3f66;
@@ -38,6 +41,7 @@
   --color-ink-raised: var(--color-ink-raised);
   --color-ink-raised-2: var(--color-ink-raised-2);
   --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
   --color-text: var(--color-text);
   --color-text-muted: var(--color-text-muted);
   --color-coral: var(--color-coral);

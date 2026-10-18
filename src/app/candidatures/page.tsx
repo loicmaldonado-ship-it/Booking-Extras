@@ -724,7 +724,7 @@ export default async function CandidaturesPage({
                   ? tab.danger
                     ? "border-danger bg-danger/15 text-danger"
                     : "border-coral bg-coral/15 text-coral"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {tab.label} ({tab.count})
@@ -743,7 +743,7 @@ export default async function CandidaturesPage({
               href={tab.href}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+                active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
               )}
             >
               {tab.label} ({tab.count})
@@ -774,7 +774,7 @@ export default async function CandidaturesPage({
                 href={toggleDispoHref(d.id)}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                  active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+                  active ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
                 )}
               >
                 {formatDateShort(d.date)} ({dispoCountByDate.get(d.id) ?? 0})
@@ -824,7 +824,7 @@ export default async function CandidaturesPage({
             href={ordreHref(o.key)}
             className={cn(
               "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-              ordre === o.key ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+              ordre === o.key ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
             )}
           >
             {o.label}
@@ -908,7 +908,7 @@ export default async function CandidaturesPage({
           </button>
           <Link
             href={`/candidatures?annonce_id=${params.annonce_id}`}
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1"
+            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
           >
             Réinitialiser
           </Link>
@@ -963,7 +963,7 @@ export default async function CandidaturesPage({
                   "min-w-9 rounded-full border px-3 py-2 text-center font-medium tabular-nums transition-colors",
                   p === page
                     ? "pointer-events-none border-coral bg-coral/15 text-coral"
-                    : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                    : "border-border-strong text-text hover:border-coral/60 hover:text-text"
                 )}
               >
                 {p}

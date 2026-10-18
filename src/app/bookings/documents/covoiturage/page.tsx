@@ -102,7 +102,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ vue: "trombi" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isListe ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Trombi (photos)
@@ -111,7 +111,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ vue: "liste" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isListe ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Liste (texte)
@@ -121,7 +121,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ sansCovoiturage: "afficher" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Afficher
@@ -130,7 +130,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ sansCovoiturage: "masquer" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Masquer

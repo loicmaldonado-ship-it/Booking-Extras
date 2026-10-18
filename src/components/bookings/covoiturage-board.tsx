@@ -340,7 +340,7 @@ export function CovoiturageBoard({
           <button
             type="button"
             onClick={onRemove}
-            className="absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-ink-raised-2 text-[10px] text-text-muted hover:bg-danger hover:text-ink group-hover:flex"
+            className="absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-ink-raised-2 text-[10px] text-text hover:bg-danger hover:text-ink group-hover:flex"
             title="Retirer"
           >
             ×
@@ -360,7 +360,7 @@ export function CovoiturageBoard({
           <button
             type="button"
             onClick={onMessage}
-            className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="w-full truncate rounded-full border border-border-strong px-1.5 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
           >
             Rappel {r.figurants?.telephone ? "texto" : "email"}
           </button>
@@ -456,7 +456,7 @@ export function CovoiturageBoard({
             type="button"
             onClick={() => sendCovoiturageMessage(r)}
             disabled={!r.figurants?.telephone && !r.figurants?.email}
-            className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-30"
+            className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text disabled:opacity-30"
           >
             {r.figurants?.telephone ? "Texto" : r.figurants?.email ? "Email" : "Pas de contact"}
           </button>
@@ -488,7 +488,7 @@ export function CovoiturageBoard({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               viewMode === v.value
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {v.label}
@@ -551,7 +551,7 @@ export function CovoiturageBoard({
         <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Appliquer cette organisation à une autre journée</span>
-            <button type="button" onClick={() => setCopyOpen(false)} className="text-text-muted hover:text-coral">
+            <button type="button" onClick={() => setCopyOpen(false)} className="text-text hover:text-coral">
               Fermer
             </button>
           </div>

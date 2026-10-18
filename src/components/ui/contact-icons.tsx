@@ -22,7 +22,7 @@ export function ContactIcons({
   const tel = telephone ?? undefined;
 
   const iconClass = cn(
-    "flex items-center justify-center rounded-md border border-border text-text-muted hover:border-coral/60 hover:text-text",
+    "flex items-center justify-center rounded-md border border-border-strong text-text hover:border-coral/60 hover:text-text",
     variant === "card" ? "h-6 flex-1 text-xs" : "h-5 w-5 shrink-0 text-[10px]"
   );
 

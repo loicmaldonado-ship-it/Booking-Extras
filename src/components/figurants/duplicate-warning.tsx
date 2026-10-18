@@ -78,7 +78,7 @@ export function DuplicateWarning({
             <button
               type="button"
               onClick={() => setDismissed((prev) => new Set([...prev, d.figurant.id]))}
-              className="text-xs text-text-muted hover:text-text"
+              className="text-xs text-text hover:text-text"
             >
               Ce n&apos;est pas la même personne
             </button>

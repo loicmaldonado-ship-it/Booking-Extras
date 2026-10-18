@@ -1,3 +1,4 @@
+import { getEnvoisJournee } from "@/lib/messages/envois";
 import { listerFonctionsProjet } from "@/lib/projets/fonctions";
 import { trierParNom } from "@/lib/noms";
 import Link from "next/link";
@@ -94,7 +95,11 @@ export default async function JourneeDashboardPage({
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
-  const [journees, fonctionsProjet] = await Promise.all([getJournees(projet_id), listerFonctionsProjet(projet_id)]);
+  const [journees, fonctionsProjet, envois] = await Promise.all([
+    getJournees(projet_id),
+    listerFonctionsProjet(projet_id),
+    getEnvoisJournee(projet_id, date),
+  ]);
   const currentIndex = journees.findIndex((j) => j.date === date);
   const currentJournee = currentIndex >= 0 ? journees[currentIndex] : null;
   const prevJournee = currentIndex > 0 ? journees[currentIndex - 1] : null;
@@ -116,7 +121,7 @@ export default async function JourneeDashboardPage({
     figurantIds.length > 0
       ? await supabase
           .from("figurant_messages")
-          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu")
+          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu, mail_message_id, lu_gmail_le")
           .in("figurant_id", figurantIds)
           .neq("categorie", "espace_perso")
           .or(`projet_id.is.null,projet_id.eq.${projet_id}`)
@@ -288,7 +293,7 @@ export default async function JourneeDashboardPage({
             {prevJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${prevJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 ← J{prevJournee.numero} ({formatDateShort(prevJournee.date)})
               </Link>
@@ -301,7 +306,7 @@ export default async function JourneeDashboardPage({
             {nextJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${nextJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 J{nextJournee.numero} ({formatDateShort(nextJournee.date)}) →
               </Link>
@@ -358,7 +363,7 @@ export default async function JourneeDashboardPage({
               "flex shrink-0 flex-col items-center rounded-xl border px-3 py-1.5 text-center transition-colors",
               j.date === date
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                : "border-border-strong text-text hover:border-coral/60 hover:text-text"
             )}
           >
             <span className="text-[10px] font-medium uppercase tracking-wide">J{j.numero}</span>
@@ -378,6 +383,7 @@ export default async function JourneeDashboardPage({
         date={date}
         besoins={besoins}
         fonctionsProjet={fonctionsProjet}
+        envois={envois}
         journeeId={currentJournee?.id ?? null}
         totalRequis={currentJournee?.total_requis ?? null}
         journeeLieu={currentJournee?.lieu ?? null}

@@ -28,13 +28,13 @@ export function LangToggle({
     <div className="print-hide flex items-center overflow-hidden rounded-full border border-border text-xs font-medium">
       <Link
         href={hrefFor("fr")}
-        className={cn("px-2.5 py-1", lang === "fr" ? "bg-coral text-ink" : "text-text-muted hover:text-text")}
+        className={cn("px-2.5 py-1", lang === "fr" ? "bg-coral text-ink" : "text-text hover:text-text")}
       >
         FR
       </Link>
       <Link
         href={hrefFor("en")}
-        className={cn("px-2.5 py-1", lang === "en" ? "bg-coral text-ink" : "text-text-muted hover:text-text")}
+        className={cn("px-2.5 py-1", lang === "en" ? "bg-coral text-ink" : "text-text hover:text-text")}
       >
         EN
       </Link>

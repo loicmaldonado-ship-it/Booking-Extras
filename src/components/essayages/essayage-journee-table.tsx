@@ -298,7 +298,7 @@ export function EssayageJourneeTable({
               type="button"
               onClick={() => remove(r.id)}
               disabled={pending}
-              className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text-muted hover:bg-danger hover:text-ink"
+              className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text hover:bg-danger hover:text-ink"
               title="Retirer de cette journée"
             >
               ×
@@ -326,7 +326,7 @@ export function EssayageJourneeTable({
             <button
               type="button"
               onClick={() => (lieuEditingId === r.id ? setLieuEditingId(null) : openLieuEditor(r))}
-              className="w-full truncate text-[10px] text-text-muted hover:text-coral hover:underline"
+              className="w-full truncate text-[10px] text-text hover:text-coral hover:underline"
               title="Changer le lieu pour cette personne uniquement"
             >
               📍 {r.lieu ?? journeeLieu ?? "Lieu à définir"}
@@ -358,7 +358,7 @@ export function EssayageJourneeTable({
               </div>
             )}
             {projetId && (
-              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text">
+              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text">
                 📷 Photo en tenue
                 <input
                   type="file"

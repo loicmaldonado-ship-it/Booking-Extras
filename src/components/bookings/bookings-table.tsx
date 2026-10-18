@@ -55,6 +55,9 @@ export type MessageRow = {
   corps: string;
   created_at: string;
   repondu: boolean;
+  // Réponse importée d'une boîte Gmail (relève automatique).
+  mail_message_id?: string | null;
+  lu_gmail_le?: string | null;
 };
 
 // Mail (Mac) n'a pas d'URL publique pour ouvrir une recherche pré-remplie
@@ -182,7 +185,7 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
   return null;
 }
 
-function rowTokens(r: Row, journeeLieu?: string | null) {
+export function rowTokens(r: Row, journeeLieu?: string | null) {
   // Raccord : le token {date} liste toutes ses dates sur ce projet plutôt
   // que juste celle de cette journée — pour un profil CONFIRMÉ, seulement
   // ses dates confirmées (pas une journée où il est indispo) ; sinon toutes
@@ -1117,7 +1120,7 @@ export function BookingsTable({
             <label
               className={cn(
                 "flex w-fit items-center gap-1.5 text-xs font-medium",
-                r.reponse_recue ? "text-yellow" : "text-text-muted"
+                r.reponse_recue ? "text-yellow" : "text-text"
               )}
             >
               <input
@@ -1133,7 +1136,7 @@ export function BookingsTable({
               title="A accepté la proposition de booking : passe en CONFIRMÉ"
               className={cn(
                 "flex w-fit items-center gap-1.5 text-xs font-medium",
-                r.reponse_booking ? "text-turquoise" : "text-text-muted"
+                r.reponse_booking ? "text-turquoise" : "text-text"
               )}
             >
               <input
@@ -1150,7 +1153,7 @@ export function BookingsTable({
               <button
                 type="button"
                 onClick={() => copyConvocationText(r)}
-                className="w-fit rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                className="w-fit rounded-full border border-border-strong px-2 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
               >
                 {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
               </button>
@@ -1236,7 +1239,7 @@ export function BookingsTable({
             title="A répondu à la convocation (BIEN REÇU)"
             className={cn(
               "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-              r.reponse_recue ? "bg-yellow/15 text-yellow" : "bg-ink-raised-2 text-text-muted"
+              r.reponse_recue ? "bg-yellow font-semibold text-white" : "border border-border-strong bg-ink text-text"
             )}
           >
             <input
@@ -1256,7 +1259,7 @@ export function BookingsTable({
             title="A accepté la proposition de booking : passe en CONFIRMÉ"
             className={cn(
               "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-              r.reponse_booking ? "bg-turquoise/15 text-turquoise" : "bg-ink-raised-2 text-text-muted"
+              r.reponse_booking ? "bg-turquoise font-semibold text-white" : "border border-border-strong bg-ink text-text"
             )}
           >
             <input
@@ -1339,7 +1342,7 @@ export function BookingsTable({
           <button
             type="button"
             onClick={() => copyConvocationText(r)}
-            className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="w-full truncate rounded-full border border-border-strong px-1.5 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
           >
             {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
           </button>
@@ -1377,7 +1380,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 onlyNonRepondus
                   ? "border-danger bg-danger/15 text-danger"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {onlyNonRepondus ? "Voir tout le monde" : `Voir les ${nonRepondusCount} non-répondu${nonRepondusCount > 1 ? "s" : ""}`}
@@ -1402,7 +1405,7 @@ export function BookingsTable({
               )}
             </span>
             {replies.length > 0 && (
-              <button type="button" onClick={clearReplies} className="text-xs text-text-muted hover:text-coral">
+              <button type="button" onClick={clearReplies} className="text-xs text-text hover:text-coral">
                 Effacer la liste
               </button>
             )}
@@ -1441,7 +1444,7 @@ export function BookingsTable({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               viewMode === v.value
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {v.label}
@@ -1454,13 +1457,13 @@ export function BookingsTable({
             </span>
             <Link
               href={documentHref("trombis")}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
             >
               🖼️ Trombis
             </Link>
             <Link
               href={documentHref("fiches")}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
             >
               📏 Fiches mensuration
             </Link>
@@ -1471,7 +1474,7 @@ export function BookingsTable({
             type="button"
             onClick={toggleAll}
             className={cn(
-              "rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text",
+              "rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text",
               !(projetId && date) && "ml-auto"
             )}
           >
@@ -1496,7 +1499,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                 active
                   ? "border-yellow bg-yellow/15 text-yellow"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {active ? `${idx + 1}. ` : ""}
@@ -1508,7 +1511,7 @@ export function BookingsTable({
           <button
             type="button"
             onClick={() => setGroupDims([])}
-            className="text-xs text-text-muted hover:text-text hover:underline"
+            className="text-xs text-text hover:text-text hover:underline"
           >
             Réinitialiser
           </button>
@@ -1522,7 +1525,7 @@ export function BookingsTable({
           onClick={() => setActiveFonction(null)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !activeFonction ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !activeFonction ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Toutes
@@ -1536,7 +1539,7 @@ export function BookingsTable({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               activeFonction === f
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {f}
@@ -1551,7 +1554,7 @@ export function BookingsTable({
           onClick={() => setActiveCachet(null)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !activeCachet ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+            !activeCachet ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
           )}
         >
           Tous
@@ -1568,7 +1571,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-30",
                 activeCachet === c
                   ? "border-turquoise bg-turquoise/15 text-turquoise"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {c} ({count})
@@ -1602,7 +1605,7 @@ export function BookingsTable({
       {changeDateMessage && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-2 text-sm text-turquoise">
           {changeDateMessage}
-          <button type="button" onClick={() => setChangeDateMessage(null)} className="text-xs text-text-muted hover:text-text">
+          <button type="button" onClick={() => setChangeDateMessage(null)} className="text-xs text-text hover:text-text">
             Fermer
           </button>
         </div>
@@ -1967,7 +1970,7 @@ export function BookingsTable({
                       <button
                         type="button"
                         onClick={() => applyLibreTemplate()}
-                        className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                        className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
                       >
                         Vierge
                       </button>
@@ -1976,7 +1979,7 @@ export function BookingsTable({
                           key={t.id}
                           type="button"
                           onClick={() => applyLibreTemplate(t)}
-                          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                          className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
                         >
                           {nomModele(t)}
                         </button>

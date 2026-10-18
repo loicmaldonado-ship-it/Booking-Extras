@@ -38,7 +38,7 @@ export function PresentielLieuField({ journeeId, lieu }: { journeeId: string; li
         <Button type="button" disabled={pending} onClick={save}>
           {pending ? "..." : "OK"}
         </Button>
-        <button type="button" onClick={() => setEditing(false)} className="text-xs text-text-muted hover:text-text">
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-text hover:text-text">
           Annuler
         </button>
       </div>

@@ -41,7 +41,7 @@ export function IndemniteListEditor({ initial }: { initial: Item[] }) {
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="text-text-muted hover:text-coral"
+                className="text-text hover:text-coral"
                 title="Retirer cette indemnité"
               >
                 ×

@@ -71,7 +71,7 @@ export function AjouterJourneesForm({
         <button
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-          className="rounded-full px-3 py-1.5 text-sm text-text-muted hover:bg-ink-raised-2 hover:text-text"
+          className="rounded-full px-3 py-1.5 text-sm text-text hover:bg-ink-raised-2 hover:text-text"
         >
           ← Précédent
         </button>
@@ -81,7 +81,7 @@ export function AjouterJourneesForm({
         <button
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-          className="rounded-full px-3 py-1.5 text-sm text-text-muted hover:bg-ink-raised-2 hover:text-text"
+          className="rounded-full px-3 py-1.5 text-sm text-text hover:bg-ink-raised-2 hover:text-text"
         >
           Suivant →
         </button>

@@ -110,7 +110,7 @@ export default async function PartageEssayagesFichesPage({
     <div className="flex flex-col gap-4">
       <Link
         href={`/partage/essayages/${token}?lang=${lang}`}
-        className="print-hide text-sm text-text-muted hover:text-coral"
+        className="print-hide text-sm text-text hover:text-coral"
       >
         {t(lang, "retour_planning")}
       </Link>

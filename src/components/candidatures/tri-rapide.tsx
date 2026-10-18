@@ -224,7 +224,7 @@ export function TriRapide({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-text-muted hover:bg-ink-raised-2 hover:text-text"
+            className="rounded-full p-1.5 text-text hover:bg-ink-raised-2 hover:text-text"
             aria-label="Fermer le tri rapide"
           >
             <X size={20} />
@@ -394,7 +394,7 @@ export function TriRapide({
                           Bande démo ↗
                         </a>
                       )}
-                      <a href={`/candidatures/${data!.id}`} target="_blank" rel="noreferrer" className="text-text-muted hover:text-coral">
+                      <a href={`/candidatures/${data!.id}`} target="_blank" rel="noreferrer" className="text-text hover:text-coral">
                         Fiche complète ↗
                       </a>
                       <span className="text-text-muted">Reçue le {formatDateShort(data!.created_at)}</span>
@@ -434,7 +434,7 @@ export function TriRapide({
                     type="button"
                     onClick={() => goTo(index - 1)}
                     disabled={index === 0}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text-muted hover:text-text disabled:opacity-40"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text hover:text-text disabled:opacity-40"
                   >
                     <ChevronLeft size={16} /> Précédent
                   </button>
@@ -446,7 +446,7 @@ export function TriRapide({
                   <button
                     type="button"
                     onClick={() => goTo(index + 1)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text-muted hover:text-text"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text hover:text-text"
                   >
                     Passer <ChevronRight size={16} />
                   </button>

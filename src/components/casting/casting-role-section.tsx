@@ -342,7 +342,7 @@ export function CastingRoleSection({
                   "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
                   role.visible_partage
                     ? "border-turquoise bg-turquoise/15 text-turquoise"
-                    : "border-border text-text-muted hover:text-text"
+                    : "border-border-strong text-text hover:text-text"
                 )}
               >
                 👁️ Visible
@@ -356,7 +356,7 @@ export function CastingRoleSection({
                   "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
                   !role.visible_partage
                     ? "border-danger bg-danger/15 text-danger"
-                    : "border-border text-text-muted hover:text-text"
+                    : "border-border-strong text-text hover:text-text"
                 )}
               >
                 🙈 Invisible
@@ -425,7 +425,7 @@ export function CastingRoleSection({
             type="button"
             disabled={pending}
             onClick={() => changeAllEntriesVisible(false)}
-            className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-60"
+            className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium text-text transition-colors hover:text-text disabled:opacity-60"
           >
             🙈 Tous invisibles
           </button>
@@ -546,7 +546,7 @@ export function CastingRoleSection({
                 <button
                   type="button"
                   onClick={() => applyTemplate()}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                  className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
                 >
                   Vierge
                 </button>
@@ -556,7 +556,7 @@ export function CastingRoleSection({
                       key={t.id}
                       type="button"
                       onClick={() => applyTemplate(t)}
-                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                      className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
                     >
                       {nomModele(t)}
                     </button>

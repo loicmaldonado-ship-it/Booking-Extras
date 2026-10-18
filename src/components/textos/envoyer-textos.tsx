@@ -18,14 +18,22 @@ export function EnvoyerTextos({
   libelle = "📱 Envoyer en textos",
   disabled = false,
   onEnvoye,
+  ouvertInitial = false,
+  sansBouton = false,
+  onFermer,
 }: {
   destinataires: DestinataireTexto[];
   libelle?: string;
   disabled?: boolean;
-  // Appelé une fois les textos partis / mis en file (ex. garder le message).
-  onEnvoye?: () => void;
+  // Appelé une fois les textos partis / mis en file (ex. garder le message),
+  // avec les `cle` des destinataires réellement envoyés.
+  onEnvoye?: (cles: string[]) => void;
+  // Ouvre directement la fenêtre (sans passer par le bouton).
+  ouvertInitial?: boolean;
+  sansBouton?: boolean;
+  onFermer?: () => void;
 }) {
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(ouvertInitial);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [pending, demarrer] = useTransition();
 
@@ -47,7 +55,7 @@ export function EnvoyerTextos({
       ok: true,
       texte: `Liste de ${valides.length} texto${valides.length > 1 ? "s" : ""} copiée : le raccourci les envoie.`,
     });
-    onEnvoye?.();
+    onEnvoye?.(valides.flatMap((d) => (d.cle ? [d.cle] : [])));
     window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(NOM_RACCOURCI)}`;
   }
 
@@ -60,7 +68,7 @@ export function EnvoyerTextos({
         setMessage({ ok: false, texte: res.error });
         return;
       }
-      onEnvoye?.();
+      onEnvoye?.(valides.flatMap((d) => (d.cle ? [d.cle] : [])));
       setMessage({
           ok: true,
           texte: `${res.enFile} texto${res.enFile > 1 ? "s" : ""} en file : ton Mac les envoie un par un (environ 10 s d'écart).`,
@@ -70,22 +78,27 @@ export function EnvoyerTextos({
 
   return (
     <>
-      <Button
-        type="button"
-        variant="secondary"
-        disabled={disabled || destinataires.length === 0}
-        onClick={() => {
-          setMessage(null);
-          setOuvert(true);
-        }}
-      >
-        {libelle}
-      </Button>
+      {!sansBouton && (
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={disabled || destinataires.length === 0}
+          onClick={() => {
+            setMessage(null);
+            setOuvert(true);
+          }}
+        >
+          {libelle}
+        </Button>
+      )}
       {ouvert && (
         <Modale
           titre="📱 Envoyer en textos"
           sousTitre={`${valides.length} texto${valides.length > 1 ? "s" : ""} personnalisé${valides.length > 1 ? "s" : ""}, depuis ton numéro.`}
-          onClose={() => setOuvert(false)}
+          onClose={() => {
+            setOuvert(false);
+            onFermer?.();
+          }}
           bloquee={pending}
         >
           {sansNumero.length > 0 && (

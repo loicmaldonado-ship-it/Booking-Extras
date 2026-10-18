@@ -56,7 +56,7 @@ function ReferenceForm({
       }}
       className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr]"
     >
-      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border bg-ink-raised-2 text-center text-xs text-text-muted hover:border-coral/60">
+      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border-strong bg-ink-raised-2 text-center text-xs text-text hover:border-coral/60">
         {apercu ? (
           // eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob) ou affiche déjà en ligne
           <img src={apercu} alt="Affiche" className="absolute inset-0 h-full w-full object-cover" />
@@ -152,14 +152,14 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
         <button type="button" disabled={derniere || pending} onClick={() => demarrer(() => deplacerReference(reference.id, "bas"))} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Descendre">
           ↓
         </button>
-        <button type="button" onClick={() => setEdition(true)} className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text">
+        <button type="button" onClick={() => setEdition(true)} className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text">
           Modifier
         </button>
         <button
           type="button"
           disabled={pending}
           onClick={() => demarrer(() => basculerReferenceVisible(reference.id, !reference.visible))}
-          className="rounded-full border border-border px-3 py-1 font-medium text-text-muted hover:text-text"
+          className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
         >
           {reference.visible ? "Masquer" : "Afficher"}
         </button>

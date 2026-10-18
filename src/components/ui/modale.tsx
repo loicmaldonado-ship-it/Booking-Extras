@@ -65,7 +65,7 @@ export function Modale({
             type="button"
             onClick={onClose}
             disabled={bloquee}
-            className="text-sm text-text-muted hover:text-text disabled:opacity-40"
+            className="text-sm text-text hover:text-text disabled:opacity-40"
           >
             Fermer
           </button>

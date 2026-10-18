@@ -166,7 +166,7 @@ function CastingRealMediaModal({
               <button
                 type="button"
                 onClick={() => toggleVideo(v.url)}
-                className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-left text-xs font-medium text-text-muted hover:bg-ink-raised-2 hover:text-text"
+                className="flex items-center gap-1.5 rounded-lg px-1 py-1 text-left text-xs font-medium text-text hover:bg-ink-raised-2 hover:text-text"
               >
                 <span className={isOpen ? "transition-transform" : "-rotate-90 transition-transform"}>▾</span>
                 {v.label}

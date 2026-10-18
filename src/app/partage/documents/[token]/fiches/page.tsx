@@ -66,7 +66,7 @@ export default async function PartageFichesPage({
       {!share.dateLock && (
         <Link
           href={`/partage/documents/${token}?lang=${lang}`}
-          className="print-hide text-sm text-text-muted hover:text-coral"
+          className="print-hide text-sm text-text hover:text-coral"
         >
           {t(lang, "retour_journees")}
         </Link>

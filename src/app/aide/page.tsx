@@ -146,7 +146,7 @@ export default function AidePage() {
           <a
             key={n.id}
             href={`#${n.id}`}
-            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+            className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
           >
             {n.label}
           </a>
@@ -625,7 +625,7 @@ export default function AidePage() {
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
               proposée ensuite dans les déroulants, par ordre alphabétique. Sur chaque profil, le déroulant{" "}
-              <UI>Fonction</UI> propose d'abord les <strong className="text-text">besoins de la journée</strong>, puis
+              <UI>Fonction</UI> propose d&apos;abord les <strong className="text-text">besoins de la journée</strong>, puis
               les autres fonctions du projet, ou <UI>➕ Nouvelle fonction…</UI> — une même fonction tapée autrement
               (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
               permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
@@ -678,6 +678,23 @@ export default function AidePage() {
           joindre directement qui que ce soit. <UI>Appliquer à un autre jour</UI> recopie toute
           l&apos;organisation vers une autre journée du même projet, pour les profils raccord (booké·es les
           deux jours).
+        </Callout>
+        <Callout>
+          <strong className="text-text">Onglet Messages.</strong> À gauche, tous les profils de la journée en{" "}
+          <UI>🖼️ Trombi</UI> ou <UI>☰ Liste</UI> : statut modifiable directement, pastilles (Proposition,
+          Convoc, chaque message d&apos;info), filtres (proposition sans réponse, convocation sans BIEN REÇU,
+          sans nouvelles, ont répondu). Un tap sur une carte la coche. À droite, le panneau{" "}
+          <strong className="text-text">Envois de la journée</strong> avec deux sections séparées{" "}
+          <UI>✉️ Mail</UI> et <UI>📱 Texto</UI> : on écrit un message nommé (Parking, Horaire avancé…) pour les
+          profils cochés, on confirme dans le panneau, puis on suit qui l&apos;a bien reçu (lien{" "}
+          <UI>👍 Bien reçu</UI> en un clic), qui a répondu (réponse citée sous son nom) et qui est sans
+          nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. Les réponses par mail sont relevées
+          toutes seules dans la boîte d&apos;envoi du projet (sans les marquer lues dans Gmail) ; une fois
+          traitée, <UI>✓ Marquer comme lu dans Gmail</UI> la passe en lu dans la boîte. Les réponses par texto
+          arrivent sur le téléphone, à marquer à la main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
+          <UI>Répondu booking</UI> (passe en CONFIRMÉ), <UI>Répondu convocation</UI> (carte en jaune), chaque
+          message d&apos;info, et toute la conversation, avec une réponse rapide par mail ou par texto. Sur iPad
+          debout et téléphone, le bouton <UI>✉️ Envois</UI> en bas à droite ouvre le panneau.
         </Callout>
       </GuideChapter>
 

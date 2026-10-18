@@ -111,7 +111,7 @@ export default async function AnnonceDetailPage({
             <a
               href={qrCodeDataUrl}
               download={`qr-${id}.png`}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
             >
               Télécharger le QR code
             </a>
@@ -162,7 +162,7 @@ export default async function AnnonceDetailPage({
         <DatesManager annonceId={id} dates={dates} disposParCalendrier={annonce.dispos_par_calendrier} />
       </Card>
 
-      <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text-muted hover:text-coral">
+      <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text hover:text-coral">
         Voir le projet →
       </Link>
     </div>
