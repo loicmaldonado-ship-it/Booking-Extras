@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -151,6 +152,34 @@ export function PanneauTextos({ statut, origin }: { statut: StatutRelais | null;
               <Button type="button" variant="ghost" onClick={vider} disabled={pending}>
                 Vider la file
               </Button>
+            )}
+          </div>
+        )}
+        {statut?.configure && (
+          <div
+            className={cn(
+              "flex flex-col gap-1 rounded-xl border-2 px-3 py-2 text-sm",
+              statut.reponsesErreur ? "border-danger bg-danger/10" : statut.reponsesLe ? "border-turquoise bg-turquoise/10" : "border-border-strong"
+            )}
+          >
+            <strong>📥 Réponses texto sur le site</strong>
+            {statut.reponsesErreur === "acces" ? (
+              <span>
+                Le Mac n&apos;autorise pas encore le relais à lire Messages. Réglages Système → Confidentialité et
+                sécurité → <strong>Accès complet au disque</strong> → bouton + → Cmd+Maj+G → tape{" "}
+                <code className="rounded bg-ink px-1">/bin/bash</code> → Ouvrir, et active-le. Seules les réponses des
+                numéros à qui le site a écrit sont lues.
+              </span>
+            ) : statut.reponsesErreur ? (
+              <span className="text-danger">{statut.reponsesErreur}</span>
+            ) : statut.reponsesLe ? (
+              <span>
+                ✓ Les réponses à tes textos remontent toutes seules (dernière relève : {formatDateTime(statut.reponsesLe)}).
+              </span>
+            ) : (
+              <span className="text-text-muted">
+                Pas encore active : réinstalle le relais avec la commande ci-dessus pour ajouter la remontée des réponses.
+              </span>
             )}
           </div>
         )}
