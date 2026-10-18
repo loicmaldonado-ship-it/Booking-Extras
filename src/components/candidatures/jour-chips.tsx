@@ -60,7 +60,7 @@ export function JourChipsView({
                 ? "border-coral bg-coral text-ink hover:bg-coral-hover"
                 : j.disponible
                   ? "border-turquoise/60 text-turquoise hover:bg-turquoise/10"
-                  : "border-dashed border-border text-text-muted line-through hover:text-text"
+                  : "border-dashed border-border-strong text-text line-through hover:text-text"
           )}
         >
           {showKeys && JOUR_KEYS[i] && !j.dansLaJournee && (

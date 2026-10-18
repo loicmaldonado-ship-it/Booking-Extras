@@ -106,7 +106,7 @@ export default async function CastingPresentielPlanningPage({
               href={baseUrl}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+                !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
               )}
             >
               Liste
@@ -115,7 +115,7 @@ export default async function CastingPresentielPlanningPage({
               href={`${baseUrl}&vue=trombi`}
               className={cn(
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+                isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
               )}
             >
               Trombi

@@ -88,7 +88,7 @@ export function MyAvatarMenu({
             <form action={signOutAction} className="border-t border-border pt-2 sm:hidden">
               <button
                 type="submit"
-                className="w-full rounded-lg border border-border px-3 py-1.5 text-left text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                className="w-full rounded-lg border border-border-strong px-3 py-1.5 text-left text-xs font-medium text-text hover:border-coral/60 hover:text-text"
               >
                 Se déconnecter
               </button>

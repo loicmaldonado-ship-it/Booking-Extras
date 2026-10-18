@@ -83,7 +83,7 @@ function ChoixMesPhotos({
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold">Mes photos — {titre}</h3>
-          <button type="button" onClick={onFermer} className="text-sm text-text-muted hover:text-text">
+          <button type="button" onClick={onFermer} className="text-sm text-text hover:text-text">
             Fermer
           </button>
         </div>
@@ -96,7 +96,7 @@ function ChoixMesPhotos({
               key={p.id}
               type="button"
               onClick={() => onChoisir(p)}
-              className="flex flex-col gap-1 rounded-xl border border-border p-1 text-xs text-text-muted hover:border-coral"
+              className="flex flex-col gap-1 rounded-xl border border-border-strong p-1 text-xs text-text hover:border-coral"
             >
               <span className="relative block aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 <Image src={p.url} alt="" fill sizes="120px" className="object-cover" unoptimized />

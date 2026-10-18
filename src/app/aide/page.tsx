@@ -146,7 +146,7 @@ export default function AidePage() {
           <a
             key={n.id}
             href={`#${n.id}`}
-            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+            className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
           >
             {n.label}
           </a>
@@ -625,7 +625,7 @@ export default function AidePage() {
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
               proposée ensuite dans les déroulants, par ordre alphabétique. Sur chaque profil, le déroulant{" "}
-              <UI>Fonction</UI> propose d'abord les <strong className="text-text">besoins de la journée</strong>, puis
+              <UI>Fonction</UI> propose d&apos;abord les <strong className="text-text">besoins de la journée</strong>, puis
               les autres fonctions du projet, ou <UI>➕ Nouvelle fonction…</UI> — une même fonction tapée autrement
               (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
               permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}

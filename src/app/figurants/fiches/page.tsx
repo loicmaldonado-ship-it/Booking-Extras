@@ -38,7 +38,7 @@ export default async function FigurantsFichesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/figurants" className="print-hide text-sm text-text-muted hover:text-coral">
+      <Link href="/figurants" className="print-hide text-sm text-text hover:text-coral">
         ← Retour à Base Profils
       </Link>
 

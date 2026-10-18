@@ -202,7 +202,7 @@ function VideoWithRemove({
             if (e.key === "Enter") e.currentTarget.blur();
           }}
           placeholder="Nom de la vidéo"
-          className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
+          className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
         />
       </div>
       {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
@@ -521,7 +521,7 @@ function AgentSection({
         />
         {error && <span className="text-xs text-danger">{error}</span>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text-muted hover:text-text">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text hover:text-text">
             Annuler
           </button>
           <Button type="button" disabled={pending} onClick={save}>
@@ -537,7 +537,7 @@ function AgentSection({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-fit rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-text-muted hover:border-coral/60 hover:text-text"
+        className="w-fit rounded-full border border-dashed border-border-strong px-2.5 py-1 text-xs text-text hover:border-coral/60 hover:text-text"
       >
         + Ajouter un agent
       </button>
@@ -683,7 +683,7 @@ export function CastingEntryManageCard({
                 ? m === "presentiel"
                   ? "border-coral bg-coral/15 text-coral"
                   : "border-turquoise bg-turquoise/15 text-turquoise"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {m === "presentiel" ? "📅 " : "🎥 "}
@@ -699,7 +699,7 @@ export function CastingEntryManageCard({
           title="Visible sur le lien de partage réal"
           className={cn(
             "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
-            entry.visible_partage ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+            entry.visible_partage ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
           )}
         >
           👁️ Visible
@@ -711,7 +711,7 @@ export function CastingEntryManageCard({
           title="Masqué du lien de partage réal"
           className={cn(
             "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
-            !entry.visible_partage ? "border-danger bg-danger/15 text-danger" : "border-border text-text-muted hover:text-text"
+            !entry.visible_partage ? "border-danger bg-danger/15 text-danger" : "border-border-strong text-text hover:text-text"
           )}
         >
           🙈 Invisible
@@ -736,7 +736,7 @@ export function CastingEntryManageCard({
           type="button"
           onClick={() => setEditOpen(true)}
           title="Modifier la fiche du profil"
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text"
         >
           ✏️
         </button>
@@ -744,7 +744,7 @@ export function CastingEntryManageCard({
           type="button"
           onClick={() => setVignetteOpen(true)}
           title="Choisir la photo de la vignette"
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text"
         >
           🖼️
         </button>

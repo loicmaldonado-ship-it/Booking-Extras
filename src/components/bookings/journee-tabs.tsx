@@ -110,7 +110,7 @@ export function JourneeTabs({
               "border-b-2 px-4 py-2 text-sm font-medium transition-colors",
               tab === t.value
                 ? "border-coral text-text"
-                : "border-transparent text-text-muted hover:text-text"
+                : "border-transparent text-text hover:text-text"
             )}
           >
             {t.label}

@@ -219,7 +219,7 @@ function PreviewModal({
 export function PreviewButton({
   items,
   index,
-  className = "flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text",
+  className = "flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text",
 }: {
   items: PreviewItem[];
   index: number;

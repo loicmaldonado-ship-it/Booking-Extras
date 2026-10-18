@@ -73,7 +73,7 @@ export default async function SuiviEssayagesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/essayages" className="print-hide text-sm text-text-muted hover:text-coral">
+      <Link href="/essayages" className="print-hide text-sm text-text hover:text-coral">
         ← Retour aux essayages
       </Link>
 

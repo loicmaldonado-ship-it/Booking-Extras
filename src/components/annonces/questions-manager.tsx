@@ -53,7 +53,7 @@ export function QuestionsManager({
               <button
                 type="button"
                 onClick={() => removeQuestion(q.id)}
-                className="text-text-muted hover:text-coral"
+                className="text-text hover:text-coral"
                 title="Supprimer cette question"
               >
                 ×
@@ -71,7 +71,7 @@ export function QuestionsManager({
               key={t.id}
               type="button"
               onClick={() => quickAdd(t.label)}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
             >
               + {t.label}
             </button>

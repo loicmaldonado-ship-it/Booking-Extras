@@ -121,7 +121,7 @@ export function AddToJourneeBar({
                   type="button"
                   disabled={pending}
                   onClick={() => removeDate(d)}
-                  className="text-text-muted hover:text-danger"
+                  className="text-text hover:text-danger"
                   title="Retirer cette date"
                 >
                   ×

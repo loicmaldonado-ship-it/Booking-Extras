@@ -326,7 +326,7 @@ function Composer({
                   key={c.label}
                   type="button"
                   onClick={() => selectionner(c.f)}
-                  className="rounded-full border border-border px-2.5 py-1 text-text-muted hover:border-coral/60 hover:text-text"
+                  className="rounded-full border border-border-strong px-2.5 py-1 text-text hover:border-coral/60 hover:text-text"
                 >
                   {c.label}
                 </button>
@@ -337,7 +337,7 @@ function Composer({
                     key={h}
                     type="button"
                     onClick={() => selectionner((r) => r.heure_convocation?.slice(0, 5) === h)}
-                    className="rounded-full border border-dashed border-border px-2.5 py-1 text-text-muted hover:border-coral/60 hover:text-text"
+                    className="rounded-full border border-dashed border-border-strong px-2.5 py-1 text-text hover:border-coral/60 hover:text-text"
                   >
                     🕗 {h}
                   </button>
@@ -347,7 +347,7 @@ function Composer({
                   key={f}
                   type="button"
                   onClick={() => selectionner((r) => r.fonction === f)}
-                  className="rounded-full border border-dashed border-border px-2.5 py-1 text-text-muted hover:border-coral/60 hover:text-text"
+                  className="rounded-full border border-dashed border-border-strong px-2.5 py-1 text-text hover:border-coral/60 hover:text-text"
                 >
                   {f}
                 </button>
@@ -385,7 +385,7 @@ function Composer({
                     setCorps(t.corps);
                     if (!titre.trim()) setTitre(t.nom.replace(/^.*·\s*/, ""));
                   }}
-                  className="rounded-full border border-border px-2.5 py-1 text-text-muted hover:border-coral/60 hover:text-text"
+                  className="rounded-full border border-border-strong px-2.5 py-1 text-text hover:border-coral/60 hover:text-text"
                 >
                   {nomModele(t)}
                 </button>
@@ -560,7 +560,7 @@ function EnvoiCarte({
             🔁 Relancer les {aRelancer.length} sans nouvelles
           </Button>
         )}
-        <button type="button" onClick={supprimer} disabled={pending} className="text-xs text-text-muted hover:text-danger">
+        <button type="button" onClick={supprimer} disabled={pending} className="text-xs text-text hover:text-danger">
           Supprimer ce suivi
         </button>
       </div>
@@ -715,7 +715,7 @@ function ProfilsJournee({
               onClick={() => onFiltre(f.cle)}
               className={cn(
                 "rounded-full border px-2.5 py-1",
-                filtre === f.cle ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+                filtre === f.cle ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
               )}
             >
               {f.label}
@@ -744,7 +744,7 @@ function ProfilsJournee({
                 key={v}
                 type="button"
                 onClick={() => onVue(v)}
-                className={cn("px-3 py-1", vue === v ? "bg-coral/15 font-medium text-coral" : "text-text-muted hover:text-text")}
+                className={cn("px-3 py-1", vue === v ? "bg-coral/15 font-medium text-coral" : "text-text hover:text-text")}
               >
                 {v === "trombi" ? "🖼️ Trombi" : "☰ Liste"}
               </button>

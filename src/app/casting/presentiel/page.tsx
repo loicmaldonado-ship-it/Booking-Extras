@@ -68,7 +68,7 @@ export default async function CastingPresentielPage({
         <div className="flex gap-2">
           <Link
             href="/casting"
-            className="flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="flex items-center rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
           >
             🎬 Casting
           </Link>

@@ -61,7 +61,7 @@ export default async function PartageCastingFichesMensurationPage({
     <div className="flex flex-col gap-4">
       <Link
         href={`/partage/casting/${token}${lang === "en" ? "?lang=en" : ""}`}
-        className="print-hide inline-flex items-center gap-1 text-sm text-text-muted hover:text-coral"
+        className="print-hide inline-flex items-center gap-1 text-sm text-text hover:text-coral"
       >
         ← {nom}
       </Link>

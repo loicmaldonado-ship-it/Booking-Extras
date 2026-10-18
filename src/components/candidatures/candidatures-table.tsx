@@ -231,7 +231,7 @@ export function CandidaturesTable({
           onClick={() => setIsTrombi(false)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Liste
@@ -241,7 +241,7 @@ export function CandidaturesTable({
           onClick={() => setIsTrombi(true)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Trombinoscope
@@ -262,7 +262,7 @@ export function CandidaturesTable({
           <button
             type="button"
             onClick={toggleAll}
-            className="ml-auto rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="ml-auto rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
           >
             {selected.size === selectableIds.length ? "Tout désélectionner" : "Tout sélectionner"}
           </button>
@@ -278,7 +278,7 @@ export function CandidaturesTable({
             type="button"
             disabled={bulkOngletPending}
             onClick={() => bulkSetOnglet(null)}
-            className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-text-muted transition-colors hover:text-text"
+            className="rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium text-text transition-colors hover:text-text"
           >
             À trier
           </button>
@@ -307,7 +307,7 @@ export function CandidaturesTable({
               href={`/candidatures/documents/trombis?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
               target="_blank"
               rel="noopener"
-              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="inline-flex items-center rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
             >
               🖼️ Trombi ({selected.size})
             </a>
@@ -315,7 +315,7 @@ export function CandidaturesTable({
               href={`/candidatures/documents/fiches?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
               target="_blank"
               rel="noopener"
-              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="inline-flex items-center rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
             >
               📏 Fiches mensuration ({selected.size})
             </a>
@@ -396,7 +396,7 @@ export function CandidaturesTable({
               <button
                 type="button"
                 onClick={() => applyBulkTemplate()}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
               >
                 Vierge
               </button>
@@ -405,7 +405,7 @@ export function CandidaturesTable({
                   key={t.id}
                   type="button"
                   onClick={() => applyBulkTemplate(t)}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                  className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
                 >
                   {nomModele(t)}
                 </button>
@@ -539,7 +539,7 @@ export function CandidaturesTable({
                     src={r.portraitUrl!}
                     gallery={gallery}
                     index={galleryIndexOfUrl(gallery, r.portraitUrl)}
-                    className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                    className="static flex items-center gap-1 rounded-full border border-border-strong bg-transparent px-2 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
                   />
                 );
               })()}
@@ -679,7 +679,7 @@ export function CandidaturesTable({
                   <button
                     type="button"
                     onClick={() => openComposer(r)}
-                    className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                    className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
                   >
                     Vierge
                   </button>
@@ -688,7 +688,7 @@ export function CandidaturesTable({
                       key={t.id}
                       type="button"
                       onClick={() => openComposer(r, t)}
-                      className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                      className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
                     >
                       {nomModele(t)}
                     </button>

@@ -195,7 +195,7 @@ export default async function CastingPage({
           Filtrer
         </button>
         {entriesFiltered && (
-          <Link href="/casting" className="text-sm font-medium text-text-muted hover:text-text">
+          <Link href="/casting" className="text-sm font-medium text-text hover:text-text">
             Réinitialiser
           </Link>
         )}

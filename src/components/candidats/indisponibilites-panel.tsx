@@ -66,7 +66,7 @@ export function IndisponibilitesPanel({ indisponibilites }: { indisponibilites: 
                 type="button"
                 disabled={pending}
                 onClick={() => remove(i.date)}
-                className="text-xs text-text-muted hover:text-danger"
+                className="text-xs text-text hover:text-danger"
               >
                 Retirer
               </button>

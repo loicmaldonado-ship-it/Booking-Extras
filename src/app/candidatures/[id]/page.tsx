@@ -325,7 +325,7 @@ export default async function CandidatureDetailPage({
         </Card>
       )}
 
-      <a href={`/figurants/${f.id}`} className="text-sm text-text-muted hover:text-coral">
+      <a href={`/figurants/${f.id}`} className="text-sm text-text hover:text-coral">
         Voir la fiche complète du profil →
       </a>
     </div>

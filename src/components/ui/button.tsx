@@ -3,14 +3,16 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-medium text-sm px-5 py-2.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 rounded-full font-semibold text-sm px-5 py-2.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
 
 const variants = {
-  primary: "bg-coral text-ink hover:bg-coral-hover",
-  secondary: "bg-ink-raised-2 text-text border border-border hover:border-coral/60",
-  ghost: "text-text-muted hover:text-text hover:bg-ink-raised",
-  turquoise: "bg-turquoise text-ink hover:brightness-110",
-  danger: "bg-danger text-ink hover:brightness-110",
+  // Boutons francs, visibles d'un coup d'œil : plein (action principale),
+  // cerclé vert (secondaire), cerclé neutre (annuler / retour).
+  primary: "bg-coral text-ink shadow-sm hover:bg-coral-hover",
+  secondary: "bg-ink text-coral border-2 border-coral shadow-sm hover:bg-coral/10",
+  ghost: "bg-ink/70 text-text border border-border-strong hover:border-coral hover:text-coral",
+  turquoise: "bg-turquoise text-ink shadow-sm hover:brightness-110",
+  danger: "bg-danger text-ink shadow-sm hover:brightness-110",
 };
 
 type Variant = keyof typeof variants;

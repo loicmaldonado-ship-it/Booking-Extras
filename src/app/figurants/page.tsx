@@ -140,7 +140,7 @@ export default async function FigurantsPage({
           href={profilHref("figurants")}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isComediens ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Figurant·es
@@ -149,7 +149,7 @@ export default async function FigurantsPage({
           href={profilHref("comediens")}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isComediens ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Comédien·nes &amp; casting
@@ -162,7 +162,7 @@ export default async function FigurantsPage({
           href={`/figurants?${query ? `${query}&` : ""}vue=liste`}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Liste
@@ -171,7 +171,7 @@ export default async function FigurantsPage({
           href={`/figurants${query ? `?${query}` : ""}`}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Trombinoscope
@@ -219,7 +219,7 @@ export default async function FigurantsPage({
           </button>
           <Link
             href="/figurants"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1"
+            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
           >
             Réinitialiser
           </Link>

@@ -131,7 +131,7 @@ export function ModifierPdt({
                     réapparaît en <strong>À REBOOKER</strong> ; les autres journées ne bougent pas.
                   </p>
                 </div>
-                <button type="button" onClick={fermer} className="text-sm text-text-muted hover:text-text">
+                <button type="button" onClick={fermer} className="text-sm text-text hover:text-text">
                   Fermer
                 </button>
               </div>

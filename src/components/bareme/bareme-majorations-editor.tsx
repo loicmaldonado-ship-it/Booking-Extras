@@ -94,7 +94,7 @@ function MajorationRow({ majoration, isChef }: { majoration: BaremeMajoration; i
               });
             }}
             disabled={pending}
-            className="text-text-muted hover:text-coral disabled:opacity-60"
+            className="text-text hover:text-coral disabled:opacity-60"
             title="Supprimer cette majoration"
           >
             ×

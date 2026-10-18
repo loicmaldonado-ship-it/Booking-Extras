@@ -85,7 +85,7 @@ export function AjoutRapideCasting({ roleId }: { roleId: string }) {
         >
           <form ref={formRef} onSubmit={envoyer} className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-ink text-center text-xs text-text-muted hover:border-coral/60">
+              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-ink text-center text-xs text-text hover:border-coral/60">
                 {apercu ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={apercu} alt="" className="h-full w-full object-cover" />

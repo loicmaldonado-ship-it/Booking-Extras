@@ -55,7 +55,7 @@ function AgentRow({ agent }: { agent: Agent }) {
         </div>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text-muted hover:text-text">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text hover:text-text">
             Annuler
           </button>
           <Button type="button" disabled={pending} onClick={save}>
@@ -79,7 +79,7 @@ function AgentRow({ agent }: { agent: Agent }) {
         <button type="button" onClick={() => setEditing(true)} className="text-xs text-coral hover:underline">
           Modifier
         </button>
-        <button type="button" disabled={pending} onClick={remove} className="text-xs text-text-muted hover:text-danger">
+        <button type="button" disabled={pending} onClick={remove} className="text-xs text-text hover:text-danger">
           Supprimer
         </button>
       </div>
@@ -128,7 +128,7 @@ function NewAgentForm() {
         </Field>
       </div>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-text-muted hover:text-text">
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-text hover:text-text">
           Annuler
         </button>
         <Button type="submit" disabled={pending}>

@@ -112,7 +112,7 @@ export function PhotosTrombiPicker({
         onClick={ouvrir}
         title="Choisir les photos des trombis et fiches mensuration"
         className={cn(
-          "rounded-full border border-border font-medium text-text-muted hover:border-coral/60 hover:text-text",
+          "rounded-full border border-border-strong font-medium text-text hover:border-coral/60 hover:text-text",
           compact ? "px-2 py-0.5 text-[11px]" : "px-3 py-1 text-xs"
         )}
       >
@@ -139,7 +139,7 @@ export function PhotosTrombiPicker({
                   trombi, les 3 vont sur la fiche mensuration.
                 </p>
               </div>
-              <button type="button" onClick={() => setOuvert(false)} className="text-sm text-text-muted hover:text-text">
+              <button type="button" onClick={() => setOuvert(false)} className="text-sm text-text hover:text-text">
                 Fermer
               </button>
             </div>

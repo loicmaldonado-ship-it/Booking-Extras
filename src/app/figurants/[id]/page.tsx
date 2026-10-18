@@ -370,7 +370,7 @@ export default async function FigurantDetailPage({
                   {l.label} — {l.url}
                 </a>
                 <form action={deleteLien.bind(null, l.id, id)}>
-                  <button type="submit" className="text-text-muted hover:text-coral">
+                  <button type="submit" className="text-text hover:text-coral">
                     Suppr.
                   </button>
                 </form>

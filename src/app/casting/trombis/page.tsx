@@ -166,7 +166,7 @@ export default async function CastingTrombisPage({
         <button type="submit" className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-2">
           Filtrer
         </button>
-        <Link href="/casting/trombis" className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1">
+        <Link href="/casting/trombis" className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1">
           Réinitialiser
         </Link>
       </form>

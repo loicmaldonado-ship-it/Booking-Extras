@@ -60,7 +60,7 @@ export function MultiDateCalendar({
         <button
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-          className="rounded-full px-2 py-1 text-xs text-text-muted hover:bg-ink-raised-2 hover:text-text"
+          className="rounded-full px-2 py-1 text-xs text-text hover:bg-ink-raised-2 hover:text-text"
         >
           ← Préc.
         </button>
@@ -70,7 +70,7 @@ export function MultiDateCalendar({
         <button
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-          className="rounded-full px-2 py-1 text-xs text-text-muted hover:bg-ink-raised-2 hover:text-text"
+          className="rounded-full px-2 py-1 text-xs text-text hover:bg-ink-raised-2 hover:text-text"
         >
           Suiv. →
         </button>

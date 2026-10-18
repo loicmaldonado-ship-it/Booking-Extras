@@ -98,7 +98,7 @@ export function CreneauxPanel({
                     {counts.femmes}F · {counts.hommes}H · {counts.nb}NB
                   </span>
                   <form action={() => removeCreneau(c.id)}>
-                    <button type="submit" className="text-text-muted hover:text-coral" title="Supprimer ce créneau">
+                    <button type="submit" className="text-text hover:text-coral" title="Supprimer ce créneau">
                       ×
                     </button>
                   </form>

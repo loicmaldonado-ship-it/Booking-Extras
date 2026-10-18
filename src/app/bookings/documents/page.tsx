@@ -293,7 +293,7 @@ export default async function JourneeDashboardPage({
             {prevJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${prevJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 ← J{prevJournee.numero} ({formatDateShort(prevJournee.date)})
               </Link>
@@ -306,7 +306,7 @@ export default async function JourneeDashboardPage({
             {nextJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${nextJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 J{nextJournee.numero} ({formatDateShort(nextJournee.date)}) →
               </Link>
@@ -363,7 +363,7 @@ export default async function JourneeDashboardPage({
               "flex shrink-0 flex-col items-center rounded-xl border px-3 py-1.5 text-center transition-colors",
               j.date === date
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                : "border-border-strong text-text hover:border-coral/60 hover:text-text"
             )}
           >
             <span className="text-[10px] font-medium uppercase tracking-wide">J{j.numero}</span>
