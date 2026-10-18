@@ -11,6 +11,8 @@ import { FiltresCandidatures } from "@/components/candidatures/filtres-candidatu
 import { AGES, ORDRES, type Ordre } from "@/lib/candidatures/filtres";
 import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
+import { BandeauJournees, ModeJournee, type CarteJour } from "@/components/candidatures/mode-journee";
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
 import { getSiteOrigin } from "@/lib/partage/data";
@@ -609,6 +611,36 @@ export default async function CandidaturesPage({
 
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];
 
+  // Journée ouverte : les prévu·es (en cours de choix) et les dispo à
+  // choisir, encore dans Candidatures, pas déjà dans la journée de booking.
+  let cartesPrevus: CarteJour[] = [];
+  let cartesDispos: CarteJour[] = [];
+  let disposEnPlus = 0;
+  if (jourVu) {
+    const pasDansJournee = (c: CandidatureWithFilters) => !estTransfere(c.figurants?.id, jourVu.id) && c.onglet_id !== ongletOutId;
+    const prevusIds = new Set((joursRows ?? []).filter((j) => j.annonce_date_id === jourVu.id).map((j) => j.candidature_id));
+    const prevusC = (candidaturesRaw ?? []).filter((c) => prevusIds.has(c.id) && pasDansJournee(c));
+    const disposTous = (candidaturesRaw ?? []).filter(
+      (c) => !prevusIds.has(c.id) && datesDispoByCandidature.get(c.id)?.has(jourVu.id) && pasDansJournee(c)
+    );
+    const disposC = disposTous.slice(0, 120);
+    disposEnPlus = disposTous.length - disposC.length;
+    const toutes = [...prevusC, ...disposC];
+    const [photosC, photosF] = await Promise.all([
+      getPhotosParCandidature(toutes.map((c) => c.id)),
+      getPhotosByFigurantId(toutes.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
+    ]);
+    const carte = (c: CandidatureWithFilters): CarteJour => ({
+      id: c.id,
+      nom: nomComplet(c.figurants) || "—",
+      meta: [ageOf(c) != null && `${ageOf(c)} ans`, c.figurants?.ville].filter(Boolean).join(" · "),
+      portraitUrl: pickPortrait(photosC.get(c.id) ?? (c.figurants ? photosF.get(c.figurants.id) : undefined))?.url ?? null,
+      dispo: datesDispoByCandidature.get(c.id)?.has(jourVu.id) ?? false,
+    });
+    cartesPrevus = trierParNom(prevusC, (c) => c.figurants).map(carte);
+    cartesDispos = disposC.map(carte);
+  }
+
   // Onglets du classeur : À trier, les onglets de rangement, Tous, OUT.
   const ongletOut = onglets.find((o) => o.fixe);
   const tabs = [
@@ -704,8 +736,7 @@ export default async function CandidaturesPage({
     </form>
   );
 
-  return (
-    <div className="flex flex-col gap-4">
+  const entete = (
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
           <Link href="/candidatures" className="hover:text-text">
@@ -750,6 +781,33 @@ export default async function CandidaturesPage({
           </div>
         </div>
       </div>
+  );
+  const bandeau = annonce && jours.length > 0 && <BandeauJournees jours={jours} />;
+
+  // Journée ouverte en grand : elle remplace la liste des candidatures.
+  const jourOuvert = jours.find((j) => j.vu);
+  if (jourOuvert && annonce) {
+    return (
+      <div className="flex flex-col gap-4">
+        {entete}
+        {bandeau}
+        <FonctionsDatalist id={`fonctions-projet-${annonce.projet_id}`} projetId={annonce.projet_id} />
+        <ModeJournee
+          jour={jourOuvert}
+          projetId={annonce.projet_id}
+          fermerHref={jourOuvert.vuHref}
+          prevus={cartesPrevus}
+          dispos={cartesDispos}
+          disposEnPlus={disposEnPlus}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {entete}
+      {bandeau}
 
       {/* Classeur : une étape du tri par onglet. */}
       <nav aria-label="Étapes du tri" className="flex flex-wrap items-end gap-1 border-b-2 border-border">

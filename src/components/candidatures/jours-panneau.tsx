@@ -2,14 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
 import { envoyerCandidaturesDansJour, envoyerJourAuTournage } from "@/lib/candidatures/jours";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
-import { statutLabel, statutTone, type BookingStatut } from "@/lib/bookings/types";
-import { Badge } from "@/components/ui/card";
+import type { BookingStatut } from "@/lib/bookings/types";
 import type { JourCandidature } from "@/components/candidatures/jour-chips";
 
 export type JourPanneau = {
@@ -285,119 +282,5 @@ export function JoursPanneau({
         );
       })}
     </div>
-  );
-}
-
-// Le jour ouvert en grand, au-dessus des cartes : un vrai trombi des
-// personnes de la journée, groupé par fonction, avec leur statut.
-export function JourneeEnGrand({
-  jour,
-  projetId,
-  fermerHref,
-}: {
-  jour: JourPanneau;
-  projetId: string;
-  fermerHref: string;
-}) {
-  const groupes = new Map<string, JourPanneau["gens"]>();
-  for (const g of jour.gens) {
-    const cle = g.fonction?.trim() || "";
-    groupes.set(cle, [...(groupes.get(cle) ?? []), g]);
-  }
-  const ordre = Array.from(groupes.keys()).sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "fr")));
-  const besoinDe = (f: string) => jour.fonctions.find((x) => x.fonction.toLowerCase() === f.toLowerCase());
-  const complet = jour.besoin !== null && jour.dansLaJournee >= jour.besoin;
-  const classeLien = "rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60";
-
-  return (
-    <section className="flex flex-col gap-4 rounded-2xl border-2 border-coral/60 bg-ink-raised p-4" aria-label={`Journée du ${formatDateLong(jour.date)}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-semibold">📅 {formatDateLong(jour.date)}</h2>
-          <p className={cn("text-sm", complet ? "font-medium text-turquoise" : "text-text-muted")}>
-            {jour.dansLaJournee} dans la journée de booking
-            {jour.besoin !== null && ` sur ${jour.besoin} demandé·es`}
-            {jour.besoin !== null && (complet ? " · ✓ Complet" : ` · il manque ${jour.besoin - jour.dansLaJournee}`)}
-            {jour.horsJournee > 0 && ` · ${jour.horsJournee} annulé·e ou indispo`}
-          </p>
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            <Badge tone="confirme">{jour.stats.confirmes} confirmé{jour.stats.confirmes > 1 ? "s" : ""}</Badge>
-            <Badge tone="yellow">{jour.stats.proposes} proposé{jour.stats.proposes > 1 ? "s" : ""}</Badge>
-            <Badge>{jour.stats.per} PER</Badge>
-          </div>
-        </div>
-        <Link href={fermerHref} scroll={false} className="flex items-center gap-1 rounded-full border border-border-strong px-3 py-1.5 text-sm font-medium hover:border-coral/60">
-          Fermer <X size={14} />
-        </Link>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Link href={jour.dispoHref} scroll={false} className={cn(classeLien, jour.dispoActif && "border-coral bg-coral/15 text-coral")}>
-          {jour.dispoActif ? "✓ Seulement les candidat·es dispo ce jour" : "Montrer les candidat·es dispo ce jour"}
-        </Link>
-        {jour.prevus > 0 && (
-          <Link href={jour.prevusHref} scroll={false} className={classeLien}>
-            Voir les {jour.prevus} prévu·e{jour.prevus > 1 ? "s" : ""} dans cette journée
-          </Link>
-        )}
-        <Link href={`/bookings/documents/trombis?projet_id=${projetId}&date=${jour.date}&statut=tous`} target="_blank" className={classeLien}>
-          🖼️ Trombi à imprimer
-        </Link>
-        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}&onglet=messages`} className={classeLien}>
-          💬 Messages du jour
-        </Link>
-        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}`} className={classeLien}>
-          Ouvrir la journée dans Bookings →
-        </Link>
-      </div>
-
-      {jour.gens.length === 0 ? (
-        <p className="py-6 text-center text-sm text-text-muted">
-          Personne dans la journée de booking pour l&apos;instant. Coche des profils puis « Envoyer dans la journée de
-          booking ».
-        </p>
-      ) : (
-        ordre.map((f) => {
-          const gens = groupes.get(f)!;
-          const b = f ? besoinDe(f) : undefined;
-          return (
-            <div key={f || "sans"} className="flex flex-col gap-2">
-              <h3 className="flex items-baseline gap-2 border-b border-border pb-1 text-sm font-semibold">
-                {f || "Sans fonction"}
-                <span className={cn("tabular-nums", b ? (gens.length >= b.besoin ? "text-turquoise" : "text-yellow") : "text-text-muted")}>
-                  {gens.length}
-                  {b && ` / ${b.besoin}`}
-                </span>
-              </h3>
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8">
-                {gens.map((g) => (
-                  <Link
-                    key={g.bookingId}
-                    href={`/bookings/${g.bookingId}`}
-                    className="flex flex-col gap-1.5 rounded-xl border border-border bg-ink p-1.5 text-center hover:border-coral/60"
-                  >
-                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                      {g.portraitUrl && <Image src={g.portraitUrl} alt={g.nom} fill sizes="160px" className="object-cover" />}
-                    </div>
-                    <span className="truncate text-sm font-medium">{g.nom}</span>
-                    <Badge tone={statutTone(g.statut)}>{g.statut === "envoyé" ? "PER" : statutLabel(g.statut)}</Badge>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          );
-        })
-      )}
-      {/* Besoins sans personne encore. */}
-      {jour.fonctions.filter((x) => !ordre.some((f) => f.toLowerCase() === x.fonction.toLowerCase())).length > 0 && (
-        <p className="text-xs text-text-muted">
-          Encore personne pour :{" "}
-          {jour.fonctions
-            .filter((x) => !ordre.some((f) => f.toLowerCase() === x.fonction.toLowerCase()))
-            .map((x) => `${x.fonction} (0 / ${x.besoin})`)
-            .join(" · ")}
-        </p>
-      )}
-    </section>
   );
 }

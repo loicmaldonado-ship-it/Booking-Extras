@@ -404,17 +404,19 @@ export default function AidePage() {
             <>
               <strong className="text-text">Envoyer dans la journée de booking</strong> : coche des profils, puis{" "}
               <UI>📅 Envoyer dans la journée de booking</UI> dans la barre de sélection (sur tous les écrans, iPad
-              compris), et le bouton du jour voulu. <strong className="text-text">Fonction et cachet sont obligatoires</strong>{" "}
+              compris), et le bouton du jour voulu, ou ouvre la journée (ci-dessous). <strong className="text-text">Fonction et cachet sont obligatoires</strong>{" "}
               (les besoins de la journée sont proposés en un clic). Les personnes pas dispo ce jour-là ne sont envoyées que si
               tu le demandes. Un jour avec des prévu·es propose aussi <UI>📅 Envoyer les … prévu·es dans la journée de
               booking</UI>.
             </>,
             <>
-              <strong className="text-text">Panneau Jours de tournage</strong> (à droite sur grand écran, ou bouton{" "}
-              <UI>📅 Jours</UI>) : pour chaque date de l&apos;annonce, la jauge des personnes dans la journée de booking face
-              au besoin saisi dans Bookings. <UI>🖼️ Voir la journée</UI> l&apos;ouvre en grand au-dessus des cartes : le
-              trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut, plus les liens
-              dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings.
+              <strong className="text-text">Les journées de l&apos;annonce</strong>, en haut de la page : une grande carte
+              par date, avec la jauge face au besoin saisi dans Bookings, le nombre dans la journée de booking (✓) et de
+              prévu·es (⏳). <UI>Ouvrir la journée →</UI> l&apos;affiche à la place de la liste, avec trois onglets :{" "}
+              <UI>✓ Dans la journée de booking</UI> (trombi par fonction, avec statut), <UI>⏳ Prévu·es, en cours de
+              choix</UI> et <UI>＋ Choisir parmi les dispo</UI>. Coche des profils (ou rien, pour tous les prévu·es) puis{" "}
+              <UI>📅 Envoyer … dans la journée de booking</UI>, avec fonction et cachet. Liens vers le trombi à imprimer,
+              les messages du jour et la journée dans Bookings. <UI>← Revenir aux candidatures</UI> pour ressortir.
             </>,
             <>
               <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) :{" "}
