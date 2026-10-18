@@ -1,51 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Logo } from "@/components/ui/logo";
-import { formatDateTime } from "@/lib/format-date";
+import { formatDateLong, formatDateTime, formatDayMonth } from "@/lib/format-date";
+import { AccueilVisiteur, useVisiteur } from "@/components/partage/visiteur";
 import { signalerVisite, voterProfil, commenterLien } from "@/lib/validation/actions";
 import type { Planche, VoteMes } from "@/lib/validation/data";
 
 type VoteVu = { candidatureId: string; cle: string; qui: string; vote: VoteMes | null; note: string };
 type CommentaireVu = { id: string; auteur: string; equipe: boolean; texte: string; created_at: string; profil: string | null };
-type Visiteur = { id: string; prenom: string; role: string };
-
-const CLE_STOCKAGE = "be-visiteur-validation";
-const ROLES = ["Réalisation", "Mise en scène", "1er assistant·e", "Production", "Autre"];
-
+// Seulement Oui ou Non (demande de Loïc) : pas de « peut-être » ici.
 const VOTES: { v: VoteMes; label: string; emoji: string; on: string }[] = [
-  { v: "oui", label: "Valider", emoji: "✅", on: "border-turquoise bg-turquoise text-ink" },
-  { v: "peut", label: "Peut-être", emoji: "🤔", on: "border-yellow bg-yellow text-ink" },
+  { v: "oui", label: "Oui", emoji: "✅", on: "border-turquoise bg-turquoise text-ink" },
   { v: "non", label: "Non", emoji: "🚫", on: "border-danger bg-danger text-white" },
 ];
-
-// Identité de l'appareil (prénom + rôle), gardée dans le navigateur.
-let memoire: string | null = null;
-const abonnes = new Set<() => void>();
-function lireVisiteurBrut() {
-  try {
-    return localStorage.getItem(CLE_STOCKAGE);
-  } catch {
-    return null;
-  }
-}
-function abonner(cb: () => void) {
-  abonnes.add(cb);
-  return () => abonnes.delete(cb);
-}
-function enregistrerVisiteur(v: Visiteur) {
-  try {
-    localStorage.setItem(CLE_STOCKAGE, JSON.stringify(v));
-  } catch {
-    // Navigation privée : l'identité ne tiendra que le temps de la page.
-    memoire = JSON.stringify(v);
-  }
-  abonnes.forEach((cb) => cb());
-}
 
 async function empreinte(id: string) {
   const octets = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id));
@@ -73,22 +45,13 @@ export function ValidationMes({
   commentaires: CommentaireVu[];
 }) {
   const router = useRouter();
-  const brut = useSyncExternalStore(abonner, () => lireVisiteurBrut() ?? memoire, () => null);
-  const moi = useMemo<Visiteur | null>(() => {
-    try {
-      const v = brut ? (JSON.parse(brut) as Visiteur) : null;
-      return v?.id && v.prenom ? v : null;
-    } catch {
-      return null;
-    }
-  }, [brut]);
+  const moi = useVisiteur();
   const [maCle, setMaCle] = useState<string | null>(null);
   const [mesVotes, setMesVotes] = useState<Record<string, { vote: VoteMes | null; note: string }>>({});
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<"tous" | "a_voir" | VoteMes>("tous");
+  const [jourFiltre, setJourFiltre] = useState<string>("tous");
   const [galerie, setGalerie] = useState<{ planche: number; photo: number } | null>(null);
-  const [prenom, setPrenom] = useState("");
-  const [role, setRole] = useState(ROLES[0]);
   const [com, setCom] = useState("");
   const [comProfil, setComProfil] = useState("");
   const [comPending, startCom] = useTransition();
@@ -139,12 +102,6 @@ export function ValidationMes({
     });
   }
 
-  function arriver(e: React.FormEvent) {
-    e.preventDefault();
-    if (!prenom.trim()) return;
-    enregistrerVisiteur({ id: crypto.randomUUID(), prenom: prenom.trim().slice(0, 60), role });
-  }
-
   function envoyerCommentaire() {
     if (!moi || !com.trim()) return;
     setErreur(null);
@@ -167,6 +124,18 @@ export function ValidationMes({
       const v = voteDe(p.candidatureId).vote;
       return filtre === "tous" ? true : filtre === "a_voir" ? !v : v === filtre;
     });
+  // Jours de tournage où les profils sont prévus (avant l'envoi dans la
+  // journée) : une section par jour, un profil prévu deux jours apparaît
+  // dans les deux (même vote).
+  const joursPrevus = Array.from(new Set(planches.flatMap((p) => p.joursPrevus))).sort();
+  const sansJour = (p: Planche) => p.joursPrevus.length === 0;
+  const sections =
+    joursPrevus.length === 0
+      ? [{ cle: "tous", titre: null as string | null, items: visibles }]
+      : [
+          ...joursPrevus.map((d) => ({ cle: d, titre: formatDateLong(d), items: visibles.filter(({ p }) => p.joursPrevus.includes(d)) })),
+          { cle: "sans", titre: "Sans jour prévu", items: visibles.filter(({ p }) => sansJour(p)) },
+        ].filter((x) => x.items.length > 0 && (jourFiltre === "tous" || jourFiltre === x.cle));
 
   // Galerie plein écran : flèches, Échap.
   useEffect(() => {
@@ -198,7 +167,7 @@ export function ValidationMes({
             {contexte && <p className="text-xs font-medium uppercase tracking-wide text-text-muted">{contexte}</p>}
             <h1 className="text-2xl font-semibold">{titre}</h1>
             <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              Touchez une photo pour l&apos;agrandir. Validez, mettez en « peut-être » ou écartez chaque profil : l&apos;équipe
+              Touchez une photo pour l&apos;agrandir. Répondez Oui ou Non pour chaque profil : l&apos;équipe
               casting le voit tout de suite.
             </p>
           </div>
@@ -213,8 +182,7 @@ export function ValidationMes({
             [
               ["tous", `Tous (${planches.length})`],
               ["a_voir", `À voir (${aVoir})`],
-              ["oui", `✅ Validés (${compte("oui")})`],
-              ["peut", `🤔 Peut-être (${compte("peut")})`],
+              ["oui", `✅ Oui (${compte("oui")})`],
               ["non", `🚫 Non (${compte("non")})`],
             ] as const
           ).map(([k, label]) => (
@@ -232,11 +200,41 @@ export function ValidationMes({
             </button>
           ))}
         </div>
+        {joursPrevus.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Jour de tournage">
+            <span className="text-xs font-medium text-text-muted">📅 Jour :</span>
+            {[
+              ["tous", "Tous les jours"] as const,
+              ...joursPrevus.map((d) => [d, `${formatDayMonth(d)} (${planches.filter((p) => p.joursPrevus.includes(d)).length})`] as const),
+              ...(planches.some(sansJour) ? [["sans", `Sans jour (${planches.filter(sansJour).length})`] as const] : []),
+            ].map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setJourFiltre(k)}
+                aria-pressed={jourFiltre === k}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  jourFiltre === k ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         {erreur && <p className="rounded-xl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">{erreur}</p>}
       </div>
 
+      {sections.map((sec) => (
+      <section key={sec.cle} className="flex flex-col gap-3">
+        {sec.titre && (
+          <h2 className="border-b-2 border-coral/50 pb-1 text-lg font-semibold">
+            📅 {sec.titre} <span className="text-sm font-normal text-text-muted">· {sec.items.length} profil{sec.items.length > 1 ? "s" : ""}</span>
+          </h2>
+        )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibles.map(({ p, i }) => {
+        {sec.items.map(({ p, i }) => {
           const mien = voteDe(p.candidatureId);
           const autres = votes.filter((v) => v.candidatureId === p.candidatureId && v.cle !== maCle && (v.vote || v.note));
           return (
@@ -281,6 +279,11 @@ export function ValidationMes({
                   {[p.age != null && `${p.age} ans`, p.genre].filter(Boolean).join(" · ") || "—"}
                 </p>
                 {p.mesures && <p className="text-xs text-text-muted">{p.mesures}</p>}
+                {p.joursPrevus.length > 0 ? (
+                  <p className="mt-1 text-xs font-medium text-coral">📅 Prévu·e le {p.joursPrevus.map(formatDayMonth).join(", ")}</p>
+                ) : (
+                  p.joursDispo.length > 0 && <p className="mt-1 text-xs text-text-muted">Dispo le {p.joursDispo.map(formatDayMonth).join(", ")}</p>
+                )}
                 {p.questions.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted">
                     {p.questions.map((q, k) => (
@@ -291,7 +294,7 @@ export function ValidationMes({
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {VOTES.map((b) => (
                   <button
                     key={b.v}
@@ -332,8 +335,10 @@ export function ValidationMes({
             </article>
           );
         })}
-        {visibles.length === 0 && <p className="col-span-full py-8 text-center text-text-muted">Aucun profil ici.</p>}
       </div>
+      </section>
+      ))}
+      {sections.length === 0 && <p className="py-8 text-center text-text-muted">Aucun profil ici.</p>}
 
       <section className="flex max-w-2xl flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-4">
         <h2 className="text-base font-semibold">💬 Commentaires pour l&apos;équipe casting</h2>
@@ -395,38 +400,9 @@ export function ValidationMes({
         )}
       </section>
 
-      {/* Arrivée : prénom et rôle, une seule fois sur cet appareil. */}
-      {!apercu && !moi && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/70 p-4" role="dialog" aria-modal="true" aria-label="Qui êtes-vous ?">
-          <form onSubmit={arriver} className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-5">
-            <h2 className="text-xl font-semibold">Bonjour 👋</h2>
-            <p className="text-sm text-text-muted">Pour que l&apos;équipe casting sache qui valide et qui commente :</p>
-            <label className="flex flex-col gap-1 text-sm">
-              Votre prénom
-              <input
-                autoFocus
-                required
-                value={prenom}
-                onChange={(e) => setPrenom(e.target.value)}
-                maxLength={60}
-                className="rounded-lg border border-border-strong bg-ink px-3 py-2 outline-none focus:border-coral"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              Votre rôle
-              <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-lg border border-border-strong bg-ink px-3 py-2">
-                {ROLES.map((r) => (
-                  <option key={r}>{r}</option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="rounded-full bg-coral px-4 py-2.5 font-semibold text-ink hover:bg-coral-hover">
-              Voir les profils
-            </button>
-            <span className="text-xs text-text-muted">Demandé une seule fois sur cet appareil.</span>
-          </form>
-        </div>
-      )}
+      {/* Arrivée : prénom et rôle, une seule fois sur cet appareil (commun à
+          tous les liens de partage). */}
+      {!apercu && !moi && <AccueilVisiteur />}
 
       {pg && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/95" role="dialog" aria-modal="true" aria-label={`Photos de ${pg.nom}`}>

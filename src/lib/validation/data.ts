@@ -44,13 +44,17 @@ export type Planche = {
   mesures: string;
   photos: { url: string; label: string }[];
   questions: { label: string; reponse: boolean }[];
+  // Jours de tournage de l'annonce où la personne est prévue (avant
+  // l'envoi dans la journée), et ceux où elle s'est dite dispo.
+  joursPrevus: string[];
+  joursDispo: string[];
 };
 
 const LIBELLES: Record<string, string> = { portrait: "Portrait", pied: "En pied", autre: "Photo", tenue: "Essayage" };
 
 // Planches d'un lien : identité, âge, mensurations, photos et réponses aux
 // questions. Ni coordonnées ni message de candidature (demande de Loïc).
-export async function getPlanches(lienId: string, projetId: string): Promise<Planche[]> {
+export async function getPlanches(lienId: string, projetId: string, annonceId: string): Promise<Planche[]> {
   const supabase = createAdminClient();
   const { data: lignes } = await supabase
     .from("lien_validation_profils")
@@ -81,7 +85,7 @@ export async function getPlanches(lienId: string, projetId: string): Promise<Pla
     >();
   const profils = (lignes ?? []).filter((l) => l.candidatures?.figurants);
   const candidatureIds = profils.map((l) => l.candidature_id);
-  const [photosCandidature, photosFigurant, { data: reponses }] = await Promise.all([
+  const [photosCandidature, photosFigurant, { data: reponses }, { data: dates }, { data: prevus }, { data: dispos }] = await Promise.all([
     getPhotosParCandidature(candidatureIds),
     getPhotosByFigurantId(profils.map((l) => l.candidatures!.figurants!.id)),
     candidatureIds.length > 0
@@ -91,7 +95,24 @@ export async function getPlanches(lienId: string, projetId: string): Promise<Pla
           .in("candidature_id", candidatureIds)
           .returns<{ candidature_id: string; reponse: boolean; annonce_questions: { label: string; ordre: number | null } | null }[]>()
       : Promise.resolve({ data: [] }),
+    supabase.from("annonce_dates").select("id, date").eq("annonce_id", annonceId).order("date"),
+    candidatureIds.length > 0
+      ? supabase.from("candidature_jours").select("candidature_id, annonce_date_id").in("candidature_id", candidatureIds)
+      : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
+    candidatureIds.length > 0
+      ? supabase
+          .from("candidature_disponibilites")
+          .select("candidature_id, annonce_date_id")
+          .in("candidature_id", candidatureIds)
+          .eq("disponible", true)
+      : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
   ]);
+  const dateDe = new Map((dates ?? []).map((d) => [d.id, d.date]));
+  const datesDe = (lignes: { candidature_id: string; annonce_date_id: string }[] | null, cid: string) =>
+    (lignes ?? [])
+      .filter((x) => x.candidature_id === cid && dateDe.has(x.annonce_date_id))
+      .map((x) => dateDe.get(x.annonce_date_id)!)
+      .sort();
 
   return profils.map((l) => {
     const f = l.candidatures!.figurants!;
@@ -119,6 +140,8 @@ export async function getPlanches(lienId: string, projetId: string): Promise<Pla
         .filter((r) => r.candidature_id === l.candidature_id && r.annonce_questions)
         .sort((a, b) => (a.annonce_questions!.ordre ?? 0) - (b.annonce_questions!.ordre ?? 0))
         .map((r) => ({ label: r.annonce_questions!.label, reponse: r.reponse })),
+      joursPrevus: datesDe(prevus, l.candidature_id),
+      joursDispo: datesDe(dispos, l.candidature_id),
     };
   });
 }

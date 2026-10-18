@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { CopyLink } from "@/components/annonces/copy-link";
 import { createPartageLien, revokePartageLien, updatePartageTitre, type PartageType } from "@/lib/partage/actions";
+import { SuiviPartageLien } from "@/components/partage/suivi-partage";
 
 export function PartageCard({
   projetId,
@@ -93,6 +94,7 @@ export function PartageCard({
               Révoquer
             </Button>
           </div>
+          <SuiviPartageLien projetId={projetId} type={type} />
           {children}
         </div>
       ) : (

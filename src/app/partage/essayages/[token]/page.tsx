@@ -1,4 +1,5 @@
 import { nomComplet } from "@/lib/noms";
+import { PresencePartage } from "@/components/partage/presence-partage";
 import { Fragment } from "react";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -81,6 +82,7 @@ export default async function PartageEssayagesPage({
 
   return (
     <div className="flex flex-col gap-6">
+      <PresencePartage token={token} />
       <div className="flex items-center justify-between gap-3">
         <Logo iconSize={26} textClassName="text-lg" />
         <LangToggle lang={lang} basePath={`/partage/essayages/${token}`} />

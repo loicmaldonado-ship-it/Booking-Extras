@@ -114,7 +114,7 @@ export function LiensValidation({
         <b className="text-sm">🔗 Lien de validation pour la mise en scène</b>
         <p className="text-xs text-text-muted">
           Les profils en planches (plusieurs photos, âge, mensurations, réponses aux questions — jamais les coordonnées ni le
-          message). La MES valide, met en « peut-être » ou écarte ; tu le vois ici et sur les cartes (🎬), puis tu envoies les
+          message). La MES répond Oui ou Non pour chaque profil (par jour prévu s&apos;ils ont des jours) ; tu le vois ici et sur les cartes (🎬), puis tu envoies les
           validés dans la journée.
         </p>
       </div>
@@ -186,7 +186,6 @@ export function LiensValidation({
                       </span>
                     )}
                     <b className="text-turquoise">✅ {l.oui}</b>
-                    <span>🤔 {l.peut}</span>
                     <span>🚫 {l.non}</span>
                     <span className="text-text-muted">/ {l.candidatureIds.length}</span>
                     <span>💬 {l.commentaires.length}</span>
