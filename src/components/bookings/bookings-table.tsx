@@ -41,10 +41,10 @@ import { projetNomPublic } from "@/lib/projets/types";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
-import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
+import { formatDateTime as formatMessageDateTime, formatDelai, formatDateLong } from "@/lib/format-date";
 import type { Genre, PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
-import type { MessageTemplate } from "@/lib/templates/types";
+import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 
 export type MessageRow = {
   id: string;
@@ -188,7 +188,7 @@ function rowTokens(r: Row, journeeLieu?: string | null) {
   return {
     prenom: r.figurants?.prenom ?? "",
     projet: projetNomPublic(r.projets, "notre tournage"),
-    date: allDates.join(", "),
+    date: allDates.map((d) => formatDateLong(d)).join(", "),
     lieu: journeeLieu || r.projets?.lieu || "",
     cachet: r.cachet ?? "",
     fonction: r.fonction ?? "",
@@ -1818,7 +1818,7 @@ export function BookingsTable({
                           onClick={() => applyLibreTemplate(t)}
                           className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
                         >
-                          {t.nom}
+                          {nomModele(t)}
                         </button>
                       ))}
                     </div>

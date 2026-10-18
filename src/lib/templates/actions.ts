@@ -68,3 +68,27 @@ export async function deleteTemplate(id: string) {
   revalidatePath("/modeles");
   revalidatePath("/bookings/documents");
 }
+
+// Copie un modèle prêt à l'emploi dans les modèles de l'équipe, pour le
+// personnaliser (signature, ton, infos pratiques…).
+export async function copierModeleDeBase(id: string): Promise<{ error?: string }> {
+  const { ecriture } = await equipesModeles(await getCurrentProfile());
+  if (!ecriture) return { error: "Non autorisé." };
+
+  const supabase = createAdminClient();
+  const { data: modele } = await supabase
+    .from("message_templates")
+    .select("nom, sujet, corps")
+    .eq("id", id)
+    .is("equipe_id", null)
+    .maybeSingle();
+  if (!modele) return { error: "Modèle introuvable." };
+
+  const { error } = await supabase
+    .from("message_templates")
+    .insert({ nom: modele.nom, sujet: modele.sujet, corps: modele.corps, equipe_id: ecriture });
+  if (error) return { error: error.message };
+
+  revalidatePath("/modeles");
+  return {};
+}

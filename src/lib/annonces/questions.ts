@@ -26,12 +26,16 @@ export async function getQuestionTemplates(annonceId: string): Promise<QuestionT
   const equipeId = await equipeDeLAnnonce(annonceId);
   if (!equipeId) return [];
   const supabase = createAdminClient();
+  // Celles de l'équipe, puis les questions prêtes à l'emploi (communes).
   const { data } = await supabase
     .from("question_templates")
-    .select("id, label")
-    .eq("equipe_id", equipeId)
+    .select("id, label, equipe_id")
+    .or(`equipe_id.eq.${equipeId},equipe_id.is.null`)
     .order("label");
-  return data ?? [];
+  const vues = new Set<string>();
+  return [...(data ?? []).filter((q) => q.equipe_id), ...(data ?? []).filter((q) => !q.equipe_id)]
+    .filter((q) => !vues.has(q.label) && !!vues.add(q.label))
+    .map((q) => ({ id: q.id, label: q.label }));
 }
 
 export async function getAnnonceQuestions(annonceId: string): Promise<AnnonceQuestion[]> {
