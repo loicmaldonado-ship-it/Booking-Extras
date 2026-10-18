@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { rowTokens, type Row, type MessageRow } from "@/components/bookings/book
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { bulkUpdateBookings, recordBookingMessage } from "@/lib/bookings/actions";
-import { checkEmailReplies } from "@/lib/bookings/inbox-actions";
+import { releverReponsesAuto } from "@/lib/bookings/inbox-actions";
 import { mettreEnFileTextos } from "@/lib/textos/actions";
 import { NOM_RACCOURCI } from "@/components/textos/envoyer-textos";
 import { FIGURANT_MESSAGE_CATEGORIES } from "@/lib/candidats/types";
@@ -566,20 +566,32 @@ type PanneauProps = {
 function Panneau(props: PanneauProps) {
   const router = useRouter();
   const { actifs, cochés, onCochés, canal, onCanal, envois, ficheRow, onFiche, onFermer } = props;
-  const [verif, setVerif] = useState<string | null>(null);
-  const [verifPending, demarrerVerif] = useTransition();
+  const [releve, setReleve] = useState<{ le: string | null; erreur?: string; enCours: boolean }>({ le: null, enCours: false });
   const choisis = actifs.filter((r) => cochés.has(r.id));
   const envoisCanal = envois.filter((e) => e.canal === canal);
+  const projetId = props.projetId;
 
-  function verifierReponses() {
-    setVerif(null);
-    demarrerVerif(async () => {
-      const res = await checkEmailReplies(props.projetId);
-      const nb = res.matched?.length ?? 0;
-      setVerif(res.error ? `⚠ ${res.error}` : `📥 ${nb} nouvelle${nb > 1 ? "s" : ""} réponse${nb > 1 ? "s" : ""} par mail.`);
-      router.refresh();
-    });
-  }
+  // Relève automatique des réponses par mail (boîte d'envoi du projet) :
+  // à l'ouverture de l'onglet puis toutes les 2 minutes tant qu'il est
+  // ouvert ; une tâche planifiée la fait aussi toutes les 5 min en fond.
+  useEffect(() => {
+    let actif = true;
+    async function relever() {
+      setReleve((r) => ({ ...r, enCours: true }));
+      const res = await releverReponsesAuto(projetId);
+      if (!actif) return;
+      setReleve({ le: res.releveLe, erreur: res.erreur, enCours: false });
+      if (res.nouvelles > 0) router.refresh();
+    }
+    relever();
+    const minuteur = setInterval(relever, 2 * 60 * 1000);
+    return () => {
+      actif = false;
+      clearInterval(minuteur);
+    };
+  }, [projetId, router]);
+
+  const heureReleve = releve.le ? new Date(releve.le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : null;
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 border-border-strong bg-ink p-4 shadow-sm lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
@@ -635,17 +647,12 @@ function Panneau(props: PanneauProps) {
               Suivi des {canal === "email" ? "mails" : "textos"}
             </span>
             {canal === "email" && (
-              <button
-                type="button"
-                onClick={verifierReponses}
-                disabled={verifPending}
-                className="rounded-full border border-border-strong bg-ink px-2.5 py-1 text-xs font-semibold text-text hover:border-coral disabled:opacity-50"
-              >
-                {verifPending ? "Vérification…" : "📥 Vérifier les réponses"}
-              </button>
+              <span className="text-[11px] text-text-muted" title="Les réponses par mail sont relevées automatiquement dans la boîte d'envoi du projet.">
+                {releve.enCours ? "📥 Relève des réponses…" : heureReleve ? `📥 Réponses relevées à ${heureReleve} (auto)` : "📥 Relève automatique"}
+              </span>
             )}
           </div>
-          {verif && <p className="text-xs text-text">{verif}</p>}
+          {canal === "email" && releve.erreur && <p className="text-xs text-danger">Boîte mail du projet : {releve.erreur}</p>}
           {canal === "texto" && (
             <p className="text-[11px] text-text-muted">Les réponses par texto arrivent sur ton téléphone : coche « Marquer reçu » à la main.</p>
           )}

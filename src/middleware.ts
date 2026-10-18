@@ -18,6 +18,7 @@ const PUBLIC_PREFIXES = [
   "/casting/upload",
   "/casting/rejoindre",
   "/api/relais-textos",
+  "/api/cron/",
   "/relais-textos",
   "/recu/",
   "/compte",
