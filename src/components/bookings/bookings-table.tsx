@@ -324,6 +324,24 @@ const fieldClass =
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
 
 // « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+// Notes du profil sur ce booking (spécificités, retours…), comme sur les
+// cartes de casting : enregistrées en quittant le champ.
+function NotesBooking({ r, disabled, onSave }: { r: Row; disabled: boolean; onSave: (notes: string | null) => void }) {
+  return (
+    <textarea
+      defaultValue={r.notes ?? ""}
+      placeholder="Notes (spécificités...)"
+      rows={2}
+      disabled={disabled}
+      className="w-full resize-none rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
+      onBlur={(e) => {
+        const value = e.target.value.trim() || null;
+        if (value !== r.notes) onSave(value);
+      }}
+    />
+  );
+}
+
 function ageEtVille(r: Row) {
   const age = computeAge(r.figurants?.date_naissance ?? null);
   return [age != null ? `${age} ans` : null, r.figurants?.ville].filter(Boolean).join(" · ");
@@ -1002,16 +1020,7 @@ export function BookingsTable({
               />
               Répondu
             </label>
-            <input
-              defaultValue={r.notes ?? ""}
-              placeholder="Note..."
-              disabled={pending}
-              className={fieldClass}
-              onBlur={(e) => {
-                const value = e.target.value.trim() || null;
-                if (value !== r.notes) updateRow(r.id, { notes: value });
-              }}
-            />
+            <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
             {r.figurants && (
               <button
                 type="button"
@@ -1183,6 +1192,7 @@ export function BookingsTable({
             </option>
           ))}
         </StatusSelect>
+        <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
         {r.figurants && (
           <button
             type="button"

@@ -626,7 +626,8 @@ export default function AidePage() {
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
               proposée ensuite dans les déroulants, par ordre alphabétique — une même fonction tapée autrement
               (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
-              permet de retirer une faute de frappe de la liste.
+              permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
+              <strong className="text-text">Notes</strong> (spécificités, retours…), enregistrée en quittant le champ.
             </>,
             "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
             <>
