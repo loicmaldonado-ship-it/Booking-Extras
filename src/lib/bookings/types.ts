@@ -20,7 +20,8 @@ export type BookingStatut =
 export const STATUTS: {
   value: BookingStatut;
   label: string;
-  tone: "default" | "coral" | "turquoise" | "yellow" | "danger";
+  // "confirme" : vert plein, plus marqué que "turquoise" (Validé).
+  tone: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger";
 }[] = [
   { value: "proposé", label: "Proposé", tone: "yellow" },
   { value: "envoyé", label: "PER (pas encore de réponse)", tone: "default" },
@@ -28,7 +29,7 @@ export const STATUTS: {
   { value: "doit_rappeler", label: "Doit rappeler", tone: "yellow" },
   { value: "attente_validation", label: "Attente validation", tone: "coral" },
   { value: "valide", label: "Validé", tone: "turquoise" },
-  { value: "confirmé", label: "CONFIRMÉ", tone: "turquoise" },
+  { value: "confirmé", label: "CONFIRMÉ", tone: "confirme" },
   { value: "indisponible", label: "Indisponible", tone: "danger" },
   { value: "annulé", label: "Annulé", tone: "default" },
   { value: "a_rebooker", label: "À REBOOKER", tone: "danger" },

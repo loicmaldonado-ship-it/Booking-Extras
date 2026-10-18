@@ -18,12 +18,13 @@ export function Badge({
   tone = "default",
   ...props
 }: ComponentProps<"span"> & {
-  tone?: "default" | "coral" | "turquoise" | "yellow" | "danger";
+  tone?: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger";
 }) {
   const tones = {
     default: "bg-ink-raised-2 text-text-muted",
     coral: "bg-coral/15 text-coral",
     turquoise: "bg-turquoise/15 text-turquoise",
+    confirme: "bg-turquoise font-semibold text-white",
     yellow: "bg-yellow/15 text-yellow",
     danger: "bg-danger/15 text-danger",
   };

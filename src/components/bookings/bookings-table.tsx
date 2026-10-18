@@ -250,6 +250,7 @@ const STATUT_ROW_CLASSES: Record<string, { rowBorderL: string; rowBg: string; ca
   default: { rowBorderL: "border-l-border", rowBg: "", cardBorder: "border-border", cardBg: "bg-ink-raised" },
   coral: { rowBorderL: "border-l-coral", rowBg: "bg-coral/5", cardBorder: "border-coral/40", cardBg: "bg-coral/10" },
   turquoise: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/5", cardBorder: "border-turquoise/40", cardBg: "bg-turquoise/10" },
+  confirme: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/20", cardBorder: "border-turquoise", cardBg: "bg-turquoise/25" },
   yellow: { rowBorderL: "border-l-yellow", rowBg: "bg-yellow/5", cardBorder: "border-yellow/40", cardBg: "bg-yellow/10" },
   danger: { rowBorderL: "border-l-danger", rowBg: "bg-danger/5", cardBorder: "border-danger/40", cardBg: "bg-danger/10" },
 };
