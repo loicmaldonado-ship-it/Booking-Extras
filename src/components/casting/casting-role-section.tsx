@@ -40,7 +40,7 @@ import {
 import type { BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
 import type { PhotoVignette } from "@/lib/casting/vignette";
-import type { MessageTemplate } from "@/lib/templates/types";
+import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 import type { PresentielJourneeAvecCreneaux, PresentielAssignment } from "@/lib/casting-presentiel/journees";
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -557,7 +557,7 @@ export function CastingRoleSection({
                       onClick={() => applyTemplate(t)}
                       className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
                     >
-                      {t.nom}
+                      {nomModele(t)}
                     </button>
                   ))}
               </div>

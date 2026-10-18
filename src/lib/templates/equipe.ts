@@ -42,15 +42,17 @@ export async function equipesModeles(
   return { lecture: cles, ecriture: cles[0] ?? null };
 }
 
-// Modèles visibles par le compte connecté, triés par nom.
+// Modèles visibles par le compte connecté : ceux de son équipe, puis les
+// modèles prêts à l'emploi (communs à tout le monde), triés par nom.
 export async function getModelesEquipe(): Promise<MessageTemplate[]> {
   const { lecture } = await equipesModeles(await getCurrentProfile());
   if (lecture.length === 0) return [];
   const { data } = await createAdminClient()
     .from("message_templates")
     .select("*")
-    .in("equipe_id", lecture)
+    .or(`equipe_id.in.(${lecture.join(",")}),equipe_id.is.null`)
     .order("nom")
     .returns<MessageTemplate[]>();
-  return data ?? [];
+  const tous = data ?? [];
+  return [...tous.filter((t) => t.equipe_id), ...tous.filter((t) => !t.equipe_id)];
 }

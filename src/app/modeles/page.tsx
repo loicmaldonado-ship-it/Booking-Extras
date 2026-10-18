@@ -1,13 +1,15 @@
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { TemplateForm } from "@/components/templates/template-form";
-import { TemplatesList } from "@/components/templates/templates-list";
+import { TemplatesList, ModelesDeBaseList } from "@/components/templates/templates-list";
 import { Mail } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function ModelesPage() {
   const templates = await getModelesEquipe();
+  const mesModeles = templates.filter((t) => t.equipe_id);
+  const modelesDeBase = templates.filter((t) => !t.equipe_id);
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,7 +27,24 @@ export default async function ModelesPage() {
         <TemplateForm />
       </Card>
 
-      <TemplatesList templates={templates ?? []} />
+      <div className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Mes modèles</h2>
+        <TemplatesList templates={mesModeles} />
+      </div>
+
+      {modelesDeBase.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">⭐ Prêts à l&apos;emploi</h2>
+            <p className="text-sm text-text-muted">
+              Communs à toutes les équipes et disponibles partout où tu envoies un message. Copie-les dans tes
+              modèles pour ajouter ta signature, tes horaires ou tes infos pratiques. Les passages entre [crochets]
+              sont à compléter.
+            </p>
+          </div>
+          <ModelesDeBaseList templates={modelesDeBase} />
+        </div>
+      )}
     </div>
   );
 }

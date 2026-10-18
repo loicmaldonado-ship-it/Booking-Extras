@@ -301,7 +301,7 @@ export default function AidePage() {
       >
         <Steps
           items={[
-            "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es.",
+            "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es (un clic sur une question proposée l'ajoute : celles de ton équipe, puis des questions courantes prêtes à l'emploi).",
             <>
               Pour un tournage sur plusieurs semaines, ajoute une <strong className="text-text">période</strong>{" "}
               (du … au …) dans les dates de l&apos;annonce : un jour est créé par date (retire ceux sans tournage
@@ -856,7 +856,7 @@ export default function AidePage() {
       >
         <MiniGrid
           items={[
-            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message. Ils restent propres à ton équipe : les autres cheffes ne les voient pas." },
+            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message. Ils restent propres à ton équipe : les autres cheffes ne les voient pas. Les modèles ⭐ prêts à l'emploi (proposition, convocation, relance, casting…) sont communs à tout le monde : copie-les dans tes modèles pour les personnaliser." },
             { title: "Barème", body: "Référence des cachets et majorations ACFDA appliqués automatiquement selon la convention du projet." },
             { title: "RGPD", body: "Outils d'anonymisation pour les profils qui demandent la suppression de leurs données." },
           ]}

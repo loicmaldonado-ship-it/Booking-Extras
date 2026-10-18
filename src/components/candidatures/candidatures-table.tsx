@@ -26,7 +26,7 @@ import { Modale } from "@/components/ui/modale";
 import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 import { projetNomPublic } from "@/lib/projets/types";
-import type { MessageTemplate } from "@/lib/templates/types";
+import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 
 export type Row = {
   id: string;
@@ -400,7 +400,7 @@ export function CandidaturesTable({
                   onClick={() => applyBulkTemplate(t)}
                   className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
                 >
-                  {t.nom}
+                  {nomModele(t)}
                 </button>
               ))}
             </div>
@@ -682,7 +682,7 @@ export function CandidaturesTable({
                       onClick={() => openComposer(r, t)}
                       className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
                     >
-                      {t.nom}
+                      {nomModele(t)}
                     </button>
                   ))}
                 </div>
