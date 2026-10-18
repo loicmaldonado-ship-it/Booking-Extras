@@ -542,6 +542,15 @@ export function BookingsTable({
     () => [...besoinsFonctions].sort(new Intl.Collator("fr", { sensitivity: "base" }).compare),
     [besoinsFonctions]
   );
+  // Filtre : seulement les fonctions de cette journée (profils + besoins),
+  // pas toutes celles du projet.
+  const fonctionsJournee = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...rows.map((r) => r.fonction), ...besoinsFonctions]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [rows, besoinsFonctions]);
   const autresFonctions = useMemo(() => {
     const deja = new Set(besoinsFonctions.map((f) => f.trim().toLowerCase()));
     return fonctions.filter((f) => !deja.has(f.toLowerCase()));
@@ -563,7 +572,7 @@ export function BookingsTable({
 
   const filteredRows = rows.filter(
     (r) =>
-      (!activeFonction || r.fonction === activeFonction) &&
+      (!activeFonction || r.fonction?.trim().toLowerCase() === activeFonction.toLowerCase()) &&
       (!activeCachet || r.cachet === activeCachet) &&
       !hiddenIds.has(r.id) &&
       (showArchived || !STATUTS_ARCHIVES.has(r.statut)) &&
@@ -1511,7 +1520,7 @@ export function BookingsTable({
         >
           Toutes
         </button>
-        {fonctions.map((f) => (
+        {fonctionsJournee.map((f) => (
           <button
             key={f}
             type="button"
