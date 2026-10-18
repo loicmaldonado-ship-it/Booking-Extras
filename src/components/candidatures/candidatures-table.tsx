@@ -11,8 +11,10 @@ import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
-import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
+import { JoursPanneau, JourneeEnGrand, type JourPanneau } from "@/components/candidatures/jours-panneau";
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
+import { LiensValidation } from "@/components/validation/liens-validation";
+import type { LienResume } from "@/lib/validation/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
@@ -44,7 +46,34 @@ export type CandidatureSummary = {
   age: number | null;
   tournages: number;
   jours: JourCandidature[];
+  // Dernier avis de la MES sur un lien de validation.
+  mes?: { vote: "oui" | "peut" | "non" | null; qui: string; note: string } | null;
 };
+
+function BadgeMes({ mes }: { mes: CandidatureSummary["mes"] }) {
+  if (!mes) return null;
+  const libelle = mes.vote === "oui" ? "Validé MES" : mes.vote === "peut" ? "Peut-être MES" : mes.vote === "non" ? "Écarté MES" : "Note MES";
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span
+        className={cn(
+          "self-start rounded-full px-2 py-0.5 text-[11px] font-semibold",
+          mes.vote === "oui"
+            ? "bg-turquoise text-white"
+            : mes.vote === "peut"
+              ? "bg-yellow/25 text-yellow"
+              : mes.vote === "non"
+                ? "bg-danger/15 text-danger"
+                : "bg-ink-raised-2 text-text"
+        )}
+        title={`Avis de ${mes.qui}`}
+      >
+        🎬 {libelle} · {mes.qui}
+      </span>
+      {mes.note && <span className="text-[11px] italic text-text-muted">« {mes.note} »</span>}
+    </div>
+  );
+}
 
 // Met en évidence le texte cherché (sans tenir compte des accents).
 function Surligne({ texte, q }: { texte: string; q: string }) {
@@ -102,6 +131,11 @@ export function CandidaturesTable({
   recherche,
   jours,
   templates,
+  liens,
+  liensOuverts = false,
+  origin,
+  nomLienParDefaut,
+  annonceId,
   pagination,
 }: {
   rows: Row[];
@@ -115,6 +149,11 @@ export function CandidaturesTable({
   recherche: string;
   jours: JourPanneau[];
   templates: MessageTemplate[];
+  liens: LienResume[];
+  liensOuverts?: boolean;
+  origin: string;
+  nomLienParDefaut: string;
+  annonceId: string;
   pagination?: ReactNode;
 }) {
   const router = useRouter();
@@ -124,11 +163,18 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"casting" | "journee" | null>(null);
+  const [outil, setOutil] = useState<"casting" | "journee" | "lien" | null>(liensOuverts ? "lien" : null);
   const [panneauMobile, setPanneauMobile] = useState(false);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
+  // Jour ouvert en grand : sur téléphone, le tiroir se referme pour le montrer.
+  const jourVu = jours.find((j) => j.vu) ?? null;
+  const [jourVuSync, setJourVuSync] = useState(jourVu?.id ?? null);
+  if ((jourVu?.id ?? null) !== jourVuSync) {
+    setJourVuSync(jourVu?.id ?? null);
+    if (jourVu) setPanneauMobile(false);
+  }
 
   const rapides = ongletsRapides(onglets);
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
@@ -244,6 +290,7 @@ export function CandidaturesTable({
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
       {projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {jourVu && projetId && <JourneeEnGrand jour={jourVu} projetId={projetId} fermerHref={jourVu.vuHref} />}
         {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -289,6 +336,19 @@ export function CandidaturesTable({
               </span>
             )}
             <span className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setOutil(outil === "lien" ? null : "lien")}
+              aria-expanded={outil === "lien"}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-medium",
+                outil === "lien" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+              )}
+            >
+              🔗 Lien de validation MES
+              {liens.length > 0 && ` (${liens.length})`}
+              {liens.some((l) => l.visites.some((v) => v.enLigne)) && <span className="ml-1 inline-block h-2 w-2 rounded-full bg-turquoise" />}
+            </button>
             {triIds.length > 0 && (
               <button
                 type="button"
@@ -339,6 +399,16 @@ export function CandidaturesTable({
                 </span>
               )}
             </div>
+          )}
+          {outil === "lien" && (
+            <LiensValidation
+              annonceId={annonceId}
+              nomParDefaut={nomLienParDefaut}
+              liens={liens}
+              selectionIds={selection.map((r) => r.id)}
+              listeIds={triIds}
+              origin={origin}
+            />
           )}
           {selected.size > 0 && outil === "casting" && (
             <AddToCastingBar figurantIds={selection.map((r) => r.figurants!.id)} projets={projets} onDone={apresEnvoi} />
@@ -391,15 +461,48 @@ export function CandidaturesTable({
                       className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
                     />
                   )}
-                  <Link
-                    href={`/candidatures/${r.id}`}
-                    onClick={(e) => openFiche(e, r.id)}
-                    className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-ink-raised-2"
-                  >
-                    {r.portraitUrl && (
-                      <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
-                    )}
-                  </Link>
+                  {/* La photo se retourne au survol : au dos, le message de
+                      candidature et les réponses aux questions. */}
+                  <div className="group relative aspect-[4/5] w-full [perspective:1000px]">
+                    <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                      <Link
+                        href={`/candidatures/${r.id}`}
+                        onClick={(e) => openFiche(e, r.id)}
+                        className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
+                      >
+                        {r.portraitUrl && (
+                          <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
+                        )}
+                        {s?.message?.trim() && (
+                          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-ink/80 px-1.5 py-0.5 text-[11px]" aria-hidden>
+                            💬
+                          </span>
+                        )}
+                      </Link>
+                      <div className="absolute inset-0 flex flex-col gap-2 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        {s?.message?.trim() ? (
+                          <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
+                            {s.message.trim()}
+                          </p>
+                        ) : (
+                          <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
+                        )}
+                        {(s?.questions ?? []).map((q, i) => (
+                          <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="truncate text-text-muted">{q.label}</span>
+                            <span className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "Oui" : "Non"}</span>
+                          </div>
+                        ))}
+                        <Link
+                          href={`/candidatures/${r.id}`}
+                          onClick={(e) => openFiche(e, r.id)}
+                          className="mt-auto text-xs font-medium text-coral hover:underline"
+                        >
+                          Vue complète →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-start justify-between gap-2">
                       <Link
@@ -428,14 +531,9 @@ export function CandidaturesTable({
                       </span>
                     )}
                     <HabitueBadge tournages={s?.tournages ?? 0} className="mt-0.5 self-start" />
+                    <BadgeMes mes={s?.mes} />
                   </div>
-                  <MessageCandidature
-                    message={s?.message ?? null}
-                    ouvert={messagesOuverts.has(r.id)}
-                    onToggle={() => setMessagesOuverts((prev) => bascule(prev, r.id))}
-                  />
                   <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
-                  <Reponses questions={s?.questions ?? []} />
                   <div className="mt-auto">
                     {boutonsRanger(r, true)}
                   </div>
@@ -525,6 +623,7 @@ export function CandidaturesTable({
                               </div>
                             )}
                             <HabitueBadge tournages={s?.tournages ?? 0} className="mt-1 inline-block" />
+                            <BadgeMes mes={s?.mes} />
                           </div>
                         </div>
                       </td>

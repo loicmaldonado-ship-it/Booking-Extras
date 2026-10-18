@@ -379,9 +379,9 @@ export default function AidePage() {
               <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
-              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI>, le <strong className="text-text">message de
-              candidature</strong> (3 lignes, <UI>Lire tout</UI> pour le reste), les dates et les réponses aux
-              questions. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
+              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI> et dates. Passe la souris sur la photo : elle se
+              retourne et montre le <strong className="text-text">message de candidature</strong> et les réponses aux
+              questions (💬 sur la photo = il y a un message). En vue <UI>☰ Liste</UI>, le message a sa colonne. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
               (re-cliquer la remet à trier). Coche plusieurs cartes pour les ranger d&apos;un coup dans n&apos;importe
               quel onglet, les ajouter au casting ou les envoyer dans une autre journée.
             </>,
@@ -395,11 +395,24 @@ export default function AidePage() {
             <>
               <strong className="text-text">Panneau Jours de tournage</strong> (à droite, ou bouton <UI>📅 Jours</UI>{" "}
               sur téléphone) : pour chaque date de l&apos;annonce, la jauge des personnes déjà dans la journée face au
-              besoin saisi dans Bookings. Clique un jour pour voir les statuts, les besoins par fonction, qui y est,
-              filtrer les dispo ce jour, et ouvrir le <UI>🖼️ Trombi du jour</UI>, les <UI>💬 Messages du jour</UI> ou
-              la journée. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
+              besoin saisi dans Bookings. <UI>🖼️ Voir qui est dans ce jour</UI> ouvre la journée en grand au-dessus
+              des cartes : le trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut,
+              plus les liens dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
               cachet en option), les personnes pas dispo ce jour-là ne sont envoyées que si tu le demandes. Les bookings
               sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
+            </>,
+            <>
+              <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) : crée un lien avec les
+              profils cochés, ou tout l&apos;onglet affiché, et envoie-le à la mise en scène ou à la réalisation. Elle voit
+              des planches avec plusieurs photos (galerie plein écran), l&apos;âge, les mensurations et les réponses aux
+              questions, mais jamais les coordonnées ni le message de candidature. À l&apos;arrivée, son prénom et son rôle
+              sont demandés une seule fois. Chaque profil se vote <UI>✅ Valider</UI>, <UI>🤔 Peut-être</UI> ou{" "}
+              <UI>🚫 Non</UI>, avec une note, et un fil de commentaires permet d&apos;écrire à l&apos;équipe. De ton côté, le
+              badge <UI>🎬 Validé MES</UI> s&apos;affiche sur la carte et l&apos;onglet <UI>🎬 Validés MES</UI> regroupe les
+              validés, à envoyer ensuite dans un jour. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
+              et les commentaires, auxquels tu peux répondre. <UI>👀 Voir comme la MES</UI> ouvre la page sans compter de
+              visite. <UI>＋ Ajouter les … cochés</UI> complète un lien existant. Les votes et commentaires arrivent aussi
+              dans la cloche.
             </>,
             <>
               Les pastilles de date d&apos;une carte servent aussi à <strong className="text-text">prévoir</strong>{" "}

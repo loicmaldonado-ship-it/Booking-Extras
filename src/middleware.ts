@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   "/partage/documents",
   "/partage/essayages",
   "/partage/casting",
+  "/partage/validation",
   "/casting/upload",
   "/casting/rejoindre",
   "/api/relais-textos",
