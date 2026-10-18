@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   UsersRound,
   BookOpenCheck,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -51,6 +52,7 @@ const SECTIONS: { label: string; href: string; description: string; icon: Lucide
   { label: "Annonces", href: "/annonces", description: "Offres publiées, candidatures reçues", icon: Megaphone },
   { label: "Candidatures", href: "/candidatures", description: "Trier, répondre, ajouter au booking", icon: FileText },
   { label: "Bookings", href: "/bookings", description: "Journées, convocations, messages", icon: BookOpen },
+  { label: "Casting", href: "/casting", description: "Rôles, selftapes, lien réal", icon: Video },
   { label: "Essayages", href: "/essayages", description: "Planning essayages, mensurations", icon: Shirt },
   { label: "Partage", href: "/partage", description: "Liens publics documents & essayages", icon: Share2 },
   { label: "Modèles", href: "/modeles", description: "Modèles de messages", icon: Mail },

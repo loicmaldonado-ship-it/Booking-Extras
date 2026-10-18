@@ -481,20 +481,6 @@ export default function AidePage() {
                 Sélectionne les profils ajoutés, clique <UI>Invitation (avec le lien)</UI> puis{" "}
                 <UI>Envoyer</UI> — l&apos;envoi est toujours manuel.
               </>,
-              <>
-                Pour des personnes <strong className="text-text">pas encore dans la base</strong> : dans le bloc{" "}
-                <UI>🔗 Lien rapide du casting</UI> du rôle, clique <UI>✉️ Inviter par email</UI>, colle les adresses
-                (une par ligne ou séparées par des virgules, même une colonne Excel) et vérifie le message : tout le
-                monde reçoit le lien d&apos;un coup. Chaque personne répond <strong className="text-text">sans
-                compte</strong> (prénom, nom, email, téléphone) ou avec son compte, envoie ses photos et vidéos
-                calibrées et apparaît toute seule dans le rôle. Sans compte, sa fiche va dans ta{" "}
-                <UI>📇 Base casting</UI> (privée, badge « Lien casting »), pas dans la Base Profils partagée ; un
-                compte lui reste obligatoire pour postuler aux annonces. Le bloc indique combien ont été invité·es,
-                ont rejoint et ont tout envoyé ; les adresses déjà invitées ne reçoivent pas le mail deux fois. Pour
-                un SMS ou WhatsApp, <UI>📱 Copier le texto</UI> copie le message d&apos;invitation avec le lien (ou{" "}
-                <UI>📱 Copier en texto</UI> dans la fenêtre, après l&apos;avoir modifié) ; <UI>Copier</UI> ne copie
-                que le lien. <UI>Couper le lien</UI> le ferme quand tu as assez de monde.
-              </>,
               "Une fois la vidéo reçue, clique sur le profil pour la visionner et zoomer les photos, directement dans la page.",
             ]}
           />
