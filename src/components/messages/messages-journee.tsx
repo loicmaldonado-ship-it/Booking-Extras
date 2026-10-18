@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
+import { ContactIcons } from "@/components/ui/contact-icons";
+import { StatusSelect } from "@/components/ui/status-select";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +12,7 @@ import { Modale } from "@/components/ui/modale";
 import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
 import { rowTokens, type Row, type MessageRow } from "@/components/bookings/bookings-table";
 import { substituteTokens } from "@/lib/bookings/convocation";
-import { statutLabel } from "@/lib/bookings/types";
+import { statutLabel, statutTone } from "@/lib/bookings/types";
 import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 import { nomComplet, trierParNom } from "@/lib/noms";
 import { telephoneInternational, type DestinataireTexto } from "@/lib/textos/telephone";
@@ -70,7 +73,25 @@ export function MessagesJournee({
 }) {
   const actifs = useMemo(() => trierParNom(rows.filter((r) => r.figurants && !EXCLUS.has(r.statut)), (r) => r.figurants), [rows]);
   const rowParFigurant = useMemo(() => new Map(rows.map((r) => [r.figurant_id, r])), [rows]);
-  const [composer, setComposer] = useState(false);
+  const [composer, setComposer] = useState<Set<string> | null>(null);
+  // Vue mémorisée sur cet appareil (l'onglet ne s'affiche qu'après un clic,
+  // donc toujours côté navigateur).
+  const [vue, setVue] = useState<"trombi" | "liste">(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem("messages-vue") === "liste" ? "liste" : "trombi";
+    } catch {
+      return "trombi";
+    }
+  });
+  const [cochés, setCochés] = useState<Set<string>>(new Set());
+  const [filtre, setFiltre] = useState<"tous" | "attente" | string>("tous");
+
+  function changerVue(v: "trombi" | "liste") {
+    setVue(v);
+    try {
+      localStorage.setItem("messages-vue", v);
+    } catch {}
+  }
 
   const propositionRepondu = actifs.filter((r) => r.reponse_booking).length;
   const convocationEnvoyee = actifs.filter((r) => r.convocation_envoyee).length;
@@ -97,20 +118,37 @@ export function MessagesJournee({
             <strong>{convocationRepondu}</strong> BIEN REÇU
           </span>
         </div>
-        <Button type="button" onClick={() => setComposer(true)} disabled={actifs.length === 0}>
-          ✉️ Nouveau message
+        <Button
+          type="button"
+          onClick={() => setComposer(cochés.size > 0 ? new Set(cochés) : new Set(actifs.map((r) => r.id)))}
+          disabled={actifs.length === 0}
+        >
+          ✉️ {cochés.size > 0 ? `Message à la sélection (${cochés.size})` : "Nouveau message"}
         </Button>
       </Card>
 
+      <ProfilsJournee
+        actifs={actifs}
+        envois={envois}
+        etatDe={etatDe}
+        vue={vue}
+        onVue={changerVue}
+        cochés={cochés}
+        onCochés={setCochés}
+        filtre={filtre}
+        onFiltre={setFiltre}
+      />
+
       {composer && (
         <Composer
+          selectionInitiale={composer}
           actifs={actifs}
           projetId={projetId}
           date={date}
           templates={templates}
           journeeLieu={journeeLieu}
           publicOrigin={publicOrigin}
-          onClose={() => setComposer(false)}
+          onClose={() => setComposer(null)}
         />
       )}
 
@@ -138,6 +176,7 @@ export function MessagesJournee({
 }
 
 function Composer({
+  selectionInitiale,
   actifs,
   projetId,
   date,
@@ -146,6 +185,7 @@ function Composer({
   publicOrigin,
   onClose,
 }: {
+  selectionInitiale: Set<string>;
   actifs: Row[];
   projetId: string;
   date: string;
@@ -155,7 +195,7 @@ function Composer({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const [selection, setSelection] = useState<Set<string>>(() => new Set(actifs.map((r) => r.id)));
+  const [selection, setSelection] = useState<Set<string>>(() => new Set(selectionInitiale));
   const [titre, setTitre] = useState("");
   const [sujet, setSujet] = useState(`Infos – ${date}`);
   const [corps, setCorps] = useState("Bonjour {prenom},\n\n");
@@ -566,6 +606,227 @@ function EnvoiCarte({
           }}
           onFermer={() => setTextosRelance(null)}
         />
+      )}
+    </Card>
+  );
+}
+
+const PASTILLE: Record<Etat, string> = {
+  recu: "bg-turquoise/15 text-turquoise",
+  repondu: "bg-coral/15 text-coral",
+  attente: "bg-yellow/15 text-yellow",
+  echec: "bg-danger/15 text-danger",
+  non_envoye: "bg-ink-raised-2 text-text-muted",
+};
+const SYMBOLE: Record<Etat, string> = { recu: "✓", repondu: "💬", attente: "⏳", echec: "⚠", non_envoye: "–" };
+
+// Tous les profils de la journée (trombi ou liste) avec l'état de leurs
+// messages : proposition, convocation, et chaque envoi d'info de la
+// journée. On coche des profils pour leur écrire directement.
+function ProfilsJournee({
+  actifs,
+  envois,
+  etatDe,
+  vue,
+  onVue,
+  cochés,
+  onCochés,
+  filtre,
+  onFiltre,
+}: {
+  actifs: Row[];
+  envois: EnvoiJournee[];
+  etatDe: (d: EnvoiDestinataire) => Etat;
+  vue: "trombi" | "liste";
+  onVue: (v: "trombi" | "liste") => void;
+  cochés: Set<string>;
+  onCochés: (s: Set<string>) => void;
+  filtre: string;
+  onFiltre: (f: string) => void;
+}) {
+  // État de chaque profil pour chaque envoi (du plus ancien au plus récent).
+  const envoisChrono = [...envois].reverse();
+  const etatsParFigurant = new Map<string, { titre: string; etat: Etat }[]>();
+  for (const e of envoisChrono) {
+    for (const d of e.destinataires) {
+      const liste = etatsParFigurant.get(d.figurant_id) ?? [];
+      liste.push({ titre: e.titre, etat: etatDe(d) });
+      etatsParFigurant.set(d.figurant_id, liste);
+    }
+  }
+  const sansNouvelles = (r: Row) => (etatsParFigurant.get(r.figurant_id ?? "") ?? []).some((x) => x.etat === "attente");
+  const affiches = actifs.filter((r) => {
+    if (filtre === "attente") return sansNouvelles(r);
+    if (filtre === "sans_reponse_booking") return !r.reponse_booking;
+    if (filtre === "sans_bien_recu") return r.convocation_envoyee && !r.reponse_recue;
+    return true;
+  });
+  const tousCoches = affiches.length > 0 && affiches.every((r) => cochés.has(r.id));
+
+  function basculer(id: string) {
+    const next = new Set(cochés);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onCochés(next);
+  }
+
+  function pastillesMessages(r: Row) {
+    return (
+      <div className="flex flex-wrap justify-center gap-1">
+        <span
+          title="Proposition de booking"
+          className={cn("rounded-full px-1.5 py-0.5 text-[10px]", r.reponse_booking ? PASTILLE.recu : PASTILLE.attente)}
+        >
+          Proposition {r.reponse_booking ? "✓" : "⏳"}
+        </span>
+        <span
+          title="Convocation"
+          className={cn(
+            "rounded-full px-1.5 py-0.5 text-[10px]",
+            !r.convocation_envoyee ? PASTILLE.non_envoye : r.reponse_recue ? PASTILLE.recu : PASTILLE.attente
+          )}
+        >
+          Convoc {!r.convocation_envoyee ? "–" : r.reponse_recue ? "✓" : "⏳"}
+        </span>
+        {(etatsParFigurant.get(r.figurant_id ?? "") ?? []).map((x, i) => (
+          <span key={`${x.titre}-${i}`} title={ETATS[x.etat].label} className={cn("rounded-full px-1.5 py-0.5 text-[10px]", PASTILLE[x.etat])}>
+            {x.titre} {SYMBOLE[x.etat]}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  const filtres: { cle: string; label: string }[] = [
+    { cle: "tous", label: `Tous (${actifs.length})` },
+    { cle: "sans_reponse_booking", label: "Proposition sans réponse" },
+    { cle: "sans_bien_recu", label: "Convocation sans BIEN REÇU" },
+    ...(envois.length > 0 ? [{ cle: "attente", label: "⏳ Sans nouvelles d'un message" }] : []),
+  ];
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          {filtres.map((f) => (
+            <button
+              key={f.cle}
+              type="button"
+              onClick={() => onFiltre(f.cle)}
+              className={cn(
+                "rounded-full border px-2.5 py-1",
+                filtre === f.cle ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <label className="flex items-center gap-1.5 text-text-muted">
+            <input
+              type="checkbox"
+              checked={tousCoches}
+              onChange={() => {
+                const next = new Set(cochés);
+                for (const r of affiches) {
+                  if (tousCoches) next.delete(r.id);
+                  else next.add(r.id);
+                }
+                onCochés(next);
+              }}
+            />
+            Tout cocher
+          </label>
+          <div className="flex overflow-hidden rounded-full border border-border">
+            {(["trombi", "liste"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onVue(v)}
+                className={cn("px-3 py-1", vue === v ? "bg-coral/15 font-medium text-coral" : "text-text-muted hover:text-text")}
+              >
+                {v === "trombi" ? "🖼️ Trombi" : "☰ Liste"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {affiches.length === 0 ? (
+        <p className="text-sm text-text-muted">Personne dans ce filtre.</p>
+      ) : vue === "trombi" ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {affiches.map((r) => (
+            <div
+              key={r.id}
+              className={cn(
+                "relative flex flex-col items-center gap-1.5 rounded-xl border p-2 text-center",
+                cochés.has(r.id) ? "border-coral bg-coral/10" : "border-border bg-ink"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={cochés.has(r.id)}
+                onChange={() => basculer(r.id)}
+                className="absolute left-3 top-3 z-10 h-4 w-4"
+                aria-label={`Sélectionner ${nomComplet(r.figurants)}`}
+              />
+              <button type="button" onClick={() => basculer(r.id)} className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="(min-width: 1024px) 18vw, 45vw" className="object-cover" />}
+              </button>
+              <span className="text-sm font-medium leading-snug">{nomComplet(r.figurants)}</span>
+              <span className="text-[11px] text-text-muted">{r.fonction ?? "Sans fonction"}</span>
+              <StatusSelect tone={statutTone(r.statut)} value={r.statut} disabled onChange={() => {}} className="pointer-events-none">
+                <option value={r.statut}>{statutLabel(r.statut)}</option>
+              </StatusSelect>
+              {pastillesMessages(r)}
+              <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs text-text-muted">
+              <tr>
+                <th className="w-8 px-2 py-2"></th>
+                <th className="px-2 py-2">Nom</th>
+                <th className="px-2 py-2">Fonction</th>
+                <th className="px-2 py-2">Statut</th>
+                <th className="px-2 py-2">Messages</th>
+                <th className="px-2 py-2">Contact</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {affiches.map((r) => (
+                <tr key={r.id} className={cochés.has(r.id) ? "bg-coral/10" : ""}>
+                  <td className="px-2 py-2">
+                    <input type="checkbox" checked={cochés.has(r.id)} onChange={() => basculer(r.id)} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
+                        {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="36px" className="object-cover" />}
+                      </div>
+                      <span className="font-medium">{nomComplet(r.figurants)}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 text-text-muted">{r.fonction ?? "—"}</td>
+                  <td className="px-2 py-2">
+                    <Badge tone={statutTone(r.statut)}>{statutLabel(r.statut)}</Badge>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="[&>div]:justify-start">{pastillesMessages(r)}</div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </Card>
   );

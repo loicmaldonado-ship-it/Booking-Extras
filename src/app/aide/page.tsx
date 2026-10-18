@@ -681,7 +681,11 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Onglet Messages.</strong> En haut, le point sur les deux messages
-          principaux (proposition : combien ont répondu ; convocation : combien envoyées et BIEN REÇU).{" "}
+          principaux (proposition : combien ont répondu ; convocation : combien envoyées et BIEN REÇU). Dessous,
+          tous les profils de la journée en <UI>🖼️ Trombi</UI> ou <UI>☰ Liste</UI>, avec leurs pastilles
+          (Proposition, Convoc, et chaque message d&apos;info) et des filtres (proposition sans réponse,
+          convocation sans BIEN REÇU, sans nouvelles d&apos;un message) ; coche des profils puis{" "}
+          <UI>✉️ Message à la sélection</UI>.{" "}
           <UI>✉️ Nouveau message</UI> envoie un message d&apos;info à une sélection (tous, confirmés, par
           fonction…), par email ou en textos, sous un <strong className="text-text">nom</strong> (Parking,
           Horaire avancé…). Avec l&apos;accusé de réception, chaque message contient un lien{" "}
