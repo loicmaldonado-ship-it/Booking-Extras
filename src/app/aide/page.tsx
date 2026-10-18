@@ -631,7 +631,11 @@ export default function AidePage() {
               permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
               <strong className="text-text">Notes</strong> (spécificités, retours…), enregistrée en quittant le champ.
             </>,
-            "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
+            <>
+              Sur chaque carte, coche <UI>Répondu booking</UI> quand la personne accepte la proposition : elle
+              passe en <strong className="text-text">CONFIRMÉ</strong>. Envoie ensuite les convocations
+              (individuellement ou en masse) ; <UI>Répondu convocation</UI> se coche quand elle répond BIEN REÇU.
+            </>,
             <>
               Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
               <UI>🔀 Changer de date</UI> : choisis une autre journée du projet ou une nouvelle date. La convocation

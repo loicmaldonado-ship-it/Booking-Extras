@@ -92,6 +92,8 @@ export type Row = {
   convocation_envoyee_le?: string | null;
   reponse_recue: boolean;
   reponse_recue_le?: string | null;
+  // Accepté la proposition de booking (case « Répondu booking » → CONFIRMÉ).
+  reponse_booking?: boolean;
   notes: string | null;
   covoiturage_role?: CovoiturageRole | null;
   covoiturage_lieu_depart?: string | null;
@@ -218,6 +220,7 @@ type RowChanges = Partial<{
   cachet: string | null;
   heure_convocation: string | null;
   reponse_recue: boolean;
+  reponse_booking: boolean;
   notes: string | null;
 }>;
 type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu" | "vehicule" | "myrole";
@@ -229,7 +232,7 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "sexe", label: "Genre" },
   { key: "age", label: "Âge" },
   { key: "heure", label: "Heure" },
-  { key: "repondu", label: "Répondu" },
+  { key: "repondu", label: "Répondu convocation" },
   { key: "vehicule", label: "Véhicule" },
   { key: "myrole", label: "Myrole" },
 ];
@@ -264,7 +267,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "cachet") return r.cachet ?? "Sans cachet";
   if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
   if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
-  if (dimension === "repondu") return r.reponse_recue ? "Répondu" : "Pas répondu";
+  if (dimension === "repondu") return r.reponse_recue ? "Répondu convocation" : "Pas répondu convocation";
   if (dimension === "myrole") return r.figurants?.compte_myrole ? "Avec compte Myrole" : "Sans compte Myrole";
   if (dimension === "vehicule") {
     const f = r.figurants;
@@ -1000,7 +1003,7 @@ export function BookingsTable({
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
               <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
-                ✓ Répondu
+                ✓ Répondu convocation
               </Badge>
             )}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
@@ -1108,7 +1111,23 @@ export function BookingsTable({
                 onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
                 className="h-4 w-4 rounded border-border accent-yellow"
               />
-              Répondu
+              Répondu convocation
+            </label>
+            <label
+              title="A accepté la proposition de booking : passe en CONFIRMÉ"
+              className={cn(
+                "flex w-fit items-center gap-1.5 text-xs font-medium",
+                r.reponse_booking ? "text-turquoise" : "text-text-muted"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={!!r.reponse_booking}
+                disabled={pending}
+                onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+                className="h-4 w-4 rounded border-border accent-turquoise"
+              />
+              Répondu booking
             </label>
             <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
             {r.figurants && (
@@ -1211,7 +1230,27 @@ export function BookingsTable({
               onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
               className="h-3 w-3 rounded border-border accent-yellow"
             />
-            {r.reponse_recue ? "✓ Répondu" : "Répondu"}
+            {r.reponse_recue ? "✓ Répondu convocation" : "Répondu convocation"}
+          </label>
+          <label
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="A accepté la proposition de booking : passe en CONFIRMÉ"
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              r.reponse_booking ? "bg-turquoise/15 text-turquoise" : "bg-ink-raised-2 text-text-muted"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!r.reponse_booking}
+              disabled={pending}
+              onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+              className="h-3 w-3 rounded border-border accent-turquoise"
+            />
+            {r.reponse_booking ? "✓ Répondu booking" : "Répondu booking"}
           </label>
           {cardDelai && (
             <div className={cn("text-[10px]", cardDelai.muted ? "text-yellow" : "text-turquoise")}>{cardDelai.text}</div>
