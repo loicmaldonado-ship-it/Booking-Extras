@@ -5,6 +5,7 @@ const TONE_CLASSES: Record<string, string> = {
   default: "bg-ink-raised-2 text-text-muted",
   coral: "bg-coral/15 text-coral",
   turquoise: "bg-turquoise/15 text-turquoise",
+  confirme: "bg-turquoise text-white font-semibold",
   yellow: "bg-yellow/15 text-yellow",
   danger: "bg-danger/15 text-danger",
 };
