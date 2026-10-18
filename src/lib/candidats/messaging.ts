@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
-import { checkProjetAccess } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import type { FigurantMessageCategorie } from "./types";
 
 // Si un email est fourni, le message part réellement (Gmail SMTP, boîte
@@ -54,6 +54,7 @@ export async function recordFigurantMessage(params: {
     booking_id: params.bookingId ?? null,
     projet_id: params.projetId ?? null,
     sender: "staff",
+    envoye_par: (await getCurrentProfile())?.id ?? null,
     corps: params.corps,
     categorie: params.categorie,
   });

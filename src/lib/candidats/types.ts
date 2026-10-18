@@ -33,4 +33,6 @@ export type FigurantMessage = {
   repondu?: boolean;
   categorie: FigurantMessageCategorie;
   created_at: string;
+  // Membre de l'équipe qui l'a envoyé (« envoyé par … »), si connu.
+  auteur?: string | null;
 };

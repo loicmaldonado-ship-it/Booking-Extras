@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
 import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
-import { checkProjetAccess } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
 
@@ -705,6 +705,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       figurant_id: figurantId,
       projet_id: projetId,
       sender: "staff",
+      envoye_par: (await getCurrentProfile())?.id ?? null,
       corps: "Lien d'accès à l'espace personnel envoyé.",
       categorie: "espace_perso",
     });

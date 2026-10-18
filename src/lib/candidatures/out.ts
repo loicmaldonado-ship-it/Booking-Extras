@@ -1,4 +1,5 @@
 import "server-only";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Onglet « OUT » (fixe, commun à toutes les annonces) : une candidature
@@ -71,6 +72,7 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
         entrees.map((c) => c.id)
       );
     const dejaPrevenues = new Set((deja ?? []).map((m) => m.candidature_id));
+    const envoyePar = (await getCurrentProfile())?.id ?? null;
     const messages = entrees
       .filter((c) => !dejaPrevenues.has(c.id))
       .map((c) => ({
@@ -78,6 +80,7 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
         projet_id: c.annonces?.projet_id ?? null,
         candidature_id: c.id,
         sender: "staff",
+        envoye_par: envoyePar,
         categorie: "non_retenu",
         corps: messageNonRetenu(c.annonces?.titre ?? "votre annonce"),
       }));

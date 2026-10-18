@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nomComplet } from "@/lib/noms";
 
 export type EnvoiDestinataire = {
   id: string;
@@ -21,6 +22,8 @@ export type EnvoiJournee = {
   canal: "email" | "texto";
   avec_accuse: boolean;
   created_at: string;
+  // Membre de l'équipe qui l'a envoyé.
+  auteur: string | null;
   destinataires: EnvoiDestinataire[];
 };
 
@@ -30,11 +33,20 @@ export async function getEnvoisJournee(projetId: string, date: string): Promise<
   const { data } = await createAdminClient()
     .from("envois")
     .select(
-      "id, titre, sujet, corps, canal, avec_accuse, created_at, envoi_destinataires(id, figurant_id, booking_id, token, envoye_le, erreur, accuse_le, relances, derniere_relance_le)"
+      "id, titre, sujet, corps, canal, avec_accuse, created_at, createur:profiles!envois_created_by_fkey(prenom, nom), envoi_destinataires(id, figurant_id, booking_id, token, envoye_le, erreur, accuse_le, relances, derniere_relance_le)"
     )
     .eq("projet_id", projetId)
     .eq("date", date)
     .order("created_at", { ascending: false })
-    .returns<(Omit<EnvoiJournee, "destinataires"> & { envoi_destinataires: EnvoiDestinataire[] })[]>();
-  return (data ?? []).map(({ envoi_destinataires, ...e }) => ({ ...e, destinataires: envoi_destinataires ?? [] }));
+    .returns<
+      (Omit<EnvoiJournee, "destinataires" | "auteur"> & {
+        createur: { prenom: string | null; nom: string | null } | null;
+        envoi_destinataires: EnvoiDestinataire[];
+      })[]
+    >();
+  return (data ?? []).map(({ envoi_destinataires, createur, ...e }) => ({
+    ...e,
+    auteur: createur ? nomComplet(createur) : null,
+    destinataires: envoi_destinataires ?? [],
+  }));
 }

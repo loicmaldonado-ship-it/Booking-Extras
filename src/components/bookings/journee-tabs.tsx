@@ -31,6 +31,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]["value"];
 
 export function JourneeTabs({
+  ongletInitial,
   bookings,
   canExport = false,
   templates,
@@ -57,6 +58,8 @@ export function JourneeTabs({
   baremeMajorations,
   envois = [],
 }: {
+  // Onglet ouvert à l'arrivée (lien « Messages du jour » de Candidatures).
+  ongletInitial?: "messages";
   bookings: Row[];
   canExport?: boolean;
   templates: MessageTemplate[];
@@ -83,7 +86,7 @@ export function JourneeTabs({
   baremeMajorations?: BaremeMajoration[];
   envois?: EnvoiJournee[];
 }) {
-  const [tab, setTab] = useState<Tab>("bookings");
+  const [tab, setTab] = useState<Tab>(ongletInitial ?? "bookings");
   // Destinataires d'envois sans accusé ni réponse (pastille de l'onglet).
   const sansNouvelles = envois.reduce(
     (n, e) =>
