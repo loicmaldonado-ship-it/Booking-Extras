@@ -88,7 +88,7 @@ export default async function FigurantDetailPage({
     .from("figurant_messages")
     .select("*")
     .eq("figurant_id", id)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
   if (accessibleIds !== null) {
     messagesQuery = messagesQuery.or(`projet_id.is.null,projet_id.in.(${idsOrNone(accessibleIds).join(",")})`);
   }

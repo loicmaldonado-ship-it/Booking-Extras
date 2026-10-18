@@ -1162,7 +1162,8 @@ function FicheProfil({
   const [etatEnvoi, setEtatEnvoi] = useState<string | null>(null);
   const [envoiPending, demarrer] = useTransition();
   const [recuPending, demarrerRecu] = useTransition();
-  const fil = [...(messagesByFigurant[r.figurant_id ?? ""] ?? [])].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  // Du plus récent au plus ancien.
+  const fil = [...(messagesByFigurant[r.figurant_id ?? ""] ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const envoisProfil = envoisParFigurant.get(r.figurant_id ?? "") ?? [];
   const tone = statutTone(r.statut);
   const prenom = formatPrenom(r.figurants?.prenom);

@@ -54,7 +54,7 @@ export default async function CompteCandidatPage({
         .from("figurant_messages")
         .select("*")
         .eq("figurant_id", session.id)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .returns<FigurantMessage[]>(),
       supabase.from("candidatures").select("annonce_id").eq("figurant_id", session.id),
       supabase.from("figurant_liens").select("label, url").eq("figurant_id", session.id),
