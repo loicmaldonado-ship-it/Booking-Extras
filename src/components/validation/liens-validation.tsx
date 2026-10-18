@@ -4,36 +4,26 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/format-date";
-import {
-  creerLienValidation,
-  ajouterAuLienValidation,
-  supprimerLienValidation,
-  repondreSurLien,
-} from "@/lib/validation/actions";
+import { creerLienValidation, supprimerLienValidation, repondreSurLien } from "@/lib/validation/actions";
 import type { LienResume } from "@/lib/validation/data";
 
 const bouton = "rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60";
 
-// Liens de validation pour la mise en scène / la réalisation, dans la barre
-// de sélection de Candidatures : créer un lien depuis les profils cochés
-// (ou l'onglet affiché), suivre qui l'a ouvert, les votes et les
-// commentaires, répondre.
+// Liens de validation pour la mise en scène / la réalisation (Candidatures
+// ou Bookings) : un lien de toutes les journées qui se remplit tout seul,
+// qui l'a ouvert, les votes et les commentaires, avec réponse.
 export function LiensValidation({
-  annonceId,
+  cible,
   nomParDefaut,
   liens,
-  selectionIds,
-  listeIds,
   origin,
 }: {
-  annonceId: string;
+  cible: { annonceId: string } | { projetId: string };
   nomParDefaut: string;
   liens: LienResume[];
-  selectionIds: string[];
-  // Toute la liste affichée (onglet + filtres), quand rien n'est coché.
-  listeIds: string[];
   origin: string;
 }) {
+  const bookings = "projetId" in cible;
   const router = useRouter();
   const [nom, setNom] = useState(nomParDefaut);
   const [cree, setCree] = useState<string | null>(null);
@@ -44,7 +34,6 @@ export function LiensValidation({
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const ids = selectionIds.length > 0 ? selectionIds : listeIds;
   const url = (token: string) => `${origin}/partage/validation/${token}`;
 
   // Votes, visites et commentaires arrivent en direct : rafraîchi toutes
@@ -57,7 +46,7 @@ export function LiensValidation({
   function creer() {
     setMessage(null);
     startTransition(async () => {
-      const res = await creerLienValidation(annonceId, nom, ids);
+      const res = await creerLienValidation(cible, nom);
       if (res.error) setMessage({ ok: false, texte: res.error });
       else if (res.token) {
         setCree(res.token);
@@ -73,19 +62,6 @@ export function LiensValidation({
     } catch {
       setMessage({ ok: false, texte: "Copie impossible sur cet appareil : sélectionne le lien à la main." });
     }
-  }
-
-  function ajouter(lienId: string) {
-    setMessage(null);
-    startTransition(async () => {
-      const res = await ajouterAuLienValidation(lienId, selectionIds);
-      setMessage(
-        res.error
-          ? { ok: false, texte: res.error }
-          : { ok: true, texte: `${res.ajoutes} profil${(res.ajoutes ?? 0) > 1 ? "s" : ""} ajouté${(res.ajoutes ?? 0) > 1 ? "s" : ""} au lien.` }
-      );
-      router.refresh();
-    });
   }
 
   function supprimer(lienId: string) {
@@ -113,9 +89,9 @@ export function LiensValidation({
       <div>
         <b className="text-sm">🔗 Lien de validation pour la mise en scène</b>
         <p className="text-xs text-text-muted">
-          Les profils en planches (plusieurs photos, âge, mensurations, réponses aux questions — jamais les coordonnées ni le
-          message). La MES répond Oui ou Non pour chaque profil (par jour prévu s&apos;ils ont des jours) ; tu le vois ici et sur les cartes (🎬), puis tu envoies les
-          validés dans la journée.
+          {bookings
+            ? "Toutes les journées à venir du projet, avec les profils bookés en planches (photos, âge, mensurations, fonction — jamais les coordonnées). La MES répond Oui ou Non pour chaque profil ; tu le vois ici et dans la journée (🎬). Le lien se met à jour tout seul."
+            : "Toutes les journées de l'annonce, avec les profils en cours de choix et ceux déjà dans la journée, en planches (photos, âge, mensurations, réponses aux questions — jamais les coordonnées ni le message). La MES répond Oui ou Non pour chaque profil ; tu le vois ici et sur les cartes (🎬). Le lien se met à jour tout seul."}
         </p>
       </div>
 
@@ -151,11 +127,10 @@ export function LiensValidation({
           <button
             type="button"
             onClick={creer}
-            disabled={pending || ids.length === 0 || !nom.trim()}
+            disabled={pending || !nom.trim()}
             className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
           >
-            Créer le lien avec {ids.length} profil{ids.length > 1 ? "s" : ""}
-            {selectionIds.length > 0 ? " cochés" : " de l'onglet"}
+            📅 Créer le lien de toutes les journées
           </button>
         </div>
       )}
@@ -173,6 +148,11 @@ export function LiensValidation({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>
                     🔗 <b>{l.nom}</b>
+                    {l.toutesJournees && (
+                      <span className="ml-1.5 rounded-full bg-coral/15 px-2 py-0.5 text-[11px] font-medium text-coral">
+                        📅 toutes les journées · en direct
+                      </span>
+                    )}
                     <span className="text-xs text-text-muted">
                       {" "}
                       · {formatDateTime(l.created_at)}
@@ -187,7 +167,7 @@ export function LiensValidation({
                     )}
                     <b className="text-turquoise">✅ {l.oui}</b>
                     <span>🚫 {l.non}</span>
-                    <span className="text-text-muted">/ {l.candidatureIds.length}</span>
+                    <span className="text-text-muted">/ {l.profilIds.length}</span>
                     <span>💬 {l.commentaires.length}</span>
                   </span>
                 </div>
@@ -201,11 +181,7 @@ export function LiensValidation({
                   <button type="button" onClick={() => setOuvert(estOuvert ? null : l.id)} aria-expanded={estOuvert} className={bouton}>
                     {estOuvert ? "Replier" : "Visites et commentaires"}
                   </button>
-                  {selectionIds.length > 0 && (
-                    <button type="button" disabled={pending} onClick={() => ajouter(l.id)} className={bouton}>
-                      ＋ Ajouter les {selectionIds.length} cochés
-                    </button>
-                  )}
+
                   {aSupprimer === l.id ? (
                     <span className="flex items-center gap-1.5 text-xs">
                       Supprimer ce lien (votes et commentaires compris) ?

@@ -44,12 +44,12 @@ export function JourChipsView({
           aria-pressed={j.prevu}
           title={
             j.dansLaJournee
-              ? "Déjà dans la journée de tournage"
+              ? "Déjà envoyé·e dans la journée de booking"
               : j.prevu
-                ? "Prévu·e ce jour — cliquer pour retirer"
+                ? "Prévu·e dans cette journée — cliquer pour retirer"
                 : j.disponible
-                  ? "Dispo — cliquer pour prévoir ce jour"
-                  : "S'est dit·e pas dispo — cliquer pour prévoir quand même"
+                  ? "Dispo — cliquer pour prévoir dans cette journée"
+                  : "S'est dit·e pas dispo — cliquer pour prévoir dans cette journée quand même"
           }
           className={cn(
             "flex items-center gap-1 rounded-md border font-medium tabular-nums transition-colors",

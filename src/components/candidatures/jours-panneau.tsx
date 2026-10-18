@@ -7,7 +7,6 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
 import { envoyerCandidaturesDansJour, envoyerJourAuTournage } from "@/lib/candidatures/jours";
-import { creerLienValidation } from "@/lib/validation/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { statutLabel, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { Badge } from "@/components/ui/card";
@@ -88,7 +87,8 @@ export function JoursPanneau({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-text-muted">
-        Coche des profils puis envoie-les dans un jour : ils quittent Candidatures et arrivent dans la journée (en PER,
+        <b>Prévoir</b> = pastilles de date des cartes (en cours de choix, rien n&apos;est créé). <b>Envoyer dans la journée de
+        booking</b> = coche des profils puis le bouton du jour : ils quittent Candidatures et arrivent dans la journée de booking (en PER,
         rien n&apos;est envoyé aux figurant·es). Besoins saisis dans Bookings.
       </p>
       {jours.map((j) => {
@@ -134,7 +134,7 @@ export function JoursPanneau({
               <span className="flex w-full flex-wrap justify-between gap-x-2 text-xs text-text-muted">
                 <span className={cn(complet && "font-medium text-turquoise")}>
                   {j.besoin === null
-                    ? `${j.dansLaJournee} dans la journée`
+                    ? `${j.dansLaJournee} dans la journée de booking`
                     : complet
                       ? "✓ Complet"
                       : `Il manque ${j.besoin - j.dansLaJournee}`}
@@ -155,13 +155,13 @@ export function JoursPanneau({
                 estOuvert ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
               )}
             >
-              {estOuvert ? "✓ Ouvert en grand · fermer" : `🖼️ Voir qui est dans ce jour (${j.dansLaJournee})`}
+              {estOuvert ? "✓ Ouvert en grand · fermer" : `🖼️ Voir la journée (${j.dansLaJournee} dans la journée de booking)`}
             </Link>
 
             {resultat?.jourId === j.id && (
               <p className={cn("text-xs", resultat.error ? "text-danger" : "font-medium text-turquoise")}>
                 {resultat.error ??
-                  `✓ ${resultat.ok} envoyé${resultat.ok > 1 ? "s" : ""} dans la journée${
+                  `✓ ${resultat.ok} envoyé${resultat.ok > 1 ? "s" : ""} dans la journée de booking${
                     resultat.deja > 0 ? ` (${resultat.deja} y étai${resultat.deja > 1 ? "ent" : "t"} déjà)` : ""
                   }.`}
               </p>
@@ -172,12 +172,12 @@ export function JoursPanneau({
                 <p className="text-sm">
                   {envoi.mode === "prevus" ? (
                     <>
-                      Envoyer les <b>{j.prevusAEnvoyer}</b> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} dans la journée du{" "}
+                      Envoyer les <b>{j.prevusAEnvoyer}</b> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} dans la journée de booking du{" "}
                       {formatDayMonth(j.date)} ?
                     </>
                   ) : (
                     <>
-                      Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} dans la journée du{" "}
+                      Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} dans la journée de booking du{" "}
                       {formatDayMonth(j.date)} ?
                     </>
                   )}
@@ -198,7 +198,26 @@ export function JoursPanneau({
                   </label>
                 )}
                 <label className="flex flex-col gap-1 text-text-muted">
-                  Fonction (optionnel)
+                  <span>
+                    Fonction <span className="text-danger">*</span>
+                  </span>
+                  {j.fonctions.length > 0 && (
+                    <span className="flex flex-wrap gap-1">
+                      {j.fonctions.map((f) => (
+                        <button
+                          key={f.fonction}
+                          type="button"
+                          onClick={() => setFonction(f.fonction)}
+                          className={cn(
+                            "rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            fonction === f.fonction ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:border-coral/60"
+                          )}
+                        >
+                          {f.fonction} {f.places}/{f.besoin}
+                        </button>
+                      ))}
+                    </span>
+                  )}
                   <input
                     value={fonction}
                     onChange={(e) => setFonction(e.target.value)}
@@ -208,9 +227,13 @@ export function JoursPanneau({
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-text-muted">
-                  Cachet (optionnel)
+                  <span>
+                    Cachet <span className="text-danger">*</span>
+                  </span>
                   <select value={cachet} onChange={(e) => setCachet(e.target.value as Cachet | "")} className={champ}>
-                    <option value="">—</option>
+                    <option value="" disabled>
+                      Choisir…
+                    </option>
                     {CACHETS.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -229,7 +252,8 @@ export function JoursPanneau({
                   </button>
                   <button
                     type="button"
-                    disabled={pending || (envoi.mode === "selection" && aEnvoyer.length === 0)}
+                    disabled={pending || !fonction.trim() || !cachet || (envoi.mode === "selection" && aEnvoyer.length === 0)}
+                    title={!fonction.trim() || !cachet ? "Choisis une fonction et un cachet" : undefined}
                     onClick={() => envoyer(j, aEnvoyer.map((s) => s.id))}
                     className="rounded-full bg-coral px-3 py-1.5 font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
                   >
@@ -245,8 +269,8 @@ export function JoursPanneau({
                 className="rounded-full bg-coral px-3 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:bg-ink-raised-2 disabled:text-text-muted"
               >
                 📅 {pasEncore.length === 0
-                  ? "Déjà dans ce jour"
-                  : `Envoyer ${dispo.length} dans ce jour${pasDispo.length > 0 ? ` (+${pasDispo.length} pas dispo)` : ""}`}
+                  ? "Déjà dans la journée de booking"
+                  : `Envoyer ${dispo.length} dans la journée de booking${pasDispo.length > 0 ? ` (+${pasDispo.length} pas dispo)` : ""}`}
               </button>
             ) : j.prevusAEnvoyer > 0 ? (
               <button
@@ -254,7 +278,7 @@ export function JoursPanneau({
                 onClick={() => demarrer(j.id, "prevus")}
                 className="rounded-full border-2 border-coral px-3 py-1.5 text-sm font-semibold text-coral hover:bg-coral/10"
               >
-                📅 Envoyer les {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""}
+                📅 Envoyer les {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} dans la journée de booking
               </button>
             ) : null}
           </div>
@@ -270,28 +294,11 @@ export function JourneeEnGrand({
   jour,
   projetId,
   fermerHref,
-  annonceId,
-  annonceTitre,
-  origin,
 }: {
   jour: JourPanneau;
   projetId: string;
   fermerHref: string;
-  annonceId: string;
-  annonceTitre: string;
-  origin: string;
 }) {
-  const [lien, setLien] = useState<{ url?: string; error?: string; copie?: boolean } | null>(null);
-  const [pendingLien, startLien] = useTransition();
-
-  // Lien de validation MES avec les prévu·es de ce jour, avant de les
-  // envoyer dans la journée.
-  function creerLienDuJour() {
-    startLien(async () => {
-      const res = await creerLienValidation(annonceId, `${annonceTitre} — ${formatDayMonth(jour.date)}`, jour.prevusIds);
-      setLien(res.token ? { url: `${origin}/partage/validation/${res.token}` } : { error: res.error });
-    });
-  }
   const groupes = new Map<string, JourPanneau["gens"]>();
   for (const g of jour.gens) {
     const cle = g.fonction?.trim() || "";
@@ -308,7 +315,7 @@ export function JourneeEnGrand({
         <div>
           <h2 className="text-xl font-semibold">📅 {formatDateLong(jour.date)}</h2>
           <p className={cn("text-sm", complet ? "font-medium text-turquoise" : "text-text-muted")}>
-            {jour.dansLaJournee} dans la journée
+            {jour.dansLaJournee} dans la journée de booking
             {jour.besoin !== null && ` sur ${jour.besoin} demandé·es`}
             {jour.besoin !== null && (complet ? " · ✓ Complet" : ` · il manque ${jour.besoin - jour.dansLaJournee}`)}
             {jour.horsJournee > 0 && ` · ${jour.horsJournee} annulé·e ou indispo`}
@@ -330,7 +337,7 @@ export function JourneeEnGrand({
         </Link>
         {jour.prevus > 0 && (
           <Link href={jour.prevusHref} scroll={false} className={classeLien}>
-            Voir les {jour.prevus} prévu·e{jour.prevus > 1 ? "s" : ""}
+            Voir les {jour.prevus} prévu·e{jour.prevus > 1 ? "s" : ""} dans cette journée
           </Link>
         )}
         <Link href={`/bookings/documents/trombis?projet_id=${projetId}&date=${jour.date}&statut=tous`} target="_blank" className={classeLien}>
@@ -342,30 +349,12 @@ export function JourneeEnGrand({
         <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}`} className={classeLien}>
           Ouvrir la journée dans Bookings →
         </Link>
-        {jour.prevusIds.length > 0 && !lien?.url && (
-          <button type="button" disabled={pendingLien} onClick={creerLienDuJour} className={cn(classeLien, "border-coral text-coral")}>
-            🔗 Lien MES avec les {jour.prevusIds.length} prévu·e{jour.prevusIds.length > 1 ? "s" : ""} de ce jour
-          </button>
-        )}
       </div>
-      {lien?.error && <p className="text-sm text-danger">{lien.error}</p>}
-      {lien?.url && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-turquoise/50 bg-turquoise/10 p-2 text-sm">
-          <span className="font-medium text-turquoise">✓ Lien MES créé pour ce jour</span>
-          <code className="min-w-0 flex-1 truncate text-xs">{lien.url}</code>
-          <button
-            type="button"
-            onClick={() => navigator.clipboard.writeText(lien.url!).then(() => setLien({ ...lien, copie: true }))}
-            className={classeLien}
-          >
-            {lien.copie ? "Copié ✓" : "Copier le lien"}
-          </button>
-        </div>
-      )}
 
       {jour.gens.length === 0 ? (
         <p className="py-6 text-center text-sm text-text-muted">
-          Personne dans cette journée pour l&apos;instant. Coche des profils ci-dessous puis « Envoyer dans ce jour ».
+          Personne dans la journée de booking pour l&apos;instant. Coche des profils puis « Envoyer dans la journée de
+          booking ».
         </p>
       ) : (
         ordre.map((f) => {

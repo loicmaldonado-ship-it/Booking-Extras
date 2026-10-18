@@ -350,11 +350,11 @@ export function TriRapide({
                     {jours.length > 0 && (
                       <div>
                         <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
-                          Jours de tournage
+                          Prévoir dans une journée
                         </h3>
                         <JourChipsView jours={jours} onToggle={(j) => toggleJour(j.id)} size="lg" showKeys />
                         <p className="mt-1.5 text-[11px] text-text-muted">
-                          Contour vert = dispo, plein = prévu·e ce jour, ✓ = déjà dans la journée.
+                          Contour vert = dispo, plein = prévu·e dans cette journée (en cours de choix), ✓ = déjà envoyé·e dans la journée de booking.
                         </p>
                       </div>
                     )}
@@ -440,7 +440,7 @@ export function TriRapide({
                   </button>
                   <span className="hidden text-xs text-text-muted md:inline">
                     Touches : 0–{options.length - 1} ranger
-                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} jours`} · ← →
+                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} prévoir dans une journée`} · ← →
                     naviguer · ↑ ↓ photos · Échap fermer
                   </span>
                   <button

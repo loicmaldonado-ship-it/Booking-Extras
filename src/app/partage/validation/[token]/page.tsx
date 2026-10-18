@@ -35,8 +35,8 @@ export default async function ValidationPage({
     );
   }
 
-  const [planches, votes, commentaires] = await Promise.all([
-    getPlanches(lien.id, lien.projet_id, lien.annonce_id),
+  const [{ planches, dates }, votes, commentaires] = await Promise.all([
+    getPlanches(lien),
     getVotesLiens([lien.id]),
     getCommentaires([lien.id]),
   ]);
@@ -46,11 +46,13 @@ export default async function ValidationPage({
       token={token}
       apercu={apercu}
       lang={lang}
+      source={lien.source}
       titre={lien.nom}
       contexte={[lien.projets?.societe_production, projetNomPublic(lien.projets), lien.annonces?.titre].filter(Boolean).join(" · ")}
       planches={planches}
+      jours={dates}
       votes={votes.map((v) => ({
-        candidatureId: v.candidature_id,
+        profilId: v.profil_id,
         cle: cle(v.visiteur_id),
         qui: v.visiteur_role ? `${v.visiteur_nom} (${v.visiteur_role})` : v.visiteur_nom,
         vote: v.vote,
