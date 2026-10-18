@@ -169,6 +169,7 @@ function Composer({
 
   const choisis = actifs.filter((r) => selection.has(r.id));
   const fonctions = Array.from(new Set(actifs.map((r) => r.fonction).filter((f): f is string => !!f))).sort();
+  const heures = Array.from(new Set(actifs.map((r) => r.heure_convocation?.slice(0, 5)).filter((h): h is string => !!h))).sort();
   const apercu = choisis[0];
 
   function selectionner(filtre: (r: Row) => boolean) {
@@ -290,6 +291,17 @@ function Composer({
                   {c.label}
                 </button>
               ))}
+              {heures.length > 1 &&
+                heures.map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => selectionner((r) => r.heure_convocation?.slice(0, 5) === h)}
+                    className="rounded-full border border-dashed border-border px-2.5 py-1 text-text-muted hover:border-coral/60 hover:text-text"
+                  >
+                    🕗 {h}
+                  </button>
+                ))}
               {fonctions.map((f) => (
                 <button
                   key={f}
