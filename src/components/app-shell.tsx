@@ -58,6 +58,7 @@ const PUBLIC_PREFIXES = [
   "/login",
   "/auth/invite",
   "/disponibilites",
+  "/partage/validation",
   "/partage/documents",
   "/partage/essayages",
   "/partage/casting",
@@ -89,7 +90,8 @@ export function AppShell({
   const isWidePublic =
     pathname?.startsWith("/partage/documents") ||
     pathname?.startsWith("/partage/essayages") ||
-    pathname?.startsWith("/partage/casting");
+    pathname?.startsWith("/partage/casting") ||
+    pathname?.startsWith("/partage/validation");
 
   // Fiche membre obligatoire pour les cheffes (photo, nom, prénom,
   // téléphone) — tant qu'elle n'est pas complète, on bloque le reste de
