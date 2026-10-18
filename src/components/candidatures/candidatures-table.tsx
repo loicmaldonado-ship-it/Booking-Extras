@@ -11,7 +11,7 @@ import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
-import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
+import { JoursPanneau, JourneeEnGrand, type JourPanneau } from "@/components/candidatures/jours-panneau";
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
 import { LiensValidation } from "@/components/validation/liens-validation";
 import type { LienResume } from "@/lib/validation/data";
@@ -168,6 +168,13 @@ export function CandidaturesTable({
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
+  // Jour ouvert en grand : sur téléphone, le tiroir se referme pour le montrer.
+  const jourVu = jours.find((j) => j.vu) ?? null;
+  const [jourVuSync, setJourVuSync] = useState(jourVu?.id ?? null);
+  if ((jourVu?.id ?? null) !== jourVuSync) {
+    setJourVuSync(jourVu?.id ?? null);
+    if (jourVu) setPanneauMobile(false);
+  }
 
   const rapides = ongletsRapides(onglets);
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
@@ -283,6 +290,7 @@ export function CandidaturesTable({
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
       {projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {jourVu && projetId && <JourneeEnGrand jour={jourVu} projetId={projetId} fermerHref={jourVu.vuHref} />}
         {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">

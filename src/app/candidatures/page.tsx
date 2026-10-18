@@ -55,6 +55,7 @@ type SearchParams = {
   ordre?: string;
   vue?: string;
   liens?: string;
+  jour_vu?: string;
   page?: string;
 } & MensurationFilters;
 
@@ -558,6 +559,10 @@ export default async function CandidaturesPage({
   // Panneau « Jours de tournage » : par date, la journée telle qu'elle est
   // dans Bookings (besoins, présent·es, statuts) et les prévu·es d'ici.
   const besoinsParDate = new Map((journeesBesoins ?? []).map((j) => [j.date, j.journee_besoins]));
+  // Jour ouvert en grand (trombi) : photos signées pour ce jour seulement.
+  const jourVu = annonceDates.find((d) => d.id === params.jour_vu) ?? null;
+  const bookingsJourVu = jourVu ? (bookingsJours ?? []).filter((b) => b.date === jourVu.date) : [];
+  const photosJourVu = await getPhotosByFigurantId(bookingsJourVu.map((b) => b.figurant_id));
   const jours: JourPanneau[] = annonceDates.map((d) => {
     const bookings = (bookingsJours ?? []).filter((b) => b.date === d.date && !HORS_JOURNEE.includes(b.statut));
     const besoins = besoinsParDate.get(d.date) ?? [];
@@ -580,10 +585,15 @@ export default async function CandidaturesPage({
         places: bookings.filter((x) => sansAccent(x.fonction ?? "") === sansAccent(b.fonction)).length,
       })),
       gens: trierParNom(bookings, (b) => b.figurants).map((b) => ({
+        bookingId: b.id,
         nom: nomComplet(b.figurants) || "—",
         statut: b.statut,
         fonction: b.fonction,
+        portraitUrl: d.id === jourVu?.id ? (pickPortrait(photosJourVu.get(b.figurant_id), annonce?.projet_id)?.url ?? null) : null,
       })),
+      horsJournee: (bookingsJours ?? []).filter((b) => b.date === d.date && HORS_JOURNEE.includes(b.statut)).length,
+      vu: d.id === jourVu?.id,
+      vuHref: hrefAvec({ jour_vu: d.id === jourVu?.id ? null : d.id }),
       prevus: prevues.length,
       prevusAEnvoyer: prevues.filter((j) => !estTransfere(j.candidatures?.figurant_id, d.id)).length,
       dispoHref: hrefAvec({ dispo: dispoActif ? null : d.id }),

@@ -395,9 +395,9 @@ export default function AidePage() {
             <>
               <strong className="text-text">Panneau Jours de tournage</strong> (à droite, ou bouton <UI>📅 Jours</UI>{" "}
               sur téléphone) : pour chaque date de l&apos;annonce, la jauge des personnes déjà dans la journée face au
-              besoin saisi dans Bookings. Clique un jour pour voir les statuts, les besoins par fonction, qui y est,
-              filtrer les dispo ce jour, et ouvrir le <UI>🖼️ Trombi du jour</UI>, les <UI>💬 Messages du jour</UI> ou
-              la journée. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
+              besoin saisi dans Bookings. <UI>🖼️ Voir qui est dans ce jour</UI> ouvre la journée en grand au-dessus
+              des cartes : le trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut,
+              plus les liens dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
               cachet en option), les personnes pas dispo ce jour-là ne sont envoyées que si tu le demandes. Les bookings
               sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
             </>,
