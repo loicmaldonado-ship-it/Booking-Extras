@@ -21,7 +21,8 @@ export const STATUTS: {
   value: BookingStatut;
   label: string;
   // "confirme" : vert plein, plus marqué que "turquoise" (Validé).
-  tone: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger";
+  // "indispo" : rouge plein, plus franc que "danger".
+  tone: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger" | "indispo";
 }[] = [
   { value: "proposé", label: "Proposé", tone: "yellow" },
   { value: "envoyé", label: "PER (pas encore de réponse)", tone: "default" },
@@ -30,7 +31,7 @@ export const STATUTS: {
   { value: "attente_validation", label: "Attente validation", tone: "coral" },
   { value: "valide", label: "Validé", tone: "turquoise" },
   { value: "confirmé", label: "CONFIRMÉ", tone: "confirme" },
-  { value: "indisponible", label: "Indisponible", tone: "danger" },
+  { value: "indisponible", label: "Indisponible", tone: "indispo" },
   { value: "annulé", label: "Annulé", tone: "default" },
   { value: "a_rebooker", label: "À REBOOKER", tone: "danger" },
 ];

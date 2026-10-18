@@ -153,8 +153,10 @@ export default async function JourneeDashboardPage({
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
   const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
 
-  // Raccord = cette personne a d'autres journées sur ce même projet — on le
-  // signale (badge R) et on peut dérouler toutes ses dates avec leur statut.
+  // Raccord = personne CONFIRMÉE ce jour-là et confirmée sur au moins une
+  // autre journée du même projet (badge R, dates déroulables), même si elle
+  // est indispo ou annulée sur d'autres jours. Sur une journée où elle
+  // n'est pas confirmée, pas de R.
   const { data: allProjetBookingsRaw } =
     figurantIds.length > 0
       ? await supabase
@@ -171,7 +173,7 @@ export default async function JourneeDashboardPage({
     const list = otherDatesByFigurant.get(b.figurant_id) ?? [];
     list.push({ date: b.date, statut: b.statut });
     otherDatesByFigurant.set(b.figurant_id, list);
-    if (b.date < date) raccordFigurantIds.add(b.figurant_id);
+    if (b.statut === "confirmé") raccordFigurantIds.add(b.figurant_id);
   }
 
   const bookingIds = rawBookings.map((b) => b.id);
@@ -230,7 +232,7 @@ export default async function JourneeDashboardPage({
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
     indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),
-    raccord: raccordFigurantIds.has(b.figurant_id),
+    raccord: b.statut === "confirmé" && raccordFigurantIds.has(b.figurant_id),
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
     indemnites: indemnitesByBooking.get(b.id) ?? [],
     majorations: majorationsByBooking.get(b.id) ?? [],

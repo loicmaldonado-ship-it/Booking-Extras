@@ -99,6 +99,26 @@ export function AppShell({
     if (needsProfileCompletion) router.replace("/mon-compte");
   }, [needsProfileCompletion, router]);
 
+  // Filet de sécurité photos : une page restée ouverte longtemps peut garder
+  // des URL signées expirées (« ? » à la place de la photo). Dès qu'une
+  // photo du stockage ne charge pas, on recharge les données de la page une
+  // fois (au plus toutes les 10 min, pour ne pas boucler sur une photo
+  // vraiment absente), comme un rafraîchissement manuel.
+  useEffect(() => {
+    let dernier = 0;
+    function surErreur(e: Event) {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement)) return;
+      const src = img.currentSrc || img.src;
+      if (!src.includes("/storage/v1/object/") && !src.includes("/_next/image")) return;
+      if (Date.now() - dernier < 10 * 60 * 1000) return;
+      dernier = Date.now();
+      router.refresh();
+    }
+    window.addEventListener("error", surErreur, true);
+    return () => window.removeEventListener("error", surErreur, true);
+  }, [router]);
+
   if (isPublic) {
     return (
       <main
