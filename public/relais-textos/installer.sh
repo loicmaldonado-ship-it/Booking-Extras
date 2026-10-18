@@ -17,6 +17,7 @@ mkdir -p "$DOSSIER" "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 echo "→ Téléchargement du relais…"
 curl -fsSL "$SITE/relais-textos/relais.sh" -o "$DOSSIER/relais.sh"
 curl -fsSL "$SITE/relais-textos/envoyer.applescript" -o "$DOSSIER/envoyer.applescript"
+curl -fsSL "$SITE/relais-textos/reponses.js" -o "$DOSSIER/reponses.js"
 chmod 700 "$DOSSIER/relais.sh"
 
 umask 077
@@ -50,5 +51,10 @@ PLIST
 launchctl bootout "gui/$(id -u)/fr.bookingextras.relais-textos" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$AGENT"
 echo "✅ Relais installé : il tourne en arrière-plan et redémarre avec le Mac."
+echo ""
+echo "📥 Pour que les réponses texto remontent sur le site :"
+echo "   Réglages Système → Confidentialité et sécurité → Accès complet au disque"
+echo "   → bouton + → Cmd+Maj+G → tape /bin/bash → Ouvrir, et active-le."
+echo "   (Seules les réponses des numéros à qui le site a écrit sont lues.)"
 echo "   Journal : $JOURNAL"
 echo "   Pour le désinstaller : launchctl bootout gui/\$(id -u)/fr.bookingextras.relais-textos && rm \"$AGENT\""

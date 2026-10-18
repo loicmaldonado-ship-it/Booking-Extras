@@ -691,7 +691,8 @@ export default function AidePage() {
           nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. Les réponses par mail sont relevées
           toutes seules dans la boîte d&apos;envoi du projet (sans les marquer lues dans Gmail) ; une fois
           traitée, <UI>✓ Marquer comme lu dans Gmail</UI> la passe en lu dans la boîte. Les réponses par texto
-          arrivent sur le téléphone, à marquer à la main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
+          remontent aussi toutes seules si le relais Mac est installé et autorisé à lire Messages (Mon compte →
+          Textos) ; sinon, à marquer à la main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
           <UI>Répondu booking</UI> (passe en CONFIRMÉ), <UI>Répondu convocation</UI> (carte en jaune), chaque
           message d&apos;info, et toute la conversation, avec une réponse rapide par mail ou par texto. Sur iPad
           debout et téléphone, le bouton <UI>✉️ Envois</UI> en bas à droite ouvre le panneau.
@@ -858,6 +859,13 @@ export default function AidePage() {
                 Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle. La fenêtre
                 reprend toujours ton <strong className="text-text">dernier message envoyé</strong> (journée, rôle de
                 casting, candidatures), sur tous tes appareils : plus besoin de le retaper.
+              </>,
+              <>
+                <strong className="text-text">Réponses texto sur le site.</strong> Le relais Mac peut aussi remonter
+                les réponses reçues dans Messages (onglet Messages de la journée, fiche du profil). Une seule fois :
+                Réglages Système → Confidentialité et sécurité → <UI>Accès complet au disque</UI> → + → Cmd+Maj+G →{" "}
+                <code>/bin/bash</code>, et l&apos;activer. Seules les réponses des numéros à qui le site a écrit sont
+                lues ; l&apos;état s&apos;affiche dans Mon compte → Textos.
               </>,
             ]}
           />

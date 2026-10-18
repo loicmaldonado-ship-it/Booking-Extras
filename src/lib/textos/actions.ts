@@ -29,6 +29,9 @@ export type StatutRelais = {
   enAttente: number;
   erreurs: number;
   envoyesAujourdhui: number;
+  // Remontée des réponses texto (lecture de l'app Messages sur le Mac).
+  reponsesLe: string | null;
+  reponsesErreur: string | null;
 };
 
 export async function statutRelais(): Promise<StatutRelais | null> {
@@ -43,7 +46,7 @@ export async function statutRelais(): Promise<StatutRelais | null> {
     return q;
   };
   const [{ data: relais }, { count: enAttente }, { count: envoi }, { count: erreurs }, { count: envoyes }] = await Promise.all([
-    supabase.from("relais_textos").select("derniere_activite").eq("profile_id", profile.id).maybeSingle(),
+    supabase.from("relais_textos").select("derniere_activite, reponses_le, reponses_erreur").eq("profile_id", profile.id).maybeSingle(),
     compter("en_attente"),
     compter("envoi"),
     compter("erreur"),
@@ -57,6 +60,8 @@ export async function statutRelais(): Promise<StatutRelais | null> {
     enAttente: (enAttente ?? 0) + (envoi ?? 0),
     erreurs: erreurs ?? 0,
     envoyesAujourdhui: envoyes ?? 0,
+    reponsesLe: relais?.reponses_le ?? null,
+    reponsesErreur: relais?.reponses_erreur ?? null,
   };
 }
 

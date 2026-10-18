@@ -103,7 +103,7 @@ function BoutonLuGmail({ m }: { m: MessageRow }) {
   const router = useRouter();
   const [pending, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
-  if (!m.mail_message_id || m.sender !== "figurant") return null;
+  if (!m.mail_message_id || m.mail_message_id.startsWith("sms:") || m.sender !== "figurant") return null;
   if (m.lu_gmail_le) return <span className="text-[11px] font-medium text-turquoise">✓ Lu dans Gmail</span>;
   return (
     <span className="flex flex-wrap items-center gap-2">
@@ -612,7 +612,8 @@ function Panneau(props: PanneauProps) {
       const res = await releverReponsesAuto(projetId);
       if (!actif) return;
       setReleve({ le: res.releveLe, erreur: res.erreur, enCours: false });
-      if (res.nouvelles > 0) router.refresh();
+      // Recharge aussi pour les réponses texto remontées par le relais Mac.
+      router.refresh();
     }
     relever();
     const minuteur = setInterval(relever, 2 * 60 * 1000);
@@ -685,7 +686,10 @@ function Panneau(props: PanneauProps) {
           </div>
           {canal === "email" && releve.erreur && <p className="text-xs text-danger">Boîte mail du projet : {releve.erreur}</p>}
           {canal === "texto" && (
-            <p className="text-[11px] text-text-muted">Les réponses par texto arrivent sur ton téléphone : coche « Marquer reçu » à la main.</p>
+            <p className="text-[11px] text-text-muted">
+              Les réponses texto remontent toutes seules si le relais Mac est installé et autorisé (Mon compte → Textos) ;
+              sinon, coche « Marquer reçu » à la main.
+            </p>
           )}
           {envoisCanal.length === 0 ? (
             <p className="text-sm text-text-muted">Aucun {canal === "email" ? "mail" : "texto"} d&apos;info envoyé pour cette journée.</p>
