@@ -99,7 +99,7 @@ function MessageCandidature({ message, ouvert, onToggle }: { message: string | n
       onClick={onToggle}
       disabled={!long}
       aria-expanded={long ? ouvert : undefined}
-      className="w-full rounded-lg border border-border bg-ink px-2.5 py-1.5 text-left text-xs leading-snug text-text enabled:hover:border-coral/60"
+      className="w-full rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-left text-sm leading-snug text-text enabled:hover:border-coral/60"
     >
       <span className={cn("whitespace-pre-line", !ouvert && "line-clamp-3")}>💬 {message.trim()}</span>
       {long && <span className="mt-0.5 block font-medium text-coral">{ouvert ? "Réduire" : "Lire tout"}</span>}
@@ -168,6 +168,8 @@ export function CandidaturesTable({
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
+  // Cartes retournées au clic (message visible sans survol : iPad, téléphone).
+  const [retournes, setRetournes] = useState<Set<string>>(new Set());
   // Jour ouvert en grand : sur téléphone, le tiroir se referme pour le montrer.
   const jourVu = jours.find((j) => j.vu) ?? null;
   const [jourVuSync, setJourVuSync] = useState(jourVu?.id ?? null);
@@ -461,48 +463,86 @@ export function CandidaturesTable({
                       className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
                     />
                   )}
-                  {/* La photo se retourne au survol : au dos, le message de
-                      candidature et les réponses aux questions. */}
-                  <div className="group relative aspect-[4/5] w-full [perspective:1000px]">
-                    <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                      <Link
-                        href={`/candidatures/${r.id}`}
-                        onClick={(e) => openFiche(e, r.id)}
-                        className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
-                      >
-                        {r.portraitUrl && (
-                          <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
-                        )}
-                        {s?.message?.trim() && (
-                          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-ink/80 px-1.5 py-0.5 text-[11px]" aria-hidden>
-                            💬
-                          </span>
-                        )}
-                      </Link>
-                      <div className="absolute inset-0 flex flex-col gap-2 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        {s?.message?.trim() ? (
-                          <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
-                            {s.message.trim()}
-                          </p>
-                        ) : (
-                          <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
-                        )}
-                        {(s?.questions ?? []).map((q, i) => (
-                          <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
-                            <span className="truncate text-text-muted">{q.label}</span>
-                            <span className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "Oui" : "Non"}</span>
+                  {/* La photo se retourne (survol à la souris, ou bouton
+                      « 💬 Lire le message » sur iPad / téléphone) : au dos,
+                      le message en entier et les réponses aux questions. */}
+                  {(() => {
+                    const retourne = retournes.has(r.id);
+                    const message = s?.message?.trim() ?? "";
+                    const aLire = !!message || (s?.questions.length ?? 0) > 0;
+                    return (
+                      <>
+                        <div className="group relative aspect-[4/5] w-full [perspective:1000px]">
+                          <div
+                            className={cn(
+                              "relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]",
+                              retourne ? "[transform:rotateY(180deg)]" : "[@media(hover:hover)]:group-hover:[transform:rotateY(180deg)]"
+                            )}
+                          >
+                            <Link
+                              href={`/candidatures/${r.id}`}
+                              onClick={(e) => openFiche(e, r.id)}
+                              className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
+                            >
+                              {r.portraitUrl && (
+                                <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
+                              )}
+                              {message && (
+                                <span className="absolute bottom-2 right-2 rounded-full bg-ink/85 px-2 py-1 text-xs font-medium text-text shadow" aria-hidden>
+                                  💬 Message
+                                </span>
+                              )}
+                            </Link>
+                            <div
+                              className={cn(
+                                "absolute inset-0 flex flex-col gap-2 overflow-hidden rounded-lg border border-border-strong bg-ink p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]",
+                                retourne ? "pointer-events-auto" : "pointer-events-none [@media(hover:hover)]:group-hover:pointer-events-auto"
+                              )}
+                            >
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">💬 Message</p>
+                              {message ? (
+                                <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[15px] leading-relaxed text-text">
+                                  {message}
+                                </p>
+                              ) : (
+                                <p className="flex-1 text-sm italic text-text-muted">Pas de message.</p>
+                              )}
+                              {(s?.questions ?? []).length > 0 && (
+                                <div className="flex flex-col gap-0.5 border-t border-border pt-1.5">
+                                  {(s?.questions ?? []).map((q, i) => (
+                                    <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                                      <span className="truncate text-text-muted">{q.label}</span>
+                                      <b className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "Oui" : "Non"}</b>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <Link
+                                href={`/candidatures/${r.id}`}
+                                onClick={(e) => openFiche(e, r.id)}
+                                className="text-xs font-medium text-coral hover:underline"
+                              >
+                                Vue complète →
+                              </Link>
+                            </div>
                           </div>
-                        ))}
-                        <Link
-                          href={`/candidatures/${r.id}`}
-                          onClick={(e) => openFiche(e, r.id)}
-                          className="mt-auto text-xs font-medium text-coral hover:underline"
-                        >
-                          Vue complète →
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                        </div>
+                        {aLire && (
+                          <button
+                            type="button"
+                            onClick={() => setRetournes((prev) => bascule(prev, r.id))}
+                            aria-pressed={retourne}
+                            className={cn(
+                              "rounded-lg border px-2 py-1.5 text-xs font-medium",
+                              retourne ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                            )}
+                          >
+                            {retourne ? "↩ Revoir la photo" : message ? "💬 Lire le message" : "Voir les réponses"}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-start justify-between gap-2">
                       <Link
