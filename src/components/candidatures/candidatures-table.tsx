@@ -12,6 +12,8 @@ import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
+import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
+import type { MessageTemplate } from "@/lib/templates/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ContactIcons } from "@/components/ui/contact-icons";
@@ -99,6 +101,7 @@ export function CandidaturesTable({
   vue,
   recherche,
   jours,
+  templates,
   pagination,
 }: {
   rows: Row[];
@@ -111,6 +114,7 @@ export function CandidaturesTable({
   vue: "trombi" | "liste";
   recherche: string;
   jours: JourPanneau[];
+  templates: MessageTemplate[];
   pagination?: ReactNode;
 }) {
   const router = useRouter();
@@ -124,6 +128,7 @@ export function CandidaturesTable({
   const [panneauMobile, setPanneauMobile] = useState(false);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
+  const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
 
   const rapides = ongletsRapides(onglets);
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
@@ -301,6 +306,13 @@ export function CandidaturesTable({
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
               <button
                 type="button"
+                onClick={() => setEcrireA(selection)}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                💬 Message ({selection.length})
+              </button>
+              <button
+                type="button"
                 onClick={() => setOutil(outil === "casting" ? null : "casting")}
                 aria-expanded={outil === "casting"}
                 className={cn(
@@ -389,13 +401,26 @@ export function CandidaturesTable({
                     )}
                   </Link>
                   <div className="flex flex-col gap-0.5">
-                    <Link
-                      href={`/candidatures/${r.id}`}
-                      onClick={(e) => openFiche(e, r.id)}
-                      className="text-sm font-semibold leading-tight hover:text-coral"
-                    >
-                      <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
-                    </Link>
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/candidatures/${r.id}`}
+                        onClick={(e) => openFiche(e, r.id)}
+                        className="text-sm font-semibold leading-tight hover:text-coral"
+                      >
+                        <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
+                      </Link>
+                      {r.figurants && (
+                        <button
+                          type="button"
+                          onClick={() => setEcrireA([r])}
+                          title={`Écrire à ${nomComplet(r.figurants)}`}
+                          aria-label={`Écrire à ${nomComplet(r.figurants)}`}
+                          className="shrink-0 rounded-full border border-border-strong px-2 py-0.5 text-xs hover:border-coral/60"
+                        >
+                          💬
+                        </button>
+                      )}
+                    </div>
                     <span className="text-xs text-text-muted">{meta(r)}</span>
                     {recherche && r.figurants?.email && (
                       <span className="truncate text-xs text-text-muted">
@@ -481,6 +506,17 @@ export function CandidaturesTable({
                                 <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
                               </Link>
                               <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+                              {r.figurants && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEcrireA([r])}
+                                  title={`Écrire à ${nomComplet(r.figurants)}`}
+                                  aria-label={`Écrire à ${nomComplet(r.figurants)}`}
+                                  className="rounded-full border border-border-strong px-2 py-0.5 text-xs hover:border-coral/60"
+                                >
+                                  💬
+                                </button>
+                              )}
                               {previewIndex.has(r.id) && <PreviewButton items={previewItems} index={previewIndex.get(r.id)!} />}
                             </div>
                             {r.figurants?.email && (
@@ -561,6 +597,10 @@ export function CandidaturesTable({
             </div>
           )}
         </>
+      )}
+
+      {ecrireA && ecrireA.length > 0 && (
+        <MessageCandidatures destinataires={ecrireA} templates={templates} onClose={() => setEcrireA(null)} />
       )}
 
       {triOpen && (

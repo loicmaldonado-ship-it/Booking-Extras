@@ -11,6 +11,7 @@ import { FiltresCandidatures } from "@/components/candidatures/filtres-candidatu
 import { AGES, ORDRES, type Ordre } from "@/lib/candidatures/filtres";
 import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -217,9 +218,10 @@ export default async function CandidaturesPage({
     .range(from, to)
     .returns<CandidatureWithFilters[]>();
 
-  const [annonceQuestions, annonceDates] = await Promise.all([
+  const [annonceQuestions, annonceDates, templates] = await Promise.all([
     getAnnonceQuestions(annonceId),
     getAnnonceDates(annonceId),
+    getModelesEquipe(),
   ]);
 
   const annonceDateIds = annonceDates.map((d) => d.id);
@@ -808,6 +810,7 @@ export default async function CandidaturesPage({
         vue={vue}
         recherche={recherche}
         jours={jours}
+        templates={templates}
         pagination={
           <>
             {pagedRows.length === 0 && (

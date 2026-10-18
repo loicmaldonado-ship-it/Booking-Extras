@@ -407,9 +407,10 @@ export default function AidePage() {
               propose alors <UI>📅 Envoyer les … prévu·es</UI>.
             </>,
             <>
-              <strong className="text-text">Les messages et les trombis se font dans la journée</strong>, plus dans
-              Candidatures : passe par le panneau Jours de tournage (<UI>Trombi du jour</UI>,{" "}
-              <UI>Messages du jour</UI>).
+              <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
+              coche des profils puis <UI>💬 Message</UI>. Mail (depuis la boîte du projet, avec les modèles de
+              l&apos;équipe, confirmation avant un envoi groupé) ou <UI>📱 En textos</UI>. Les trombis, eux, se font
+              dans la journée (<UI>Trombi du jour</UI> dans le panneau Jours de tournage).
             </>,
             <>
               <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
