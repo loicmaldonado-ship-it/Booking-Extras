@@ -379,9 +379,9 @@ export default function AidePage() {
               <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
-              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI>, le <strong className="text-text">message de
-              candidature</strong> (3 lignes, <UI>Lire tout</UI> pour le reste), les dates et les réponses aux
-              questions. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
+              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI> et dates. Passe la souris sur la photo : elle se
+              retourne et montre le <strong className="text-text">message de candidature</strong> et les réponses aux
+              questions (💬 sur la photo = il y a un message). En vue <UI>☰ Liste</UI>, le message a sa colonne. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
               (re-cliquer la remet à trier). Coche plusieurs cartes pour les ranger d&apos;un coup dans n&apos;importe
               quel onglet, les ajouter au casting ou les envoyer dans une autre journée.
             </>,

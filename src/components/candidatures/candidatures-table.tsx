@@ -453,15 +453,48 @@ export function CandidaturesTable({
                       className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
                     />
                   )}
-                  <Link
-                    href={`/candidatures/${r.id}`}
-                    onClick={(e) => openFiche(e, r.id)}
-                    className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-ink-raised-2"
-                  >
-                    {r.portraitUrl && (
-                      <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
-                    )}
-                  </Link>
+                  {/* La photo se retourne au survol : au dos, le message de
+                      candidature et les réponses aux questions. */}
+                  <div className="group relative aspect-[4/5] w-full [perspective:1000px]">
+                    <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                      <Link
+                        href={`/candidatures/${r.id}`}
+                        onClick={(e) => openFiche(e, r.id)}
+                        className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
+                      >
+                        {r.portraitUrl && (
+                          <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
+                        )}
+                        {s?.message?.trim() && (
+                          <span className="absolute bottom-1.5 right-1.5 rounded-full bg-ink/80 px-1.5 py-0.5 text-[11px]" aria-hidden>
+                            💬
+                          </span>
+                        )}
+                      </Link>
+                      <div className="absolute inset-0 flex flex-col gap-2 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                        {s?.message?.trim() ? (
+                          <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
+                            {s.message.trim()}
+                          </p>
+                        ) : (
+                          <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
+                        )}
+                        {(s?.questions ?? []).map((q, i) => (
+                          <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="truncate text-text-muted">{q.label}</span>
+                            <span className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "Oui" : "Non"}</span>
+                          </div>
+                        ))}
+                        <Link
+                          href={`/candidatures/${r.id}`}
+                          onClick={(e) => openFiche(e, r.id)}
+                          className="mt-auto text-xs font-medium text-coral hover:underline"
+                        >
+                          Vue complète →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex flex-col gap-0.5">
                     <div className="flex items-start justify-between gap-2">
                       <Link
@@ -492,13 +525,7 @@ export function CandidaturesTable({
                     <HabitueBadge tournages={s?.tournages ?? 0} className="mt-0.5 self-start" />
                     <BadgeMes mes={s?.mes} />
                   </div>
-                  <MessageCandidature
-                    message={s?.message ?? null}
-                    ouvert={messagesOuverts.has(r.id)}
-                    onToggle={() => setMessagesOuverts((prev) => bascule(prev, r.id))}
-                  />
                   <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
-                  <Reponses questions={s?.questions ?? []} />
                   <div className="mt-auto">
                     {boutonsRanger(r, true)}
                   </div>
