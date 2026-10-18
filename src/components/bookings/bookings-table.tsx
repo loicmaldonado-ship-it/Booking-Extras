@@ -55,6 +55,9 @@ export type MessageRow = {
   corps: string;
   created_at: string;
   repondu: boolean;
+  // Réponse importée d'une boîte Gmail (relève automatique).
+  mail_message_id?: string | null;
+  lu_gmail_le?: string | null;
 };
 
 // Mail (Mac) n'a pas d'URL publique pour ouvrir une recherche pré-remplie

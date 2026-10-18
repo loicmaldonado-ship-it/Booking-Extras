@@ -11,7 +11,7 @@ import { rowTokens, type Row, type MessageRow } from "@/components/bookings/book
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { STATUTS, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { bulkUpdateBookings, recordBookingMessage } from "@/lib/bookings/actions";
-import { releverReponsesAuto } from "@/lib/bookings/inbox-actions";
+import { releverReponsesAuto, marquerReponseLueGmail } from "@/lib/bookings/inbox-actions";
 import { mettreEnFileTextos } from "@/lib/textos/actions";
 import { NOM_RACCOURCI } from "@/components/textos/envoyer-textos";
 import { FIGURANT_MESSAGE_CATEGORIES } from "@/lib/candidats/types";
@@ -95,6 +95,37 @@ function textosDepuisIphone(liste: TextoPret[]) {
     window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(NOM_RACCOURCI)}`;
     return messages.length;
   });
+}
+
+// Réponse arrivée par mail : une fois traitée dans l'appli, on peut la
+// passer en « lu » dans la boîte Gmail du projet.
+function BoutonLuGmail({ m }: { m: MessageRow }) {
+  const router = useRouter();
+  const [pending, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+  if (!m.mail_message_id || m.sender !== "figurant") return null;
+  if (m.lu_gmail_le) return <span className="text-[11px] font-medium text-turquoise">✓ Lu dans Gmail</span>;
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={(e) => {
+          e.stopPropagation();
+          setErreur(null);
+          demarrer(async () => {
+            const res = await marquerReponseLueGmail(m.id);
+            if (res.error) setErreur(res.error);
+            else router.refresh();
+          });
+        }}
+        className="rounded-full border-2 border-coral bg-ink px-2 py-0.5 text-[11px] font-semibold text-coral disabled:opacity-50"
+      >
+        {pending ? "…" : "✓ Marquer comme lu dans Gmail"}
+      </button>
+      {erreur && <span className="text-[11px] text-danger">{erreur}</span>}
+    </span>
+  );
 }
 
 // Onglet Messages d'une journée : les profils à gauche (trombi ou liste,
@@ -1054,10 +1085,13 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
                 </span>
               </div>
               {reponse && (
-                <p className="rounded-lg border-l-4 border-coral bg-ink-raised px-2 py-1 text-xs italic">
-                  « {reponse.corps.length > 220 ? `${reponse.corps.slice(0, 220)}…` : reponse.corps} »{" "}
-                  <span className="not-italic text-text-muted">— {formatDateTime(reponse.created_at)}</span>
-                </p>
+                <div className="flex flex-col gap-1 rounded-lg border-l-4 border-coral bg-ink-raised px-2 py-1">
+                  <p className="text-xs italic">
+                    « {reponse.corps.length > 220 ? `${reponse.corps.slice(0, 220)}…` : reponse.corps} »{" "}
+                    <span className="not-italic text-text-muted">— {formatDateTime(reponse.created_at)}</span>
+                  </p>
+                  <BoutonLuGmail m={reponse} />
+                </div>
               )}
               {etat === "echec" && d.erreur && <span className="text-[11px] text-danger">{d.erreur}</span>}
             </div>
@@ -1261,6 +1295,7 @@ function FicheProfil({
               </span>
               {m.sujet && <span className="text-xs font-semibold">{m.sujet}</span>}
               <span className="whitespace-pre-line">{m.corps.length > 600 ? `${m.corps.slice(0, 600)}…` : m.corps}</span>
+              <BoutonLuGmail m={m} />
             </div>
           ))}
         </div>

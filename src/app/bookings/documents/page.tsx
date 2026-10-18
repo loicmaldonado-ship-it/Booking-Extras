@@ -121,7 +121,7 @@ export default async function JourneeDashboardPage({
     figurantIds.length > 0
       ? await supabase
           .from("figurant_messages")
-          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu")
+          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu, mail_message_id, lu_gmail_le")
           .in("figurant_id", figurantIds)
           .neq("categorie", "espace_perso")
           .or(`projet_id.is.null,projet_id.eq.${projet_id}`)

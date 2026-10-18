@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getUnreviewedReplies, clearUnreviewedReplies as clearUnreviewedRepliesInbox } from "@/lib/email/inbox";
-import { releverReponsesMail } from "@/lib/email/releve";
+import { releverReponsesMail, marquerMailLu } from "@/lib/email/releve";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
 
@@ -56,4 +56,15 @@ export async function releverReponsesAuto(projetId: string): Promise<{ nouvelles
 export async function clearUnreviewedReplies() {
   await clearUnreviewedRepliesInbox();
   revalidatePath("/bookings/documents");
+}
+
+// Bouton « Marquer comme lu dans Gmail » sur une réponse traitée.
+export async function marquerReponseLueGmail(messageRowId: string): Promise<{ error?: string }> {
+  const { data } = await createAdminClient().from("figurant_messages").select("projet_id").eq("id", messageRowId).maybeSingle();
+  if (!data) return { error: "Message introuvable." };
+  const accessError = await checkProjetAccess(data.projet_id);
+  if (accessError) return { error: accessError };
+  const res = await marquerMailLu(messageRowId);
+  if (!res.error) revalidatePath("/bookings/documents");
+  return res;
 }

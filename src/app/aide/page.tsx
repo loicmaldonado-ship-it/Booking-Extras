@@ -688,9 +688,10 @@ export default function AidePage() {
           <UI>✉️ Mail</UI> et <UI>📱 Texto</UI> : on écrit un message nommé (Parking, Horaire avancé…) pour les
           profils cochés, on confirme dans le panneau, puis on suit qui l&apos;a bien reçu (lien{" "}
           <UI>👍 Bien reçu</UI> en un clic), qui a répondu (réponse citée sous son nom) et qui est sans
-          nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. <UI>📥 Vérifier les réponses</UI> fait
-          remonter les réponses par mail ; les réponses par texto arrivent sur le téléphone, à marquer à la
-          main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
+          nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. Les réponses par mail sont relevées
+          toutes seules dans la boîte d&apos;envoi du projet (sans les marquer lues dans Gmail) ; une fois
+          traitée, <UI>✓ Marquer comme lu dans Gmail</UI> la passe en lu dans la boîte. Les réponses par texto
+          arrivent sur le téléphone, à marquer à la main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
           <UI>Répondu booking</UI> (passe en CONFIRMÉ), <UI>Répondu convocation</UI> (carte en jaune), chaque
           message d&apos;info, et toute la conversation, avec une réponse rapide par mail ou par texto. Sur iPad
           debout et téléphone, le bouton <UI>✉️ Envois</UI> en bas à droite ouvre le panneau.

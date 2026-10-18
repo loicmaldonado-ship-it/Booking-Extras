@@ -201,3 +201,42 @@ export async function derniereReleveProjet(projetId: string): Promise<{ le: stri
   const { data } = await supabase.from("boites_mail_releve").select("releve_le, erreur").eq("boite", user).maybeSingle();
   return { le: data?.releve_le ?? null, erreur: data?.erreur ?? null };
 }
+
+// « Marquer comme lu dans Gmail » : une fois la réponse traitée dans
+// l'appli, le mail correspondant passe en lu dans la boîte du projet.
+export async function marquerMailLu(messageRowId: string): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { data: m } = await supabase
+    .from("figurant_messages")
+    .select("mail_message_id, projet_id")
+    .eq("id", messageRowId)
+    .maybeSingle();
+  if (!m?.mail_message_id || !m.projet_id) return { error: "Ce message ne vient pas d'une boîte mail." };
+  if (process.env.NODE_ENV !== "production" && !process.env.RELEVE_MAILS_LOCAL) {
+    return { error: "Désactivé en local." };
+  }
+  const { credentials, error } = await getProjetEmailCredentials(supabase, m.projet_id);
+  if (!credentials && error) return { error };
+  const user = credentials?.user ?? process.env.GMAIL_SMTP_USER;
+  const pass = credentials?.pass ?? process.env.GMAIL_SMTP_APP_PASSWORD;
+  if (!user || !pass) return { error: "Boîte mail du projet non configurée." };
+
+  const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user, pass }, logger: false });
+  try {
+    await client.connect();
+    await client.mailboxOpen("INBOX");
+    const uids = (await client.search({ header: { "message-id": m.mail_message_id } }, { uid: true })) || [];
+    if (uids.length === 0) return { error: "Mail introuvable dans la boîte (déplacé ou supprimé ?)." };
+    await client.messageFlagsAdd(uids.join(","), ["\\Seen"], { uid: true });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Connexion à la boîte impossible." };
+  } finally {
+    try {
+      await client.logout();
+    } catch {
+      // Déjà déconnecté.
+    }
+  }
+  await supabase.from("figurant_messages").update({ lu_gmail_le: new Date().toISOString() }).eq("id", messageRowId);
+  return {};
+}
