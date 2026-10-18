@@ -1,3 +1,4 @@
+import { listerFonctionsProjet } from "@/lib/projets/fonctions";
 import { trierParNom } from "@/lib/noms";
 import Link from "next/link";
 import { getModelesEquipe } from "@/lib/templates/equipe";
@@ -93,7 +94,7 @@ export default async function JourneeDashboardPage({
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
-  const journees = await getJournees(projet_id);
+  const [journees, fonctionsProjet] = await Promise.all([getJournees(projet_id), listerFonctionsProjet(projet_id)]);
   const currentIndex = journees.findIndex((j) => j.date === date);
   const currentJournee = currentIndex >= 0 ? journees[currentIndex] : null;
   const prevJournee = currentIndex > 0 ? journees[currentIndex - 1] : null;
@@ -374,6 +375,7 @@ export default async function JourneeDashboardPage({
         projetId={projet_id}
         date={date}
         besoins={besoins}
+        fonctionsProjet={fonctionsProjet}
         journeeId={currentJournee?.id ?? null}
         totalRequis={currentJournee?.total_requis ?? null}
         journeeLieu={currentJournee?.lieu ?? null}

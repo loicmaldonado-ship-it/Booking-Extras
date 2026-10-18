@@ -622,7 +622,11 @@ export default function AidePage() {
               <strong className="text-text">cachet</strong> et <strong className="text-text">statut</strong>{" "}
               pour chaque profil. Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
               fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
-              nom ou la quantité (les profils qui l&apos;ont sont renommés avec).
+              nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
+              besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
+              proposée ensuite dans les déroulants, par ordre alphabétique — une même fonction tapée autrement
+              (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
+              permet de retirer une faute de frappe de la liste.
             </>,
             "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
             <>

@@ -7,6 +7,7 @@ import { updateCandidature } from "@/lib/candidatures/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { OngletPicker } from "@/components/candidatures/onglet-picker";
 import type { CandidatureOnglet } from "@/lib/candidatures/types";
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 
 export function CandidatureRow({
   id,
@@ -15,6 +16,8 @@ export function CandidatureRow({
   onglets,
   fonctionAssignee,
   cachetAssigne,
+  projetId,
+  avecListe = false,
 }: {
   id: string;
   annonceId: string;
@@ -22,6 +25,10 @@ export function CandidatureRow({
   onglets: CandidatureOnglet[];
   fonctionAssignee: string | null;
   cachetAssigne: Cachet | null;
+  // Fonctions enregistrées du projet proposées dans le champ Fonction
+  // (datalist « fonctions-projet-<id> », rendue ici si avecListe).
+  projetId?: string | null;
+  avecListe?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -32,8 +39,10 @@ export function CandidatureRow({
         action={(formData) => startTransition(() => updateCandidature(id, formData))}
         className="flex flex-wrap items-center gap-2"
       >
+        {avecListe && projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
         <Input
           name="fonction_assignee"
+          list={projetId ? `fonctions-projet-${projetId}` : undefined}
           placeholder="Fonction (passant...)"
           defaultValue={fonctionAssignee ?? ""}
           className="w-40"

@@ -1,5 +1,6 @@
 "use client";
 
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -132,8 +133,10 @@ export function AddToJourneeBar({
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-text-muted">Fonction (optionnel)</label>
+        <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
         <input
           type="text"
+          list="fonctions-ajout-journee"
           value={fonction}
           onChange={(e) => setFonction(e.target.value)}
           placeholder="Passant, Silhouette videur..."

@@ -35,6 +35,7 @@ export function JourneeTabs({
   essayages,
   covoiturageRows,
   projetId,
+  fonctionsProjet,
   date,
   besoins,
   journeeId,
@@ -59,6 +60,7 @@ export function JourneeTabs({
   essayages: EssayageRow[];
   covoiturageRows: CovoiturageRow[];
   projetId: string;
+  fonctionsProjet: string[];
   date: string;
   besoins: JourneeBesoin[];
   journeeId: string | null;
@@ -102,7 +104,14 @@ export function JourneeTabs({
       {tab === "bookings" && (
         <div className="flex flex-col gap-4">
           {journeeId && (
-            <BesoinsPanel besoins={besoins} bookings={bookings} journeeId={journeeId} totalRequis={totalRequis} />
+            <BesoinsPanel
+              besoins={besoins}
+              bookings={bookings}
+              journeeId={journeeId}
+              totalRequis={totalRequis}
+              projetId={projetId}
+              fonctionsProjet={fonctionsProjet}
+            />
           )}
           {journeeId && (
             <ConvocationSettingsPanel
@@ -116,6 +125,7 @@ export function JourneeTabs({
             />
           )}
           <BookingsTable
+            fonctionsProjet={fonctionsProjet}
             rows={bookings}
             projetId={projetId}
             date={date}

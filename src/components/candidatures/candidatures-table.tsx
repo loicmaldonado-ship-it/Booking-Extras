@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 import { substituteTokens } from "@/lib/bookings/convocation";
 import { CandidatureRow } from "@/components/candidatures/candidature-row";
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
@@ -213,8 +214,13 @@ export function CandidaturesTable({
     });
   }
 
+  const projetIds = Array.from(new Set(rows.map((r) => r.annonces?.projet_id).filter((x): x is string => !!x)));
+
   return (
     <div className="flex flex-col gap-3">
+      {projetIds.map((pid) => (
+        <FonctionsDatalist key={pid} id={`fonctions-projet-${pid}`} projetId={pid} />
+      ))}
       {sendError && (
         <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
       )}
@@ -625,6 +631,7 @@ export function CandidaturesTable({
                         onglets={onglets}
                         fonctionAssignee={r.fonction_assignee}
                         cachetAssigne={r.cachet_assigne}
+                        projetId={r.annonces?.projet_id}
                       />
                     </td>
                     <td className="px-6 py-3">

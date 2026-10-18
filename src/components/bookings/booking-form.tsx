@@ -1,5 +1,6 @@
 "use client";
 
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { nomComplet } from "@/lib/noms";
 import { useActionState, useState } from "react";
 import { Card } from "@/components/ui/card";
@@ -87,8 +88,10 @@ export function BookingForm({
             <Input type="time" name="heure_convocation" defaultValue={booking?.heure_convocation ?? "08:00"} />
           </Field>
           <Field label="Fonction">
+            <FonctionsDatalist id="fonctions-booking-form" projetId={projetId} />
             <Input
               name="fonction"
+              list="fonctions-booking-form"
               placeholder="Passant, boulangère..."
               defaultValue={booking?.fonction ?? ""}
             />

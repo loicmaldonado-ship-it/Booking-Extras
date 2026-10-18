@@ -178,6 +178,8 @@ export default async function CandidatureDetailPage({
           onglets={onglets}
           fonctionAssignee={candidature.fonction_assignee}
           cachetAssigne={candidature.cachet_assigne}
+          projetId={candidature.annonces?.projet_id}
+          avecListe
         />
         <p className="text-xs text-text-muted">Reçue le {formatDateShort(candidature.created_at)}</p>
       </Card>

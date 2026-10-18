@@ -332,6 +332,7 @@ function ageEtVille(r: Row) {
 export function BookingsTable({
   rows,
   projetId,
+  fonctionsProjet = [],
   date,
   templates = [],
   journeeLieu = null,
@@ -344,6 +345,8 @@ export function BookingsTable({
 }: {
   rows: Row[];
   projetId?: string;
+  // Fonctions enregistrées du projet, proposées dans les champs Fonction.
+  fonctionsProjet?: string[];
   date?: string;
   templates?: MessageTemplate[];
   journeeLieu?: string | null;
@@ -422,10 +425,13 @@ export function BookingsTable({
 
   const now = nowIso();
 
-  const fonctions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.fonction).filter((f): f is string => !!f))).sort(),
-    [rows]
-  );
+  const fonctions = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...fonctionsProjet, ...rows.map((r) => r.fonction)]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [fonctionsProjet, rows]);
 
   const cachetCounts = useMemo(() => {
     const counts = new Map<string, number>();
