@@ -183,9 +183,14 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
 }
 
 function rowTokens(r: Row, journeeLieu?: string | null) {
-  // Raccord : la personne a d'autres dates sur ce même projet — le token
-  // {date} les liste toutes plutôt que juste celle de cette journée.
-  const autresDates = (r.autresDates ?? []).filter((d) => d.statut !== "annulé").map((d) => d.date);
+  // Raccord : le token {date} liste toutes ses dates sur ce projet plutôt
+  // que juste celle de cette journée — pour un profil CONFIRMÉ, seulement
+  // ses dates confirmées (pas une journée où il est indispo) ; sinon toutes
+  // celles encore en cours (ni annulées, ni indispo, ni à rebooker).
+  const EXCLUS = new Set(["annulé", "indisponible", "a_rebooker"]);
+  const autresDates = (r.autresDates ?? [])
+    .filter((d) => (r.statut === "confirmé" ? d.statut === "confirmé" : !EXCLUS.has(d.statut)))
+    .map((d) => d.date);
   const allDates = Array.from(new Set([r.date, ...autresDates])).sort();
 
   return {
