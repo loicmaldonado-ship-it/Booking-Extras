@@ -360,6 +360,7 @@ export async function bulkUpdateBookings(
     covoiturage_places_disponibles: number | null;
     covoiturage_conducteur_id: string | null;
     reponse_recue: boolean;
+    reponse_booking: boolean;
     notes: string | null;
   }>
 ) {
@@ -373,9 +374,17 @@ export async function bulkUpdateBookings(
     if (accessError) return { error: accessError };
   }
 
-  const payload: typeof changes & { reponse_recue_le?: string | null } = { ...changes };
+  const payload: typeof changes & { reponse_recue_le?: string | null; reponse_booking_le?: string | null; statut?: string } = {
+    ...changes,
+  };
   if (changes.reponse_recue !== undefined) {
     payload.reponse_recue_le = changes.reponse_recue ? new Date().toISOString() : null;
+  }
+  // « Répondu booking » coché : la personne a accepté, elle passe en
+  // CONFIRMÉ. Décoché : seule la case est retirée, le statut ne bouge pas.
+  if (changes.reponse_booking !== undefined) {
+    payload.reponse_booking_le = changes.reponse_booking ? new Date().toISOString() : null;
+    if (changes.reponse_booking) payload.statut = "confirmé";
   }
 
   const { error } = await supabase.from("bookings").update(payload).in("id", ids);

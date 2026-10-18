@@ -624,12 +624,18 @@ export default function AidePage() {
               fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
-              proposée ensuite dans les déroulants, par ordre alphabétique — une même fonction tapée autrement
+              proposée ensuite dans les déroulants, par ordre alphabétique. Sur chaque profil, le déroulant{" "}
+              <UI>Fonction</UI> propose d'abord les <strong className="text-text">besoins de la journée</strong>, puis
+              les autres fonctions du projet, ou <UI>➕ Nouvelle fonction…</UI> — une même fonction tapée autrement
               (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
               permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
               <strong className="text-text">Notes</strong> (spécificités, retours…), enregistrée en quittant le champ.
             </>,
-            "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
+            <>
+              Sur chaque carte, coche <UI>Répondu booking</UI> quand la personne accepte la proposition : elle
+              passe en <strong className="text-text">CONFIRMÉ</strong>. Envoie ensuite les convocations
+              (individuellement ou en masse) ; <UI>Répondu convocation</UI> se coche quand elle répond BIEN REÇU.
+            </>,
             <>
               Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
               <UI>🔀 Changer de date</UI> : choisis une autre journée du projet ou une nouvelle date. La convocation

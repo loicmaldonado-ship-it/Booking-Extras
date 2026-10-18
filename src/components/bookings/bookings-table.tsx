@@ -92,6 +92,8 @@ export type Row = {
   convocation_envoyee_le?: string | null;
   reponse_recue: boolean;
   reponse_recue_le?: string | null;
+  // Accepté la proposition de booking (case « Répondu booking » → CONFIRMÉ).
+  reponse_booking?: boolean;
   notes: string | null;
   covoiturage_role?: CovoiturageRole | null;
   covoiturage_lieu_depart?: string | null;
@@ -218,6 +220,7 @@ type RowChanges = Partial<{
   cachet: string | null;
   heure_convocation: string | null;
   reponse_recue: boolean;
+  reponse_booking: boolean;
   notes: string | null;
 }>;
 type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu" | "vehicule" | "myrole";
@@ -229,7 +232,7 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "sexe", label: "Genre" },
   { key: "age", label: "Âge" },
   { key: "heure", label: "Heure" },
-  { key: "repondu", label: "Répondu" },
+  { key: "repondu", label: "Répondu convocation" },
   { key: "vehicule", label: "Véhicule" },
   { key: "myrole", label: "Myrole" },
 ];
@@ -264,7 +267,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "cachet") return r.cachet ?? "Sans cachet";
   if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
   if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
-  if (dimension === "repondu") return r.reponse_recue ? "Répondu" : "Pas répondu";
+  if (dimension === "repondu") return r.reponse_recue ? "Répondu convocation" : "Pas répondu convocation";
   if (dimension === "myrole") return r.figurants?.compte_myrole ? "Avec compte Myrole" : "Sans compte Myrole";
   if (dimension === "vehicule") {
     const f = r.figurants;
@@ -324,6 +327,88 @@ const fieldClass =
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
 
 // « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+const NOUVELLE_FONCTION = "__nouvelle__";
+
+// Fonction d'un profil : déroulant qui propose d'abord les besoins de la
+// journée (ajoutés au-dessus), puis les autres fonctions du projet, ou une
+// nouvelle fonction tapée à la main.
+function FonctionSelect({
+  value,
+  besoins,
+  autres,
+  onChange,
+  disabled,
+  className,
+  videLabel = "Fonction…",
+}: {
+  value: string | null;
+  besoins: string[];
+  autres: string[];
+  onChange: (fonction: string | null) => void;
+  disabled?: boolean;
+  className?: string;
+  videLabel?: string;
+}) {
+  const [saisie, setSaisie] = useState(false);
+  // Option correspondante, même si la casse diffère (anciennes saisies).
+  const option = value ? [...besoins, ...autres].find((f) => f.toLowerCase() === value.trim().toLowerCase()) : undefined;
+  const connue = !value || !!option;
+
+  if (saisie) {
+    return (
+      <input
+        autoFocus
+        placeholder="Nouvelle fonction…"
+        disabled={disabled}
+        className={className}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") setSaisie(false);
+        }}
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          setSaisie(false);
+          if (v && v !== value) onChange(v);
+        }}
+      />
+    );
+  }
+
+  return (
+    <select
+      value={option ?? value ?? ""}
+      disabled={disabled}
+      className={className}
+      onChange={(e) => {
+        if (e.target.value === NOUVELLE_FONCTION) setSaisie(true);
+        else onChange(e.target.value || null);
+      }}
+    >
+      <option value="">{videLabel}</option>
+      {!connue && value && <option value={value}>{value}</option>}
+      {besoins.length > 0 && (
+        <optgroup label="Besoins de la journée">
+          {besoins.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {autres.length > 0 && (
+        <optgroup label={besoins.length > 0 ? "Autres fonctions du projet" : "Fonctions du projet"}>
+          {autres.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      <option value={NOUVELLE_FONCTION}>➕ Nouvelle fonction…</option>
+    </select>
+  );
+}
+
 // Notes du profil sur ce booking (spécificités, retours…), comme sur les
 // cartes de casting : enregistrées en quittant le champ.
 function NotesBooking({ r, disabled, onSave }: { r: Row; disabled: boolean; onSave: (notes: string | null) => void }) {
@@ -351,6 +436,7 @@ export function BookingsTable({
   rows,
   projetId,
   fonctionsProjet = [],
+  besoinsFonctions = [],
   date,
   templates = [],
   journeeLieu = null,
@@ -365,6 +451,8 @@ export function BookingsTable({
   projetId?: string;
   // Fonctions enregistrées du projet, proposées dans les champs Fonction.
   fonctionsProjet?: string[];
+  // Fonctions des besoins de la journée, proposées en premier.
+  besoinsFonctions?: string[];
   date?: string;
   templates?: MessageTemplate[];
   journeeLieu?: string | null;
@@ -450,6 +538,23 @@ export function BookingsTable({
     }
     return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
   }, [fonctionsProjet, rows]);
+  const fonctionsBesoins = useMemo(
+    () => [...besoinsFonctions].sort(new Intl.Collator("fr", { sensitivity: "base" }).compare),
+    [besoinsFonctions]
+  );
+  // Filtre : seulement les fonctions de cette journée (profils + besoins),
+  // pas toutes celles du projet.
+  const fonctionsJournee = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...rows.map((r) => r.fonction), ...besoinsFonctions]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [rows, besoinsFonctions]);
+  const autresFonctions = useMemo(() => {
+    const deja = new Set(besoinsFonctions.map((f) => f.trim().toLowerCase()));
+    return fonctions.filter((f) => !deja.has(f.toLowerCase()));
+  }, [fonctions, besoinsFonctions]);
 
   const cachetCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -467,7 +572,7 @@ export function BookingsTable({
 
   const filteredRows = rows.filter(
     (r) =>
-      (!activeFonction || r.fonction === activeFonction) &&
+      (!activeFonction || r.fonction?.trim().toLowerCase() === activeFonction.toLowerCase()) &&
       (!activeCachet || r.cachet === activeCachet) &&
       !hiddenIds.has(r.id) &&
       (showArchived || !STATUTS_ARCHIVES.has(r.statut)) &&
@@ -907,7 +1012,7 @@ export function BookingsTable({
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
               <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
-                ✓ Répondu
+                ✓ Répondu convocation
               </Badge>
             )}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
@@ -961,16 +1066,13 @@ export function BookingsTable({
           />
         </td>
         <td className="px-6 py-4 align-middle">
-          <input
-            list="fonctions-suggestions"
-            defaultValue={r.fonction ?? ""}
+          <FonctionSelect
+            value={r.fonction}
+            besoins={fonctionsBesoins}
+            autres={autresFonctions}
             disabled={pending}
-            placeholder="Passant..."
             className={fieldClass}
-            onBlur={(e) => {
-              const value = e.target.value.trim() || null;
-              if (value !== r.fonction) updateRow(r.id, { fonction: value });
-            }}
+            onChange={(fonction) => updateRow(r.id, { fonction })}
           />
         </td>
         <td className="px-6 py-4 align-middle">
@@ -1018,7 +1120,23 @@ export function BookingsTable({
                 onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
                 className="h-4 w-4 rounded border-border accent-yellow"
               />
-              Répondu
+              Répondu convocation
+            </label>
+            <label
+              title="A accepté la proposition de booking : passe en CONFIRMÉ"
+              className={cn(
+                "flex w-fit items-center gap-1.5 text-xs font-medium",
+                r.reponse_booking ? "text-turquoise" : "text-text-muted"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={!!r.reponse_booking}
+                disabled={pending}
+                onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+                className="h-4 w-4 rounded border-border accent-turquoise"
+              />
+              Répondu booking
             </label>
             <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
             {r.figurants && (
@@ -1121,7 +1239,27 @@ export function BookingsTable({
               onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
               className="h-3 w-3 rounded border-border accent-yellow"
             />
-            {r.reponse_recue ? "✓ Répondu" : "Répondu"}
+            {r.reponse_recue ? "✓ Répondu convocation" : "Répondu convocation"}
+          </label>
+          <label
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="A accepté la proposition de booking : passe en CONFIRMÉ"
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              r.reponse_booking ? "bg-turquoise/15 text-turquoise" : "bg-ink-raised-2 text-text-muted"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!r.reponse_booking}
+              disabled={pending}
+              onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+              className="h-3 w-3 rounded border-border accent-turquoise"
+            />
+            {r.reponse_booking ? "✓ Répondu booking" : "Répondu booking"}
           </label>
           {cardDelai && (
             <div className={cn("text-[10px]", cardDelai.muted ? "text-yellow" : "text-turquoise")}>{cardDelai.text}</div>
@@ -1145,16 +1283,13 @@ export function BookingsTable({
         </Link>
         {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
-        <input
-          list="fonctions-suggestions"
-          defaultValue={r.fonction ?? ""}
+        <FonctionSelect
+          value={r.fonction}
+          besoins={fonctionsBesoins}
+          autres={autresFonctions}
           disabled={pending}
-          placeholder="Fonction..."
           className={cn(fieldClass, "text-center")}
-          onBlur={(e) => {
-            const value = e.target.value.trim() || null;
-            if (value !== r.fonction) updateRow(r.id, { fonction: value });
-          }}
+          onChange={(fonction) => updateRow(r.id, { fonction })}
         />
         <select
           value={r.cachet ?? ""}
@@ -1385,7 +1520,7 @@ export function BookingsTable({
         >
           Toutes
         </button>
-        {fonctions.map((f) => (
+        {fonctionsJournee.map((f) => (
           <button
             key={f}
             type="button"
@@ -1484,13 +1619,14 @@ export function BookingsTable({
                 </option>
               ))}
             </select>
-            <input
-              list="fonctions-suggestions"
-              value={bulkFonction}
-              onChange={(e) => setBulkFonction(e.target.value)}
-              placeholder="Fonction (inchangée)"
+            <FonctionSelect
+              value={bulkFonction || null}
+              besoins={fonctionsBesoins}
+              autres={autresFonctions}
+              videLabel="Fonction (inchangée)"
               disabled={pending}
               className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              onChange={(fonction) => setBulkFonction(fonction ?? "")}
             />
             <select
               value={bulkCachet}
