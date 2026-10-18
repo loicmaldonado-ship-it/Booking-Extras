@@ -633,7 +633,7 @@ export default async function CandidaturesPage({
       label: `Dispo le ${labelDate(id)}`,
       href: hrefAvec({ dispo: dispoFilter.filter((x) => x !== id) }),
     })),
-    ...(jourFilter ? [{ label: `Prévu·es le ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
+    ...(jourFilter ? [{ label: `Prévu·es dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
     ...(question
       ? [{ label: `${question.label} : ${params.question_reponse ?? "oui"}`, href: hrefAvec({ question_id: null, question_reponse: null }) }]
       : []),

@@ -394,16 +394,27 @@ export default function AidePage() {
               d&apos;une carte ouvre cette même vue sur elle (Cmd/Ctrl-clic ouvre sa page détaillée).
             </>,
             <>
-              <strong className="text-text">Panneau Jours de tournage</strong> (à droite, ou bouton <UI>📅 Jours</UI>{" "}
-              sur téléphone) : pour chaque date de l&apos;annonce, la jauge des personnes déjà dans la journée face au
-              besoin saisi dans Bookings. <UI>🖼️ Voir qui est dans ce jour</UI> ouvre la journée en grand au-dessus
-              des cartes : le trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut,
-              plus les liens dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings.{" "}
-              <strong className="text-text">Envoyer en booking</strong> : coche des profils, puis{" "}
-              <UI>📅 Envoyer dans un jour</UI> dans la barre de sélection (sur tous les écrans, iPad compris), et{" "}
-              <UI>📅 Envoyer … dans ce jour</UI> sur le jour voulu : confirmation sur place (fonction et
-              cachet en option), les personnes pas dispo ce jour-là ne sont envoyées que si tu le demandes. Les bookings
-              sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
+              <strong className="text-text">Deux mots à ne pas confondre.</strong>{" "}
+              <strong className="text-text">Prévoir dans une journée</strong> : un clic sur une pastille de date d&apos;une
+              carte (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un). La personne est « en cours de
+              choix » pour ce jour, rien n&apos;est créé dans Bookings.{" "}
+              <strong className="text-text">Envoyer dans la journée de booking</strong> : crée vraiment le booking (en PER,
+              rien n&apos;est envoyé aux figurant·es) et la personne quitte Candidatures.
+            </>,
+            <>
+              <strong className="text-text">Envoyer dans la journée de booking</strong> : coche des profils, puis{" "}
+              <UI>📅 Envoyer dans la journée de booking</UI> dans la barre de sélection (sur tous les écrans, iPad
+              compris), et le bouton du jour voulu. <strong className="text-text">Fonction et cachet sont obligatoires</strong>{" "}
+              (les besoins de la journée sont proposés en un clic). Les personnes pas dispo ce jour-là ne sont envoyées que si
+              tu le demandes. Un jour avec des prévu·es propose aussi <UI>📅 Envoyer les … prévu·es dans la journée de
+              booking</UI>.
+            </>,
+            <>
+              <strong className="text-text">Panneau Jours de tournage</strong> (à droite sur grand écran, ou bouton{" "}
+              <UI>📅 Jours</UI>) : pour chaque date de l&apos;annonce, la jauge des personnes dans la journée de booking face
+              au besoin saisi dans Bookings. <UI>🖼️ Voir la journée</UI> l&apos;ouvre en grand au-dessus des cartes : le
+              trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut, plus les liens
+              dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings.
             </>,
             <>
               <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) :{" "}
@@ -416,15 +427,10 @@ export default function AidePage() {
               peut-être), avec une note. Les profils prévus sur un jour sont rangés par jour de tournage, avec un filtre
               par jour. Un fil de commentaires permet d&apos;écrire à l&apos;équipe. De ton côté, le
               badge <UI>🎬 Validé MES</UI> s&apos;affiche sur la carte et l&apos;onglet <UI>🎬 Validés MES</UI> regroupe les
-              validés, à envoyer ensuite dans un jour. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
+              validés, à envoyer ensuite dans la journée de booking. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
               et les commentaires, auxquels tu peux répondre. <UI>👀 Voir comme la MES</UI> ouvre la page sans compter de
               visite. Les votes et commentaires arrivent aussi
               dans la cloche.
-            </>,
-            <>
-              Les pastilles de date d&apos;une carte servent aussi à <strong className="text-text">prévoir</strong>{" "}
-              quelqu&apos;un sur un jour (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un) : le jour
-              propose alors <UI>📅 Envoyer les … prévu·es</UI>.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou

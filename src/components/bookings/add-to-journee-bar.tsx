@@ -26,7 +26,7 @@ export function AddToJourneeBar({
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<{ ok: number; deja: number } | null>(null);
+  const [result, setResult] = useState<{ ok: number; deja: number; error?: string } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function AddToJourneeBar({
   }
 
   function submit() {
-    if (!projetId || dates.length === 0 || figurantIds.length === 0) return;
+    if (!projetId || dates.length === 0 || figurantIds.length === 0 || !fonction.trim() || !cachet) return;
     setResult(null);
     startTransition(async () => {
       const res = await createBookingsFromDropBulk(
@@ -60,7 +60,8 @@ export function AddToJourneeBar({
         fonction,
         cachet
       );
-      setResult({ ok: res.ok, deja: res.deja });
+      setResult({ ok: res.ok, deja: res.deja, error: res.error });
+      if (res.error) return;
       setDates([]);
       router.refresh();
       onDone?.();
@@ -132,7 +133,9 @@ export function AddToJourneeBar({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Fonction (optionnel)</label>
+        <label className="text-xs text-text-muted">
+          Fonction <span className="text-danger">*</span>
+        </label>
         <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
         <input
           type="text"
@@ -145,14 +148,18 @@ export function AddToJourneeBar({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Cachet (optionnel)</label>
+        <label className="text-xs text-text-muted">
+          Cachet <span className="text-danger">*</span>
+        </label>
         <select
           value={cachet}
           onChange={(e) => setCachet(e.target.value as Cachet | "")}
           disabled={pending}
           className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         >
-          <option value="">—</option>
+          <option value="" disabled>
+            Choisir…
+          </option>
           {CACHETS.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -160,14 +167,23 @@ export function AddToJourneeBar({
           ))}
         </select>
       </div>
-      <Button type="button" disabled={pending || !projetId || dates.length === 0} onClick={submit}>
+      <Button
+        type="button"
+        disabled={pending || !projetId || dates.length === 0 || !fonction.trim() || !cachet}
+        onClick={submit}
+        title={!fonction.trim() || !cachet ? "Choisis une fonction et un cachet" : undefined}
+      >
         {pending
-          ? "Ajout..."
+          ? "Envoi..."
           : dates.length > 1
-            ? `Ajouter aux ${dates.length} dates`
-            : "Ajouter à la journée"}
+            ? `Envoyer dans les ${dates.length} journées de booking`
+            : "Envoyer dans la journée de booking"}
       </Button>
-      {result && (
+      {(!fonction.trim() || !cachet) && (
+        <span className="text-xs text-text-muted">Fonction et cachet obligatoires.</span>
+      )}
+      {result?.error && <span className="text-xs text-danger">{result.error}</span>}
+      {result && !result.error && (
         <span className="text-xs text-text-muted">
           {result.ok} ajouté{result.ok > 1 ? "s" : ""}
           {result.deja > 0 ? ` · ${result.deja} déjà booké${result.deja > 1 ? "s" : ""}` : ""}

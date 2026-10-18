@@ -383,7 +383,7 @@ export function CandidaturesTable({
                     outil === "envoi" ? "bg-coral/15 text-coral ring-2 ring-coral" : "bg-coral text-ink hover:bg-coral-hover"
                   )}
                 >
-                  📅 Envoyer dans un jour ({selection.length})
+                  📅 Envoyer dans la journée de booking ({selection.length})
                 </button>
               )}
               <button
@@ -413,11 +413,11 @@ export function CandidaturesTable({
                   outil === "journee" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
                 )}
               >
-                📅 Envoyer dans une autre journée
+                📅 Envoyer dans une autre journée de booking
               </button>
               {jours.length > 0 && (
                 <span className="text-xs text-text-muted xl:inline">
-                  Envoyer en booking : « 📅 Envoyer dans un jour ».
+                  « Prévoir » = pastilles de date des cartes ; « Envoyer » = crée le booking.
                 </span>
               )}
             </div>
@@ -429,7 +429,7 @@ export function CandidaturesTable({
           {outil === "envoi" && panneau && (
             <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
               <div className="flex items-center justify-between gap-2">
-                <b className="text-sm">📅 Envoyer en booking dans un jour</b>
+                <b className="text-sm">📅 Envoyer dans la journée de booking</b>
                 <button
                   type="button"
                   onClick={() => setOutil(null)}

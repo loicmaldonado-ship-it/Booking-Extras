@@ -50,6 +50,7 @@ export async function envoyerCandidaturesDansJour(
   cachet: Cachet | ""
 ): Promise<{ ok: number; deja: number; error?: string }> {
   if (candidatureIds.length === 0) return { ok: 0, deja: 0 };
+  if (!fonction.trim() || !cachet) return { ok: 0, deja: 0, error: "Choisis une fonction et un cachet." };
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")
@@ -116,6 +117,7 @@ export async function envoyerJourAuTournage(
   fonction: string,
   cachet: Cachet | ""
 ): Promise<{ ok: number; deja: number; error?: string }> {
+  if (!fonction.trim() || !cachet) return { ok: 0, deja: 0, error: "Choisis une fonction et un cachet." };
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")

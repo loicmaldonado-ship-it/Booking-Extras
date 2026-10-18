@@ -177,6 +177,8 @@ export async function createBookingsFromDropBulk(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { ok: 0, deja: 0, error: accessError };
   if (figurantIds.length === 0 || dates.length === 0) return { ok: 0, deja: 0 };
+  // Envoi dans une journée de booking : fonction et cachet obligatoires.
+  if (!fonction.trim() || !cachet) return { ok: 0, deja: 0, error: "Choisis une fonction et un cachet." };
 
   const supabase = createAdminClient();
 
