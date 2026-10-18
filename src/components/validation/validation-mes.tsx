@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Logo } from "@/components/ui/logo";
-import { formatDateLong, formatDateTime, formatDayMonth } from "@/lib/format-date";
+import { LangToggle } from "@/components/partage/lang-toggle";
+import type { Lang } from "@/lib/i18n/partage";
+import { dateHeure, dateLongue, jourMois, ts, type SuiviKey } from "@/lib/i18n/suivi";
 import { AccueilVisiteur, useVisiteur } from "@/components/partage/visiteur";
 import { signalerVisite, voterProfil, commenterLien } from "@/lib/validation/actions";
 import type { Planche, VoteMes } from "@/lib/validation/data";
@@ -14,9 +16,9 @@ import type { Planche, VoteMes } from "@/lib/validation/data";
 type VoteVu = { candidatureId: string; cle: string; qui: string; vote: VoteMes | null; note: string };
 type CommentaireVu = { id: string; auteur: string; equipe: boolean; texte: string; created_at: string; profil: string | null };
 // Seulement Oui ou Non (demande de Loïc) : pas de « peut-être » ici.
-const VOTES: { v: VoteMes; label: string; emoji: string; on: string }[] = [
-  { v: "oui", label: "Oui", emoji: "✅", on: "border-turquoise bg-turquoise text-ink" },
-  { v: "non", label: "Non", emoji: "🚫", on: "border-danger bg-danger text-white" },
+const VOTES: { v: VoteMes; label: "oui" | "non"; emoji: string; on: string }[] = [
+  { v: "oui", label: "oui", emoji: "✅", on: "border-turquoise bg-turquoise text-ink" },
+  { v: "non", label: "non", emoji: "🚫", on: "border-danger bg-danger text-white" },
 ];
 
 async function empreinte(id: string) {
@@ -30,6 +32,7 @@ async function empreinte(id: string) {
 export function ValidationMes({
   token,
   apercu,
+  lang,
   titre,
   contexte,
   planches,
@@ -38,6 +41,7 @@ export function ValidationMes({
 }: {
   token: string;
   apercu: boolean;
+  lang: Lang;
   titre: string;
   contexte: string;
   planches: Planche[];
@@ -133,8 +137,8 @@ export function ValidationMes({
     joursPrevus.length === 0
       ? [{ cle: "tous", titre: null as string | null, items: visibles }]
       : [
-          ...joursPrevus.map((d) => ({ cle: d, titre: formatDateLong(d), items: visibles.filter(({ p }) => p.joursPrevus.includes(d)) })),
-          { cle: "sans", titre: "Sans jour prévu", items: visibles.filter(({ p }) => sansJour(p)) },
+          ...joursPrevus.map((d) => ({ cle: d, titre: dateLongue(d, lang), items: visibles.filter(({ p }) => p.joursPrevus.includes(d)) })),
+          { cle: "sans", titre: ts(lang, "sans_jour_prevu"), items: visibles.filter(({ p }) => sansJour(p)) },
         ].filter((x) => x.items.length > 0 && (jourFiltre === "tous" || jourFiltre === x.cle));
 
   // Galerie plein écran : flèches, Échap.
@@ -156,10 +160,13 @@ export function ValidationMes({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <Logo iconSize={26} textClassName="text-lg" />
+        <div className="flex items-center justify-between gap-3">
+          <Logo iconSize={26} textClassName="text-lg" />
+          <LangToggle lang={lang} basePath={`/partage/validation/${token}`} otherParams={{ apercu: apercu ? "1" : undefined }} />
+        </div>
         {apercu && (
           <p className="rounded-xl border border-yellow/50 bg-yellow/10 px-3 py-2 text-sm">
-            👀 Aperçu équipe : c&apos;est ce que voit la mise en scène. Les votes et commentaires sont désactivés ici.
+            {ts(lang, "apercu")}
           </p>
         )}
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -167,23 +174,22 @@ export function ValidationMes({
             {contexte && <p className="text-xs font-medium uppercase tracking-wide text-text-muted">{contexte}</p>}
             <h1 className="text-2xl font-semibold">{titre}</h1>
             <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              Touchez une photo pour l&apos;agrandir. Répondez Oui ou Non pour chaque profil : l&apos;équipe
-              casting le voit tout de suite.
+              {ts(lang, "consigne")}
             </p>
           </div>
           {moi && !apercu && (
             <p className="text-sm text-text-muted">
-              Vous : <b className="text-text">{moi.prenom}</b> · {moi.role}
+              {ts(lang, "vous")} : <b className="text-text">{moi.prenom}</b> · {moi.role}
             </p>
           )}
         </div>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrer">
           {(
             [
-              ["tous", `Tous (${planches.length})`],
-              ["a_voir", `À voir (${aVoir})`],
-              ["oui", `✅ Oui (${compte("oui")})`],
-              ["non", `🚫 Non (${compte("non")})`],
+              ["tous", `${ts(lang, "tous")} (${planches.length})`],
+              ["a_voir", `${ts(lang, "a_voir")} (${aVoir})`],
+              ["oui", `✅ ${ts(lang, "oui")} (${compte("oui")})`],
+              ["non", `🚫 ${ts(lang, "non")} (${compte("non")})`],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -202,11 +208,11 @@ export function ValidationMes({
         </div>
         {joursPrevus.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Jour de tournage">
-            <span className="text-xs font-medium text-text-muted">📅 Jour :</span>
+            <span className="text-xs font-medium text-text-muted">📅 {ts(lang, "jour")} :</span>
             {[
-              ["tous", "Tous les jours"] as const,
-              ...joursPrevus.map((d) => [d, `${formatDayMonth(d)} (${planches.filter((p) => p.joursPrevus.includes(d)).length})`] as const),
-              ...(planches.some(sansJour) ? [["sans", `Sans jour (${planches.filter(sansJour).length})`] as const] : []),
+              ["tous", ts(lang, "tous_les_jours")] as const,
+              ...joursPrevus.map((d) => [d, `${jourMois(d)} (${planches.filter((p) => p.joursPrevus.includes(d)).length})`] as const),
+              ...(planches.some(sansJour) ? [["sans", `${ts(lang, "sans_jour")} (${planches.filter(sansJour).length})`] as const] : []),
             ].map(([k, label]) => (
               <button
                 key={k}
@@ -230,7 +236,7 @@ export function ValidationMes({
       <section key={sec.cle} className="flex flex-col gap-3">
         {sec.titre && (
           <h2 className="border-b-2 border-coral/50 pb-1 text-lg font-semibold">
-            📅 {sec.titre} <span className="text-sm font-normal text-text-muted">· {sec.items.length} profil{sec.items.length > 1 ? "s" : ""}</span>
+            📅 {sec.titre} <span className="text-sm font-normal text-text-muted">· {sec.items.length} {ts(lang, sec.items.length > 1 ? "profils" : "profil")}</span>
           </h2>
         )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -250,7 +256,7 @@ export function ValidationMes({
                   type="button"
                   onClick={() => setGalerie({ planche: i, photo: 0 })}
                   className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ink-raised-2"
-                  aria-label={`Agrandir les photos de ${p.nom}`}
+                  aria-label={`${ts(lang, "agrandir")} ${p.nom}`}
                 >
                   {p.photos[0] && <Image src={p.photos[0].url} alt="" fill sizes="(max-width: 640px) 66vw, 260px" className="object-cover" />}
                 </button>
@@ -276,19 +282,25 @@ export function ValidationMes({
               <div>
                 <h2 className="text-lg font-semibold leading-tight">{p.nom}</h2>
                 <p className="text-sm text-text-muted">
-                  {[p.age != null && `${p.age} ans`, p.genre].filter(Boolean).join(" · ") || "—"}
+                  {[p.age != null && `${p.age} ${ts(lang, "ans")}`, p.genre && (["Femme", "Homme", "Non-binaire", "Autre"].includes(p.genre) ? ts(lang, p.genre as SuiviKey) : p.genre)]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
                 </p>
-                {p.mesures && <p className="text-xs text-text-muted">{p.mesures}</p>}
+                {p.mesures.length > 0 && (
+                  <p className="text-xs text-text-muted">
+                    {p.mesures.map((m) => (m.cle === "taille" ? m.valeur : `${ts(lang, m.cle)} ${m.valeur}`)).join(" · ")}
+                  </p>
+                )}
                 {p.joursPrevus.length > 0 ? (
-                  <p className="mt-1 text-xs font-medium text-coral">📅 Prévu·e le {p.joursPrevus.map(formatDayMonth).join(", ")}</p>
+                  <p className="mt-1 text-xs font-medium text-coral">📅 {ts(lang, "prevu_le")} {p.joursPrevus.map(jourMois).join(", ")}</p>
                 ) : (
-                  p.joursDispo.length > 0 && <p className="mt-1 text-xs text-text-muted">Dispo le {p.joursDispo.map(formatDayMonth).join(", ")}</p>
+                  p.joursDispo.length > 0 && <p className="mt-1 text-xs text-text-muted">{ts(lang, "dispo_le")} {p.joursDispo.map(jourMois).join(", ")}</p>
                 )}
                 {p.questions.length > 0 && (
                   <p className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted">
                     {p.questions.map((q, k) => (
                       <span key={k}>
-                        {q.label} <b className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "oui" : "non"}</b>
+                        {q.label} <b className={q.reponse ? "text-turquoise" : "text-danger"}>{ts(lang, q.reponse ? "oui" : "non")}</b>
                       </span>
                     ))}
                   </p>
@@ -307,7 +319,7 @@ export function ValidationMes({
                       mien.vote === b.v ? b.on : "border-border-strong hover:border-coral/60"
                     )}
                   >
-                    {b.emoji} {b.label}
+                    {b.emoji} {ts(lang, b.label)}
                   </button>
                 ))}
               </div>
@@ -317,7 +329,7 @@ export function ValidationMes({
                   defaultValue={mien.note}
                   onBlur={(e) => e.target.value.trim() !== mien.note && voter(p.candidatureId, mien.vote, e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                  placeholder="Une note sur ce profil (optionnel)"
+                  placeholder={ts(lang, "note")}
                   maxLength={500}
                   className="rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm outline-none focus:border-coral"
                 />
@@ -341,9 +353,9 @@ export function ValidationMes({
       {sections.length === 0 && <p className="py-8 text-center text-text-muted">Aucun profil ici.</p>}
 
       <section className="flex max-w-2xl flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-4">
-        <h2 className="text-base font-semibold">💬 Commentaires pour l&apos;équipe casting</h2>
+        <h2 className="text-base font-semibold">💬 {ts(lang, "commentaires_titre")}</h2>
         {commentaires.length === 0 ? (
-          <p className="text-sm text-text-muted">Pas encore de commentaire.</p>
+          <p className="text-sm text-text-muted">{ts(lang, "aucun_commentaire")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {commentaires.map((c) => (
@@ -355,8 +367,8 @@ export function ValidationMes({
                 )}
               >
                 <span className="block text-[11px] text-text-muted">
-                  {c.equipe ? `${c.auteur} · équipe casting` : c.auteur}
-                  {c.profil && ` · sur ${c.profil}`} · {formatDateTime(c.created_at)}
+                  {c.equipe ? `${c.auteur} · ${ts(lang, "equipe_casting")}` : c.auteur}
+                  {c.profil && ` · ${ts(lang, "sur")} ${c.profil}`} · {dateHeure(c.created_at, lang)}
                 </span>
                 <span className="whitespace-pre-wrap">{c.texte}</span>
               </li>
@@ -368,13 +380,13 @@ export function ValidationMes({
             <select
               value={comProfil}
               onChange={(e) => setComProfil(e.target.value)}
-              aria-label="À propos de"
+              aria-label={ts(lang, "a_propos")}
               className="rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm"
             >
-              <option value="">À propos de : tout le monde</option>
+              <option value="">{ts(lang, "a_propos_tous")}</option>
               {planches.map((p) => (
                 <option key={p.candidatureId} value={p.candidatureId}>
-                  À propos de : {p.nom}
+                  {ts(lang, "a_propos")} {p.nom}
                 </option>
               ))}
             </select>
@@ -384,7 +396,7 @@ export function ValidationMes({
                 onChange={(e) => setCom(e.target.value)}
                 rows={2}
                 maxLength={2000}
-                placeholder="Un mot pour l'équipe casting…"
+                placeholder={ts(lang, "un_mot")}
                 className="flex-1 rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm outline-none focus:border-coral"
               />
               <button
@@ -393,7 +405,7 @@ export function ValidationMes({
                 disabled={comPending || !com.trim()}
                 className="self-end rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
               >
-                Envoyer
+                {ts(lang, "envoyer")}
               </button>
             </div>
           </div>
@@ -402,7 +414,7 @@ export function ValidationMes({
 
       {/* Arrivée : prénom et rôle, une seule fois sur cet appareil (commun à
           tous les liens de partage). */}
-      {!apercu && !moi && <AccueilVisiteur />}
+      {!apercu && !moi && <AccueilVisiteur lang={lang} />}
 
       {pg && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/95" role="dialog" aria-modal="true" aria-label={`Photos de ${pg.nom}`}>
@@ -411,7 +423,7 @@ export function ValidationMes({
             onClick={() => setGalerie(null)}
             className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-full border border-white/40 px-3 py-1.5 text-sm text-white"
           >
-            Fermer <X size={16} />
+            {ts(lang, "fermer")} <X size={16} />
           </button>
           <p className="absolute left-4 top-5 text-sm text-white/80">
             {pg.nom} · {photoG?.label} · {galerie!.photo + 1}/{pg.photos.length}
@@ -421,7 +433,7 @@ export function ValidationMes({
               type="button"
               onClick={() => setGalerie((g) => g && { ...g, photo: (g.photo - 1 + pg.photos.length) % pg.photos.length })}
               className="absolute left-2 z-10 rounded-full bg-white/10 p-3 text-white"
-              aria-label="Photo précédente"
+              aria-label={ts(lang, "photo_prec")}
             >
               <ChevronLeft />
             </button>
@@ -434,7 +446,7 @@ export function ValidationMes({
               type="button"
               onClick={() => setGalerie((g) => g && { ...g, photo: (g.photo + 1) % pg.photos.length })}
               className="absolute right-2 z-10 rounded-full bg-white/10 p-3 text-white"
-              aria-label="Photo suivante"
+              aria-label={ts(lang, "photo_suiv")}
             >
               <ChevronRight />
             </button>

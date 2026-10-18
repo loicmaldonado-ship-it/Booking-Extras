@@ -82,7 +82,7 @@ export default async function PartageEssayagesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PresencePartage token={token} />
+      <PresencePartage token={token} lang={lang} />
       <div className="flex items-center justify-between gap-3">
         <Logo iconSize={26} textClassName="text-lg" />
         <LangToggle lang={lang} basePath={`/partage/essayages/${token}`} />
