@@ -11,7 +11,6 @@ import {
   getCastingEntries,
   getCastingVideoUrlPairsByEntries,
   getCastingEntryPhotos,
-  getInvitationsParRole,
 } from "@/lib/casting/data";
 import { getPresentielJourneesWithCreneaux, getPresentielAssignmentsByRole } from "@/lib/casting-presentiel/journees";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
@@ -77,7 +76,6 @@ export default async function CastingPage({
     signature,
     presentielJournees,
     presentielAssignments,
-    invitationsParRole,
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
     getCastingEntries(currentProjetId),
@@ -90,7 +88,6 @@ export default async function CastingPage({
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),
     getPresentielAssignmentsByRole(currentProjetId),
-    getInvitationsParRole(currentProjetId),
   ]);
 
   // Filtre appliqué avant même de récupérer photos/vidéos des entrées
@@ -224,7 +221,6 @@ export default async function CastingPage({
           presentielJournees={presentielJournees}
           presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
           position={i + 1}
-          invitations={invitationsParRole.get(role.id) ?? null}
         />
       ))}
 
