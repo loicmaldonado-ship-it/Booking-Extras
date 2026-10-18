@@ -11,7 +11,7 @@ import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
-import { JoursPanneau, JourneeEnGrand, type JourPanneau } from "@/components/candidatures/jours-panneau";
+import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
 import { LiensValidation } from "@/components/validation/liens-validation";
 import type { LienResume } from "@/lib/validation/data";
@@ -164,19 +164,11 @@ export function CandidaturesTable({
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
   const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "lien" | null>(liensOuverts ? "lien" : null);
-  const [panneauMobile, setPanneauMobile] = useState(false);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
   // Cartes retournées au clic (message visible sans survol : iPad, téléphone).
   const [retournes, setRetournes] = useState<Set<string>>(new Set());
-  // Jour ouvert en grand : sur téléphone, le tiroir se referme pour le montrer.
-  const jourVu = jours.find((j) => j.vu) ?? null;
-  const [jourVuSync, setJourVuSync] = useState(jourVu?.id ?? null);
-  if ((jourVu?.id ?? null) !== jourVuSync) {
-    setJourVuSync(jourVu?.id ?? null);
-    if (jourVu) setPanneauMobile(false);
-  }
 
   const rapides = ongletsRapides(onglets);
   const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
@@ -293,13 +285,6 @@ export function CandidaturesTable({
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
       {projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {jourVu && projetId && (
-          <JourneeEnGrand
-            jour={jourVu}
-            projetId={projetId}
-            fermerHref={jourVu.vuHref}
-          />
-        )}
         {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -723,49 +708,6 @@ export function CandidaturesTable({
 
         {pagination}
       </div>
-
-      {panneau && (
-        <>
-          <aside
-            aria-label="Jours de tournage"
-            className="hidden w-80 shrink-0 flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-3 xl:sticky xl:top-4 xl:flex xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto"
-          >
-            <h2 className="text-base font-semibold">📅 Jours de tournage</h2>
-            {panneau}
-          </aside>
-          {/* Écrans plus étroits : bouton flottant, panneau en tiroir. */}
-          <button
-            type="button"
-            onClick={() => setPanneauMobile(true)}
-            className="fixed bottom-5 right-5 z-40 rounded-full bg-coral px-4 py-3 text-sm font-semibold text-ink shadow-lg hover:bg-coral-hover xl:hidden"
-          >
-            📅 Jours{selected.size > 0 ? ` · ${selected.size} coché${selected.size > 1 ? "s" : ""}` : ""}
-          </button>
-          {panneauMobile && (
-            <div
-              className="fixed inset-0 z-[70] flex justify-end bg-ink/60 xl:hidden"
-              onMouseDown={(e) => e.target === e.currentTarget && setPanneauMobile(false)}
-            >
-              <aside
-                aria-label="Jours de tournage"
-                className="flex h-full w-full max-w-sm flex-col gap-3 overflow-y-auto border-l border-border bg-ink-raised p-4"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-base font-semibold">📅 Jours de tournage</h2>
-                  <button
-                    type="button"
-                    onClick={() => setPanneauMobile(false)}
-                    className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60"
-                  >
-                    Fermer
-                  </button>
-                </div>
-                {panneau}
-              </aside>
-            </div>
-          )}
-        </>
-      )}
 
       {ecrireA && ecrireA.length > 0 && (
         <MessageCandidatures destinataires={ecrireA} templates={templates} onClose={() => setEcrireA(null)} />
