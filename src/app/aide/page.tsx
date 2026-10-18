@@ -407,12 +407,15 @@ export default function AidePage() {
               profils cochés, ou tout l&apos;onglet affiché, et envoie-le à la mise en scène ou à la réalisation. Elle voit
               des planches avec plusieurs photos (galerie plein écran), l&apos;âge, les mensurations et les réponses aux
               questions, mais jamais les coordonnées ni le message de candidature. À l&apos;arrivée, son prénom et son rôle
-              sont demandés une seule fois. Chaque profil se vote <UI>✅ Valider</UI>, <UI>🤔 Peut-être</UI> ou{" "}
-              <UI>🚫 Non</UI>, avec une note, et un fil de commentaires permet d&apos;écrire à l&apos;équipe. De ton côté, le
+              sont demandés une seule fois. Chaque profil se vote <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> (pas de
+              peut-être), avec une note. Les profils prévus sur un jour sont rangés par jour de tournage, avec un filtre
+              par jour. Un fil de commentaires permet d&apos;écrire à l&apos;équipe. De ton côté, le
               badge <UI>🎬 Validé MES</UI> s&apos;affiche sur la carte et l&apos;onglet <UI>🎬 Validés MES</UI> regroupe les
               validés, à envoyer ensuite dans un jour. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
               et les commentaires, auxquels tu peux répondre. <UI>👀 Voir comme la MES</UI> ouvre la page sans compter de
-              visite. <UI>＋ Ajouter les … cochés</UI> complète un lien existant. Les votes et commentaires arrivent aussi
+              visite. <UI>＋ Ajouter les … cochés</UI> complète un lien existant. Depuis un jour ouvert en grand,{" "}
+              <UI>🔗 Lien MES avec les … prévu·es de ce jour</UI> crée directement le lien des profils prévus ce jour-là,
+              avant de les envoyer dans la journée. Les votes et commentaires arrivent aussi
               dans la cloche.
             </>,
             <>
@@ -802,7 +805,14 @@ export default function AidePage() {
             </>,
             <>
               Une fois le lien créé, <UI>Aperçu</UI> l&apos;ouvre tel quel dans un nouvel onglet — pour
-              vérifier exactement ce que costume, HMC ou régie verront avant de leur envoyer.
+              vérifier exactement ce que costume, HMC ou régie verront avant de leur envoyer (sans compter de visite).
+            </>,
+            <>
+              <strong className="text-text">Qui a vu, qui est en ligne, commentaires</strong> : à l&apos;ouverture
+              d&apos;un lien (réal du casting, documents, essayages, journée, validation MES), la personne donne son prénom
+              et son rôle, une seule fois sur son appareil. Sous chaque lien, tu vois qui l&apos;a ouvert, qui est en
+              ligne (point vert), et le fil de commentaires laissés avec le bouton <UI>💬 Commentaires</UI>, auquel tu peux
+              répondre. Chaque commentaire arrive aussi dans la cloche (filtre « Liens partagés »).
             </>,
           ]}
         />

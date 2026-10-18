@@ -32,7 +32,7 @@ export default async function ValidationPage({
   }
 
   const [planches, votes, commentaires] = await Promise.all([
-    getPlanches(lien.id, lien.projet_id),
+    getPlanches(lien.id, lien.projet_id, lien.annonce_id),
     getVotesLiens([lien.id]),
     getCommentaires([lien.id]),
   ]);

@@ -1,4 +1,5 @@
 import { nomComplet } from "@/lib/noms";
+import { PresencePartage } from "@/components/partage/presence-partage";
 import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
 import {
   getCastingRoles,
@@ -76,6 +77,7 @@ export default async function PartageCastingPage({
 
   return (
     <div className="flex flex-col gap-8">
+      <PresencePartage token={token} />
       <div>
         <div className="flex items-center justify-between gap-3">
           <Logo iconSize={26} textClassName="text-lg" />

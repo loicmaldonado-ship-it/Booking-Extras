@@ -1,4 +1,4 @@
-export type NotificationType = "candidature" | "reponse" | "compte_cree" | "casting" | "validation";
+export type NotificationType = "candidature" | "reponse" | "compte_cree" | "casting" | "validation" | "partage";
 
 export type AppNotification = {
   id: string;

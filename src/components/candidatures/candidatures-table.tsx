@@ -292,7 +292,16 @@ export function CandidaturesTable({
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
       {projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {jourVu && projetId && <JourneeEnGrand jour={jourVu} projetId={projetId} fermerHref={jourVu.vuHref} />}
+        {jourVu && projetId && (
+          <JourneeEnGrand
+            jour={jourVu}
+            projetId={projetId}
+            fermerHref={jourVu.vuHref}
+            annonceId={annonceId}
+            annonceTitre={nomLienParDefaut}
+            origin={origin}
+          />
+        )}
         {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
           <div className="flex flex-wrap items-center gap-2">

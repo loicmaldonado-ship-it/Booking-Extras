@@ -559,6 +559,7 @@ export default async function CandidaturesPage({
   // Panneau « Jours de tournage » : par date, la journée telle qu'elle est
   // dans Bookings (besoins, présent·es, statuts) et les prévu·es d'ici.
   const besoinsParDate = new Map((journeesBesoins ?? []).map((j) => [j.date, j.journee_besoins]));
+  const candidatureVisible = new Set((candidaturesRaw ?? []).map((c) => c.id));
   // Jour ouvert en grand (trombi) : photos signées pour ce jour seulement.
   const jourVu = annonceDates.find((d) => d.id === params.jour_vu) ?? null;
   const bookingsJourVu = jourVu ? (bookingsJours ?? []).filter((b) => b.date === jourVu.date) : [];
@@ -595,6 +596,10 @@ export default async function CandidaturesPage({
       vu: d.id === jourVu?.id,
       vuHref: hrefAvec({ jour_vu: d.id === jourVu?.id ? null : d.id }),
       prevus: prevues.length,
+      // Prévu·es encore dans Candidatures (pas déjà dans la journée).
+      prevusIds: prevues
+        .filter((j) => !estTransfere(j.candidatures?.figurant_id, d.id) && candidatureVisible.has(j.candidature_id))
+        .map((j) => j.candidature_id),
       prevusAEnvoyer: prevues.filter((j) => !estTransfere(j.candidatures?.figurant_id, d.id)).length,
       dispoHref: hrefAvec({ dispo: dispoActif ? null : d.id }),
       dispoActif,

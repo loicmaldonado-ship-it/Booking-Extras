@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
 import { envoyerCandidaturesDansJour, envoyerJourAuTournage } from "@/lib/candidatures/jours";
+import { creerLienValidation } from "@/lib/validation/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { statutLabel, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { Badge } from "@/components/ui/card";
@@ -31,6 +32,7 @@ export type JourPanneau = {
   // dans la journée.
   prevusAEnvoyer: number;
   prevus: number;
+  prevusIds: string[];
   dispoHref: string;
   dispoActif: boolean;
   prevusHref: string;
@@ -264,7 +266,32 @@ export function JoursPanneau({
 
 // Le jour ouvert en grand, au-dessus des cartes : un vrai trombi des
 // personnes de la journée, groupé par fonction, avec leur statut.
-export function JourneeEnGrand({ jour, projetId, fermerHref }: { jour: JourPanneau; projetId: string; fermerHref: string }) {
+export function JourneeEnGrand({
+  jour,
+  projetId,
+  fermerHref,
+  annonceId,
+  annonceTitre,
+  origin,
+}: {
+  jour: JourPanneau;
+  projetId: string;
+  fermerHref: string;
+  annonceId: string;
+  annonceTitre: string;
+  origin: string;
+}) {
+  const [lien, setLien] = useState<{ url?: string; error?: string; copie?: boolean } | null>(null);
+  const [pendingLien, startLien] = useTransition();
+
+  // Lien de validation MES avec les prévu·es de ce jour, avant de les
+  // envoyer dans la journée.
+  function creerLienDuJour() {
+    startLien(async () => {
+      const res = await creerLienValidation(annonceId, `${annonceTitre} — ${formatDayMonth(jour.date)}`, jour.prevusIds);
+      setLien(res.token ? { url: `${origin}/partage/validation/${res.token}` } : { error: res.error });
+    });
+  }
   const groupes = new Map<string, JourPanneau["gens"]>();
   for (const g of jour.gens) {
     const cle = g.fonction?.trim() || "";
@@ -273,7 +300,7 @@ export function JourneeEnGrand({ jour, projetId, fermerHref }: { jour: JourPanne
   const ordre = Array.from(groupes.keys()).sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "fr")));
   const besoinDe = (f: string) => jour.fonctions.find((x) => x.fonction.toLowerCase() === f.toLowerCase());
   const complet = jour.besoin !== null && jour.dansLaJournee >= jour.besoin;
-  const lien = "rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60";
+  const classeLien = "rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60";
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border-2 border-coral/60 bg-ink-raised p-4" aria-label={`Journée du ${formatDateLong(jour.date)}`}>
@@ -298,24 +325,43 @@ export function JourneeEnGrand({ jour, projetId, fermerHref }: { jour: JourPanne
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Link href={jour.dispoHref} scroll={false} className={cn(lien, jour.dispoActif && "border-coral bg-coral/15 text-coral")}>
+        <Link href={jour.dispoHref} scroll={false} className={cn(classeLien, jour.dispoActif && "border-coral bg-coral/15 text-coral")}>
           {jour.dispoActif ? "✓ Seulement les candidat·es dispo ce jour" : "Montrer les candidat·es dispo ce jour"}
         </Link>
         {jour.prevus > 0 && (
-          <Link href={jour.prevusHref} scroll={false} className={lien}>
+          <Link href={jour.prevusHref} scroll={false} className={classeLien}>
             Voir les {jour.prevus} prévu·e{jour.prevus > 1 ? "s" : ""}
           </Link>
         )}
-        <Link href={`/bookings/documents/trombis?projet_id=${projetId}&date=${jour.date}&statut=tous`} target="_blank" className={lien}>
+        <Link href={`/bookings/documents/trombis?projet_id=${projetId}&date=${jour.date}&statut=tous`} target="_blank" className={classeLien}>
           🖼️ Trombi à imprimer
         </Link>
-        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}&onglet=messages`} className={lien}>
+        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}&onglet=messages`} className={classeLien}>
           💬 Messages du jour
         </Link>
-        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}`} className={lien}>
+        <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}`} className={classeLien}>
           Ouvrir la journée dans Bookings →
         </Link>
+        {jour.prevusIds.length > 0 && !lien?.url && (
+          <button type="button" disabled={pendingLien} onClick={creerLienDuJour} className={cn(classeLien, "border-coral text-coral")}>
+            🔗 Lien MES avec les {jour.prevusIds.length} prévu·e{jour.prevusIds.length > 1 ? "s" : ""} de ce jour
+          </button>
+        )}
       </div>
+      {lien?.error && <p className="text-sm text-danger">{lien.error}</p>}
+      {lien?.url && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-turquoise/50 bg-turquoise/10 p-2 text-sm">
+          <span className="font-medium text-turquoise">✓ Lien MES créé pour ce jour</span>
+          <code className="min-w-0 flex-1 truncate text-xs">{lien.url}</code>
+          <button
+            type="button"
+            onClick={() => navigator.clipboard.writeText(lien.url!).then(() => setLien({ ...lien, copie: true }))}
+            className={classeLien}
+          >
+            {lien.copie ? "Copié ✓" : "Copier le lien"}
+          </button>
+        </div>
+      )}
 
       {jour.gens.length === 0 ? (
         <p className="py-6 text-center text-sm text-text-muted">
