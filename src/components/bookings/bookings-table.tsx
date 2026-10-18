@@ -182,7 +182,7 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
   return null;
 }
 
-function rowTokens(r: Row, journeeLieu?: string | null) {
+export function rowTokens(r: Row, journeeLieu?: string | null) {
   // Raccord : le token {date} liste toutes ses dates sur ce projet plutôt
   // que juste celle de cette journée — pour un profil CONFIRMÉ, seulement
   // ses dates confirmées (pas une journée où il est indispo) ; sinon toutes

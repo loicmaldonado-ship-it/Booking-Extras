@@ -11,6 +11,8 @@ import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons
 import { BesoinsPanel } from "@/components/bookings/besoins-panel";
 import { ConvocationSettingsPanel } from "@/components/bookings/convocation-settings-panel";
 import { PartageJourneeButton } from "@/components/partage/partage-journee-button";
+import { MessagesJournee } from "@/components/messages/messages-journee";
+import type { EnvoiJournee } from "@/lib/messages/envois";
 import type { MessageTemplate } from "@/lib/templates/types";
 import type { JourneeBesoin } from "@/lib/bookings/besoins";
 import type { ConvocationSettings } from "@/lib/bookings/convocation";
@@ -22,6 +24,7 @@ const TABS = [
   { value: "bookings", label: "📋 Bookings" },
   { value: "essayage", label: "👗 Essayage" },
   { value: "covoiturage", label: "🚗 Covoiturage" },
+  { value: "messages", label: "💬 Messages" },
   { value: "documents", label: "📄 Documents" },
 ] as const;
 
@@ -52,6 +55,7 @@ export function JourneeTabs({
   autresDates,
   projetIndemnites,
   baremeMajorations,
+  envois = [],
 }: {
   bookings: Row[];
   canExport?: boolean;
@@ -77,8 +81,21 @@ export function JourneeTabs({
   autresDates?: string[];
   projetIndemnites?: ProjetIndemnite[];
   baremeMajorations?: BaremeMajoration[];
+  envois?: EnvoiJournee[];
 }) {
   const [tab, setTab] = useState<Tab>("bookings");
+  // Destinataires d'envois sans accusé ni réponse (pastille de l'onglet).
+  const sansNouvelles = envois.reduce(
+    (n, e) =>
+      n +
+      e.destinataires.filter(
+        (d) =>
+          d.envoye_le &&
+          !d.accuse_le &&
+          !(messagesByFigurant[d.figurant_id] ?? []).some((m) => m.sender === "figurant" && m.created_at > d.envoye_le!)
+      ).length,
+    0
+  );
   const query = `?projet_id=${projetId}&date=${date}`;
 
   return (
@@ -97,6 +114,9 @@ export function JourneeTabs({
             )}
           >
             {t.label}
+            {t.value === "messages" && sansNouvelles > 0 && (
+              <span className="ml-1.5 rounded-full bg-yellow/15 px-1.5 py-0.5 text-[11px] text-yellow">⏳ {sansNouvelles}</span>
+            )}
           </button>
         ))}
       </div>
@@ -144,6 +164,19 @@ export function JourneeTabs({
 
       {tab === "essayage" && (
         <EssayagesPanel figurants={essayageFigurants} essayages={essayages} projetId={projetId} />
+      )}
+
+      {tab === "messages" && (
+        <MessagesJournee
+          rows={bookings}
+          envois={envois}
+          projetId={projetId}
+          date={date}
+          templates={templates}
+          journeeLieu={journeeLieu}
+          publicOrigin={publicOrigin}
+          messagesByFigurant={messagesByFigurant}
+        />
       )}
 
       {tab === "covoiturage" && (

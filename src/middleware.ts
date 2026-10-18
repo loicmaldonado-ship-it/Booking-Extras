@@ -19,6 +19,7 @@ const PUBLIC_PREFIXES = [
   "/casting/rejoindre",
   "/api/relais-textos",
   "/relais-textos",
+  "/recu/",
   "/compte",
   "/manifest.ts",
   "/icon",

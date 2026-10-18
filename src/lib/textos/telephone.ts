@@ -12,4 +12,5 @@ export function telephoneInternational(brut: string | null | undefined): string 
   return null;
 }
 
-export type DestinataireTexto = { nom: string; telephone: string | null; texte: string };
+// `cle` : identifiant libre de l'appelant, renvoyé dans onEnvoye.
+export type DestinataireTexto = { nom: string; telephone: string | null; texte: string; cle?: string };

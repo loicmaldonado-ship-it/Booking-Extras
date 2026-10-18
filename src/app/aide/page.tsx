@@ -679,6 +679,17 @@ export default function AidePage() {
           l&apos;organisation vers une autre journée du même projet, pour les profils raccord (booké·es les
           deux jours).
         </Callout>
+        <Callout>
+          <strong className="text-text">Onglet Messages.</strong> En haut, le point sur les deux messages
+          principaux (proposition : combien ont répondu ; convocation : combien envoyées et BIEN REÇU).{" "}
+          <UI>✉️ Nouveau message</UI> envoie un message d&apos;info à une sélection (tous, confirmés, par
+          fonction…), par email ou en textos, sous un <strong className="text-text">nom</strong> (Parking,
+          Horaire avancé…). Avec l&apos;accusé de réception, chaque message contient un lien{" "}
+          <UI>👍 Bien reçu</UI> : un clic suffit, sans compte. Chaque envoi affiche qui l&apos;a bien reçu, qui
+          a répondu, qui est sans nouvelles ; <UI>🔁 Relancer</UI> renvoie le message aux seules personnes sans
+          nouvelles, et <UI>Marquer reçu</UI> note une confirmation donnée par téléphone. La pastille ⏳ sur
+          l&apos;onglet compte les personnes sans nouvelles.
+        </Callout>
       </GuideChapter>
 
       <GuideChapter
