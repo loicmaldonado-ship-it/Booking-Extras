@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom, comparerNoms } from "@/lib/noms";
 import { useMemo, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -49,11 +50,7 @@ function lieuLabel(r: CovoiturageRow) {
 // d'un coup d'œil qui habite dans le même coin quand on regarde le groupe
 // "Sans covoiturage" pour organiser les trajets à la main.
 function sortByNomFamille(rows: CovoiturageRow[]) {
-  return [...rows].sort(
-    (a, b) =>
-      (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? "") ||
-      (a.figurants?.prenom ?? "").localeCompare(b.figurants?.prenom ?? "")
-  );
+  return [...rows].sort((a, b) => comparerNoms(a.figurants, b.figurants));
 }
 
 // Regroupe par code postal croissant (non renseigné en dernier), chaque
@@ -296,7 +293,7 @@ export function CovoiturageBoard({
     setSendError(null);
     startTransition(async () => {
       const result = await recordCovoiturageMessage(r.figurant_id, body!, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
       else setSentIds((prev) => new Set([...prev, r.id]));
     });
   }
@@ -353,7 +350,7 @@ export function CovoiturageBoard({
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="96px" className="object-cover" />}
         </div>
         <span className="block w-full truncate text-xs font-medium">
-          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
         {lieuLabel(r) && (
           <span className="block w-full truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>
@@ -384,7 +381,7 @@ export function CovoiturageBoard({
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="36px" className="object-cover" />}
         </div>
         <div className="w-36 shrink-0">
-          <div className="truncate font-medium">{r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}</div>
+          <div className="truncate font-medium">{r.figurants ? nomComplet(r.figurants) : "—"}</div>
           {lieuLabel(r) && <div className="truncate text-[11px] text-text-muted">{lieuLabel(r)}</div>}
         </div>
 
@@ -446,7 +443,7 @@ export function CovoiturageBoard({
               .filter((c) => c.figurant_id !== r.figurant_id)
               .map((c) => (
                 <option key={c.figurant_id} value={c.figurant_id}>
-                  {c.figurants ? `${c.figurants.prenom} ${c.figurants.nom}` : "—"}
+                  {c.figurants ? nomComplet(c.figurants) : "—"}
                   {c.covoiturage_lieu_depart ? ` · ${c.covoiturage_lieu_depart}` : ""}
                 </option>
               ))}
@@ -594,7 +591,7 @@ export function CovoiturageBoard({
             {eligibles.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
                 <span>
-                  {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                  {r.figurants ? nomComplet(r.figurants) : "—"}
                   <span className="ml-2 text-xs text-text-muted">
                     {r.covoiturage_role === "conducteur" ? "Chauffeur" : "Passager"}
                   </span>

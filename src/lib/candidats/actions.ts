@@ -1,5 +1,6 @@
 "use server";
 
+import { formatPrenom } from "@/lib/noms";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -54,7 +55,7 @@ export async function sendMagicLinkEmail(
   const body = customTemplate
     ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
     : [
-        `Bonjour ${figurant.prenom},`,
+        `Bonjour ${formatPrenom(figurant.prenom)},`,
         "",
         "Voici votre lien de connexion à votre espace Booking Extras (valable 30 minutes) :",
         link,
@@ -87,7 +88,7 @@ export async function sendAccesCompteActiveEmail(
   const body = customTemplate
     ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
     : [
-        `Bonjour ${figurant.prenom},`,
+        `Bonjour ${formatPrenom(figurant.prenom)},`,
         "",
         "Vous avez été ajouté·e à une date de tournage.",
         "",

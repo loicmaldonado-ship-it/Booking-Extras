@@ -1,3 +1,4 @@
+import { nomComplet, trierParNom } from "@/lib/noms";
 import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -63,7 +64,7 @@ export default async function CastingPresentielPlanningPage({
       .returns<Creneau[]>(),
   ]);
 
-  const rows = entries ?? [];
+  const rows = trierParNom(entries ?? [], (e) => e.figurants);
   const sansCreneau = rows.filter((r) => !r.creneau_id);
   const photosByFigurant = await getPhotosByFigurantId(rows.map((r) => r.figurant_id));
   const portraitUrl = (figurantId: string) => pickPortrait(photosByFigurant.get(figurantId), projet_id)?.url ?? null;
@@ -79,7 +80,7 @@ export default async function CastingPresentielPlanningPage({
           )}
         </div>
         <span className="block w-24 truncate text-[10px] font-medium leading-tight">
-          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
         {r.casting_roles?.nom && (
           <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">{r.casting_roles.nom}</span>
@@ -163,7 +164,7 @@ export default async function CastingPresentielPlanningPage({
                                 </div>
                               </td>
                               <td className="py-1 pr-3 font-medium text-gray-900">
-                                {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                                {r.figurants ? nomComplet(r.figurants) : "—"}
                               </td>
                               <td className="py-1 pr-3 text-gray-600">{r.casting_roles?.nom ?? ""}</td>
                               <td className="py-1 pr-3 text-gray-600">{r.figurants?.telephone ?? ""}</td>
@@ -203,7 +204,7 @@ export default async function CastingPresentielPlanningPage({
                           </div>
                         </td>
                         <td className="py-1 pr-3 font-medium text-gray-900">
-                          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                          {r.figurants ? nomComplet(r.figurants) : "—"}
                         </td>
                         <td className="py-1 pr-3 text-gray-600">{r.casting_roles?.nom ?? ""}</td>
                         <td className="py-1 pr-3 text-gray-600">{r.figurants?.telephone ?? ""}</td>

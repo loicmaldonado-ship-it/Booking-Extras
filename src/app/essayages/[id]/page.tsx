@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,7 +35,7 @@ export default async function EssayageDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold">
-            Essayage #{essayage.numero} — {essayage.figurants?.prenom} {essayage.figurants?.nom}
+            Essayage #{essayage.numero} — {nomComplet(essayage.figurants)}
           </h1>
           <p className="mt-1 text-text-muted">
             {essayage.projets?.nom}

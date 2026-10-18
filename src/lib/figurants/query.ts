@@ -32,7 +32,8 @@ export function buildFigurantsQuery(
     .from("figurants")
     .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
-    .order("nom", { ascending: true });
+    .order("nom", { ascending: true })
+    .order("prenom", { ascending: true });
 
   // Séparation figurant·es de figuration / comédien·nes (profils "rôle") —
   // deux pools distincts, jamais mélangés dans une même liste : les

@@ -1,3 +1,4 @@
+import { nomComplet, trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card, Badge } from "@/components/ui/card";
@@ -78,7 +79,7 @@ function candidatureDimLabel(c: CandidatureWithFilters, dim: Dimension): string 
 }
 
 function candidatureNameOf(c: CandidatureWithFilters) {
-  return `${c.figurants?.prenom ?? ""} ${c.figurants?.nom ?? ""}`;
+  return nomComplet(c.figurants);
 }
 
 type CandidatureRaw = Omit<Row, "portraitUrl">;
@@ -429,15 +430,15 @@ export default async function CandidaturesPage({
       : Promise.resolve({ data: [] as { id: string; prenom: string; nom: string }[] }),
     getPhotosByFigurantId(envoyesJourOuvert.map((b) => b.figurant_id)),
   ]);
-  const nomEnvoye = new Map((figurantsEnvoyes ?? []).map((f) => [f.id, `${f.prenom} ${f.nom}`]));
-  const apercuEnvoyes: EnvoyeJour[] = envoyesJourOuvert
-    .map((b) => ({
+  const figurantEnvoye = new Map((figurantsEnvoyes ?? []).map((f) => [f.id, f]));
+  const apercuEnvoyes: EnvoyeJour[] = trierParNom(envoyesJourOuvert, (b) => figurantEnvoye.get(b.figurant_id)).map(
+    (b) => ({
       bookingId: b.id,
-      nom: nomEnvoye.get(b.figurant_id) ?? "—",
+      nom: nomComplet(figurantEnvoye.get(b.figurant_id)) || "—",
       statut: b.statut,
       portraitUrl: annonce ? (pickPortrait(photosEnvoyes.get(b.figurant_id), annonce.projet_id)?.url ?? null) : null,
-    }))
-    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+    })
+  );
 
   // Compte par onglet pour la barre d'onglets — calculé sur le même
   // périmètre que les filtres actifs (myrole/genre/âge/question), mais

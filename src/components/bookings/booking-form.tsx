@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useActionState, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,7 @@ export function BookingForm({
               <option value=""></option>
               {figurants.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.prenom} {f.nom}
+                  {nomComplet(f)}
                 </option>
               ))}
             </Select>
@@ -187,7 +188,7 @@ export function BookingForm({
                 <option value=""></option>
                 {figurants.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.prenom} {f.nom}
+                    {nomComplet(f)}
                   </option>
                 ))}
               </Select>

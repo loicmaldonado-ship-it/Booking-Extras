@@ -1,5 +1,6 @@
 "use server";
 
+import { nomComplet } from "@/lib/noms";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -424,7 +425,7 @@ export async function moveBookingsToDate(
   const dejaLaIds = new Set((dejaLa ?? []).map((b) => b.figurant_id));
   const conflits = aDeplacer
     .filter((b) => dejaLaIds.has(b.figurant_id))
-    .map((b) => (b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "?"));
+    .map((b) => (b.figurants ? nomComplet(b.figurants) : "?"));
   const moves = aDeplacer.filter((b) => !dejaLaIds.has(b.figurant_id));
   const restantIds = list.filter((b) => !moves.includes(b)).map((b) => b.id);
   if (moves.length === 0) return { moved: 0, conflits, restantIds };

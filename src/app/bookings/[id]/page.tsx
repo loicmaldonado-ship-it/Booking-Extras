@@ -1,3 +1,4 @@
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,7 +49,7 @@ export default async function BookingDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold">
-            {booking.figurants?.prenom} {booking.figurants?.nom}
+            {nomComplet(booking.figurants)}
           </h1>
           <p className="mt-1 text-text-muted">
             {booking.projets?.nom} · {formatDateShort(booking.date)}
@@ -72,7 +73,7 @@ export default async function BookingDetailPage({
 
       {enConflit && (
         <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">
-          ⚠ {booking.figurants?.prenom} a déclaré être indisponible le {formatDateShort(booking.date)}
+          ⚠ {formatPrenom(booking.figurants?.prenom)} a déclaré être indisponible le {formatDateShort(booking.date)}
           {indispoMotif ? ` (${indispoMotif})` : ""}.
         </div>
       )}
@@ -103,7 +104,7 @@ export default async function BookingDetailPage({
               <div><span className="text-text-muted">Places disponibles : </span>{booking.covoiturage_places_disponibles ?? "—"}</div>
             )}
             {booking.covoiturage_role === "passager" && booking.covoiturage && (
-              <div><span className="text-text-muted">Conducteur : </span>{booking.covoiturage.prenom} {booking.covoiturage.nom}</div>
+              <div><span className="text-text-muted">Conducteur : </span>{nomComplet(booking.covoiturage)}</div>
             )}
           </div>
         </Card>

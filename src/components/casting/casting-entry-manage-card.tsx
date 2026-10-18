@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -658,7 +659,7 @@ export function CastingEntryManageCard({
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-sm font-medium">
-            {entry.figurants?.prenom} {entry.figurants?.nom}
+            {nomComplet(entry.figurants)}
           </span>
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>

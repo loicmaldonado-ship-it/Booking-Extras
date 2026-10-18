@@ -1,3 +1,4 @@
+import { trierParNom } from "@/lib/noms";
 import Link from "next/link";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
@@ -62,7 +63,7 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
@@ -100,7 +101,8 @@ export default async function JourneeDashboardPage({
     currentIndex >= 0 && currentIndex < journees.length - 1 ? journees[currentIndex + 1] : null;
   const besoins = currentJournee ? await getBesoinsByJournee(currentJournee.id) : [];
 
-  const rawBookings = bookingsRaw ?? [];
+  // Règle du site : ordre alphabétique (nom, puis prénom).
+  const rawBookings = trierParNom(bookingsRaw ?? [], (b) => b.figurants);
   const figurantIds = rawBookings.map((b) => b.figurant_id);
   // Photothèque complète (galerie) + photo principale choisie pour les
   // trombis de ce projet (Booking → 📷 Photos).

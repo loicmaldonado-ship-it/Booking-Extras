@@ -1,3 +1,4 @@
+import { formatPrenom, formatNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getConfirmedBookings } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -93,8 +94,8 @@ export default async function ListeAppelPage({
                 return (
                   <tr key={b.id} className="border-b border-gray-300">
                     <td className="py-2 pr-4">{b.heure_convocation ?? "—"}</td>
-                    <td className="py-2 pr-4 font-medium">{b.figurant.nom}</td>
-                    <td className="py-2 pr-4">{b.figurant.prenom}</td>
+                    <td className="py-2 pr-4 font-medium">{formatNom(b.figurant.nom)}</td>
+                    <td className="py-2 pr-4">{formatPrenom(b.figurant.prenom)}</td>
                     {selectedFields.has("fonction") && <td className="py-2 pr-4">{b.fonction ?? "—"}</td>}
                     {selectedFields.has("age") && <td className="py-2 pr-4">{age ?? "—"}</td>}
                     <td className="py-2 pr-4">{b.figurant.telephone ?? "—"}</td>

@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import { computeAge, formatHeureConvocation } from "./fields";
 import type { ConfirmedBooking } from "./data";
 
@@ -76,14 +77,14 @@ function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {
 }
 
 function nomOf(b: ConfirmedBooking) {
-  return `${b.figurant.prenom} ${b.figurant.nom}`;
+  return nomComplet(b.figurant);
 }
 
 export function groupForDoc(
   bookings: ConfirmedBooking[],
   sort: DocSort
 ): { label: string; items: ConfirmedBooking[] }[] | null {
-  return groupByDimensions(bookings, sort, dimensionLabel, nomOf);
+  return groupByDimensions(bookings, sort, dimensionLabel, nomOf, (a, b) => comparerNoms(a.figurant, b.figurant));
 }
 
 export function sortBookingsFlat(bookings: ConfirmedBooking[], sort: DocSort): ConfirmedBooking[] {

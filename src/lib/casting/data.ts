@@ -1,3 +1,4 @@
+import { trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CastingRole, CastingEntry } from "./types";
@@ -27,7 +28,8 @@ export async function getCastingEntries(projetId: string): Promise<CastingEntry[
     .order("requested_at", { ascending: false })
     .returns<CastingEntry[]>();
 
-  return data ?? [];
+  // Règle du site : ordre alphabétique (nom, puis prénom).
+  return trierParNom(data ?? [], (e) => e.figurants);
 }
 
 // Signe toutes les vidéos de tous les profils passés en une seule requête

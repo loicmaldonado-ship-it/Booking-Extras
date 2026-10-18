@@ -1,3 +1,4 @@
+import { formatPrenom, formatNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getConfirmedBookings } from "@/lib/documents/data";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -195,7 +196,7 @@ export default async function BordereauPage({
                     <td className="border border-black px-2 py-3">{pageIndex * ROWS_PER_PAGE + i + 1}</td>
                     <td className="border border-black px-2 py-3"></td>
                     <td className="border border-black px-2 py-3 font-medium">
-                      {b.figurant.nom} {b.figurant.prenom}
+                      {formatNom(b.figurant.nom)} {formatPrenom(b.figurant.prenom)}
                     </td>
                     <td className="border border-black px-2 py-3">
                       {montant !== null ? `${Math.round(montant)} €` : "—"}

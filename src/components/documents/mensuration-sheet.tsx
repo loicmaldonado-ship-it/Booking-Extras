@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Image from "next/image";
 import type { Figurant } from "@/lib/figurants/types";
 import type { FigurantPhotoWithUrl, FutureBooking } from "@/lib/documents/data";
@@ -50,7 +51,7 @@ export function MensurationSheet({
       <div>
         <h2 className="flex items-center gap-2 text-xl font-bold">
           {figurant.civilite ? `${figurant.civilite} ` : ""}
-          {figurant.prenom} {figurant.nom}
+          {nomComplet(figurant)}
           {figurant.pronom && (
             <span className="text-sm font-normal text-gray-500">({figurant.pronom})</span>
           )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -63,7 +64,7 @@ export function PresentielJourneeTable({
 
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     nom: r.figurants?.nom ?? "",
     ville: null,
     portraitUrl: r.portraitUrl,
@@ -121,7 +122,7 @@ export function PresentielJourneeTable({
 
   function tokensFor(r: PresentielEntry) {
     return {
-      prenom: r.figurants?.prenom ?? "",
+      prenom: formatPrenom(r.figurants?.prenom),
       projet: projetNom ?? "",
       role: r.casting_roles?.nom ?? "",
       lieu: lieu ?? "Lieu à confirmer",
@@ -139,7 +140,7 @@ export function PresentielJourneeTable({
     setSendError(null);
     startTransition(async () => {
       const result = await recordCastingMessage(r.figurant_id, body, r.figurants!.email, subj, projetId, { html });
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
     setSent((prev) => new Set([...prev, r.id]));
   }
@@ -185,7 +186,7 @@ export function PresentielJourneeTable({
               )}
             </div>
             <div className="text-sm font-medium">
-              {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+              {r.figurants ? nomComplet(r.figurants) : "—"}
             </div>
             {roles.length > 0 ? (
               <Select
@@ -279,7 +280,7 @@ export function PresentielJourneeTable({
                   .map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
                       <span>
-                        {r.figurants?.prenom} {r.figurants?.nom}
+                        {nomComplet(r.figurants)}
                         {!r.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
                       </span>
                       <Button
@@ -288,7 +289,7 @@ export function PresentielJourneeTable({
                         disabled={!r.figurants?.email || !message.trim()}
                         onClick={() => sendTo(r)}
                       >
-                        {sent.has(r.id) ? "Envoyé" : `Envoyer à ${r.figurants?.prenom ?? ""}`}
+                        {sent.has(r.id) ? "Envoyé" : `Envoyer à ${formatPrenom(r.figurants?.prenom)}`}
                       </Button>
                     </div>
                   ))}

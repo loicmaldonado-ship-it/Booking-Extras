@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -95,7 +96,7 @@ export default async function CastingTrombisPage({
     entriesByRole.set(e.role_id, list);
   }
   for (const list of entriesByRole.values()) {
-    list.sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""));
+    list.sort((a, b) => comparerNoms(a.figurants, b.figurants));
   }
 
   const items: TrombiItem[] = roles.flatMap((role) =>
@@ -208,7 +209,7 @@ export default async function CastingTrombisPage({
                         )}
                       </div>
                       <span className="block w-28 truncate text-[10px] font-medium leading-tight text-gray-900">
-                        {item.entry.figurants?.prenom} {item.entry.figurants?.nom}
+                        {nomComplet(item.entry.figurants)}
                       </span>
                       <span className="block w-28 truncate text-[8px] leading-tight text-gray-500">
                         {agentLine(item.entry)}

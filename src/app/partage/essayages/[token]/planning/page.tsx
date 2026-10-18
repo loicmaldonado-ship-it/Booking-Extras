@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -142,7 +143,7 @@ export default async function PartageEssayagesPlanningPage({
                         </div>
                       </td>
                       <td className="py-1.5 pr-3 font-medium">
-                        #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
+                        #{e.numero} {e.figurants ? nomComplet(e.figurants) : "—"}
                       </td>
                       <td className="py-1.5 pr-3">{cf?.fonction ?? "—"}</td>
                       <td className="py-1.5 pr-3">{tCachet(lang, cf?.cachet ?? null) ?? "—"}</td>

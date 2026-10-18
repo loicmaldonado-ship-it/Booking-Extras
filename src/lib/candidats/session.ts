@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import "server-only";
 import { randomUUID } from "crypto";
 import { cookies } from "next/headers";
@@ -65,7 +66,7 @@ export async function getCurrentFigurant(): Promise<CandidatSession | null> {
   if (isStale) {
     await supabase.from("figurants").update({ last_seen_at: new Date().toISOString() }).eq("id", figurant.id);
     if (!lastSeen) {
-      await createNotification("compte_cree", `${figurant.prenom} ${figurant.nom} a créé son compte`, {
+      await createNotification("compte_cree", `${nomComplet(figurant)} a créé son compte`, {
         figurantId: figurant.id,
         projetId: await dernierProjetDuFigurant(figurant.id),
         lien: `/figurants/${figurant.id}`,

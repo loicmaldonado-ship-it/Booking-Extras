@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
@@ -127,7 +128,7 @@ export function CastingRoleSection({
   function tokens(entry: CastingEntry) {
     const assignment = presentielAssignments.get(entry.figurant_id);
     return {
-      prenom: entry.figurants?.prenom ?? "",
+      prenom: formatPrenom(entry.figurants?.prenom),
       projet: projetNom,
       role: role.nom,
       date: formatTournageClause(role.date_tournage, role.date_tournage_fin),
@@ -168,7 +169,7 @@ export function CastingRoleSection({
         rolePdfFilename: role.pdf_filename,
         html,
       });
-      if (result?.error) setSendError(`Échec de l'envoi à ${entry.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(entry.figurants!.prenom)} : ${result.error}`);
     });
     setSentBulk((prev) => new Set([...prev, entry.id]));
   }
@@ -577,7 +578,7 @@ export function CastingRoleSection({
                   .map((e) => (
                     <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
                       <span>
-                        {e.figurants?.prenom} {e.figurants?.nom}
+                        {nomComplet(e.figurants)}
                         {!e.figurants?.email && !e.figurants?.agent_email && (
                           <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
                         )}
@@ -601,7 +602,7 @@ export function CastingRoleSection({
                         disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
                         onClick={() => sendTo(e)}
                       >
-                        {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${e.figurants?.prenom ?? ""}`}
+                        {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${formatPrenom(e.figurants?.prenom)}`}
                       </Button>
                     </div>
                   ))}
@@ -617,7 +618,7 @@ export function CastingRoleSection({
                   destinataires={entries
                     .filter((e) => selected.has(e.id) && e.figurants)
                     .map((e) => ({
-                      nom: `${e.figurants!.prenom} ${e.figurants!.nom}`,
+                      nom: nomComplet(e.figurants),
                       telephone: e.figurants!.telephone,
                       texte: substituteTokens(bulkMessage, tokens(e)),
                     }))}

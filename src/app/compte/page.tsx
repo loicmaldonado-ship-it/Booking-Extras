@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
@@ -122,7 +123,7 @@ export default async function CompteCandidatPage({
       <div>
         <Logo iconSize={26} textClassName="text-lg" />
         <h1 className="mt-4 text-2xl font-semibold">
-          Bonjour {figurant.prenom} {figurant.nom}
+          Bonjour {nomComplet(figurant)}
         </h1>
         <p className="mt-1 text-text-muted">Votre espace personnel.</p>
       </div>

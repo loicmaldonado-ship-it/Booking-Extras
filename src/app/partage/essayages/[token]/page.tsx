@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -147,7 +148,7 @@ export default async function PartageEssayagesPage({
                           </div>
                         </td>
                         <td className="py-2 pr-4 font-medium">
-                          #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
+                          #{e.numero} {e.figurants ? nomComplet(e.figurants) : "—"}
                         </td>
                         <td className="py-2 pr-4 text-text-muted">{fonction ?? "—"}</td>
                         <td className="py-2 pr-4 text-text-muted">{tCachet(lang, cachet ?? null) ?? "—"}</td>

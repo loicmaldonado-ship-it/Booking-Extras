@@ -1,3 +1,4 @@
+import { comparerNoms } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
@@ -27,9 +28,7 @@ export default async function FigurantsFichesPage({
     .in("id", Array.from(selectedIds))
     .returns<Figurant[]>();
 
-  const figurants = (figurantsRaw ?? []).sort((a, b) =>
-    `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
-  );
+  const figurants = (figurantsRaw ?? []).sort(comparerNoms);
   const figurantIds = figurants.map((f) => f.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([

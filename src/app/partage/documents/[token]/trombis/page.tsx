@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import Link from "next/link";
@@ -63,8 +64,7 @@ function flattenByHeureEtCachet(bookings: ConfirmedBooking[], sortByFonction: bo
       (a, b) => cachetOrder(a[1][0]?.cachet ?? null) - cachetOrder(b[1][0]?.cachet ?? null)
     );
     for (const [cachetLabel, sousGroup] of cachetGroups) {
-      const nomSort = (a: ConfirmedBooking, b: ConfirmedBooking) =>
-        `${a.figurant.prenom} ${a.figurant.nom}`.localeCompare(`${b.figurant.prenom} ${b.figurant.nom}`);
+      const nomSort = (a: ConfirmedBooking, b: ConfirmedBooking) => comparerNoms(a.figurant, b.figurant);
       const sorted = sortByFonction
         ? [...sousGroup].sort((a, b) => (a.fonction ?? "").localeCompare(b.fonction ?? "") || nomSort(a, b))
         : [...sousGroup].sort(nomSort);
@@ -216,7 +216,7 @@ export default async function PartageTrombisPage({
                         )}
                       </div>
                       <span className="text-[10px] font-medium leading-tight">
-                        {item.booking.figurant.prenom} {item.booking.figurant.nom}
+                        {nomComplet(item.booking.figurant)}
                       </span>
                       {showFonction && item.booking.fonction && (
                         <span className="text-[8px] italic leading-tight text-gray-500">

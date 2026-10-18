@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -95,7 +96,7 @@ export function TriRapide({
       setCandidatureJour(id, jourId, prevu).then((res) => {
         if (res.error) {
           setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: !prevu } }));
-          setError(`${data.figurant.prenom} ${data.figurant.nom} : ${res.error}`);
+          setError(`${nomComplet(data.figurant)} : ${res.error}`);
         }
       });
     },
@@ -128,7 +129,7 @@ export function TriRapide({
             next.delete(id);
             return next;
           });
-          setError(`${data.figurant.prenom} ${data.figurant.nom} n'a pas été rangé·e : ${res.error}`);
+          setError(`${nomComplet(data.figurant)} n'a pas été rangé·e : ${res.error}`);
           goTo(at);
         }
       });
@@ -310,7 +311,7 @@ export function TriRapide({
                   <div className="flex flex-col gap-4">
                     <div>
                       <h2 className="text-3xl font-semibold">
-                        {data!.figurant.prenom} {data!.figurant.nom}
+                        {nomComplet(data!.figurant)}
                       </h2>
                       <p className="mt-1 text-text-muted">
                         {[

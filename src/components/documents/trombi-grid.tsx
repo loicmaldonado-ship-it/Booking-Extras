@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
 import Image from "next/image";
 import { pickPortrait, type FigurantPhotoWithUrl } from "@/lib/documents/data";
@@ -54,7 +55,7 @@ export function TrombiGrid({
               </div>
               <span className="block w-24 truncate text-[10px] font-medium leading-tight">
                 {item.badge ? `${item.badge} ` : ""}
-                {item.booking.figurant.prenom} {item.booking.figurant.nom}
+                {nomComplet(item.booking.figurant)}
               </span>
               {selectedFields.has("ville") && item.booking.figurant.ville && (
                 <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">

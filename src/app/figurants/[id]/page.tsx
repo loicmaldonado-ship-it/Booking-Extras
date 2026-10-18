@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -148,7 +149,7 @@ export default async function FigurantDetailPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold">
             {figurant.civilite ? `${figurant.civilite} ` : ""}
-            {figurant.prenom} {figurant.nom}
+            {nomComplet(figurant)}
             {figurant.est_comedien && <Badge tone="coral">Comédien·ne</Badge>}
           </h1>
           <p className="mt-1 text-text-muted">
