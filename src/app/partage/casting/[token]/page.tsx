@@ -77,7 +77,7 @@ export default async function PartageCastingPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PresencePartage token={token} />
+      <PresencePartage token={token} demander="commentaire" lang={lang} />
       <div>
         <div className="flex items-center justify-between gap-3">
           <Logo iconSize={26} textClassName="text-lg" />

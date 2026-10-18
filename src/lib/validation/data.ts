@@ -41,7 +41,8 @@ export type Planche = {
   nom: string;
   age: number | null;
   genre: string | null;
-  mesures: string;
+  // Taille, pointure, veste, pantalon (libellés traduits par la page).
+  mesures: { cle: "taille" | "pointure" | "veste" | "pantalon"; valeur: string }[];
   photos: { url: string; label: string }[];
   questions: { label: string; reponse: boolean }[];
   // Jours de tournage de l'annonce où la personne est prévue (avant
@@ -127,14 +128,16 @@ export async function getPlanches(lienId: string, projetId: string, annonceId: s
       nom: nomComplet(f),
       age: computeAge(f.date_naissance),
       genre: f.genre,
-      mesures: [
-        f.taille_cm && `${f.taille_cm} cm`,
-        f.pointure && `pointure ${f.pointure}`,
-        f.veste && `veste ${f.veste}`,
-        f.pantalon && `pantalon ${f.pantalon}`,
-      ]
-        .filter(Boolean)
-        .join(" · "),
+      mesures: (
+        [
+          ["taille", f.taille_cm ? `${f.taille_cm} cm` : null],
+          ["pointure", f.pointure ? String(f.pointure) : null],
+          ["veste", f.veste],
+          ["pantalon", f.pantalon],
+        ] as const
+      )
+        .filter(([, v]) => v)
+        .map(([cle, valeur]) => ({ cle, valeur: valeur! })),
       photos,
       questions: (reponses ?? [])
         .filter((r) => r.candidature_id === l.candidature_id && r.annonce_questions)

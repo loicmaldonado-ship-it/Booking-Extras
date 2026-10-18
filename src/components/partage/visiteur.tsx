@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
+import type { Lang } from "@/lib/i18n/partage";
+import { ROLES, ts } from "@/lib/i18n/suivi";
 
 // Identité d'une personne qui ouvre un lien de partage (réal, MES, prod…) :
 // prénom + rôle demandés une seule fois sur l'appareil, communs à tous les
@@ -9,7 +11,6 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 export type Visiteur = { id: string; prenom: string; role: string };
 
 const CLE = "be-visiteur-partage";
-export const ROLES_VISITEUR = ["Réalisation", "Mise en scène", "1er assistant·e", "Production", "Costumes", "Autre"];
 
 let memoire: string | null = null;
 const abonnes = new Set<() => void>();
@@ -52,10 +53,11 @@ export function useVisiteur(): Visiteur | null {
   }, [brut]);
 }
 
-// Fenêtre d'arrivée : prénom et rôle.
-export function AccueilVisiteur() {
+// Prénom et rôle : en fenêtre à l'arrivée, ou dans la page (inline) au
+// moment d'écrire un commentaire.
+export function AccueilVisiteur({ inline = false, lang = "fr" }: { inline?: boolean; lang?: Lang }) {
   const [prenom, setPrenom] = useState("");
-  const [role, setRole] = useState(ROLES_VISITEUR[0]);
+  const [role, setRole] = useState(ROLES[lang][0]);
 
   function valider(e: React.FormEvent) {
     e.preventDefault();
@@ -63,18 +65,21 @@ export function AccueilVisiteur() {
     enregistrerVisiteur({ id: crypto.randomUUID(), prenom: prenom.trim().slice(0, 60), role });
   }
 
-  return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/70 p-4 print:hidden"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Qui êtes-vous ?"
-    >
-      <form onSubmit={valider} className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-5">
-        <h2 className="text-xl font-semibold">Bonjour 👋</h2>
-        <p className="text-sm text-text-muted">Pour que l&apos;équipe casting sache qui consulte et qui commente :</p>
+  const formulaire = (
+      <form
+        onSubmit={valider}
+        className={
+          inline
+            ? "flex flex-col gap-3 rounded-xl border border-border bg-ink p-3"
+            : "flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-ink-raised p-5"
+        }
+      >
+        {!inline && <h2 className="text-xl font-semibold">{ts(lang, "bonjour")}</h2>}
+        <p className="text-sm text-text-muted">
+          {ts(lang, inline ? "avant_ecrire" : "pourquoi")}
+        </p>
         <label className="flex flex-col gap-1 text-sm">
-          Votre prénom
+          {ts(lang, "votre_prenom")}
           <input
             autoFocus
             required
@@ -85,18 +90,28 @@ export function AccueilVisiteur() {
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          Votre rôle
+          {ts(lang, "votre_role")}
           <select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-lg border border-border-strong bg-ink px-3 py-2">
-            {ROLES_VISITEUR.map((r) => (
+            {ROLES[lang].map((r) => (
               <option key={r}>{r}</option>
             ))}
           </select>
         </label>
         <button type="submit" className="rounded-full bg-coral px-4 py-2.5 font-semibold text-ink hover:bg-coral-hover">
-          Continuer
+          {ts(lang, "continuer")}
         </button>
-        <span className="text-xs text-text-muted">Demandé une seule fois sur cet appareil.</span>
+        <span className="text-xs text-text-muted">{ts(lang, "une_fois")}</span>
       </form>
+  );
+  if (inline) return formulaire;
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/70 p-4 print:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={ts(lang, "votre_prenom")}
+    >
+      {formulaire}
     </div>
   );
 }

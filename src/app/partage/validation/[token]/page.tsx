@@ -3,6 +3,8 @@ import { getLienParToken, getPlanches, getVotesLiens, getCommentaires } from "@/
 import { projetNomPublic } from "@/lib/projets/types";
 import { Logo } from "@/components/ui/logo";
 import { ValidationMes } from "@/components/validation/validation-mes";
+import { parseLang, t } from "@/lib/i18n/partage";
+import { ts } from "@/lib/i18n/suivi";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +17,20 @@ export default async function ValidationPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ apercu?: string }>;
+  searchParams: Promise<{ apercu?: string; lang?: string }>;
 }) {
   const { token } = await params;
-  const apercu = (await searchParams).apercu === "1";
+  const sp = await searchParams;
+  const apercu = sp.apercu === "1";
+  const lang = parseLang(sp.lang);
   const lien = await getLienParToken(token);
 
   if (!lien) {
     return (
       <div className="flex flex-col gap-4">
         <Logo iconSize={26} textClassName="text-lg" />
-        <h1 className="text-2xl font-semibold">Lien introuvable</h1>
-        <p className="text-text-muted">Ce lien de validation n&apos;existe pas ou a été supprimé par l&apos;équipe casting.</p>
+        <h1 className="text-2xl font-semibold">{t(lang, "lien_introuvable")}</h1>
+        <p className="text-text-muted">{ts(lang, "lien_validation_introuvable")}</p>
       </div>
     );
   }
@@ -41,6 +45,7 @@ export default async function ValidationPage({
     <ValidationMes
       token={token}
       apercu={apercu}
+      lang={lang}
       titre={lien.nom}
       contexte={[lien.projets?.societe_production, projetNomPublic(lien.projets), lien.annonces?.titre].filter(Boolean).join(" · ")}
       planches={planches}

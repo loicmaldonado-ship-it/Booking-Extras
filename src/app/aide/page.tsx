@@ -810,7 +810,8 @@ export default function AidePage() {
             <>
               <strong className="text-text">Qui a vu, qui est en ligne, commentaires</strong> : à l&apos;ouverture
               d&apos;un lien (réal du casting, documents, essayages, journée, validation MES), la personne donne son prénom
-              et son rôle, une seule fois sur son appareil. Sous chaque lien, tu vois qui l&apos;a ouvert, qui est en
+              et son rôle, une seule fois sur son appareil (sur le lien réal du casting, seulement au moment
+              d&apos;écrire un commentaire). Tout est traduit avec le bouton FR/EN, lien de validation MES compris. Sous chaque lien, tu vois qui l&apos;a ouvert, qui est en
               ligne (point vert), et le fil de commentaires laissés avec le bouton <UI>💬 Commentaires</UI>, auquel tu peux
               répondre. Chaque commentaire arrive aussi dans la cloche (filtre « Liens partagés »).
             </>,
