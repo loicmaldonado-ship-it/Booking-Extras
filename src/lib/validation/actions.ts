@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { createNotification } from "@/lib/notifications/create";
 import { nomComplet } from "@/lib/noms";
-import type { VoteMes } from "./data";
+import { candidatureDansLien, type VoteMes } from "./data";
 
 const VISITEUR_RE = /^[A-Za-z0-9-]{8,64}$/;
 const TOKEN_RE = /^[0-9a-f]{32}$/;
@@ -42,7 +42,8 @@ async function candidaturesDeLAnnonce(annonceId: string, ids: string[]) {
 export async function creerLienValidation(
   annonceId: string,
   nom: string,
-  candidatureIds: string[]
+  candidatureIds: string[],
+  toutesJournees = false
 ): Promise<{ error?: string; token?: string }> {
   const supabase = createAdminClient();
   const { data: annonce } = await supabase.from("annonces").select("projet_id").eq("id", annonceId).maybeSingle();
@@ -51,18 +52,20 @@ export async function creerLienValidation(
   if (accessError) return { error: accessError };
   const profile = await getCurrentProfile();
   const ids = await candidaturesDeLAnnonce(annonceId, Array.from(new Set(candidatureIds)).slice(0, 500));
-  if (ids.length === 0) return { error: "Aucun profil à mettre dans le lien." };
+  if (ids.length === 0 && !toutesJournees) return { error: "Aucun profil à mettre dans le lien." };
 
   const { data: lien, error } = await supabase
     .from("liens_validation")
-    .insert({ annonce_id: annonceId, projet_id: annonce.projet_id, nom: nom.trim().slice(0, 120) || "Validation", created_by: profile?.id ?? null })
+    .insert({ annonce_id: annonceId, projet_id: annonce.projet_id, nom: nom.trim().slice(0, 120) || "Validation", created_by: profile?.id ?? null, toutes_journees: toutesJournees })
     .select("id, token")
     .single();
   if (error || !lien) return { error: error?.message ?? "Création impossible." };
-  const { error: errProfils } = await supabase
-    .from("lien_validation_profils")
-    .insert(ids.map((candidature_id, ordre) => ({ lien_id: lien.id, candidature_id, ordre })));
-  if (errProfils) return { error: errProfils.message };
+  if (ids.length > 0) {
+    const { error: errProfils } = await supabase
+      .from("lien_validation_profils")
+      .insert(ids.map((candidature_id, ordre) => ({ lien_id: lien.id, candidature_id, ordre })));
+    if (errProfils) return { error: errProfils.message };
+  }
   revalidatePath("/candidatures");
   return { token: lien.token };
 }
@@ -133,7 +136,7 @@ async function lienPublic(token: string) {
   if (!TOKEN_RE.test(token)) return null;
   const { data } = await createAdminClient()
     .from("liens_validation")
-    .select("id, annonce_id, projet_id, nom")
+    .select("id, annonce_id, projet_id, nom, toutes_journees")
     .eq("token", token)
     .maybeSingle();
   return data;
@@ -183,14 +186,14 @@ export async function voterProfil(
   if (!lien || !VISITEUR_RE.test(visiteurId)) return { error: "Lien invalide." };
   if (vote !== null && !["oui", "peut", "non"].includes(vote)) return { error: "Vote invalide." };
   const supabase = createAdminClient();
-  const [{ data: dansLeLien }, v] = await Promise.all([
-    supabase
-      .from("lien_validation_profils")
-      .select("candidature_id, candidatures(figurants(prenom, nom))")
-      .eq("lien_id", lien.id)
-      .eq("candidature_id", candidatureId)
-      .maybeSingle<{ candidature_id: string; candidatures: { figurants: { prenom: string; nom: string } | null } | null }>(),
+  const [dansLeLien, v, { data: candidature }] = await Promise.all([
+    candidatureDansLien(lien, candidatureId),
     visiteur(lien.id, visiteurId),
+    supabase
+      .from("candidatures")
+      .select("figurants(prenom, nom)")
+      .eq("id", candidatureId)
+      .maybeSingle<{ figurants: { prenom: string; nom: string } | null }>(),
   ]);
   if (!dansLeLien) return { error: "Ce profil n'est plus dans le lien." };
   if (!v) return { error: "Indique d'abord ton prénom." };
@@ -218,7 +221,7 @@ export async function voterProfil(
   if (error) return { error: error.message };
   if (vote && avant?.vote !== vote) {
     const verbe = vote === "oui" ? "a validé" : vote === "peut" ? "a mis en peut-être" : "a écarté";
-    await createNotification("validation", `${qui(v)} ${verbe} ${nomComplet(dansLeLien.candidatures?.figurants)} · ${lien.nom}`, {
+    await createNotification("validation", `${qui(v)} ${verbe} ${nomComplet(candidature?.figurants)} · ${lien.nom}`, {
       projetId: lien.projet_id,
       annonceId: lien.annonce_id,
       lien: `/candidatures?annonce_id=${lien.annonce_id}&onglet_id=mes`,
@@ -239,15 +242,7 @@ export async function commenterLien(
   if (!t) return { error: "Message vide." };
   const v = await visiteur(lien.id, visiteurId);
   if (!v) return { error: "Indique d'abord ton prénom." };
-  const { data: profil } = candidatureId
-    ? await createAdminClient()
-        .from("lien_validation_profils")
-        .select("candidature_id")
-        .eq("lien_id", lien.id)
-        .eq("candidature_id", candidatureId)
-        .maybeSingle()
-    : { data: null };
-  candidatureId = profil?.candidature_id ?? null;
+  if (candidatureId && !(await candidatureDansLien(lien, candidatureId))) candidatureId = null;
   const { error } = await createAdminClient().from("partage_commentaires").insert({
     lien_type: "validation",
     lien_id: lien.id,

@@ -403,8 +403,10 @@ export default function AidePage() {
               sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
             </>,
             <>
-              <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) : crée un lien avec les
-              profils cochés, ou tout l&apos;onglet affiché, et envoie-le à la mise en scène ou à la réalisation. Elle voit
+              <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) :{" "}
+              <UI>📅 Créer le lien de toutes les journées</UI> montre à la MES chaque jour de tournage de l&apos;annonce,
+              avec les profils en cours de choix (prévus) et ceux déjà dans la journée, et se met à jour tout seul.
+              Ou crée un lien avec seulement les profils cochés ou l&apos;onglet affiché. Elle voit
               des planches avec plusieurs photos (galerie plein écran), l&apos;âge, les mensurations et les réponses aux
               questions, mais jamais les coordonnées ni le message de candidature. À l&apos;arrivée, son prénom et son rôle
               sont demandés une seule fois. Chaque profil se vote <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> (pas de

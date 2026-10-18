@@ -54,10 +54,10 @@ export function LiensValidation({
     return () => clearInterval(id);
   }, [router]);
 
-  function creer() {
+  function creer(toutesJournees: boolean) {
     setMessage(null);
     startTransition(async () => {
-      const res = await creerLienValidation(annonceId, nom, ids);
+      const res = await creerLienValidation(annonceId, nom, toutesJournees ? selectionIds : ids, toutesJournees);
       if (res.error) setMessage({ ok: false, texte: res.error });
       else if (res.token) {
         setCree(res.token);
@@ -150,13 +150,26 @@ export function LiensValidation({
           </label>
           <button
             type="button"
-            onClick={creer}
-            disabled={pending || ids.length === 0 || !nom.trim()}
+            onClick={() => creer(true)}
+            disabled={pending || !nom.trim()}
             className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
           >
-            Créer le lien avec {ids.length} profil{ids.length > 1 ? "s" : ""}
+            📅 Créer le lien de toutes les journées
+          </button>
+          <button
+            type="button"
+            onClick={() => creer(false)}
+            disabled={pending || ids.length === 0 || !nom.trim()}
+            className="rounded-full border border-border-strong px-4 py-2 text-sm font-medium hover:border-coral/60 disabled:opacity-40"
+          >
+            …ou seulement {ids.length} profil{ids.length > 1 ? "s" : ""}
             {selectionIds.length > 0 ? " cochés" : " de l'onglet"}
           </button>
+          <p className="basis-full text-xs text-text-muted">
+            Le lien de toutes les journées montre à la MES chaque jour de tournage de l&apos;annonce, avec les profils en cours
+            de choix (prévus) et ceux déjà dans la journée, et se met à jour tout seul quand tu prévois quelqu&apos;un
+            {selectionIds.length > 0 ? " (les cochés y sont ajoutés en plus)" : ""}.
+          </p>
         </div>
       )}
 
@@ -173,6 +186,11 @@ export function LiensValidation({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>
                     🔗 <b>{l.nom}</b>
+                    {l.toutesJournees && (
+                      <span className="ml-1.5 rounded-full bg-coral/15 px-2 py-0.5 text-[11px] font-medium text-coral">
+                        📅 toutes les journées · en direct
+                      </span>
+                    )}
                     <span className="text-xs text-text-muted">
                       {" "}
                       · {formatDateTime(l.created_at)}

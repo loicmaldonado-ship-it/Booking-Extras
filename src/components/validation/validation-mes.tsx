@@ -36,6 +36,7 @@ export function ValidationMes({
   titre,
   contexte,
   planches,
+  jours,
   votes,
   commentaires,
 }: {
@@ -45,6 +46,8 @@ export function ValidationMes({
   titre: string;
   contexte: string;
   planches: Planche[];
+  // Toutes les dates de tournage de l'annonce.
+  jours: string[];
   votes: VoteVu[];
   commentaires: CommentaireVu[];
 }) {
@@ -128,18 +131,18 @@ export function ValidationMes({
       const v = voteDe(p.candidatureId).vote;
       return filtre === "tous" ? true : filtre === "a_voir" ? !v : v === filtre;
     });
-  // Jours de tournage où les profils sont prévus (avant l'envoi dans la
-  // journée) : une section par jour, un profil prévu deux jours apparaît
-  // dans les deux (même vote).
-  const joursPrevus = Array.from(new Set(planches.flatMap((p) => p.joursPrevus))).sort();
-  const sansJour = (p: Planche) => p.joursPrevus.length === 0;
+  // Une section par journée de l'annonce (même vide) : les profils en
+  // cours de choix (prévus) et ceux déjà dans la journée. Un profil sur deux
+  // jours apparaît dans les deux (même vote).
+  const dansJour = (p: Planche, d: string) => p.joursPrevus.includes(d) || p.joursJournee.includes(d);
+  const sansJour = (p: Planche) => !jours.some((d) => dansJour(p, d));
   const sections =
-    joursPrevus.length === 0
-      ? [{ cle: "tous", titre: null as string | null, items: visibles }]
+    jours.length === 0
+      ? [{ cle: "tous", date: null as string | null, titre: null as string | null, items: visibles }]
       : [
-          ...joursPrevus.map((d) => ({ cle: d, titre: dateLongue(d, lang), items: visibles.filter(({ p }) => p.joursPrevus.includes(d)) })),
-          { cle: "sans", titre: ts(lang, "sans_jour_prevu"), items: visibles.filter(({ p }) => sansJour(p)) },
-        ].filter((x) => x.items.length > 0 && (jourFiltre === "tous" || jourFiltre === x.cle));
+          ...jours.map((d) => ({ cle: d, date: d as string | null, titre: dateLongue(d, lang), items: visibles.filter(({ p }) => dansJour(p, d)) })),
+          { cle: "sans", date: null, titre: ts(lang, "sans_jour_prevu"), items: visibles.filter(({ p }) => sansJour(p)) },
+        ].filter((x) => (jourFiltre === "tous" || jourFiltre === x.cle) && (x.items.length > 0 || (x.date !== null && filtre === "tous")));
 
   // Galerie plein écran : flèches, Échap.
   useEffect(() => {
@@ -206,12 +209,12 @@ export function ValidationMes({
             </button>
           ))}
         </div>
-        {joursPrevus.length > 0 && (
+        {jours.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Jour de tournage">
             <span className="text-xs font-medium text-text-muted">📅 {ts(lang, "jour")} :</span>
             {[
               ["tous", ts(lang, "tous_les_jours")] as const,
-              ...joursPrevus.map((d) => [d, `${jourMois(d)} (${planches.filter((p) => p.joursPrevus.includes(d)).length})`] as const),
+              ...jours.map((d) => [d, `${jourMois(d)} (${planches.filter((p) => dansJour(p, d)).length})`] as const),
               ...(planches.some(sansJour) ? [["sans", `${ts(lang, "sans_jour")} (${planches.filter(sansJour).length})`] as const] : []),
             ].map(([k, label]) => (
               <button
@@ -236,16 +239,23 @@ export function ValidationMes({
       <section key={sec.cle} className="flex flex-col gap-3">
         {sec.titre && (
           <h2 className="border-b-2 border-coral/50 pb-1 text-lg font-semibold">
-            📅 {sec.titre} <span className="text-sm font-normal text-text-muted">· {sec.items.length} {ts(lang, sec.items.length > 1 ? "profils" : "profil")}</span>
+            📅 {sec.titre}{" "}
+            <span className="text-sm font-normal text-text-muted">
+              · {sec.items.length} {ts(lang, sec.items.length > 1 ? "profils" : "profil")}
+              {sec.date &&
+                sec.items.length > 0 &&
+                ` (${sec.items.filter(({ p }) => p.joursJournee.includes(sec.date!)).length} ${ts(lang, "dans_la_journee").toLowerCase()})`}
+            </span>
           </h2>
         )}
+        {sec.date && sec.items.length === 0 && <p className="text-sm text-text-muted">{ts(lang, "personne_jour")}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sec.items.map(({ p, i }) => {
           const mien = voteDe(p.candidatureId);
           const autres = votes.filter((v) => v.candidatureId === p.candidatureId && v.cle !== maCle && (v.vote || v.note));
           return (
             <article
-              key={p.candidatureId}
+              key={`${sec.cle}-${p.candidatureId}`}
               className={cn(
                 "flex flex-col gap-3 rounded-2xl border-2 bg-ink-raised p-3",
                 mien.vote === "oui" ? "border-turquoise" : mien.vote === "non" ? "border-danger/60" : mien.vote === "peut" ? "border-yellow" : "border-border"
@@ -291,8 +301,20 @@ export function ValidationMes({
                     {p.mesures.map((m) => (m.cle === "taille" ? m.valeur : `${ts(lang, m.cle)} ${m.valeur}`)).join(" · ")}
                   </p>
                 )}
-                {p.joursPrevus.length > 0 ? (
-                  <p className="mt-1 text-xs font-medium text-coral">📅 {ts(lang, "prevu_le")} {p.joursPrevus.map(jourMois).join(", ")}</p>
+                {sec.date && (
+                  <span
+                    className={cn(
+                      "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      p.joursJournee.includes(sec.date) ? "bg-turquoise text-white" : "bg-yellow/20 text-yellow"
+                    )}
+                  >
+                    {p.joursJournee.includes(sec.date) ? `✓ ${ts(lang, "dans_la_journee")}` : `⏳ ${ts(lang, "en_cours")}`}
+                  </span>
+                )}
+                {p.joursPrevus.length + p.joursJournee.length > 0 ? (
+                  <p className="mt-1 text-xs font-medium text-coral">
+                    📅 {Array.from(new Set([...p.joursPrevus, ...p.joursJournee])).sort().map(jourMois).join(", ")}
+                  </p>
                 ) : (
                   p.joursDispo.length > 0 && <p className="mt-1 text-xs text-text-muted">{ts(lang, "dispo_le")} {p.joursDispo.map(jourMois).join(", ")}</p>
                 )}
