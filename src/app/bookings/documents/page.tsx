@@ -1,4 +1,5 @@
 import { nomComplet } from "@/lib/noms";
+import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
 import { getEnvoisJournee } from "@/lib/messages/envois";
 import { listerFonctionsProjet } from "@/lib/projets/fonctions";
 import { trierParNom } from "@/lib/noms";
@@ -96,11 +97,14 @@ export default async function JourneeDashboardPage({
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
-  const [journees, fonctionsProjet, envois] = await Promise.all([
+  const [journees, fonctionsProjet, envois, liensMes] = await Promise.all([
     getJournees(projet_id),
     listerFonctionsProjet(projet_id),
     getEnvoisJournee(projet_id, date),
+    getLiens({ projetId: projet_id }),
   ]);
+  // Dernier avis de la MES (lien de validation Bookings) par figurant·e.
+  const avisMes = dernierVoteParProfil(liensMes.votes);
   const currentIndex = journees.findIndex((j) => j.date === date);
   const currentJournee = currentIndex >= 0 ? journees[currentIndex] : null;
   const prevJournee = currentIndex > 0 ? journees[currentIndex - 1] : null;
@@ -242,6 +246,10 @@ export default async function JourneeDashboardPage({
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
     indemnites: indemnitesByBooking.get(b.id) ?? [],
     majorations: majorationsByBooking.get(b.id) ?? [],
+    mes: (() => {
+      const a = avisMes.get(b.figurant_id);
+      return a ? { vote: a.vote, qui: a.visiteur_role ? `${a.visiteur_nom} (${a.visiteur_role})` : a.visiteur_nom, note: a.note } : null;
+    })(),
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,

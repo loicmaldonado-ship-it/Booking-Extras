@@ -13,7 +13,7 @@ import { AccueilVisiteur, useVisiteur } from "@/components/partage/visiteur";
 import { signalerVisite, voterProfil, commenterLien } from "@/lib/validation/actions";
 import type { Planche, VoteMes } from "@/lib/validation/data";
 
-type VoteVu = { candidatureId: string; cle: string; qui: string; vote: VoteMes | null; note: string };
+type VoteVu = { profilId: string; cle: string; qui: string; vote: VoteMes | null; note: string };
 type CommentaireVu = { id: string; auteur: string; equipe: boolean; texte: string; created_at: string; profil: string | null };
 // Seulement Oui ou Non (demande de Loïc) : pas de « peut-être » ici.
 const VOTES: { v: VoteMes; label: "oui" | "non"; emoji: string; on: string }[] = [
@@ -33,6 +33,7 @@ export function ValidationMes({
   token,
   apercu,
   lang,
+  source,
   titre,
   contexte,
   planches,
@@ -43,6 +44,9 @@ export function ValidationMes({
   token: string;
   apercu: boolean;
   lang: Lang;
+  // « bookings » : tous les profils sont déjà dans leurs journées, la
+  // fonction du jour remplace « en cours de choix / dans la journée ».
+  source: "candidatures" | "bookings";
   titre: string;
   contexte: string;
   planches: Planche[];
@@ -90,7 +94,7 @@ export function ValidationMes({
   const voteDe = useCallback(
     (cid: string) => {
       if (mesVotes[cid]) return mesVotes[cid];
-      const v = maCle ? votes.find((x) => x.candidatureId === cid && x.cle === maCle) : undefined;
+      const v = maCle ? votes.find((x) => x.profilId === cid && x.cle === maCle) : undefined;
       return { vote: v?.vote ?? null, note: v?.note ?? "" };
     },
     [mesVotes, maCle, votes]
@@ -123,12 +127,12 @@ export function ValidationMes({
     });
   }
 
-  const compte = (v: VoteMes) => planches.filter((p) => voteDe(p.candidatureId).vote === v).length;
-  const aVoir = planches.filter((p) => !voteDe(p.candidatureId).vote).length;
+  const compte = (v: VoteMes) => planches.filter((p) => voteDe(p.profilId).vote === v).length;
+  const aVoir = planches.filter((p) => !voteDe(p.profilId).vote).length;
   const visibles = planches
     .map((p, i) => ({ p, i }))
     .filter(({ p }) => {
-      const v = voteDe(p.candidatureId).vote;
+      const v = voteDe(p.profilId).vote;
       return filtre === "tous" ? true : filtre === "a_voir" ? !v : v === filtre;
     });
   // Une section par journée de l'annonce (même vide) : les profils en
@@ -243,6 +247,7 @@ export function ValidationMes({
             <span className="text-sm font-normal text-text-muted">
               · {sec.items.length} {ts(lang, sec.items.length > 1 ? "profils" : "profil")}
               {sec.date &&
+                source === "candidatures" &&
                 sec.items.length > 0 &&
                 ` (${sec.items.filter(({ p }) => p.joursJournee.includes(sec.date!)).length} ${ts(lang, "dans_la_journee").toLowerCase()})`}
             </span>
@@ -251,11 +256,11 @@ export function ValidationMes({
         {sec.date && sec.items.length === 0 && <p className="text-sm text-text-muted">{ts(lang, "personne_jour")}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sec.items.map(({ p, i }) => {
-          const mien = voteDe(p.candidatureId);
-          const autres = votes.filter((v) => v.candidatureId === p.candidatureId && v.cle !== maCle && (v.vote || v.note));
+          const mien = voteDe(p.profilId);
+          const autres = votes.filter((v) => v.profilId === p.profilId && v.cle !== maCle && (v.vote || v.note));
           return (
             <article
-              key={`${sec.cle}-${p.candidatureId}`}
+              key={`${sec.cle}-${p.profilId}`}
               className={cn(
                 "flex flex-col gap-3 rounded-2xl border-2 bg-ink-raised p-3",
                 mien.vote === "oui" ? "border-turquoise" : mien.vote === "non" ? "border-danger/60" : mien.vote === "peut" ? "border-yellow" : "border-border"
@@ -301,7 +306,13 @@ export function ValidationMes({
                     {p.mesures.map((m) => (m.cle === "taille" ? m.valeur : `${ts(lang, m.cle)} ${m.valeur}`)).join(" · ")}
                   </p>
                 )}
-                {sec.date && (
+                {sec.date && source === "bookings" ? (
+                  p.fonctions[sec.date] && (
+                    <span className="mt-1 inline-block rounded-full bg-coral/15 px-2 py-0.5 text-[11px] font-semibold text-coral">
+                      {p.fonctions[sec.date]}
+                    </span>
+                  )
+                ) : sec.date && (
                   <span
                     className={cn(
                       "mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold",
@@ -334,7 +345,7 @@ export function ValidationMes({
                     key={b.v}
                     type="button"
                     disabled={apercu || !moi}
-                    onClick={() => voter(p.candidatureId, mien.vote === b.v ? null : b.v, mien.note)}
+                    onClick={() => voter(p.profilId, mien.vote === b.v ? null : b.v, mien.note)}
                     aria-pressed={mien.vote === b.v}
                     className={cn(
                       "rounded-xl border-2 px-1 py-2 text-sm font-semibold transition-colors disabled:opacity-50",
@@ -347,9 +358,9 @@ export function ValidationMes({
               </div>
               {!apercu && moi && (
                 <input
-                  key={`${p.candidatureId}-${mien.note}`}
+                  key={`${p.profilId}-${mien.note}`}
                   defaultValue={mien.note}
-                  onBlur={(e) => e.target.value.trim() !== mien.note && voter(p.candidatureId, mien.vote, e.target.value)}
+                  onBlur={(e) => e.target.value.trim() !== mien.note && voter(p.profilId, mien.vote, e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
                   placeholder={ts(lang, "note")}
                   maxLength={500}
@@ -407,7 +418,7 @@ export function ValidationMes({
             >
               <option value="">{ts(lang, "a_propos_tous")}</option>
               {planches.map((p) => (
-                <option key={p.candidatureId} value={p.candidatureId}>
+                <option key={p.profilId} value={p.profilId}>
                   {ts(lang, "a_propos")} {p.nom}
                 </option>
               ))}

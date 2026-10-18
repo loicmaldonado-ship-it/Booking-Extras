@@ -398,7 +398,10 @@ export default function AidePage() {
               sur téléphone) : pour chaque date de l&apos;annonce, la jauge des personnes déjà dans la journée face au
               besoin saisi dans Bookings. <UI>🖼️ Voir qui est dans ce jour</UI> ouvre la journée en grand au-dessus
               des cartes : le trombi des personnes déjà dedans, regroupé par fonction (nombre / besoin) avec leur statut,
-              plus les liens dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
+              plus les liens dispo ce jour, trombi à imprimer, <UI>💬 Messages du jour</UI> et la journée dans Bookings.{" "}
+              <strong className="text-text">Envoyer en booking</strong> : coche des profils, puis{" "}
+              <UI>📅 Envoyer dans un jour</UI> dans la barre de sélection (sur tous les écrans, iPad compris), et{" "}
+              <UI>📅 Envoyer … dans ce jour</UI> sur le jour voulu : confirmation sur place (fonction et
               cachet en option), les personnes pas dispo ce jour-là ne sont envoyées que si tu le demandes. Les bookings
               sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
             </>,
@@ -406,7 +409,7 @@ export default function AidePage() {
               <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) :{" "}
               <UI>📅 Créer le lien de toutes les journées</UI> montre à la MES chaque jour de tournage de l&apos;annonce,
               avec les profils en cours de choix (prévus) et ceux déjà dans la journée, et se met à jour tout seul.
-              Ou crée un lien avec seulement les profils cochés ou l&apos;onglet affiché. Elle voit
+              Elle voit
               des planches avec plusieurs photos (galerie plein écran), l&apos;âge, les mensurations et les réponses aux
               questions, mais jamais les coordonnées ni le message de candidature. À l&apos;arrivée, son prénom et son rôle
               sont demandés une seule fois. Chaque profil se vote <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> (pas de
@@ -415,9 +418,7 @@ export default function AidePage() {
               badge <UI>🎬 Validé MES</UI> s&apos;affiche sur la carte et l&apos;onglet <UI>🎬 Validés MES</UI> regroupe les
               validés, à envoyer ensuite dans un jour. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
               et les commentaires, auxquels tu peux répondre. <UI>👀 Voir comme la MES</UI> ouvre la page sans compter de
-              visite. <UI>＋ Ajouter les … cochés</UI> complète un lien existant. Depuis un jour ouvert en grand,{" "}
-              <UI>🔗 Lien MES avec les … prévu·es de ce jour</UI> crée directement le lien des profils prévus ce jour-là,
-              avant de les envoyer dans la journée. Les votes et commentaires arrivent aussi
+              visite. Les votes et commentaires arrivent aussi
               dans la cloche.
             </>,
             <>
@@ -644,6 +645,13 @@ export default function AidePage() {
       >
         <Steps
           items={[
+            <>
+              <strong className="text-text">🔗 Lien de validation MES</strong> (page Bookings du projet, sous les
+              journées) : <UI>📅 Créer le lien de toutes les journées</UI> montre à la mise en scène chaque journée à
+              venir avec les profils bookés (photos, âge, mensurations, fonction, jamais les coordonnées). Elle répond{" "}
+              <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> et peut commenter ; le lien se met à jour tout seul. Dans la journée, le
+              badge <UI>🎬 Validé MES</UI> s&apos;affiche à côté du nom.
+            </>,
             <>
               Choisis le projet puis la <strong className="text-text">journée</strong> — elle se crée
               automatiquement dès le premier profil ajouté. Une journée vide (aucun booking) peut être

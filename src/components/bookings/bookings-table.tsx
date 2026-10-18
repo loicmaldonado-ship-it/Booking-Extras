@@ -85,8 +85,26 @@ async function copyTextToClipboard(text: string) {
   }
 }
 
+// Avis de la MES (🎬) sur un profil de la journée.
+function BadgeMesBooking({ mes }: { mes: Row["mes"] }) {
+  if (!mes?.vote) return null;
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        mes.vote === "oui" ? "bg-turquoise text-white" : mes.vote === "non" ? "bg-danger/15 text-danger" : "bg-yellow/25 text-yellow"
+      )}
+      title={mes.note ? `${mes.qui} : « ${mes.note} »` : mes.qui}
+    >
+      🎬 {mes.vote === "oui" ? "Validé MES" : mes.vote === "non" ? "Écarté MES" : "Peut-être MES"}
+    </span>
+  );
+}
+
 export type Row = {
   id: string;
+  // Dernier avis de la MES sur le lien de validation du projet.
+  mes?: { vote: "oui" | "peut" | "non" | null; qui: string; note: string } | null;
   figurant_id?: string;
   date: string;
   heure_convocation: string | null;
@@ -1022,6 +1040,7 @@ export function BookingsTable({
             <span className="min-w-0 max-w-full truncate">
               {r.figurants ? nomComplet(r.figurants) : "—"}
             </span>
+            <BadgeMesBooking mes={r.mes} />
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
               <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
@@ -1216,6 +1235,7 @@ export function BookingsTable({
           <div className="text-sm font-medium">
             {r.figurants ? nomComplet(r.figurants) : "—"}
           </div>
+          <BadgeMesBooking mes={r.mes} />
           {ageEtVille(r) && <div className="-mt-1 text-xs text-text-muted">{ageEtVille(r)}</div>}
           {projetId && r.figurant_id && (
             // La carte entière est un lien : le choix des photos ne doit pas

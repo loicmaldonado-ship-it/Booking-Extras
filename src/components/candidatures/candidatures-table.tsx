@@ -163,7 +163,7 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"casting" | "journee" | "lien" | null>(liensOuverts ? "lien" : null);
+  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "lien" | null>(liensOuverts ? "lien" : null);
   const [panneauMobile, setPanneauMobile] = useState(false);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
@@ -240,7 +240,8 @@ export function CandidaturesTable({
 
   function apresEnvoi() {
     setSelected(new Set());
-    setOutil(null);
+    // L'envoi dans un jour garde sa fenêtre ouverte : la confirmation reste lisible.
+    setOutil((o) => (o === "envoi" ? o : null));
     router.refresh();
   }
 
@@ -297,9 +298,6 @@ export function CandidaturesTable({
             jour={jourVu}
             projetId={projetId}
             fermerHref={jourVu.vuHref}
-            annonceId={annonceId}
-            annonceTitre={nomLienParDefaut}
-            origin={origin}
           />
         )}
         {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
@@ -375,6 +373,19 @@ export function CandidaturesTable({
           </div>
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              {jours.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
+                  aria-expanded={outil === "envoi"}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-xs font-semibold",
+                    outil === "envoi" ? "bg-coral/15 text-coral ring-2 ring-coral" : "bg-coral text-ink hover:bg-coral-hover"
+                  )}
+                >
+                  📅 Envoyer dans un jour ({selection.length})
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setEcrireA(selection)}
@@ -406,20 +417,29 @@ export function CandidaturesTable({
               </button>
               {jours.length > 0 && (
                 <span className="text-xs text-text-muted xl:inline">
-                  Pour les jours de l&apos;annonce, utilise le panneau « Jours de tournage ».
+                  Envoyer en booking : « 📅 Envoyer dans un jour ».
                 </span>
               )}
             </div>
           )}
           {outil === "lien" && (
-            <LiensValidation
-              annonceId={annonceId}
-              nomParDefaut={nomLienParDefaut}
-              liens={liens}
-              selectionIds={selection.map((r) => r.id)}
-              listeIds={triIds}
-              origin={origin}
-            />
+            <LiensValidation cible={{ annonceId }} nomParDefaut={nomLienParDefaut} liens={liens} origin={origin} />
+          )}
+          {/* Reste ouvert après l'envoi pour montrer la confirmation. */}
+          {outil === "envoi" && panneau && (
+            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
+              <div className="flex items-center justify-between gap-2">
+                <b className="text-sm">📅 Envoyer en booking dans un jour</b>
+                <button
+                  type="button"
+                  onClick={() => setOutil(null)}
+                  className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60"
+                >
+                  Fermer
+                </button>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 [&>div]:contents [&>div>p]:col-span-full">{panneau}</div>
+            </div>
           )}
           {selected.size > 0 && outil === "casting" && (
             <AddToCastingBar figurantIds={selection.map((r) => r.figurants!.id)} projets={projets} onDone={apresEnvoi} />

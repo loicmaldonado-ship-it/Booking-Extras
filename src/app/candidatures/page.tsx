@@ -12,7 +12,7 @@ import { AGES, ORDRES, type Ordre } from "@/lib/candidatures/filtres";
 import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
 import { getModelesEquipe } from "@/lib/templates/equipe";
-import { getLiensAnnonce, dernierVoteParCandidature } from "@/lib/validation/data";
+import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
@@ -226,11 +226,11 @@ export default async function CandidaturesPage({
     getAnnonceQuestions(annonceId),
     getAnnonceDates(annonceId),
     getModelesEquipe(),
-    getLiensAnnonce(annonceId),
+    getLiens({ annonceId }),
     getSiteOrigin(),
   ]);
   // Dernier avis de la MES par profil (tous liens de l'annonce confondus).
-  const avisMes = dernierVoteParCandidature(liensValidation.votes);
+  const avisMes = dernierVoteParProfil(liensValidation.votes);
 
   const annonceDateIds = annonceDates.map((d) => d.id);
   // Ne garde que des dates de cette annonce : les ids viennent de l'URL.

@@ -1,7 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchAll } from "@/lib/supabase/fetch-all";
-import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
+import { getPhotosByFigurantId, getPhotosParCandidature, type FigurantPhotoWithUrl } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { nomComplet } from "@/lib/noms";
 
@@ -12,21 +12,32 @@ export const EN_LIGNE_MS = 70_000;
 // Photos montrables à la MES : jamais le selfie de vérification.
 const TYPES_PHOTOS = ["portrait", "pied", "autre", "tenue"];
 
+// Statuts qui ne comptent pas comme une place prise dans la journée.
+const HORS_JOURNEE = ["annulé", "indisponible"];
+
+// Un lien de validation part soit d'une annonce (Candidatures : profils
+// prévus ou déjà dans chaque journée), soit d'un projet (Bookings : profils
+// bookés sur les journées à venir).
+export type SourceLien = "candidatures" | "bookings";
+
 export type LienValidation = {
   id: string;
   token: string;
   nom: string;
-  annonce_id: string;
+  annonce_id: string | null;
   projet_id: string;
   created_at: string;
   toutes_journees: boolean;
+  source: SourceLien;
 };
 
 export async function getLienParToken(token: string) {
   if (!/^[0-9a-f]{32}$/.test(token)) return null;
   const { data } = await createAdminClient()
     .from("liens_validation")
-    .select("id, token, nom, annonce_id, projet_id, created_at, toutes_journees, annonces(titre), projets(nom, confidentiel, nom_code, societe_production)")
+    .select(
+      "id, token, nom, annonce_id, projet_id, created_at, toutes_journees, source, annonces(titre), projets(nom, confidentiel, nom_code, societe_production)"
+    )
     .eq("token", token)
     .maybeSingle<
       LienValidation & {
@@ -38,7 +49,8 @@ export async function getLienParToken(token: string) {
 }
 
 export type Planche = {
-  candidatureId: string;
+  // Candidature (lien Candidatures) ou figurant·e (lien Bookings).
+  profilId: string;
   nom: string;
   age: number | null;
   genre: string | null;
@@ -46,17 +58,16 @@ export type Planche = {
   mesures: { cle: "taille" | "pointure" | "veste" | "pantalon"; valeur: string }[];
   photos: { url: string; label: string }[];
   questions: { label: string; reponse: boolean }[];
-  // Jours de tournage de l'annonce : prévue (en cours de choix), déjà dans
-  // la journée (booking), ou dite dispo.
+  // Jours de tournage : prévue (en cours de choix), déjà dans la journée
+  // (booking), ou dite dispo.
   joursPrevus: string[];
   joursJournee: string[];
   joursDispo: string[];
+  // Fonction tenue chaque jour (lien Bookings).
+  fonctions: Record<string, string>;
 };
 
 const LIBELLES: Record<string, string> = { portrait: "Portrait", pied: "En pied", autre: "Photo", tenue: "Essayage" };
-
-// Statuts qui ne comptent pas comme une place prise dans la journée.
-const HORS_JOURNEE = ["annulé", "indisponible"];
 
 type Figurant = {
   id: string;
@@ -69,6 +80,35 @@ type Figurant = {
   veste: string | null;
   pantalon: string | null;
 };
+const CHAMPS_FIGURANT = "id, prenom, nom, genre, date_naissance, taille_cm, pointure, veste, pantalon";
+
+function photosMontrables(sources: FigurantPhotoWithUrl[], projetId: string) {
+  return (
+    sources
+      .filter((p) => p.url && TYPES_PHOTOS.includes(p.type) && (p.type !== "tenue" || p.projet_id === projetId))
+      // Portrait d'abord.
+      .sort((a, b) => Number(b.type === "portrait") - Number(a.type === "portrait"))
+      .map((p) => ({ url: p.url!, label: LIBELLES[p.type] ?? "Photo" }))
+  );
+}
+
+function identite(f: Figurant) {
+  return {
+    nom: nomComplet(f),
+    age: computeAge(f.date_naissance),
+    genre: f.genre,
+    mesures: (
+      [
+        ["taille", f.taille_cm ? `${f.taille_cm} cm` : null],
+        ["pointure", f.pointure ? String(f.pointure) : null],
+        ["veste", f.veste],
+        ["pantalon", f.pantalon],
+      ] as const
+    )
+      .filter(([, v]) => v)
+      .map(([cle, valeur]) => ({ cle, valeur: valeur! })),
+  };
+}
 
 // Les journées de l'annonce telles qu'elles se choisissent : qui est prévu
 // sur chaque jour (pastilles de Candidatures) et qui y est déjà (booking sur
@@ -123,20 +163,75 @@ export async function journeesDeLAnnonce(annonceId: string, projetId: string) {
   return { dates: Array.from(dateDe.values()), prevusPar, journeePar };
 }
 
+// Les journées à venir d'un projet (Bookings) et qui y est booké·e.
+export async function journeesDuProjet(projetId: string) {
+  const supabase = createAdminClient();
+  const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+  const { data: journees } = await supabase
+    .from("journees")
+    .select("date")
+    .eq("projet_id", projetId)
+    .gte("date", aujourdhui)
+    .order("date");
+  const dates = (journees ?? []).map((j) => j.date);
+  const joursPar = new Map<string, string[]>();
+  const fonctionsPar = new Map<string, Record<string, string>>();
+  if (dates.length === 0) return { dates, joursPar, fonctionsPar };
+  const { data: bookings } = await fetchAll<{ figurant_id: string; date: string; statut: string; fonction: string | null }>((from, to) =>
+    supabase
+      .from("bookings")
+      .select("figurant_id, date, statut, fonction")
+      .eq("projet_id", projetId)
+      .in("date", dates)
+      .order("id")
+      .range(from, to)
+  );
+  for (const b of bookings) {
+    if (HORS_JOURNEE.includes(b.statut)) continue;
+    joursPar.set(b.figurant_id, Array.from(new Set([...(joursPar.get(b.figurant_id) ?? []), b.date])).sort());
+    if (b.fonction) fonctionsPar.set(b.figurant_id, { ...(fonctionsPar.get(b.figurant_id) ?? {}), [b.date]: b.fonction });
+  }
+  return { dates, joursPar, fonctionsPar };
+}
+
 // Planches d'un lien : identité, âge, mensurations, photos, réponses aux
 // questions et jours. Ni coordonnées ni message de candidature. Un lien
-// « toutes les journées » reprend en direct les profils prévus ou déjà
-// dans chaque journée, en plus de ceux ajoutés à la main.
-export async function getPlanches(lien: {
-  id: string;
-  projet_id: string;
-  annonce_id: string;
-  toutes_journees: boolean;
-}): Promise<{ planches: Planche[]; dates: string[] }> {
+// « toutes les journées » reprend en direct les profils de chaque journée.
+export async function getPlanches(lien: LienValidation): Promise<{ planches: Planche[]; dates: string[] }> {
+  return lien.source === "bookings" ? planchesBookings(lien) : planchesCandidatures(lien);
+}
+
+async function planchesBookings(lien: LienValidation): Promise<{ planches: Planche[]; dates: string[] }> {
   const supabase = createAdminClient();
+  const journees = await journeesDuProjet(lien.projet_id);
+  const ids = Array.from(journees.joursPar.keys()).slice(0, 600);
+  const figurants: Figurant[] = [];
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data } = await supabase.from("figurants").select(CHAMPS_FIGURANT).in("id", ids.slice(i, i + 150)).returns<Figurant[]>();
+    figurants.push(...(data ?? []));
+  }
+  const photos = await getPhotosByFigurantId(figurants.map((f) => f.id));
+  const planches = figurants
+    .sort((a, b) => nomComplet(a).localeCompare(nomComplet(b), "fr"))
+    .map((f) => ({
+      profilId: f.id,
+      ...identite(f),
+      photos: photosMontrables(photos.get(f.id) ?? [], lien.projet_id),
+      questions: [],
+      joursPrevus: [],
+      joursJournee: journees.joursPar.get(f.id) ?? [],
+      joursDispo: [],
+      fonctions: journees.fonctionsPar.get(f.id) ?? {},
+    }));
+  return { planches, dates: journees.dates };
+}
+
+async function planchesCandidatures(lien: LienValidation): Promise<{ planches: Planche[]; dates: string[] }> {
+  const supabase = createAdminClient();
+  const annonceId = lien.annonce_id!;
   const [{ data: manuels }, journees] = await Promise.all([
     supabase.from("lien_validation_profils").select("candidature_id").eq("lien_id", lien.id).order("ordre").order("created_at"),
-    journeesDeLAnnonce(lien.annonce_id, lien.projet_id),
+    journeesDeLAnnonce(annonceId, lien.projet_id),
   ]);
   const ids = Array.from(
     new Set([
@@ -149,7 +244,7 @@ export async function getPlanches(lien: {
   for (let i = 0; i < ids.length; i += 150) {
     const { data } = await supabase
       .from("candidatures")
-      .select("id, figurants(id, prenom, nom, genre, date_naissance, taille_cm, pointure, veste, pantalon)")
+      .select(`id, figurants(${CHAMPS_FIGURANT})`)
       .in("id", ids.slice(i, i + 150))
       .returns<{ id: string; figurants: Figurant | null }[]>();
     lignes.push(...(data ?? []));
@@ -168,7 +263,7 @@ export async function getPlanches(lien: {
           .in("candidature_id", candidatureIds)
           .returns<{ candidature_id: string; reponse: boolean; annonce_questions: { label: string; ordre: number | null } | null }[]>()
       : Promise.resolve({ data: [] }),
-    supabase.from("annonce_dates").select("id, date").eq("annonce_id", lien.annonce_id),
+    supabase.from("annonce_dates").select("id, date").eq("annonce_id", annonceId),
     candidatureIds.length > 0
       ? supabase
           .from("candidature_disponibilites")
@@ -179,66 +274,48 @@ export async function getPlanches(lien: {
   ]);
   const dateDe = new Map((dates ?? []).map((d) => [d.id, d.date]));
 
-  const planches = profils.map((l) => {
-    const f = l.figurants;
-    const sources = photosCandidature.get(l.id) ?? photosFigurant.get(f.id) ?? [];
-    const photos = sources
-      .filter((p) => p.url && TYPES_PHOTOS.includes(p.type) && (p.type !== "tenue" || p.projet_id === lien.projet_id))
-      // Portrait d'abord.
-      .sort((a, b) => Number(b.type === "portrait") - Number(a.type === "portrait"))
-      .map((p) => ({ url: p.url!, label: LIBELLES[p.type] ?? "Photo" }));
-    return {
-      candidatureId: l.id,
-      nom: nomComplet(f),
-      age: computeAge(f.date_naissance),
-      genre: f.genre,
-      mesures: (
-        [
-          ["taille", f.taille_cm ? `${f.taille_cm} cm` : null],
-          ["pointure", f.pointure ? String(f.pointure) : null],
-          ["veste", f.veste],
-          ["pantalon", f.pantalon],
-        ] as const
-      )
-        .filter(([, v]) => v)
-        .map(([cle, valeur]) => ({ cle, valeur: valeur! })),
-      photos,
-      questions: (reponses ?? [])
-        .filter((r) => r.candidature_id === l.id && r.annonce_questions)
-        .sort((a, b) => (a.annonce_questions!.ordre ?? 0) - (b.annonce_questions!.ordre ?? 0))
-        .map((r) => ({ label: r.annonce_questions!.label, reponse: r.reponse })),
-      joursPrevus: journees.prevusPar.get(l.id) ?? [],
-      joursJournee: journees.journeePar.get(l.id) ?? [],
-      joursDispo: (dispos ?? [])
-        .filter((x) => x.candidature_id === l.id && dateDe.has(x.annonce_date_id))
-        .map((x) => dateDe.get(x.annonce_date_id)!)
-        .sort(),
-    };
-  });
+  const planches = profils.map((l) => ({
+    profilId: l.id,
+    ...identite(l.figurants),
+    photos: photosMontrables(photosCandidature.get(l.id) ?? photosFigurant.get(l.figurants.id) ?? [], lien.projet_id),
+    questions: (reponses ?? [])
+      .filter((r) => r.candidature_id === l.id && r.annonce_questions)
+      .sort((a, b) => (a.annonce_questions!.ordre ?? 0) - (b.annonce_questions!.ordre ?? 0))
+      .map((r) => ({ label: r.annonce_questions!.label, reponse: r.reponse })),
+    joursPrevus: journees.prevusPar.get(l.id) ?? [],
+    joursJournee: journees.journeePar.get(l.id) ?? [],
+    joursDispo: (dispos ?? [])
+      .filter((x) => x.candidature_id === l.id && dateDe.has(x.annonce_date_id))
+      .map((x) => dateDe.get(x.annonce_date_id)!)
+      .sort(),
+    fonctions: {},
+  }));
   return { planches, dates: journees.dates };
 }
 
-// Une candidature fait-elle partie du lien (ajoutée à la main, ou prévue /
-// dans une journée pour un lien « toutes les journées ») ?
-export async function candidatureDansLien(
-  lien: { id: string; projet_id: string; annonce_id: string; toutes_journees: boolean },
-  candidatureId: string
-): Promise<boolean> {
+// Le profil fait-il partie du lien ? (Candidatures : ajouté à la main, ou
+// prévu / dans une journée ; Bookings : booké·e sur une journée à venir.)
+export async function profilDansLien(lien: LienValidation, profilId: string): Promise<boolean> {
+  if (lien.source === "bookings") {
+    const j = await journeesDuProjet(lien.projet_id);
+    return j.joursPar.has(profilId);
+  }
   const { data } = await createAdminClient()
     .from("lien_validation_profils")
     .select("candidature_id")
     .eq("lien_id", lien.id)
-    .eq("candidature_id", candidatureId)
+    .eq("candidature_id", profilId)
     .maybeSingle();
   if (data) return true;
-  if (!lien.toutes_journees) return false;
+  if (!lien.toutes_journees || !lien.annonce_id) return false;
   const j = await journeesDeLAnnonce(lien.annonce_id, lien.projet_id);
-  return j.prevusPar.has(candidatureId) || j.journeePar.has(candidatureId);
+  return j.prevusPar.has(profilId) || j.journeePar.has(profilId);
 }
 
 export type VoteLigne = {
   lien_id: string;
-  candidature_id: string;
+  // Candidature ou figurant·e selon la source du lien.
+  profil_id: string;
   visiteur_id: string;
   visiteur_nom: string;
   visiteur_role: string;
@@ -249,16 +326,17 @@ export type VoteLigne = {
 
 export async function getVotesLiens(lienIds: string[]): Promise<VoteLigne[]> {
   if (lienIds.length === 0) return [];
-  const { data } = await fetchAll<VoteLigne>((from, to) =>
+  type Ligne = Omit<VoteLigne, "profil_id"> & { candidature_id: string | null; figurant_id: string | null };
+  const { data } = await fetchAll<Ligne>((from, to) =>
     createAdminClient()
       .from("lien_validation_votes")
-      .select("lien_id, candidature_id, visiteur_id, visiteur_nom, visiteur_role, vote, note, updated_at")
+      .select("lien_id, candidature_id, figurant_id, visiteur_id, visiteur_nom, visiteur_role, vote, note, updated_at")
       .in("lien_id", lienIds)
       .order("updated_at")
       .range(from, to)
-      .returns<VoteLigne[]>()
+      .returns<Ligne[]>()
   );
-  return data;
+  return data.map(({ candidature_id, figurant_id, ...v }) => ({ ...v, profil_id: (candidature_id ?? figurant_id)! }));
 }
 
 export type Commentaire = {
@@ -276,7 +354,7 @@ export async function getCommentaires(lienIds: string[]): Promise<Map<string, Co
   if (lienIds.length === 0) return map;
   const { data } = await createAdminClient()
     .from("partage_commentaires")
-    .select("id, lien_id, auteur, profile_id, visiteur_id, texte, created_at, candidatures(figurants(prenom, nom))")
+    .select("id, lien_id, auteur, profile_id, visiteur_id, texte, created_at, candidatures(figurants(prenom, nom)), figurants(prenom, nom)")
     .eq("lien_type", "validation")
     .in("lien_id", lienIds)
     .order("created_at")
@@ -290,10 +368,12 @@ export async function getCommentaires(lienIds: string[]): Promise<Map<string, Co
         texte: string;
         created_at: string;
         candidatures: { figurants: { prenom: string; nom: string } | null } | null;
+        figurants: { prenom: string; nom: string } | null;
       }[]
     >();
   for (const c of data ?? []) {
     const liste = map.get(c.lien_id) ?? [];
+    const personne = c.candidatures?.figurants ?? c.figurants;
     liste.push({
       id: c.id,
       auteur: c.auteur,
@@ -301,7 +381,7 @@ export async function getCommentaires(lienIds: string[]): Promise<Map<string, Co
       visiteur_id: c.visiteur_id,
       texte: c.texte,
       created_at: c.created_at,
-      profil: c.candidatures?.figurants ? nomComplet(c.candidatures.figurants) : null,
+      profil: personne ? nomComplet(personne) : null,
     });
     map.set(c.lien_id, liste);
   }
@@ -310,8 +390,9 @@ export async function getCommentaires(lienIds: string[]): Promise<Map<string, Co
 
 export type Visite = { visiteur_id: string; prenom: string; role: string; derniere_vue: string; enLigne: boolean; votes: number };
 
-// Côté équipe : les liens de validation d'une annonce, avec qui les a
-// ouverts, les votes et les commentaires.
+// Côté équipe : les liens de validation d'une annonce (Candidatures) ou
+// d'un projet (Bookings), avec qui les a ouverts, les votes et les
+// commentaires.
 export type LienResume = {
   id: string;
   token: string;
@@ -319,7 +400,7 @@ export type LienResume = {
   created_at: string;
   auteur: string | null;
   toutesJournees: boolean;
-  candidatureIds: string[];
+  profilIds: string[];
   oui: number;
   peut: number;
   non: number;
@@ -327,25 +408,30 @@ export type LienResume = {
   commentaires: Commentaire[];
 };
 
-export async function getLiensAnnonce(annonceId: string): Promise<{ liens: LienResume[]; votes: VoteLigne[] }> {
+export async function getLiens(
+  cible: { annonceId: string } | { projetId: string }
+): Promise<{ liens: LienResume[]; votes: VoteLigne[] }> {
   const supabase = createAdminClient();
-  const { data: liens } = await supabase
+  let requete = supabase
     .from("liens_validation")
-    .select("id, token, nom, created_at, toutes_journees, projet_id, createur:profiles!liens_validation_created_by_fkey(prenom, nom), lien_validation_profils(candidature_id)")
-    .eq("annonce_id", annonceId)
-    .order("created_at", { ascending: false })
-    .returns<
-      {
-        id: string;
-        token: string;
-        nom: string;
-        created_at: string;
-        toutes_journees: boolean;
-        projet_id: string;
-        createur: { prenom: string | null; nom: string | null } | null;
-        lien_validation_profils: { candidature_id: string }[];
-      }[]
-    >();
+    .select(
+      "id, token, nom, created_at, toutes_journees, projet_id, annonce_id, createur:profiles!liens_validation_created_by_fkey(prenom, nom), lien_validation_profils(candidature_id)"
+    )
+    .order("created_at", { ascending: false });
+  requete = "annonceId" in cible ? requete.eq("annonce_id", cible.annonceId) : requete.eq("projet_id", cible.projetId).eq("source", "bookings");
+  const { data: liens } = await requete.returns<
+    {
+      id: string;
+      token: string;
+      nom: string;
+      created_at: string;
+      toutes_journees: boolean;
+      projet_id: string;
+      annonce_id: string | null;
+      createur: { prenom: string | null; nom: string | null } | null;
+      lien_validation_profils: { candidature_id: string }[];
+    }[]
+  >();
   const ids = (liens ?? []).map((l) => l.id);
   const [votes, commentaires, { data: visites }] = await Promise.all([
     getVotesLiens(ids),
@@ -360,13 +446,19 @@ export async function getLiensAnnonce(annonceId: string): Promise<{ liens: LienR
       : Promise.resolve({ data: [] as { lien_id: string; visiteur_id: string; prenom: string; role: string; derniere_vue: string }[] }),
   ]);
   const maintenant = Date.now();
-  const lienJournees = (liens ?? []).find((l) => l.toutes_journees);
-  const journees = lienJournees ? await journeesDeLAnnonce(annonceId, lienJournees.projet_id) : null;
+  const premier = (liens ?? [])[0];
+  let dynamiques: string[] = [];
+  if (premier && "projetId" in cible) {
+    dynamiques = Array.from((await journeesDuProjet(cible.projetId)).joursPar.keys());
+  } else if (premier && "annonceId" in cible && (liens ?? []).some((l) => l.toutes_journees)) {
+    const j = await journeesDeLAnnonce(cible.annonceId, premier.projet_id);
+    dynamiques = [...j.prevusPar.keys(), ...j.journeePar.keys()];
+  }
   return {
     votes,
     liens: (liens ?? []).map((l) => {
       const votesLien = votes.filter((v) => v.lien_id === l.id);
-      const parProfil = dernierVoteParCandidature(votesLien);
+      const parProfil = dernierVoteParProfil(votesLien);
       const compte = (v: VoteMes) => Array.from(parProfil.values()).filter((x) => x.vote === v).length;
       return {
         id: l.id,
@@ -375,11 +467,8 @@ export async function getLiensAnnonce(annonceId: string): Promise<{ liens: LienR
         created_at: l.created_at,
         auteur: l.createur ? nomComplet(l.createur) : null,
         toutesJournees: l.toutes_journees,
-        candidatureIds: Array.from(
-          new Set([
-            ...l.lien_validation_profils.map((p) => p.candidature_id),
-            ...(l.toutes_journees && journees ? [...journees.prevusPar.keys(), ...journees.journeePar.keys()] : []),
-          ])
+        profilIds: Array.from(
+          new Set([...l.lien_validation_profils.map((p) => p.candidature_id), ...(l.toutes_journees ? dynamiques : [])])
         ),
         oui: compte("oui"),
         peut: compte("peut"),
@@ -402,12 +491,12 @@ export async function getLiensAnnonce(annonceId: string): Promise<{ liens: LienR
 
 // Dernier vote exprimé (non vide) pour chaque profil, tous votant·es
 // confondu·es ; la note suit le vote.
-export function dernierVoteParCandidature(votes: VoteLigne[]) {
+export function dernierVoteParProfil(votes: VoteLigne[]) {
   const map = new Map<string, VoteLigne>();
   for (const v of votes) {
     if (!v.vote && !v.note) continue;
-    const avant = map.get(v.candidature_id);
-    if (!avant || v.updated_at >= avant.updated_at) map.set(v.candidature_id, v);
+    const avant = map.get(v.profil_id);
+    if (!avant || v.updated_at >= avant.updated_at) map.set(v.profil_id, v);
   }
   return map;
 }

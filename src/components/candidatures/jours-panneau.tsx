@@ -7,7 +7,6 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
 import { envoyerCandidaturesDansJour, envoyerJourAuTournage } from "@/lib/candidatures/jours";
-import { creerLienValidation } from "@/lib/validation/actions";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { statutLabel, statutTone, type BookingStatut } from "@/lib/bookings/types";
 import { Badge } from "@/components/ui/card";
@@ -270,28 +269,11 @@ export function JourneeEnGrand({
   jour,
   projetId,
   fermerHref,
-  annonceId,
-  annonceTitre,
-  origin,
 }: {
   jour: JourPanneau;
   projetId: string;
   fermerHref: string;
-  annonceId: string;
-  annonceTitre: string;
-  origin: string;
 }) {
-  const [lien, setLien] = useState<{ url?: string; error?: string; copie?: boolean } | null>(null);
-  const [pendingLien, startLien] = useTransition();
-
-  // Lien de validation MES avec les prévu·es de ce jour, avant de les
-  // envoyer dans la journée.
-  function creerLienDuJour() {
-    startLien(async () => {
-      const res = await creerLienValidation(annonceId, `${annonceTitre} — ${formatDayMonth(jour.date)}`, jour.prevusIds);
-      setLien(res.token ? { url: `${origin}/partage/validation/${res.token}` } : { error: res.error });
-    });
-  }
   const groupes = new Map<string, JourPanneau["gens"]>();
   for (const g of jour.gens) {
     const cle = g.fonction?.trim() || "";
@@ -342,26 +324,7 @@ export function JourneeEnGrand({
         <Link href={`/bookings/documents?projet_id=${projetId}&date=${jour.date}`} className={classeLien}>
           Ouvrir la journée dans Bookings →
         </Link>
-        {jour.prevusIds.length > 0 && !lien?.url && (
-          <button type="button" disabled={pendingLien} onClick={creerLienDuJour} className={cn(classeLien, "border-coral text-coral")}>
-            🔗 Lien MES avec les {jour.prevusIds.length} prévu·e{jour.prevusIds.length > 1 ? "s" : ""} de ce jour
-          </button>
-        )}
       </div>
-      {lien?.error && <p className="text-sm text-danger">{lien.error}</p>}
-      {lien?.url && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-turquoise/50 bg-turquoise/10 p-2 text-sm">
-          <span className="font-medium text-turquoise">✓ Lien MES créé pour ce jour</span>
-          <code className="min-w-0 flex-1 truncate text-xs">{lien.url}</code>
-          <button
-            type="button"
-            onClick={() => navigator.clipboard.writeText(lien.url!).then(() => setLien({ ...lien, copie: true }))}
-            className={classeLien}
-          >
-            {lien.copie ? "Copié ✓" : "Copier le lien"}
-          </button>
-        </div>
-      )}
 
       {jour.gens.length === 0 ? (
         <p className="py-6 text-center text-sm text-text-muted">
