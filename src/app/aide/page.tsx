@@ -364,40 +364,52 @@ export default function AidePage() {
         <Steps
           items={[
             <>
-              Le plus rapide : <UI>⚡ Tri rapide</UI>. Chaque personne s&apos;affiche en grand (photos, âge, ville,
-              dispos, réponses, message) et tu la ranges d&apos;un clic ou d&apos;une touche (<UI>1</UI> Retenu,{" "}
-              <UI>2</UI> Peut-être… <UI>0</UI> la remet à trier), puis la suivante arrive toute seule.{" "}
-              <UI>←</UI> <UI>→</UI> pour naviguer, <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour
-              fermer. Le tri porte sur la liste affichée : ouvre-le depuis l&apos;onglet <UI>À trier</UI> pour ne
-              voir que les nouvelles. Un clic sur le nom ou la photo d&apos;une personne ouvre cette même vue
-              directement sur elle (Cmd/Ctrl-clic ouvre sa page détaillée dans un nouvel onglet).
+              <strong className="text-text">Un onglet par étape du tri</strong> : <UI>📥 À trier</UI> (ouvert par
+              défaut), <UI>✅ Retenu</UI>, <UI>🤔 Peut-être</UI>, tes onglets perso, <UI>👥 Tous</UI> et{" "}
+              <UI>🚫 OUT</UI>. Chaque onglet affiche son nombre de profils avec les filtres en cours.{" "}
+              <UI>＋ Onglet</UI> en crée un sur cette annonce seulement (les autres cheffes et tes autres annonces ne le
+              voient pas).
             </>,
             <>
-              Sur chaque carte, l&apos;âge, la ville et une pastille par date recherchée (verte = dispo, rouge
-              barrée = pas dispo) sont visibles directement. Le badge <UI>Habitué·e</UI> indique sur combien de
-              tournages la personne a déjà été confirmée.
+              <strong className="text-text">Une seule barre de filtres</strong> : recherche par prénom, nom ou email,
+              genre, âge, dispo par date, réponse à une question, et <UI>＋ Plus de filtres</UI> (Myrole, véhicule, code
+              postal, mensurations). Les filtres actifs s&apos;affichent en dessous, chacun se retire d&apos;un clic sur{" "}
+              <UI>×</UI>. La recherche signale aussi les personnes trouvées dans un autre onglet ou déjà envoyées dans une
+              journée. Le menu <UI>Trier</UI> range par arrivée, nom, âge ou habitué·es ; <UI>🖼️ Trombi</UI> /{" "}
+              <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
-              <strong className="text-text">Jours de tournage.</strong> Si l&apos;annonce a des dates, chaque carte
-              montre une pastille par date : un clic prévoit la personne ce jour-là (plusieurs jours possibles),
-              contour vert = elle s&apos;est dite dispo. Dans le tri rapide, les touches <UI>A</UI> <UI>Z</UI>{" "}
-              <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
-              au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
-              d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
-              journée. Les personnes envoyées quittent la liste, mais le jour garde leur trace : la pastille compte les{" "}
-              <UI>envoyé·es</UI>, et en ouvrant le jour tu vois leur trombi (photo, nom, statut du booking) avec des
-              liens vers le trombi et les fiches mensuration de la journée.
+              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI>, le <strong className="text-text">message de
+              candidature</strong> (3 lignes, <UI>Lire tout</UI> pour le reste), les dates et les réponses aux
+              questions. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
+              (re-cliquer la remet à trier). Coche plusieurs cartes pour les ranger d&apos;un coup dans n&apos;importe
+              quel onglet, les ajouter au casting ou les envoyer dans une autre journée.
             </>,
             <>
-              <strong className="text-text">Trombi et fiches d&apos;une sélection.</strong> Coche des personnes, puis{" "}
-              <UI>🖼️ Trombi</UI> ou <UI>📏 Fiches mensuration</UI> : les documents s&apos;ouvrent dans un nouvel
-              onglet, à imprimer ou télécharger en PDF (avant tout booking, par exemple pour les montrer à la
-              réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
+              <UI>⚡ Trier un par un</UI> : chaque personne s&apos;affiche en grand (photos, message en entier, dispos,
+              réponses) et tu la ranges d&apos;un clic ou d&apos;une touche (<UI>1</UI> Retenu, <UI>2</UI> Peut-être…{" "}
+              <UI>0</UI> la remet à trier), puis la suivante arrive toute seule. <UI>←</UI> <UI>→</UI> pour naviguer,{" "}
+              <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour fermer. Un clic sur le nom ou la photo
+              d&apos;une carte ouvre cette même vue sur elle (Cmd/Ctrl-clic ouvre sa page détaillée).
             </>,
             <>
-              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT</strong> sont communs
-              à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
-              as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
+              <strong className="text-text">Panneau Jours de tournage</strong> (à droite, ou bouton <UI>📅 Jours</UI>{" "}
+              sur téléphone) : pour chaque date de l&apos;annonce, la jauge des personnes déjà dans la journée face au
+              besoin saisi dans Bookings. Clique un jour pour voir les statuts, les besoins par fonction, qui y est,
+              filtrer les dispo ce jour, et ouvrir le <UI>🖼️ Trombi du jour</UI>, les <UI>💬 Messages du jour</UI> ou
+              la journée. Coche des profils puis <UI>📅 Envoyer … dans ce jour</UI> : confirmation sur place (fonction et
+              cachet en option), les personnes pas dispo ce jour-là ne sont envoyées que si tu le demandes. Les bookings
+              sont créés en PER, rien n&apos;est envoyé aux figurant·es, et les personnes quittent Candidatures.
+            </>,
+            <>
+              Les pastilles de date d&apos;une carte servent aussi à <strong className="text-text">prévoir</strong>{" "}
+              quelqu&apos;un sur un jour (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un) : le jour
+              propose alors <UI>📅 Envoyer les … prévu·es</UI>.
+            </>,
+            <>
+              <strong className="text-text">Les messages et les trombis se font dans la journée</strong>, plus dans
+              Candidatures : passe par le panneau Jours de tournage (<UI>Trombi du jour</UI>,{" "}
+              <UI>Messages du jour</UI>).
             </>,
             <>
               <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et

@@ -340,6 +340,13 @@ export function TriRapide({
                       </div>
                     </div>
 
+                    {data!.message?.trim() && (
+                      <div className="rounded-xl border border-border bg-ink-raised px-3 py-2.5">
+                        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-text-muted">💬 Message</h3>
+                        <p className="whitespace-pre-wrap text-sm">{data!.message.trim()}</p>
+                      </div>
+                    )}
+
                     {jours.length > 0 && (
                       <div>
                         <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
@@ -378,13 +385,6 @@ export function TriRapide({
                             </li>
                           ))}
                         </ul>
-                      </div>
-                    )}
-
-                    {data!.message && (
-                      <div>
-                        <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">Message</h3>
-                        <p className="whitespace-pre-wrap text-sm">{data!.message}</p>
                       </div>
                     )}
 

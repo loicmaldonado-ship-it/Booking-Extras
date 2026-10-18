@@ -46,9 +46,9 @@ type BookingRow = Omit<Row, "portraitUrl"> & {
 export default async function JourneeDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ projet_id?: string; date?: string }>;
+  searchParams: Promise<{ projet_id?: string; date?: string; onglet?: string }>;
 }) {
-  const { projet_id, date } = await searchParams;
+  const { projet_id, date, onglet } = await searchParams;
 
   if (!projet_id || !date) {
     return (
@@ -374,6 +374,7 @@ export default async function JourneeDashboardPage({
       </div>
 
       <JourneeTabs
+        ongletInitial={onglet === "messages" ? "messages" : undefined}
         bookings={bookings}
         canExport={isOwner(profile)}
         templates={templates ?? []}

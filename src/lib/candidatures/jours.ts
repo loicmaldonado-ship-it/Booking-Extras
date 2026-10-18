@@ -40,6 +40,70 @@ export async function setCandidatureJour(
   return {};
 }
 
+// Envoie une sélection de candidatures dans la journée de tournage d'une
+// date de leur annonce (panneau « Jours de tournage ») : un booking en PER
+// par personne, comme envoyerJourAuTournage, sans passer par « prévu ».
+export async function envoyerCandidaturesDansJour(
+  annonceDateId: string,
+  candidatureIds: string[],
+  fonction: string,
+  cachet: Cachet | ""
+): Promise<{ ok: number; deja: number; error?: string }> {
+  if (candidatureIds.length === 0) return { ok: 0, deja: 0 };
+  const supabase = createAdminClient();
+  const { data: annonceDate } = await supabase
+    .from("annonce_dates")
+    .select("date, annonce_id, annonces(projet_id)")
+    .eq("id", annonceDateId)
+    .maybeSingle<{ date: string; annonce_id: string; annonces: { projet_id: string } | null }>();
+  if (!annonceDate?.annonces) return { ok: 0, deja: 0, error: "Date introuvable." };
+  const projetId = annonceDate.annonces.projet_id;
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { ok: 0, deja: 0, error: accessError };
+
+  const { data: candidatures } = await supabase
+    .from("candidatures")
+    .select("id, figurant_id, annonce_id")
+    .in("id", candidatureIds.slice(0, 300));
+  const rows = (candidatures ?? []).filter((c) => c.annonce_id === annonceDate.annonce_id);
+  if (rows.length === 0) return { ok: 0, deja: 0, error: "Ces candidatures ne sont pas sur cette annonce." };
+
+  const [{ data: existants }, { data: dejaRattachees }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("figurant_id")
+      .eq("projet_id", projetId)
+      .eq("date", annonceDate.date)
+      .in("figurant_id", rows.map((r) => r.figurant_id)),
+    supabase.from("bookings").select("candidature_id").in("candidature_id", rows.map((r) => r.id)),
+  ]);
+  const dejaBookes = new Set((existants ?? []).map((b) => b.figurant_id));
+  const rattachees = new Set((dejaRattachees ?? []).map((b) => b.candidature_id));
+
+  const payload = rows
+    .filter((r) => !dejaBookes.has(r.figurant_id))
+    .map((r) => ({
+      figurant_id: r.figurant_id,
+      projet_id: projetId,
+      date: annonceDate.date,
+      candidature_id: rattachees.has(r.id) ? null : r.id,
+      fonction: fonction.trim() || null,
+      cachet: cachet || null,
+    }));
+  const deja = rows.length - payload.length;
+  if (payload.length === 0) return { ok: 0, deja };
+
+  await supabase.from("journees").upsert({ projet_id: projetId, date: annonceDate.date }, { onConflict: "projet_id,date" });
+  const { error } = await supabase.from("bookings").insert(payload);
+  if (error) return { ok: 0, deja, error: error.message };
+  await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
+
+  revalidatePath("/candidatures");
+  revalidatePath("/bookings/planning");
+  revalidatePath("/figurants");
+  return { ok: payload.length, deja };
+}
+
 // Crée, dans la journée de tournage correspondante (créée si besoin), un
 // booking pour chaque personne prévue ce jour-là, avec le statut de départ
 // habituel (PER, comme createBookingsFromDropBulk) — rien n'est envoyé aux
