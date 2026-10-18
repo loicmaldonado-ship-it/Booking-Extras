@@ -624,7 +624,9 @@ export default function AidePage() {
               fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
-              proposée ensuite dans les déroulants, par ordre alphabétique — une même fonction tapée autrement
+              proposée ensuite dans les déroulants, par ordre alphabétique. Sur chaque profil, le déroulant{" "}
+              <UI>Fonction</UI> propose d'abord les <strong className="text-text">besoins de la journée</strong>, puis
+              les autres fonctions du projet, ou <UI>➕ Nouvelle fonction…</UI> — une même fonction tapée autrement
               (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
               permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
               <strong className="text-text">Notes</strong> (spécificités, retours…), enregistrée en quittant le champ.

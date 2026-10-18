@@ -126,6 +126,7 @@ export function JourneeTabs({
           )}
           <BookingsTable
             fonctionsProjet={fonctionsProjet}
+            besoinsFonctions={besoins.map((b) => b.fonction)}
             rows={bookings}
             projetId={projetId}
             date={date}
