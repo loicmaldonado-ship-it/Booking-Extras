@@ -63,8 +63,10 @@ export type InboxReply = {
 
 // Toutes les réponses de figurants pas encore "effacées" (reviewed_at nul) —
 // s'accumulent au fil des vérifications successives jusqu'à ce qu'on les
-// efface explicitement via clearUnreviewedReplies().
-export async function getUnreviewedReplies(projetId?: string | null): Promise<InboxReply[]> {
+// efface explicitement via clearUnreviewedReplies(). figurantIds : seulement
+// ces personnes (celles bookées dans la journée affichée).
+export async function getUnreviewedReplies(projetId?: string | null, figurantIds?: string[]): Promise<InboxReply[]> {
+  if (figurantIds && figurantIds.length === 0) return [];
   const supabase = createAdminClient();
   let query = supabase
     .from("figurant_messages")
@@ -75,6 +77,7 @@ export async function getUnreviewedReplies(projetId?: string | null): Promise<In
   // par l'IMAP) reste visible partout plutôt que de disparaître ; sinon on
   // ne montre que celles héritées du projet actuellement consulté.
   if (projetId) query = query.or(`projet_id.is.null,projet_id.eq.${projetId}`);
+  if (figurantIds) query = query.in("figurant_id", figurantIds.slice(0, 500));
   const { data } = await query
     .order("created_at", { ascending: false })
     .returns<
@@ -95,11 +98,24 @@ export async function getUnreviewedReplies(projetId?: string | null): Promise<In
     }));
 }
 
-export async function clearUnreviewedReplies() {
+// Efface seulement les réponses affichées (celles de la journée).
+export async function clearUnreviewedReplies(messageIds: string[]) {
+  if (messageIds.length === 0) return;
   const supabase = createAdminClient();
   await supabase
     .from("figurant_messages")
     .update({ reviewed_at: new Date().toISOString() })
     .eq("sender", "figurant")
-    .is("reviewed_at", null);
+    .is("reviewed_at", null)
+    .in("id", messageIds.slice(0, 500));
+}
+
+// Personnes bookées sur cette journée du projet.
+export async function figurantsDeLaJournee(projetId: string, date: string): Promise<string[]> {
+  const { data } = await createAdminClient()
+    .from("bookings")
+    .select("figurant_id")
+    .eq("projet_id", projetId)
+    .eq("date", date);
+  return [...new Set((data ?? []).map((b) => b.figurant_id))];
 }

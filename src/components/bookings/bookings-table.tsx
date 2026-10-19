@@ -794,7 +794,7 @@ export function BookingsTable({
     setRepliesPending(true);
     setRepliesError(null);
     startTransition(async () => {
-      const result = await checkEmailReplies(projetId);
+      const result = await checkEmailReplies(projetId, date);
       setRepliesPending(false);
       if (result.error) {
         setRepliesError(result.error);
@@ -813,10 +813,11 @@ export function BookingsTable({
   }
 
   function clearReplies() {
+    const ids = replies.map((r) => r.messageId);
     setReplies([]);
     setLastCheckInfo(null);
     startTransition(async () => {
-      await clearUnreviewedReplies();
+      await clearUnreviewedReplies(ids);
     });
   }
 

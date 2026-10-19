@@ -2,15 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { checkProjetAccess } from "@/lib/auth/session";
-import { getUnreviewedReplies, clearUnreviewedReplies as clearUnreviewedRepliesInbox } from "@/lib/email/inbox";
+import {
+  getUnreviewedReplies,
+  clearUnreviewedReplies as clearUnreviewedRepliesInbox,
+  figurantsDeLaJournee,
+} from "@/lib/email/inbox";
 import { releverReponsesMail, marquerMailLu } from "@/lib/email/releve";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
 
 // Relève les réponses dans la boîte d'envoi du projet (celle configurée par
-// la cheffe), puis renvoie la liste des réponses pas encore effacées. La
-// relève tourne aussi toute seule (tâche planifiée + onglet Messages ouvert).
-export async function checkEmailReplies(projetId?: string | null) {
+// la cheffe), puis renvoie la liste des réponses pas encore effacées des
+// personnes de la journée (date). La relève tourne aussi toute seule
+// (tâche planifiée + onglet Messages ouvert).
+export async function checkEmailReplies(projetId?: string | null, date?: string | null) {
   if (!projetId) return { checked: 0, matched: [] as { id: string }[], unmatchedCount: 0, replies: [], error: "Projet inconnu." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { checked: 0, matched: [] as { id: string }[], unmatchedCount: 0, replies: [], error: accessError };
@@ -22,7 +27,7 @@ export async function checkEmailReplies(projetId?: string | null) {
     revalidatePath("/figurants");
     revalidatePath("/bookings/documents");
   }
-  const replies = await getUnreviewedReplies(projetId);
+  const replies = await getUnreviewedReplies(projetId, date ? await figurantsDeLaJournee(projetId, date) : undefined);
   return {
     checked: nouvelles,
     matched: Array.from({ length: nouvelles }, (_, i) => ({ id: String(i) })),
@@ -53,8 +58,15 @@ export async function releverReponsesAuto(projetId: string): Promise<{ nouvelles
   return { nouvelles, releveLe: new Date().toISOString(), erreur: resultats.find((r) => r.erreur)?.erreur };
 }
 
-export async function clearUnreviewedReplies() {
-  await clearUnreviewedRepliesInbox();
+export async function clearUnreviewedReplies(messageIds: string[]) {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("figurant_messages").select("id, projet_id").in("id", messageIds.slice(0, 500));
+  const projets = [...new Set((data ?? []).map((m) => m.projet_id).filter((p): p is string => !!p))];
+  for (const p of projets) {
+    const accessError = await checkProjetAccess(p);
+    if (accessError) return;
+  }
+  await clearUnreviewedRepliesInbox((data ?? []).map((m) => m.id));
   revalidatePath("/bookings/documents");
 }
 
