@@ -16,6 +16,7 @@ import { type EssayageRow, type BookedFigurant } from "@/components/bookings/ess
 import { type CovoiturageRow } from "@/components/bookings/covoiturage-board";
 import { JourneeTabs } from "@/components/bookings/journee-tabs";
 import { QuickAddFigurant } from "@/components/bookings/quick-add-figurant";
+import { AjoutRapideBooking } from "@/components/bookings/ajout-rapide-booking";
 import { ModifierPdt, BandeauJourneeBasculee } from "@/components/bookings/modifier-pdt";
 import { MODELE_PDT_DEFAUT } from "@/lib/bookings/pdt";
 import { DupliquerJournee } from "@/components/bookings/dupliquer-journee";
@@ -345,6 +346,7 @@ export default async function JourneeDashboardPage({
             figurants={allFigurants ?? []}
             alreadyBookedIds={figurantIds}
           />
+          <AjoutRapideBooking projetId={projet_id} date={date} />
           <ModifierPdt projetId={projet_id} date={date} modeleInitial={projet?.modele_message_pdt || MODELE_PDT_DEFAUT} />
           {currentJournee && (
             <DupliquerJournee

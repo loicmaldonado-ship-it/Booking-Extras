@@ -347,7 +347,9 @@ export default function AidePage() {
           présente Booking Extras et liste les annonces ouvertes ; on peut y créer son compte sans annonce (profil
           complet et photos). Sans compte, la personne remplit l&apos;annonce puis crée son mot de passe pour valider
           sa candidature ; si son email est déjà connu, elle doit d&apos;abord se connecter (mot de passe ou lien
-          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Les candidat·es se
+          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Si sa fiche a été ajoutée par
+          l&apos;équipe sans compte (ajout rapide), pas de doublon : elle reçoit à cette adresse un lien{" "}
+          <UI>Crée ton compte</UI> (valable 30 jours), choisit son mot de passe et revient sur l&apos;annonce. Les candidat·es se
           connectent sur <UI>Espace candidat·es</UI> (/compte/connexion) ; questions générales :
           bookingextras.support@gmail.com. Photos : chaque candidature garde les siennes (envoyées pour
           l&apos;annonce, ou reprises parmi celles du compte avec <UI>Mes photos</UI>).
@@ -652,6 +654,15 @@ export default function AidePage() {
               Choisis le projet puis la <strong className="text-text">journée</strong> — elle se crée
               automatiquement dès le premier profil ajouté. Une journée vide (aucun booking) peut être
               supprimée depuis sa carte, via le <UI>×</UI> qui apparaît en haut à droite.
+            </>,
+            <>
+              Quelqu&apos;un qui n&apos;est pas dans la base ? Dans la journée, <UI>⚡ Ajout rapide</UI> : choisis une
+              fois la <strong className="text-text">fonction</strong> et le{" "}
+              <strong className="text-text">cachet</strong> (obligatoires, gardés pour toute la série), puis une
+              photo, prénom, nom, email et/ou téléphone, et enchaîne les personnes. La fiche va dans la Base Profils{" "}
+              <strong className="text-text">sans compte</strong>, et un mail (depuis la boîte du projet) lui propose de
+              créer son compte en choisissant un mot de passe. Une fiche déjà connue (même email, ou même nom + même
+              téléphone) est reprise, jamais dupliquée. Sans email, aucun mail ne part.
             </>,
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}

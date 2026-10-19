@@ -47,7 +47,13 @@ export function ConnexionForm({ retour }: { retour?: string | null }) {
         <ExpiredLinkNotice />
       </Suspense>
       {magicState?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div
+          className={
+            magicState.invitationEnvoyee
+              ? "rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm"
+              : "rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+          }
+        >
           {magicState.error}
         </div>
       )}

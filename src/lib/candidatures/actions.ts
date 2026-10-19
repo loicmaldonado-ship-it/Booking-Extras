@@ -6,6 +6,7 @@ import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
 import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
+import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
@@ -62,7 +63,7 @@ export async function postulerAnnonce(
   publicToken: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean }> {
+): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean; invitationEnvoyee?: boolean }> {
   // Compte obligatoire pour postuler : soit la personne est connectée, soit
   // elle crée son compte (mot de passe) en validant sa candidature.
   const session = await getCurrentFigurant();
@@ -263,6 +264,10 @@ export async function postulerAnnonce(
       .eq("est_comedien", false)
       .maybeSingle();
     if (memeEmail) {
+      // Fiche ajoutée par l'équipe, sans compte : lien « Crée ton compte »
+      // envoyé à cette adresse (preuve qu'elle est la sienne), retour ici.
+      const invitation = await invitationPourFicheSansCompte(memeEmail.id, annonce.projet_id, `/postuler/${publicToken}`);
+      if (invitation) return invitation;
       return {
         compteExistant: true,
         error:
@@ -272,11 +277,15 @@ export async function postulerAnnonce(
     const telephoneNormalise = telephone.replace(/\s+/g, "");
     const { data: memeNom } = await supabase
       .from("figurants")
-      .select("email, telephone")
+      .select("id, email, telephone")
       .ilike("nom", nom)
       .eq("est_comedien", false);
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
     if (doublon) {
+      const invitation = doublon.email
+        ? await invitationPourFicheSansCompte(doublon.id, annonce.projet_id, `/postuler/${publicToken}`)
+        : null;
+      if (invitation) return invitation;
       return {
         compteExistant: true,
         error: doublon.email

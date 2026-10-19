@@ -298,7 +298,7 @@ export function PostulerForm({
   const creationCompte = inscription || !connecte;
   const lienConnexion = inscription ? "/compte/connexion" : `/compte/connexion?retour=/postuler/${publicToken}`;
   const [state, formAction, pending] = useActionState<
-    { error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean } | undefined,
+    { error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean; invitationEnvoyee?: boolean } | undefined,
     FormData
   >(inscription ? inscrireCandidat : postulerAnnonce.bind(null, publicToken), undefined);
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
@@ -428,7 +428,14 @@ export function PostulerForm({
     <form noValidate onSubmit={envoyer} className="flex flex-col gap-4">
       {retour && <input type="hidden" name="retour" value={retour} />}
       {state?.error && (
-        <div ref={erreurServeurRef} className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div
+          ref={erreurServeurRef}
+          className={
+            state.invitationEnvoyee
+              ? "rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm"
+              : "rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+          }
+        >
           {state.error}
           {state.compteExistant && (
             <Link href={lienConnexion} className="mt-2 block font-medium underline">
