@@ -287,7 +287,8 @@ export default async function JourneeDashboardPage({
   const [journeePartage, publicOrigin, initialReplies] = await Promise.all([
     getJourneePartageLien(projet_id, date),
     getSiteOrigin(),
-    getUnreviewedReplies(projet_id),
+    // Réponses des seules personnes bookées dans cette journée.
+    getUnreviewedReplies(projet_id, figurantIds),
   ]);
 
   return (

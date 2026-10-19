@@ -689,7 +689,9 @@ export default function AidePage() {
             <>
               Sur chaque carte, coche <UI>Répondu booking</UI> quand la personne accepte la proposition : elle
               passe en <strong className="text-text">CONFIRMÉ</strong>. Envoie ensuite les convocations
-              (individuellement ou en masse) ; <UI>Répondu convocation</UI> se coche quand elle répond BIEN REÇU.
+              (individuellement ou en masse) ; <UI>Répondu convocation</UI> se coche quand elle répond BIEN REÇU.{" "}
+              <UI>Vérifier les réponses</UI> liste les réponses mail des seules personnes bookées dans la journée
+              affichée ; <UI>Effacer la liste</UI> n&apos;efface que celles-là.
             </>,
             <>
               Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
