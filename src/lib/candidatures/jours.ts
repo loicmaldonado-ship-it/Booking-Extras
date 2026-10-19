@@ -40,6 +40,44 @@ export async function setCandidatureJour(
   return {};
 }
 
+// Déplace (ou retire) plusieurs candidatures dans la journée prévisionnelle
+// d'une date de leur annonce : rien n'est créé dans Bookings, c'est le tri
+// « en cours de choix » avant l'envoi en booking.
+export async function setCandidaturesJourBulk(
+  candidatureIds: string[],
+  annonceDateId: string,
+  prevu: boolean
+): Promise<{ error?: string; n?: number }> {
+  if (candidatureIds.length === 0) return { n: 0 };
+  const supabase = createAdminClient();
+  const { data: annonceDate } = await supabase
+    .from("annonce_dates")
+    .select("annonce_id, annonces(projet_id)")
+    .eq("id", annonceDateId)
+    .maybeSingle<{ annonce_id: string; annonces: { projet_id: string } | null }>();
+  if (!annonceDate?.annonces) return { error: "Date introuvable." };
+  const accessError = await checkProjetAccess(annonceDate.annonces.projet_id);
+  if (accessError) return { error: accessError };
+  const { data: candidatures } = await supabase
+    .from("candidatures")
+    .select("id")
+    .eq("annonce_id", annonceDate.annonce_id)
+    .in("id", candidatureIds.slice(0, 300));
+  const ids = (candidatures ?? []).map((c) => c.id);
+  if (ids.length === 0) return { n: 0 };
+  const { error } = prevu
+    ? await supabase
+        .from("candidature_jours")
+        .upsert(
+          ids.map((candidature_id) => ({ candidature_id, annonce_date_id: annonceDateId })),
+          { ignoreDuplicates: true, onConflict: "candidature_id,annonce_date_id" }
+        )
+    : await supabase.from("candidature_jours").delete().eq("annonce_date_id", annonceDateId).in("candidature_id", ids);
+  if (error) return { error: error.message };
+  revalidatePath("/candidatures");
+  return { n: ids.length };
+}
+
 // Envoie une sélection de candidatures dans la journée de tournage d'une
 // date de leur annonce (panneau « Jours de tournage ») : un booking en PER
 // par personne, comme envoyerJourAuTournage, sans passer par « prévu ».

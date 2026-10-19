@@ -13,7 +13,6 @@ import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
 import { BandeauJournees, ModeJournee, type CarteJour } from "@/components/candidatures/mode-journee";
 import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
-import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -222,10 +221,9 @@ export default async function CandidaturesPage({
     .range(from, to)
     .returns<CandidatureWithFilters[]>();
 
-  const [annonceQuestions, annonceDates, templates] = await Promise.all([
+  const [annonceQuestions, annonceDates] = await Promise.all([
     getAnnonceQuestions(annonceId),
     getAnnonceDates(annonceId),
-    getModelesEquipe(),
   ]);
 
   const annonceDateIds = annonceDates.map((d) => d.id);
@@ -601,8 +599,10 @@ export default async function CandidaturesPage({
     const pasDansJournee = (c: CandidatureWithFilters) => !estTransfere(c.figurants?.id, jourVu.id) && c.onglet_id !== ongletOutId;
     const prevusIds = new Set((joursRows ?? []).filter((j) => j.annonce_date_id === jourVu.id).map((j) => j.candidature_id));
     const prevusC = (candidaturesRaw ?? []).filter((c) => prevusIds.has(c.id) && pasDansJournee(c));
+    // Focus sur les profils triés : rangés dans un onglet (pas « À trier »,
+    // pas OUT) et dispo ce jour.
     const disposTous = (candidaturesRaw ?? []).filter(
-      (c) => !prevusIds.has(c.id) && datesDispoByCandidature.get(c.id)?.has(jourVu.id) && pasDansJournee(c)
+      (c) => !prevusIds.has(c.id) && c.onglet_id !== null && datesDispoByCandidature.get(c.id)?.has(jourVu.id) && pasDansJournee(c)
     );
     const disposC = disposTous.slice(0, 120);
     disposEnPlus = disposTous.length - disposC.length;
@@ -645,7 +645,7 @@ export default async function CandidaturesPage({
       label: `Dispo le ${labelDate(id)}`,
       href: hrefAvec({ dispo: dispoFilter.filter((x) => x !== id) }),
     })),
-    ...(jourFilter ? [{ label: `Prévu·es dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
+    ...(jourFilter ? [{ label: `Dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
     ...(question
       ? [{ label: `${question.label} : ${params.question_reponse ?? "oui"}`, href: hrefAvec({ question_id: null, question_reponse: null }) }]
       : []),
@@ -886,7 +886,6 @@ export default async function CandidaturesPage({
         vue={vue}
         recherche={recherche}
         jours={jours}
-        templates={templates}
         pagination={
           <>
             {pagedRows.length === 0 && (

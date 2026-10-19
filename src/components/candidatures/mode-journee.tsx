@@ -6,13 +6,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { formatDateLong } from "@/lib/format-date";
-import { envoyerCandidaturesDansJour } from "@/lib/candidatures/jours";
+import { envoyerCandidaturesDansJour, setCandidaturesJourBulk } from "@/lib/candidatures/jours";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 import { statutLabel, statutTone } from "@/lib/bookings/types";
 import { Badge } from "@/components/ui/card";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
 
-// Une candidature montrée dans la journée ouverte (prévue ou dispo).
+// Une candidature montrée dans la journée ouverte (dans la journée
+// prévisionnelle, ou profil trié à ajouter).
 export type CarteJour = {
   id: string;
   nom: string;
@@ -24,7 +25,7 @@ export type CarteJour = {
 const lien = "rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60";
 
 // Bandeau des journées en haut de Candidatures : une grande carte par date
-// de l'annonce (jauge, dans la journée de booking, en cours de choix).
+// de l'annonce (dans la journée prévisionnelle, en booking, besoin).
 export function BandeauJournees({ jours }: { jours: JourPanneau[] }) {
   return (
     <section aria-label="Journées de l'annonce" className="flex flex-col gap-2">
@@ -47,26 +48,21 @@ export function BandeauJournees({ jours }: { jours: JourPanneau[] }) {
               <span className="flex items-baseline justify-between gap-2">
                 <b className="text-base">📅 {formatDateLong(j.date)}</b>
                 <span className="text-xl font-semibold tabular-nums">
-                  {j.dansLaJournee}
-                  {j.besoin !== null && <span className="text-sm font-normal text-text-muted"> / {j.besoin}</span>}
+                  {j.prevusAEnvoyer}
+                  <span className="text-sm font-normal text-text-muted"> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""}</span>
                 </span>
               </span>
               {j.besoin !== null && (
-                <span className="h-2 overflow-hidden rounded-full bg-ink-raised-2">
+                <span className="h-2 overflow-hidden rounded-full bg-ink-raised-2" title="En booking face au besoin">
                   <span className={cn("block h-full rounded-full", complet ? "bg-turquoise" : "bg-yellow")} style={{ width: `${pc}%` }} />
                 </span>
               )}
               <span className="flex flex-wrap gap-1 text-[11px] font-semibold">
-                <span className="rounded-full bg-turquoise px-2 py-0.5 text-white">✓ {j.dansLaJournee} dans la journée de booking</span>
-                {j.prevusAEnvoyer > 0 && (
-                  <span className="rounded-full bg-yellow/20 px-2 py-0.5 text-yellow">⏳ {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""}</span>
-                )}
-                {j.besoin !== null &&
-                  (complet ? (
-                    <span className="rounded-full bg-turquoise/15 px-2 py-0.5 text-turquoise">Complet</span>
-                  ) : (
-                    <span className="rounded-full bg-danger/15 px-2 py-0.5 text-danger">Il manque {j.besoin - j.dansLaJournee}</span>
-                  ))}
+                <span className="rounded-full bg-yellow/20 px-2 py-0.5 text-yellow">⏳ {j.prevusAEnvoyer} dans la journée</span>
+                <span className="rounded-full bg-turquoise/15 px-2 py-0.5 text-turquoise">
+                  ✓ {j.dansLaJournee}
+                  {j.besoin !== null && ` / ${j.besoin}`} en booking
+                </span>
               </span>
               <span className="text-xs font-semibold text-coral">{j.vu ? "▾ Journée ouverte" : "Ouvrir la journée →"}</span>
             </Link>
@@ -77,10 +73,10 @@ export function BandeauJournees({ jours }: { jours: JourPanneau[] }) {
   );
 }
 
-// La journée ouverte, à la place de la liste des candidatures : qui est
-// dans la journée de booking, qui est prévu (en cours de choix), et les
-// candidat·es dispo ce jour à choisir, avec l'envoi dans la journée de
-// booking (fonction et cachet obligatoires).
+// La journée ouverte, à la place de la liste des candidatures. Le focus est
+// sur les profils triés : ceux déplacés dans la journée (prévisionnel), à
+// envoyer en booking ; on en ajoute parmi les profils triés dispo ce jour.
+// Les profils déjà en booking sont en simple consultation.
 export function ModeJournee({
   jour,
   projetId,
@@ -93,28 +89,28 @@ export function ModeJournee({
   projetId: string;
   fermerHref: string;
   prevus: CarteJour[];
+  // Profils triés (rangés dans un onglet, hors OUT) dispo ce jour.
   dispos: CarteJour[];
-  // Dispo au-delà de ceux affichés (liste plafonnée).
   disposEnPlus: number;
 }) {
   const router = useRouter();
-  const [onglet, setOnglet] = useState<"dans" | "prevus" | "choisir">(prevus.length > 0 ? "prevus" : "dans");
+  const [onglet, setOnglet] = useState<"journee" | "ajouter" | "booking">("journee");
   const [coches, setCoches] = useState<Set<string>>(new Set());
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [confirmer, setConfirmer] = useState(false);
-  const [resultat, setResultat] = useState<{ ok: number; deja: number; error?: string } | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const liste = onglet === "prevus" ? prevus : onglet === "choisir" ? dispos : [];
-  // Onglet « prévus » sans rien de coché : on envoie tous les prévus.
-  const aEnvoyer = coches.size > 0 ? liste.filter((c) => coches.has(c.id)) : onglet === "prevus" ? prevus : [];
+  const liste = onglet === "journee" ? prevus : onglet === "ajouter" ? dispos : [];
+  // Dans la journée sans rien de coché : l'envoi porte sur tout le monde.
+  const choisis = coches.size > 0 ? liste.filter((c) => coches.has(c.id)) : onglet === "journee" ? prevus : [];
 
   function changer(o: typeof onglet) {
     setOnglet(o);
     setCoches(new Set());
     setConfirmer(false);
-    setResultat(null);
+    setMessage(null);
   }
 
   function basculer(id: string) {
@@ -126,14 +122,35 @@ export function ModeJournee({
     });
   }
 
-  function envoyer() {
+  function apres(texte: string) {
+    setMessage({ ok: true, texte });
+    setCoches(new Set());
+    setConfirmer(false);
+    router.refresh();
+  }
+
+  function envoyerEnBooking() {
     startTransition(async () => {
-      const res = await envoyerCandidaturesDansJour(jour.id, aEnvoyer.map((c) => c.id), fonction, cachet);
-      setResultat(res);
-      if (!res.error) {
-        setCoches(new Set());
-        setConfirmer(false);
-        router.refresh();
+      const res = await envoyerCandidaturesDansJour(jour.id, choisis.map((c) => c.id), fonction, cachet);
+      if (res.error) setMessage({ ok: false, texte: res.error });
+      else
+        apres(
+          `✓ ${res.ok} envoyé${res.ok > 1 ? "s" : ""} en booking${res.deja > 0 ? ` (${res.deja} y étai${res.deja > 1 ? "ent" : "t"} déjà)` : ""}.`
+        );
+    });
+  }
+
+  function deplacer(dansLaJournee: boolean) {
+    startTransition(async () => {
+      const res = await setCandidaturesJourBulk(choisis.map((c) => c.id), jour.id, dansLaJournee);
+      if (res.error) setMessage({ ok: false, texte: res.error });
+      else {
+        apres(
+          dansLaJournee
+            ? `✓ ${res.n} déplacé${(res.n ?? 0) > 1 ? "s" : ""} dans la journée.`
+            : `✓ ${res.n} retiré${(res.n ?? 0) > 1 ? "s" : ""} de la journée.`
+        );
+        if (dansLaJournee) setOnglet("journee");
       }
     });
   }
@@ -142,17 +159,15 @@ export function ModeJournee({
   for (const g of jour.gens) groupes.set(g.fonction?.trim() || "", [...(groupes.get(g.fonction?.trim() || "") ?? []), g]);
   const ordre = Array.from(groupes.keys()).sort((a, b) => (a === "" ? 1 : b === "" ? -1 : a.localeCompare(b, "fr")));
   const besoinDe = (f: string) => jour.fonctions.find((x) => x.fonction.toLowerCase() === f.toLowerCase());
-  const complet = jour.besoin !== null && jour.dansLaJournee >= jour.besoin;
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl border-2 border-coral/60 bg-ink-raised p-4" aria-label={`Journée du ${formatDateLong(jour.date)}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold">📅 {formatDateLong(jour.date)}</h2>
-          <p className={cn("text-sm", complet ? "font-medium text-turquoise" : "text-text-muted")}>
-            {jour.dansLaJournee} dans la journée de booking
-            {jour.besoin !== null && ` sur ${jour.besoin} demandé·es`}
-            {jour.besoin !== null && (complet ? " · ✓ Complet" : ` · il manque ${jour.besoin - jour.dansLaJournee}`)}
+          <p className="text-sm text-text-muted">
+            ⏳ {prevus.length} dans la journée (prévisionnel) · ✓ {jour.dansLaJournee}
+            {jour.besoin !== null && ` / ${jour.besoin}`} en booking
           </p>
         </div>
         <Link href={fermerHref} scroll={false} className="rounded-full border-2 border-border-strong px-4 py-2 text-sm font-semibold hover:border-coral/60">
@@ -163,9 +178,9 @@ export function ModeJournee({
       <div className="flex flex-wrap gap-2" role="tablist">
         {(
           [
-            ["dans", `✓ Dans la journée de booking (${jour.dansLaJournee})`],
-            ["prevus", `⏳ Prévu·es, en cours de choix (${prevus.length})`],
-            ["choisir", `＋ Choisir parmi les dispo (${dispos.length + disposEnPlus})`],
+            ["journee", `⏳ Dans la journée (${prevus.length})`],
+            ["ajouter", `＋ Ajouter des profils triés (${dispos.length + disposEnPlus})`],
+            ["booking", `👁 Déjà en booking (${jour.dansLaJournee})`],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -176,7 +191,11 @@ export function ModeJournee({
             onClick={() => changer(k)}
             className={cn(
               "rounded-xl border-2 px-3 py-2 text-sm font-semibold",
-              onglet === k ? "border-coral bg-coral text-ink" : "border-border-strong hover:border-coral/60"
+              onglet === k
+                ? k === "booking"
+                  ? "border-turquoise bg-turquoise/15 text-turquoise"
+                  : "border-coral bg-coral text-ink"
+                : "border-border-strong hover:border-coral/60"
             )}
           >
             {label}
@@ -184,54 +203,57 @@ export function ModeJournee({
         ))}
       </div>
 
-      {onglet === "dans" &&
+      {message && <p className={cn("text-sm", message.ok ? "font-medium text-turquoise" : "text-danger")}>{message.texte}</p>}
+
+      {onglet === "booking" &&
         (jour.gens.length === 0 ? (
-          <p className="py-6 text-center text-sm text-text-muted">
-            Personne dans la journée de booking pour l&apos;instant : va dans « Prévu·es » ou « Choisir parmi les dispo ».
-          </p>
+          <p className="py-6 text-center text-sm text-text-muted">Personne en booking sur cette journée pour l&apos;instant.</p>
         ) : (
-          ordre.map((f) => {
-            const gens = groupes.get(f)!;
-            const b = f ? besoinDe(f) : undefined;
-            return (
-              <div key={f || "sans"} className="flex flex-col gap-2">
-                <h3 className="flex items-baseline gap-2 border-b border-border pb-1 text-sm font-semibold">
-                  {f || "Sans fonction"}
-                  <span className={cn("tabular-nums", b ? (gens.length >= b.besoin ? "text-turquoise" : "text-yellow") : "text-text-muted")}>
-                    {gens.length}
-                    {b && ` / ${b.besoin}`}
-                  </span>
-                </h3>
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8">
-                  {gens.map((g) => (
-                    <Link
-                      key={g.bookingId}
-                      href={`/bookings/${g.bookingId}`}
-                      className="flex flex-col gap-1.5 rounded-xl border border-border bg-ink p-1.5 text-center hover:border-coral/60"
-                    >
-                      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                        {g.portraitUrl && <Image src={g.portraitUrl} alt={g.nom} fill sizes="160px" className="object-cover" />}
+          <>
+            <p className="text-sm text-text-muted">
+              Consultation : ces profils sont déjà en booking, ils se gèrent dans la journée de Bookings.
+            </p>
+            {ordre.map((f) => {
+              const gens = groupes.get(f)!;
+              const b = f ? besoinDe(f) : undefined;
+              return (
+                <div key={f || "sans"} className="flex flex-col gap-2">
+                  <h3 className="flex items-baseline gap-2 border-b border-border pb-1 text-sm font-semibold">
+                    {f || "Sans fonction"}
+                    <span className={cn("tabular-nums", b ? (gens.length >= b.besoin ? "text-turquoise" : "text-yellow") : "text-text-muted")}>
+                      {gens.length}
+                      {b && ` / ${b.besoin}`}
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8">
+                    {gens.map((g) => (
+                      <div key={g.bookingId} className="flex flex-col gap-1.5 rounded-xl border border-border bg-ink p-1.5 text-center opacity-90">
+                        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                          {g.portraitUrl && <Image src={g.portraitUrl} alt={g.nom} fill sizes="160px" className="object-cover" />}
+                        </div>
+                        <span className="truncate text-sm font-medium">{g.nom}</span>
+                        <Badge tone={statutTone(g.statut)}>{g.statut === "envoyé" ? "PER" : statutLabel(g.statut)}</Badge>
                       </div>
-                      <span className="truncate text-sm font-medium">{g.nom}</span>
-                      <Badge tone={statutTone(g.statut)}>{g.statut === "envoyé" ? "PER" : statutLabel(g.statut)}</Badge>
-                    </Link>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </>
         ))}
 
-      {onglet !== "dans" && (
+      {onglet !== "booking" && (
         <>
           <p className="text-sm text-text-muted">
-            {onglet === "prevus"
-              ? "Prévu·es dans cette journée mais pas encore envoyé·es. Coche ceux à envoyer, ou envoie-les tous."
-              : "Candidat·es qui se sont dit·es dispo ce jour et ne sont pas encore dans la journée. Coche puis envoie."}
+            {onglet === "journee"
+              ? "Profils déplacés dans cette journée (prévisionnel, rien n'est encore dans Bookings). Coche ceux à envoyer en booking, ou envoie-les tous."
+              : "Profils triés (Retenu, Peut-être…) qui se sont dit·es dispo ce jour. Coche puis déplace-les dans la journée."}
           </p>
           {liste.length === 0 ? (
             <p className="py-6 text-center text-sm text-text-muted">
-              {onglet === "prevus" ? "Personne de prévu dans cette journée pour l'instant." : "Personne de dispo à choisir."}
+              {onglet === "journee"
+                ? "Personne dans cette journée pour l'instant : va dans « Ajouter des profils triés »."
+                : "Aucun profil trié dispo ce jour. Range d'abord des candidat·es dans Retenu, Peut-être…"}
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8">
@@ -267,32 +289,53 @@ export function ModeJournee({
               })}
             </div>
           )}
-          {onglet === "choisir" && disposEnPlus > 0 && (
+          {onglet === "ajouter" && disposEnPlus > 0 && (
             <p className="text-xs text-text-muted">
-              … et {disposEnPlus} autre{disposEnPlus > 1 ? "s" : ""} : affine avec les filtres de la liste (« Revenir aux candidatures », puis « Dispo le … »).
+              … et {disposEnPlus} autre{disposEnPlus > 1 ? "s" : ""} : affine depuis la liste (« Revenir aux candidatures »).
             </p>
           )}
 
           <div className="sticky bottom-3 flex flex-col gap-2 rounded-xl border-2 border-coral bg-ink p-3 shadow-lg">
-            {resultat && (
-              <p className={cn("text-sm", resultat.error ? "text-danger" : "font-medium text-turquoise")}>
-                {resultat.error ??
-                  `✓ ${resultat.ok} envoyé${resultat.ok > 1 ? "s" : ""} dans la journée de booking${
-                    resultat.deja > 0 ? ` (${resultat.deja} y étai${resultat.deja > 1 ? "ent" : "t"} déjà)` : ""
-                  }.`}
-              </p>
-            )}
-            {confirmer && aEnvoyer.length > 0 ? (
+            {onglet === "ajouter" ? (
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <b className="text-sm">{coches.size > 0 ? `${coches.size} coché${coches.size > 1 ? "s" : ""}` : "Coche des profils"}</b>
+                <button
+                  type="button"
+                  disabled={pending || choisis.length === 0}
+                  onClick={() => deplacer(true)}
+                  className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:bg-ink-raised-2 disabled:text-text-muted"
+                >
+                  📅 Déplacer {choisis.length || ""} dans cette journée
+                </button>
+              </div>
+            ) : confirmer && choisis.length > 0 ? (
               <div className="flex flex-col gap-2 text-sm">
                 <p>
-                  Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} dans la journée de booking du{" "}
-                  {formatDateLong(jour.date)} ? (en PER, rien n&apos;est envoyé aux figurant·es)
+                  Envoyer <b>{choisis.length}</b> personne{choisis.length > 1 ? "s" : ""} en booking le {formatDateLong(jour.date)} ? (en
+                  PER, rien n&apos;est envoyé aux figurant·es)
                 </p>
                 <div className="flex flex-wrap items-end gap-3">
                   <label className="flex flex-col gap-1 text-xs text-text-muted">
                     <span>
-                      Fonction (facultatif)
+                      Cachet <span className="text-danger">*</span>
                     </span>
+                    <select
+                      value={cachet}
+                      onChange={(e) => setCachet(e.target.value as Cachet | "")}
+                      className="rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm text-text"
+                    >
+                      <option value="" disabled>
+                        Choisir…
+                      </option>
+                      {CACHETS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs text-text-muted">
+                    <span>Fonction (facultatif)</span>
                     {jour.fonctions.length > 0 && (
                       <span className="flex flex-wrap gap-1">
                         {jour.fonctions.map((f) => (
@@ -318,58 +361,42 @@ export function ModeJournee({
                       className="w-56 rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm text-text outline-none focus:border-coral"
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-xs text-text-muted">
-                    <span>
-                      Cachet <span className="text-danger">*</span>
-                    </span>
-                    <select
-                      value={cachet}
-                      onChange={(e) => setCachet(e.target.value as Cachet | "")}
-                      className="rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm text-text"
-                    >
-                      <option value="" disabled>
-                        Choisir…
-                      </option>
-                      {CACHETS.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
                   <button type="button" disabled={pending} onClick={() => setConfirmer(false)} className={lien}>
                     Annuler
                   </button>
                   <button
                     type="button"
                     disabled={pending || !cachet}
-                    onClick={envoyer}
-                    className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
+                    onClick={envoyerEnBooking}
+                    className="rounded-full bg-turquoise px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
                   >
-                    {pending ? "Envoi…" : "Envoyer"}
+                    {pending ? "Envoi…" : "📋 Envoyer en booking"}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <b className="text-sm">
-                  {coches.size > 0
-                    ? `${coches.size} coché${coches.size > 1 ? "s" : ""}`
-                    : onglet === "prevus"
-                      ? `${prevus.length} prévu·e${prevus.length > 1 ? "s" : ""}`
-                      : "Coche des profils"}
+                  {coches.size > 0 ? `${coches.size} coché${coches.size > 1 ? "s" : ""}` : `${prevus.length} dans la journée`}
                 </b>
-                <button
-                  type="button"
-                  disabled={aEnvoyer.length === 0}
-                  onClick={() => {
-                    setResultat(null);
-                    setConfirmer(true);
-                  }}
-                  className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:bg-ink-raised-2 disabled:text-text-muted"
-                >
-                  📅 Envoyer {aEnvoyer.length || ""} dans la journée de booking
-                </button>
+                <span className="flex flex-wrap gap-2">
+                  {coches.size > 0 && (
+                    <button type="button" disabled={pending} onClick={() => deplacer(false)} className={lien}>
+                      Retirer de la journée
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={choisis.length === 0}
+                    onClick={() => {
+                      setMessage(null);
+                      setConfirmer(true);
+                    }}
+                    className="rounded-full bg-turquoise px-4 py-2 text-sm font-semibold text-white disabled:bg-ink-raised-2 disabled:text-text-muted"
+                  >
+                    📋 Envoyer {choisis.length || ""} en booking
+                  </button>
+                </span>
               </div>
             )}
           </div>

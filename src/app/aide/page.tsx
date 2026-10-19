@@ -400,34 +400,27 @@ export default function AidePage() {
               d&apos;une carte ouvre cette même vue sur elle (Cmd/Ctrl-clic ouvre sa page détaillée).
             </>,
             <>
-              <strong className="text-text">Deux mots à ne pas confondre.</strong>{" "}
-              <strong className="text-text">Prévoir dans une journée</strong> : un clic sur une pastille de date d&apos;une
-              carte (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un). La personne est « en cours de
-              choix » pour ce jour, rien n&apos;est créé dans Bookings.{" "}
-              <strong className="text-text">Envoyer dans la journée de booking</strong> : crée vraiment le booking (en PER,
-              rien n&apos;est envoyé aux figurant·es) et la personne quitte Candidatures.
+              <strong className="text-text">Une sélection, deux actions.</strong> Coche des profils, puis :{" "}
+              <UI>📅 Déplacer dans une journée</UI> : ils passent dans la journée <strong className="text-text">prévisionnelle</strong>{" "}
+              (en cours de choix, rien n&apos;est créé dans Bookings, on peut les retirer) ; ou{" "}
+              <UI>📋 Envoyer en booking</UI> : le booking est créé (en PER, rien n&apos;est envoyé aux figurant·es) et la
+              personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>, la fonction peut
+              attendre. Les pastilles de date d&apos;une carte (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un
+              par un) déplacent aussi dans une journée.
             </>,
             <>
-              <strong className="text-text">Envoyer dans la journée de booking</strong> : coche des profils, puis{" "}
-              <UI>📅 Envoyer dans la journée de booking</UI> dans la barre de sélection (sur tous les écrans, iPad
-              compris), et le bouton du jour voulu, ou ouvre la journée (ci-dessous). <strong className="text-text">Le cachet est obligatoire</strong>, la
-              fonction peut attendre (les besoins de la journée sont proposés en un clic). Les personnes pas dispo ce jour-là ne sont envoyées que si
-              tu le demandes. Un jour avec des prévu·es propose aussi <UI>📅 Envoyer les … prévu·es dans la journée de
-              booking</UI>.
-            </>,
-            <>
-              <strong className="text-text">Les journées de l&apos;annonce</strong>, en haut de la page : une grande carte
-              par date, avec la jauge face au besoin saisi dans Bookings, le nombre dans la journée de booking (✓) et de
-              prévu·es (⏳). <UI>Ouvrir la journée →</UI> l&apos;affiche à la place de la liste, avec trois onglets :{" "}
-              <UI>✓ Dans la journée de booking</UI> (trombi par fonction, avec statut), <UI>⏳ Prévu·es, en cours de
-              choix</UI> et <UI>＋ Choisir parmi les dispo</UI>. Coche des profils (ou rien, pour tous les prévu·es) puis{" "}
-              <UI>📅 Envoyer … dans la journée de booking</UI>, avec le cachet (fonction facultative). Liens vers le trombi à imprimer,
-              les messages du jour et la journée dans Bookings. <UI>← Revenir aux candidatures</UI> pour ressortir.
+              <strong className="text-text">Les journées de l&apos;annonce</strong>, en haut de la page : une carte par
+              date avec ⏳ le nombre dans la journée (prévisionnel) et ✓ le nombre en booking face au besoin.{" "}
+              <UI>Ouvrir la journée →</UI> l&apos;affiche à la place de la liste, centrée sur les profils triés :{" "}
+              <UI>⏳ Dans la journée</UI> (coche, puis <UI>📋 Envoyer en booking</UI> ou <UI>Retirer de la journée</UI> ;
+              sans rien cocher, l&apos;envoi porte sur tout le monde), <UI>＋ Ajouter des profils triés</UI> (rangés en
+              Retenu, Peut-être…, dispo ce jour : coche puis <UI>📅 Déplacer dans cette journée</UI>) et{" "}
+              <UI>👁 Déjà en booking</UI>, en simple consultation. <UI>← Revenir aux candidatures</UI> pour ressortir.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
-              coche des profils puis <UI>💬 Message</UI>. Mail (depuis la boîte du projet, avec les modèles de
-              l&apos;équipe, confirmation avant un envoi groupé) ou <UI>📱 En textos</UI>. Les trombis, eux, se font
+              coche des profils puis <UI>💬 Message</UI> : message libre seulement (pas de modèles ici). Mail (depuis la
+              boîte du projet, confirmation avant un envoi groupé) ou <UI>📱 En textos</UI>. Les trombis, eux, se font
               dans la journée (<UI>Trombi du jour</UI> dans le panneau Jours de tournage).
             </>,
             <>

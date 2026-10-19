@@ -10,7 +10,6 @@ import { substituteTokens } from "@/lib/bookings/convocation";
 import { recordCandidatureMessage } from "@/lib/candidatures/actions";
 import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import { projetNomPublic } from "@/lib/projets/types";
-import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 import type { Row } from "@/components/candidatures/candidatures-table";
 
 const CORPS_VIERGE = "Bonjour {prenom},\n\n";
@@ -28,15 +27,13 @@ function tokensDe(r: Row) {
 }
 
 // Écrire à une ou plusieurs candidatures, par mail (boîte du projet) ou en
-// textos, avec les modèles de l'équipe. {prenom}, {projet}… sont remplacés
-// pour chaque personne.
+// textos : message libre seulement (pas de modèles ici, demande de Loïc).
+// {prenom}, {projet}… sont remplacés pour chaque personne.
 export function MessageCandidatures({
   destinataires,
-  templates,
   onClose,
 }: {
   destinataires: Row[];
-  templates: MessageTemplate[];
   onClose: () => void;
 }) {
   const [sujet, setSujet] = useState("Concernant votre candidature");
@@ -60,11 +57,6 @@ export function MessageCandidatures({
       annule = true;
     };
   }, [plusieurs]);
-
-  function appliquer(t?: MessageTemplate) {
-    setSujet(t ? t.sujet : "Concernant votre candidature");
-    setCorps(t ? t.corps : CORPS_VIERGE);
-  }
 
   const avecEmail = destinataires.filter((r) => r.figurants?.email);
   const restants = avecEmail.filter((r) => !envoyes.has(r.id));
@@ -100,28 +92,6 @@ export function MessageCandidatures({
       onClose={onClose}
     >
       <div className="flex flex-col gap-3">
-        {templates.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-text-muted">Modèle :</span>
-            <button
-              type="button"
-              onClick={() => appliquer()}
-              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60"
-            >
-              Vierge
-            </button>
-            {templates.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => appliquer(t)}
-                className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60"
-              >
-                {nomModele(t)}
-              </button>
-            ))}
-          </div>
-        )}
         <Input value={sujet} onChange={(e) => setSujet(e.target.value)} placeholder="Sujet (mail)" aria-label="Sujet" />
         <textarea
           value={corps}
