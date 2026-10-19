@@ -24,11 +24,24 @@ export function ReservePanel({
   const router = useRouter();
   const [selection, setSelection] = useState<Set<string>>(new Set());
   const [envoi, setEnvoi] = useState(false);
+  const [dateFiltre, setDateFiltre] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [pending, demarrer] = useTransition();
 
+  // Classés par dispo : ceux qui ont le plus de jours dispo d'abord, les sans
+  // réponse à la fin ; à égalité, l'ordre alphabétique d'origine. Un clic sur
+  // une date ne garde que ceux dispo ce jour-là.
+  const nbDispo = (p: ReserveProfil) => p.dispos.filter((d) => d.disponible === true).length;
+  const dateCompte = new Map<string, number>();
+  for (const p of profils) for (const d of p.dispos) if (d.disponible === true) dateCompte.set(d.date, (dateCompte.get(d.date) ?? 0) + 1);
+  const datesConnues = Array.from(dateCompte.keys()).sort();
+  const affiches = profils
+    .map((p, i) => ({ p, i }))
+    .filter(({ p }) => !dateFiltre || p.dispos.some((d) => d.date === dateFiltre && d.disponible === true))
+    .sort((a, b) => nbDispo(b.p) - nbDispo(a.p) || a.i - b.i)
+    .map(({ p }) => p);
   const choisis = profils.filter((p) => selection.has(p.id));
-  const tousCoches = profils.length > 0 && choisis.length === profils.length;
+  const tousCoches = affiches.length > 0 && affiches.every((p) => selection.has(p.id));
 
   function basculer(id: string) {
     setSelection((prev) => {
@@ -63,12 +76,43 @@ export function ReservePanel({
           <Button
             type="button"
             variant="ghost"
-            onClick={() => setSelection(tousCoches ? new Set() : new Set(profils.map((p) => p.id)))}
+            onClick={() => setSelection(tousCoches ? new Set() : new Set(affiches.map((p) => p.id)))}
           >
-            {tousCoches ? "Tout décocher" : "Tout cocher"} ({profils.length})
+            {tousCoches ? "Tout décocher" : "Tout cocher"} ({affiches.length})
           </Button>
         )}
       </div>
+
+      {datesConnues.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtrer par dispo">
+          <span className="text-xs font-medium text-text-muted">Classés par dispo · voir ceux dispo le :</span>
+          <button
+            type="button"
+            onClick={() => setDateFiltre(null)}
+            aria-pressed={dateFiltre === null}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs font-medium",
+              dateFiltre === null ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-text"
+            )}
+          >
+            Toutes les dates ({profils.length})
+          </button>
+          {datesConnues.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDateFiltre(dateFiltre === d ? null : d)}
+              aria-pressed={dateFiltre === d}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-medium tabular-nums",
+                dateFiltre === d ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong hover:border-text"
+              )}
+            >
+              ✅ {formatDayMonth(d)} ({dateCompte.get(d)})
+            </button>
+          ))}
+        </div>
+      )}
 
       {choisis.length > 0 && (
         <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-xl border border-border-strong bg-ink-raised px-3 py-2.5 shadow">
@@ -102,13 +146,13 @@ export function ReservePanel({
       )}
       {erreur && <p className="text-sm text-danger">{erreur}</p>}
 
-      {profils.length === 0 ? (
+      {affiches.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-text-muted">
-          La réserve est vide.
+          {profils.length === 0 ? "La réserve est vide." : "Personne de dispo ce jour-là dans la réserve."}
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
-          {profils.map((p) => {
+          {affiches.map((p) => {
             const coche = selection.has(p.id);
             const dispoOui = p.dispos.filter((d) => d.disponible === true);
             const dispoNon = p.dispos.filter((d) => d.disponible === false);

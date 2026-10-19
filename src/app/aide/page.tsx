@@ -682,7 +682,8 @@ export default function AidePage() {
               quittent la liste) ou depuis une journée (coche, puis <UI>🗄️ Mettre en réserve</UI> : le booking est retiré
               de la journée, sans message). Chaque profil rappelle <strong className="text-text">où il a postulé</strong> et
               quand, et les <strong className="text-text">dates qu&apos;il a données dispo (✅) ou pas (🚫)</strong>, avec un
-              lien vers sa candidature. Coche-les pour <UI>📋 Envoyer en booking</UI> (fonction et cachet obligatoires,
+              lien vers sa candidature. Ils sont <strong className="text-text">classés par dispo</strong> (le plus de
+              jours dispo d&apos;abord) et une ligne de dates <UI>✅ 22/10</UI>… ne garde que ceux dispo ce jour-là. Coche-les pour <UI>📋 Envoyer en booking</UI> (fonction et cachet obligatoires,
               ils quittent la réserve) ou <UI>↩ Retirer de la réserve</UI> (une candidature retirée revient dans
               Candidatures).
             </>,
