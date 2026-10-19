@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { deleteBooking } from "@/lib/bookings/actions";
+import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
 import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons";
 import { BackLink } from "@/components/ui/back-link";
 import { statutLabel, statutTone, covoiturageRoleLabel } from "@/lib/bookings/types";
@@ -38,6 +39,10 @@ export default async function BookingDetailPage({
     : new Map<string, string | null>();
   const indispoMotif = booking.figurants?.id ? indispoMap.get(`${booking.figurants.id}|${booking.date}`) : undefined;
   const enConflit = indispoMotif !== undefined;
+  // Candidature d'origine sur une annonce de ce projet, pour la revoir.
+  const candidatureId = booking.figurants?.id
+    ? ((await getCandidatureParFigurant(booking.projet_id, [booking.figurants.id])).get(booking.figurants.id) ?? null)
+    : null;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -56,7 +61,12 @@ export default async function BookingDetailPage({
             {booking.heure_convocation ? ` · ${booking.heure_convocation}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          {candidatureId && (
+            <ButtonLink href={`/candidatures/${candidatureId}`} variant="secondary">
+              📄 Voir sa candidature
+            </ButtonLink>
+          )}
           <ButtonLink href={`/figurants/${booking.figurants?.id}/modifier`} variant="secondary">
             Modifier la fiche
           </ButtonLink>

@@ -74,3 +74,23 @@ export async function getPhotosDesCandidatures(items: ConfirmedBooking[]): Promi
   ]);
   return new Map(items.map((i) => [i.figurant.id, parCandidature.get(i.id) ?? parFigurant.get(i.figurant.id) ?? []]));
 }
+
+// Candidature d'origine de profils bookés sur un projet (la plus récente si
+// plusieurs annonces), pour la rouvrir depuis Bookings (message, photos,
+// réponses aux questions).
+export async function getCandidatureParFigurant(projetId: string, figurantIds: string[]): Promise<Map<string, string>> {
+  const supabase = createAdminClient();
+  const map = new Map<string, string>();
+  const ids = Array.from(new Set(figurantIds));
+  for (let i = 0; i < ids.length; i += 150) {
+    const { data } = await supabase
+      .from("candidatures")
+      .select("id, figurant_id, created_at, annonces!inner(projet_id)")
+      .eq("annonces.projet_id", projetId)
+      .in("figurant_id", ids.slice(i, i + 150))
+      .order("created_at", { ascending: false })
+      .returns<{ id: string; figurant_id: string }[]>();
+    for (const c of data ?? []) if (!map.has(c.figurant_id)) map.set(c.figurant_id, c.id);
+  }
+  return map;
+}
