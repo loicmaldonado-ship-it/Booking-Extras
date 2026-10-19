@@ -415,7 +415,10 @@ export default function AidePage() {
               <UI>⏳ Dans la journée</UI> (coche, puis <UI>📋 Envoyer en booking</UI> ou <UI>Retirer de la journée</UI> ;
               sans rien cocher, l&apos;envoi porte sur tout le monde), <UI>＋ Ajouter des profils triés</UI> (rangés en
               Retenu, Peut-être…, dispo ce jour : coche puis <UI>📅 Déplacer dans cette journée</UI>) et{" "}
-              <UI>👁 Déjà en booking</UI>, en simple consultation. <UI>← Revenir aux candidatures</UI> pour ressortir.
+              <UI>👁 Déjà en booking</UI>, en simple consultation. Les filtres de la liste (genre, âge, question, véhicule…)
+              restent appliqués dans la journée, la barre de filtres reste là, et des filtres rapides s&apos;ajoutent :{" "}
+              <UI>📅 Dispo ce jour</UI>, <UI>🚲 A un vélo</UI>, <UI>🚗 A une voiture</UI>. Sans rien cocher, l&apos;envoi
+              porte sur les profils affichés. <UI>← Revenir aux candidatures</UI> pour ressortir, filtres compris.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou

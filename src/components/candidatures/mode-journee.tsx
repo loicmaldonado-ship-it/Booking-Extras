@@ -20,6 +20,8 @@ export type CarteJour = {
   meta: string;
   portraitUrl: string | null;
   dispo: boolean;
+  velo: boolean;
+  voiture: boolean;
 };
 
 const lien = "rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60";
@@ -89,7 +91,7 @@ export function ModeJournee({
   projetId: string;
   fermerHref: string;
   prevus: CarteJour[];
-  // Profils triés (rangés dans un onglet, hors OUT) dispo ce jour.
+  // Profils triés (rangés dans un onglet, hors OUT), dispo ce jour d'abord.
   dispos: CarteJour[];
   disposEnPlus: number;
 }) {
@@ -101,10 +103,17 @@ export function ModeJournee({
   const [confirmer, setConfirmer] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  // Filtres rapides de la journée (en plus de ceux de la liste, gardés).
+  const [velo, setVelo] = useState(false);
+  const [voiture, setVoiture] = useState(false);
+  const [dispoAjout, setDispoAjout] = useState(true);
+  const [dispoJournee, setDispoJournee] = useState(false);
+  const filtreDispo = onglet === "ajouter" ? dispoAjout : dispoJournee;
 
-  const liste = onglet === "journee" ? prevus : onglet === "ajouter" ? dispos : [];
-  // Dans la journée sans rien de coché : l'envoi porte sur tout le monde.
-  const choisis = coches.size > 0 ? liste.filter((c) => coches.has(c.id)) : onglet === "journee" ? prevus : [];
+  const brute = onglet === "journee" ? prevus : onglet === "ajouter" ? dispos : [];
+  const liste = brute.filter((c) => (!velo || c.velo) && (!voiture || c.voiture) && (!filtreDispo || c.dispo));
+  // Sans rien coché, dans la journée : tous les profils affichés (filtrés).
+  const choisis = coches.size > 0 ? liste.filter((c) => coches.has(c.id)) : onglet === "journee" ? liste : [];
 
   function changer(o: typeof onglet) {
     setOnglet(o);
@@ -247,13 +256,45 @@ export function ModeJournee({
           <p className="text-sm text-text-muted">
             {onglet === "journee"
               ? "Profils déplacés dans cette journée (prévisionnel, rien n'est encore dans Bookings). Coche ceux à envoyer en booking, ou envoie-les tous."
-              : "Profils triés (Retenu, Peut-être…) qui se sont dit·es dispo ce jour. Coche puis déplace-les dans la journée."}
+              : "Profils triés (Retenu, Peut-être…), ceux dispo ce jour d'abord. Coche puis déplace-les dans la journée."}
           </p>
+          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtres de la journée">
+            {(
+              [
+                ["📅 Dispo ce jour", filtreDispo, () => (onglet === "ajouter" ? setDispoAjout(!dispoAjout) : setDispoJournee(!dispoJournee))],
+                ["🚲 A un vélo", velo, () => setVelo(!velo)],
+                ["🚗 A une voiture", voiture, () => setVoiture(!voiture)],
+              ] as const
+            ).map(([label, actif, basculerFiltre]) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={actif}
+                onClick={() => {
+                  basculerFiltre();
+                  setCoches(new Set());
+                }}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  actif ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="text-xs text-text-muted">
+              {liste.length} / {brute.length} · les filtres de la liste restent appliqués
+            </span>
+          </div>
           {liste.length === 0 ? (
             <p className="py-6 text-center text-sm text-text-muted">
               {onglet === "journee"
-                ? "Personne dans cette journée pour l'instant : va dans « Ajouter des profils triés »."
-                : "Aucun profil trié dispo ce jour. Range d'abord des candidat·es dans Retenu, Peut-être…"}
+                ? brute.length > 0
+                  ? "Aucun profil avec ces filtres."
+                  : "Personne dans cette journée pour l'instant : va dans « Ajouter des profils triés »."
+                : brute.length > 0
+                  ? "Aucun profil avec ces filtres."
+                  : "Aucun profil trié. Range d'abord des candidat·es dans Retenu, Peut-être…"}
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-8">
@@ -377,7 +418,7 @@ export function ModeJournee({
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <b className="text-sm">
-                  {coches.size > 0 ? `${coches.size} coché${coches.size > 1 ? "s" : ""}` : `${prevus.length} dans la journée`}
+                  {coches.size > 0 ? `${coches.size} coché${coches.size > 1 ? "s" : ""}` : `${liste.length} dans la journée${liste.length < prevus.length ? " (filtrés)" : ""}`}
                 </b>
                 <span className="flex flex-wrap gap-2">
                   {coches.size > 0 && (
