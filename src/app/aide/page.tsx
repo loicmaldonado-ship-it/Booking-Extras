@@ -240,6 +240,12 @@ export default function AidePage() {
         <Steps
           items={[
             <>
+              <strong className="text-text">Pas de libre service</strong> : pour ouvrir un profil, cherche-le par son nom,
+              prénom, email ou téléphone (3 lettres minimum, 30 résultats au plus). Seuls Loïc, Mathieu et Eléa voient la
+              liste complète. Eux seuls peuvent aussi <strong className="text-text">révoquer l&apos;accès</strong> d&apos;un
+              compte (espace candidat·e d&apos;un profil, ou assistant·e dans Équipe).
+            </>,
+            <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce : dès
               qu&apos;une personne a créé son compte, elle apparaît dans la Base Profils (avec son âge, calculé
               d&apos;après sa date de naissance, sous son nom). Identité,
@@ -404,8 +410,8 @@ export default function AidePage() {
             <>
               <strong className="text-text">Envoyer dans la journée de booking</strong> : coche des profils, puis{" "}
               <UI>📅 Envoyer dans la journée de booking</UI> dans la barre de sélection (sur tous les écrans, iPad
-              compris), et le bouton du jour voulu, ou ouvre la journée (ci-dessous). <strong className="text-text">Fonction et cachet sont obligatoires</strong>{" "}
-              (les besoins de la journée sont proposés en un clic). Les personnes pas dispo ce jour-là ne sont envoyées que si
+              compris), et le bouton du jour voulu, ou ouvre la journée (ci-dessous). <strong className="text-text">Le cachet est obligatoire</strong>, la
+              fonction peut attendre (les besoins de la journée sont proposés en un clic). Les personnes pas dispo ce jour-là ne sont envoyées que si
               tu le demandes. Un jour avec des prévu·es propose aussi <UI>📅 Envoyer les … prévu·es dans la journée de
               booking</UI>.
             </>,
@@ -415,24 +421,8 @@ export default function AidePage() {
               prévu·es (⏳). <UI>Ouvrir la journée →</UI> l&apos;affiche à la place de la liste, avec trois onglets :{" "}
               <UI>✓ Dans la journée de booking</UI> (trombi par fonction, avec statut), <UI>⏳ Prévu·es, en cours de
               choix</UI> et <UI>＋ Choisir parmi les dispo</UI>. Coche des profils (ou rien, pour tous les prévu·es) puis{" "}
-              <UI>📅 Envoyer … dans la journée de booking</UI>, avec fonction et cachet. Liens vers le trombi à imprimer,
+              <UI>📅 Envoyer … dans la journée de booking</UI>, avec le cachet (fonction facultative). Liens vers le trombi à imprimer,
               les messages du jour et la journée dans Bookings. <UI>← Revenir aux candidatures</UI> pour ressortir.
-            </>,
-            <>
-              <strong className="text-text">🔗 Lien de validation MES</strong> (barre de sélection) :{" "}
-              <UI>📅 Créer le lien de toutes les journées</UI> montre à la MES chaque jour de tournage de l&apos;annonce,
-              avec les profils en cours de choix (prévus) et ceux déjà dans la journée, et se met à jour tout seul.
-              Elle voit
-              des planches avec plusieurs photos (galerie plein écran), l&apos;âge, les mensurations et les réponses aux
-              questions, mais jamais les coordonnées ni le message de candidature. À l&apos;arrivée, son prénom et son rôle
-              sont demandés une seule fois. Chaque profil se vote <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> (pas de
-              peut-être), avec une note. Les profils prévus sur un jour sont rangés par jour de tournage, avec un filtre
-              par jour. Un fil de commentaires permet d&apos;écrire à l&apos;équipe. De ton côté, le
-              badge <UI>🎬 Validé MES</UI> s&apos;affiche sur la carte et l&apos;onglet <UI>🎬 Validés MES</UI> regroupe les
-              validés, à envoyer ensuite dans la journée de booking. Dans le panneau du lien, tu vois qui l&apos;a ouvert, qui est en ligne
-              et les commentaires, auxquels tu peux répondre. <UI>👀 Voir comme la MES</UI> ouvre la page sans compter de
-              visite. Les votes et commentaires arrivent aussi
-              dans la cloche.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
@@ -655,8 +645,10 @@ export default function AidePage() {
           items={[
             <>
               <strong className="text-text">🔗 Lien de validation MES</strong> (page Bookings du projet, sous les
-              journées) : <UI>📅 Créer le lien de toutes les journées</UI> montre à la mise en scène chaque journée à
-              venir avec les profils bookés (photos, âge, mensurations, fonction, jamais les coordonnées). Elle répond{" "}
+              journées) — la validation MES ne se fait que depuis Bookings : <UI>📅 Créer le lien de toutes les
+              journées</UI> montre à la mise en scène chaque journée à venir avec les profils au statut{" "}
+              <UI>Proposé MES</UI> (photos, âge, mensurations, fonction, jamais les coordonnées). Un profil qui change de
+              statut quitte le lien. Elle répond{" "}
               <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> et peut commenter ; le lien se met à jour tout seul. Dans la journée, le
               badge <UI>🎬 Validé MES</UI> s&apos;affiche à côté du nom.
             </>,
@@ -668,7 +660,8 @@ export default function AidePage() {
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
               <strong className="text-text">cachet</strong> et <strong className="text-text">statut</strong>{" "}
-              pour chaque profil. Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
+              pour chaque profil (dont <UI>Proposé MES</UI>, <UI>Attente réponse booking</UI> en orange foncé,{" "}
+              <UI>À rappeler</UI> en bleu foncé et <UI>À annuler</UI> en rouge pâle). Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
               fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et

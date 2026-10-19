@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { aAccesComplet } from "@/lib/auth/owner";
 import { getMyTeamPresence } from "@/lib/auth/team-presence";
 import { Card } from "@/components/ui/card";
 import { InviteAssistantForm } from "@/components/equipe/invite-assistant-form";
@@ -69,7 +70,7 @@ export default async function EquipePage() {
         <InviteAssistantForm projets={projets ?? []} />
       </Card>
 
-      <MembresList membres={membresRaw ?? []} />
+      <MembresList membres={membresRaw ?? []} peutRevoquer={aAccesComplet(profile)} />
     </div>
   );
 }

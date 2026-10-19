@@ -24,6 +24,7 @@ import type { FigurantMessage } from "@/lib/candidats/types";
 import { deleteFigurant, deleteLien } from "@/lib/figurants/actions";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { aAccesComplet } from "@/lib/auth/owner";
 
 type FigurantBookingRow = {
   id: string;
@@ -181,7 +182,12 @@ export default async function FigurantDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Contact</h2>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} projetId={currentProjetId} />
+          <AccesCompteToggle
+            figurantId={figurant.id}
+            actif={figurant.acces_compte}
+            projetId={currentProjetId}
+            peutRevoquer={aAccesComplet(profile)}
+          />
           {figurant.acces_compte && currentProjetId && (
             <SendEspacePersoButton
               figurantId={figurant.id}

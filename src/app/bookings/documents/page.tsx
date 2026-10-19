@@ -264,7 +264,7 @@ export default async function JourneeDashboardPage({
 
   const confirmes = bookings.filter((b) => b.statut === "confirmé").length;
   const enAttente = bookings.filter((b) =>
-    ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide"].includes(b.statut)
+    ["proposé", "envoyé", "attente_reponse_booking", "a_relancer", "doit_rappeler", "a_rappeler", "attente_validation", "valide"].includes(b.statut)
   ).length;
 
   // Ancienne journée d'une modification du PDT : combien attendent encore

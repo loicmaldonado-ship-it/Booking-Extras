@@ -13,8 +13,6 @@ import { JourChips, type JourCandidature } from "@/components/candidatures/jour-
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
-import { LiensValidation } from "@/components/validation/liens-validation";
-import type { LienResume } from "@/lib/validation/data";
 import type { MessageTemplate } from "@/lib/templates/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
@@ -46,34 +44,7 @@ export type CandidatureSummary = {
   age: number | null;
   tournages: number;
   jours: JourCandidature[];
-  // Dernier avis de la MES sur un lien de validation.
-  mes?: { vote: "oui" | "peut" | "non" | null; qui: string; note: string } | null;
 };
-
-function BadgeMes({ mes }: { mes: CandidatureSummary["mes"] }) {
-  if (!mes) return null;
-  const libelle = mes.vote === "oui" ? "Validé MES" : mes.vote === "peut" ? "Peut-être MES" : mes.vote === "non" ? "Écarté MES" : "Note MES";
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span
-        className={cn(
-          "self-start rounded-full px-2 py-0.5 text-[11px] font-semibold",
-          mes.vote === "oui"
-            ? "bg-turquoise text-white"
-            : mes.vote === "peut"
-              ? "bg-yellow/25 text-yellow"
-              : mes.vote === "non"
-                ? "bg-danger/15 text-danger"
-                : "bg-ink-raised-2 text-text"
-        )}
-        title={`Avis de ${mes.qui}`}
-      >
-        🎬 {libelle} · {mes.qui}
-      </span>
-      {mes.note && <span className="text-[11px] italic text-text-muted">« {mes.note} »</span>}
-    </div>
-  );
-}
 
 // Met en évidence le texte cherché (sans tenir compte des accents).
 function Surligne({ texte, q }: { texte: string; q: string }) {
@@ -131,11 +102,6 @@ export function CandidaturesTable({
   recherche,
   jours,
   templates,
-  liens,
-  liensOuverts = false,
-  origin,
-  nomLienParDefaut,
-  annonceId,
   pagination,
 }: {
   rows: Row[];
@@ -149,11 +115,6 @@ export function CandidaturesTable({
   recherche: string;
   jours: JourPanneau[];
   templates: MessageTemplate[];
-  liens: LienResume[];
-  liensOuverts?: boolean;
-  origin: string;
-  nomLienParDefaut: string;
-  annonceId: string;
   pagination?: ReactNode;
 }) {
   const router = useRouter();
@@ -163,7 +124,7 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "lien" | null>(liensOuverts ? "lien" : null);
+  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | null>(null);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
@@ -330,19 +291,6 @@ export function CandidaturesTable({
               </span>
             )}
             <span className="flex-1" />
-            <button
-              type="button"
-              onClick={() => setOutil(outil === "lien" ? null : "lien")}
-              aria-expanded={outil === "lien"}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium",
-                outil === "lien" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-              )}
-            >
-              🔗 Lien de validation MES
-              {liens.length > 0 && ` (${liens.length})`}
-              {liens.some((l) => l.visites.some((v) => v.enLigne)) && <span className="ml-1 inline-block h-2 w-2 rounded-full bg-turquoise" />}
-            </button>
             {triIds.length > 0 && (
               <button
                 type="button"
@@ -407,9 +355,6 @@ export function CandidaturesTable({
               )}
             </div>
           )}
-          {outil === "lien" && (
-            <LiensValidation cible={{ annonceId }} nomParDefaut={nomLienParDefaut} liens={liens} origin={origin} />
-          )}
           {/* Reste ouvert après l'envoi pour montrer la confirmation. */}
           {outil === "envoi" && panneau && (
             <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
@@ -431,6 +376,7 @@ export function CandidaturesTable({
           )}
           {selected.size > 0 && outil === "journee" && (
             <AddToJourneeBar
+              fonctionFacultative
               figurantIds={selection.map((r) => r.figurants!.id)}
               candidatureIdByFigurant={Object.fromEntries(selection.map((r) => [r.figurants!.id, r.id]))}
               projets={projets}
@@ -585,7 +531,6 @@ export function CandidaturesTable({
                       </span>
                     )}
                     <HabitueBadge tournages={s?.tournages ?? 0} className="mt-0.5 self-start" />
-                    <BadgeMes mes={s?.mes} />
                   </div>
                   <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
                   <div className="mt-auto">
@@ -677,8 +622,7 @@ export function CandidaturesTable({
                               </div>
                             )}
                             <HabitueBadge tournages={s?.tournages ?? 0} className="mt-1 inline-block" />
-                            <BadgeMes mes={s?.mes} />
-                          </div>
+                                  </div>
                         </div>
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-text-muted">{meta(r)}</td>

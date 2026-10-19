@@ -25,7 +25,9 @@ export default async function ValidationPage({
   const lang = parseLang(sp.lang);
   const lien = await getLienParToken(token);
 
-  if (!lien) {
+  // La validation MES ne se fait plus que depuis Bookings : les anciens
+  // liens créés depuis Candidatures ne sont plus disponibles.
+  if (!lien || lien.source !== "bookings") {
     return (
       <div className="flex flex-col gap-4">
         <Logo iconSize={26} textClassName="text-lg" />

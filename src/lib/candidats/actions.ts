@@ -2,6 +2,7 @@
 
 import { formatPrenom } from "@/lib/noms";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { aAccesComplet } from "@/lib/auth/owner";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -331,6 +332,8 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 export async function toggleAccesCompte(figurantId: string, value: boolean, projetId?: string | null) {
   const supabase = createAdminClient();
   if (value) return activerAccesCompte(figurantId, projetId);
+  // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
+  if (!aAccesComplet(await getCurrentProfile())) return { error: "Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès." };
 
   await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
   revalidatePath(`/figurants/${figurantId}`);

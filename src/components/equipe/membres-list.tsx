@@ -15,7 +15,14 @@ export type Membre = {
   profiles: { id: string; email: string | null; nom: string | null; sections_autorisees: string[] | null } | null;
 };
 
-export function MembresList({ membres }: { membres: Membre[] }) {
+export function MembresList({
+  membres,
+  peutRevoquer = false,
+}: {
+  membres: Membre[];
+  // Révoquer un accès : réservé aux comptes à accès complet.
+  peutRevoquer?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   // L'assistant·e dont le popover Sections est ouvert, avec la liste en
@@ -119,9 +126,11 @@ export function MembresList({ membres }: { membres: Membre[] }) {
                   )}
                 </td>
                 <td className="px-6 py-3 text-right">
-                  <Button type="button" variant="ghost" disabled={pending} onClick={() => revoke(m.id)}>
-                    Révoquer
-                  </Button>
+                  {peutRevoquer && (
+                    <Button type="button" variant="ghost" disabled={pending} onClick={() => revoke(m.id)}>
+                      Révoquer
+                    </Button>
+                  )}
                 </td>
               </tr>
             );
