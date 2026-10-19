@@ -5,8 +5,9 @@
 # envois pour ne pas être pris pour du spam. Remonte aussi au site les
 # réponses reçues dans Messages, uniquement de la part des numéros à qui le
 # site a écrit (il faut autoriser l'« Accès complet au disque »). Avec cet
-# accès, chaque texto est aussi vérifié après l'envoi et renvoyé tout seul
-# s'il finit « Non distribué ».
+# accès, chaque texto part d'abord en iMessage, puis en SMS par l'iPhone si
+# la personne n'a pas iMessage, et il est vérifié et renvoyé s'il finit
+# « Non distribué ».
 DOSSIER="${BOOKING_RELAIS_DOSSIER:-$HOME/Library/Application Support/BookingExtrasRelais}"
 source "$DOSSIER/config"   # SITE, CLE, MODE, DELAI_MIN, DELAI_MAX, TEST
 TMP="$DOSSIER/reponse.json"
@@ -66,45 +67,72 @@ relever_reponses() {
 }
 
 # Distribution d'un texto qu'on vient de confier à Messages : regarde dans
-# sa base le message parti vers ce numéro après « avant ». Affiche « ok »,
-# « echec <code> » ou « inconnu » (pas d'accès à la base, ou toujours en
-# cours au bout de 90 s). Sert à renvoyer tout seul les « Non distribué ».
+# sa base le dernier message parti vers ce numéro après « avant », toutes
+# les 5 s pendant « tours » × 5 s. Affiche « ok <service> », « echec <code>
+# <service> », « attente <service> » (toujours en cours), « absent » (pas
+# trouvé) ou « acces » (pas d'Accès complet au disque).
 etat_distribution() {
-  local tel="$1" avant="$2" t ligne
-  sqlite3 "file:$CHATDB?mode=ro" "select 1" > /dev/null 2>&1 || { echo inconnu; return; }
-  for ((t = 0; t < ${VERIF_TOURS:-18}; t++)); do
+  local tel="$1" avant="$2" tours="$3" t ligne code envoye service dernier=absent
+  sqlite3 "file:$CHATDB?mode=ro" "select 1" > /dev/null 2>&1 || { echo acces; return; }
+  for ((t = 0; t < tours; t++)); do
     sleep 5
     ligne=$(sqlite3 "file:$CHATDB?mode=ro" "SELECT m.error || '|' || m.is_sent || '|' || m.service FROM message m JOIN handle h ON h.ROWID = m.handle_id WHERE m.is_from_me = 1 AND m.ROWID > ${avant:-0} AND h.id = '$tel' ORDER BY m.ROWID DESC LIMIT 1" 2> /dev/null)
     [ -z "$ligne" ] && continue
     IFS='|' read -r code envoye service <<< "$ligne"
-    if [ "${code:-0}" != "0" ]; then echo "echec $code ($service)"; return; fi
-    if [ "$envoye" = "1" ]; then echo "ok ($service)"; return; fi
+    if [ "${code:-0}" != "0" ]; then echo "echec $code $service"; return; fi
+    if [ "$envoye" = "1" ]; then echo "ok $service"; return; fi
+    dernier="attente $service"
   done
-  echo inconnu
+  echo "$dernier"
 }
 
 dernier_message() {
   sqlite3 "file:$CHATDB?mode=ro" "SELECT COALESCE(MAX(ROWID),0) FROM message" 2> /dev/null || echo 0
 }
 
-# Confie le texto à Messages puis vérifie qu'il est parti ; « Non
-# distribué » → nouvel essai (comme « Réessayer » dans Messages), jusqu'à 3.
+# Un essai : confie le texto à Messages avec ce mode, puis attend son état.
+essai_envoi() {
+  local tel="$1" texte="$2" mode="$3" tours="$4" avant sortie
+  avant=$(dernier_message)
+  if ! sortie=$(osascript "$DOSSIER/envoyer.applescript" "$tel" "$texte" "$mode" 2>&1); then
+    echo "refus $sortie"
+    return
+  fi
+  etat_distribution "$tel" "$avant" "$tours"
+}
+
+# iMessage d'abord (part directement du Mac, instantané pour les iPhone) ;
+# s'il échoue (numéro sans iMessage), SMS par l'iPhone, avec un nouvel
+# essai si « Non distribué ». Sans Accès complet au disque : un seul envoi
+# dans le mode réglé, sans vérification (ancien fonctionnement).
 envoyer_avec_verification() {
-  local tel="$1" texte="$2" essai avant sortie etat
-  for essai in 1 2 3; do
-    avant=$(dernier_message)
-    if ! sortie=$(osascript "$DOSSIER/envoyer.applescript" "$tel" "$texte" "$MODE" 2>&1); then
-      erreur="$sortie"
-    else
-      etat=$(etat_distribution "$tel" "$avant")
-      case "$etat" in
-        ok*) journal "Envoyé à $tel ($etat, essai $essai)"; return 0 ;;
-        inconnu) journal "Envoyé à $tel (distribution non vérifiée)"; return 0 ;;
-        *) erreur="Non distribué : $etat" ;;
-      esac
+  local tel="$1" texte="$2" etat essai
+  if ! sqlite3 "file:$CHATDB?mode=ro" "select 1" > /dev/null 2>&1 || [ "$MODE" = "sms-seul" ]; then
+    if sortie=$(osascript "$DOSSIER/envoyer.applescript" "$tel" "$texte" "${MODE/-seul/}" 2>&1); then
+      journal "Envoyé à $tel (distribution non vérifiée : pas d'accès à Messages)"
+      return 0
     fi
-    journal "Essai $essai pour $tel : $erreur"
-    [ "$essai" -lt 3 ] && sleep $(( essai * 20 ))
+    erreur="$sortie"
+    return 1
+  fi
+  etat=$(essai_envoi "$tel" "$texte" imessage-seul 6)
+  case "$etat" in
+    ok*) journal "Envoyé à $tel ($etat)"; return 0 ;;
+  esac
+  journal "iMessage impossible pour $tel ($etat), passage en SMS"
+  for essai in 1 2; do
+    etat=$(essai_envoi "$tel" "$texte" sms-seul 36)
+    case "$etat" in
+      ok*) journal "Envoyé à $tel ($etat, essai SMS $essai)"; return 0 ;;
+      attente*)
+        # Toujours en cours au bout de 3 min : pas de nouvel essai (risque
+        # de doublon), mais signalé sur le site.
+        erreur="SMS bloqué en cours d'envoi au bout de 3 min ($etat) : vérifie le Transfert de SMS de l'iPhone"
+        return 1 ;;
+    esac
+    erreur="Non distribué en SMS ($etat)"
+    journal "Essai SMS $essai pour $tel : $erreur"
+    [ "$essai" -lt 2 ] && sleep 20
   done
   return 1
 }
@@ -139,7 +167,7 @@ while true; do
       if envoyer_avec_verification "$tel" "$texte"; then
         ok=1; erreur=""
       else
-        journal "Échec pour $tel après 3 essais : $erreur"
+        journal "Échec pour $tel : $erreur"
         ok=0
       fi
     fi
