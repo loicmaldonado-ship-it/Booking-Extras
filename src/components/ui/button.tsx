@@ -7,10 +7,10 @@ const base =
 
 const variants = {
   // Boutons francs, visibles d'un coup d'œil : plein (action principale),
-  // cerclé vert (secondaire), cerclé neutre (annuler / retour).
+  // cerclé noir (secondaire), cerclé neutre (annuler / retour).
   primary: "bg-coral text-ink shadow-sm hover:bg-coral-hover",
-  secondary: "bg-ink text-coral border-2 border-coral shadow-sm hover:bg-coral/10",
-  ghost: "bg-ink/70 text-text border border-border-strong hover:border-coral hover:text-coral",
+  secondary: "bg-ink text-coral border-2 border-text shadow-sm hover:bg-coral/10",
+  ghost: "bg-ink/70 text-text border border-border-strong hover:border-text",
   turquoise: "bg-turquoise text-ink shadow-sm hover:brightness-110",
   danger: "bg-danger text-ink shadow-sm hover:brightness-110",
 };
