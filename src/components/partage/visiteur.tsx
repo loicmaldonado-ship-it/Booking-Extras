@@ -41,6 +41,17 @@ export function enregistrerVisiteur(v: Visiteur) {
   abonnes.forEach((cb) => cb());
 }
 
+// « Ce n'est pas moi » : oublie le prénom et le rôle sur cet appareil.
+export function oublierVisiteur() {
+  memoire = null;
+  try {
+    localStorage.removeItem(CLE);
+  } catch {
+    // Rien à effacer.
+  }
+  abonnes.forEach((cb) => cb());
+}
+
 export function useVisiteur(): Visiteur | null {
   const brut = useSyncExternalStore(abonner, lire, () => null);
   return useMemo(() => {

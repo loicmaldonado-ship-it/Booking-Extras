@@ -9,7 +9,7 @@ import { Logo } from "@/components/ui/logo";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import type { Lang } from "@/lib/i18n/partage";
 import { dateHeure, dateLongue, jourMois, ts, type SuiviKey } from "@/lib/i18n/suivi";
-import { AccueilVisiteur, useVisiteur } from "@/components/partage/visiteur";
+import { AccueilVisiteur, oublierVisiteur, useVisiteur } from "@/components/partage/visiteur";
 import { signalerVisite, voterProfil, commenterLien } from "@/lib/validation/actions";
 import type { Planche, VoteMes } from "@/lib/validation/data";
 
@@ -186,7 +186,10 @@ export function ValidationMes({
           </div>
           {moi && !apercu && (
             <p className="text-sm text-text-muted">
-              {ts(lang, "vous")} : <b className="text-text">{moi.prenom}</b> · {moi.role}
+              {ts(lang, "vous")} : <b className="text-text">{moi.prenom}</b> · {moi.role} ·{" "}
+              <button type="button" onClick={oublierVisiteur} className="font-medium text-coral underline">
+                {ts(lang, "pas_moi")}
+              </button>
             </p>
           )}
         </div>

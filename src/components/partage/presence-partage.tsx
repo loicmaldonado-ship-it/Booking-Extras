@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
 import type { Lang } from "@/lib/i18n/partage";
 import { dateHeure, ts } from "@/lib/i18n/suivi";
-import { AccueilVisiteur, useVisiteur } from "@/components/partage/visiteur";
+import { AccueilVisiteur, oublierVisiteur, useVisiteur } from "@/components/partage/visiteur";
 import { commenterPartage, commentairesDuLien, signalerVisitePartage, type CommentairePartage } from "@/lib/partage/suivi";
 
 // À poser sur la page publique d'un lien de partage : demande le prénom et
@@ -94,7 +94,10 @@ export function PresencePartage({
             </div>
             {moi && (
               <p className="text-xs text-text-muted">
-                {ts(lang, "vous")} : <b className="text-text">{moi.prenom}</b> · {moi.role}
+                {ts(lang, "vous")} : <b className="text-text">{moi.prenom}</b> · {moi.role} ·{" "}
+                <button type="button" onClick={oublierVisiteur} className="font-medium text-coral underline">
+                  {ts(lang, "pas_moi")}
+                </button>
               </p>
             )}
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
