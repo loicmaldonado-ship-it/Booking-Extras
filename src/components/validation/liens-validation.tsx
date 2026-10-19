@@ -90,7 +90,7 @@ export function LiensValidation({
         <b className="text-sm">🔗 Lien de validation pour la mise en scène</b>
         <p className="text-xs text-text-muted">
           {bookings
-            ? "Toutes les journées à venir du projet, avec les profils bookés en planches (photos, âge, mensurations, fonction — jamais les coordonnées). La MES répond Oui ou Non pour chaque profil ; tu le vois ici et dans la journée (🎬). Le lien se met à jour tout seul."
+            ? "Les journées à venir du projet (et les passées qui ont encore des profils Proposé MES), avec les profils au statut Proposé MES en planches (photos, âge, mensurations, fonction — jamais les coordonnées). La MES répond Oui ou Non pour chaque profil ; tu le vois ici et dans la journée (🎬). Le lien se met à jour tout seul."
             : "Toutes les journées de l'annonce, avec les profils en cours de choix et ceux déjà dans la journée, en planches (photos, âge, mensurations, réponses aux questions — jamais les coordonnées ni le message). La MES répond Oui ou Non pour chaque profil ; tu le vois ici et sur les cartes (🎬). Le lien se met à jour tout seul."}
         </p>
       </div>

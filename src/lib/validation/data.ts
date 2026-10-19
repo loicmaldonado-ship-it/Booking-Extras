@@ -163,35 +163,32 @@ export async function journeesDeLAnnonce(annonceId: string, projetId: string) {
   return { dates: Array.from(dateDe.values()), prevusPar, journeePar };
 }
 
-// Les journées à venir d'un projet (Bookings) et les profils « Proposé MES »
-// de chacune : seuls ceux-là passent par la validation de la MES.
+// Les journées d'un projet (Bookings) pour la validation MES : celles à
+// venir, plus les journées passées qui ont encore des profils « Proposé
+// MES » (un projet dont toutes les dates sont passées doit pouvoir être
+// validé quand même). Seuls les profils « Proposé MES » passent par la MES.
 export async function journeesDuProjet(projetId: string) {
   const supabase = createAdminClient();
   const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
-  const { data: journees } = await supabase
-    .from("journees")
-    .select("date")
-    .eq("projet_id", projetId)
-    .gte("date", aujourdhui)
-    .order("date");
-  const dates = (journees ?? []).map((j) => j.date);
+  const [{ data: journees }, { data: bookings }] = await Promise.all([
+    supabase.from("journees").select("date").eq("projet_id", projetId).gte("date", aujourdhui).order("date"),
+    fetchAll<{ figurant_id: string; date: string; fonction: string | null }>((from, to) =>
+      supabase
+        .from("bookings")
+        .select("figurant_id, date, fonction")
+        .eq("projet_id", projetId)
+        .eq("statut", "proposé")
+        .order("id")
+        .range(from, to)
+    ),
+  ]);
   const joursPar = new Map<string, string[]>();
   const fonctionsPar = new Map<string, Record<string, string>>();
-  if (dates.length === 0) return { dates, joursPar, fonctionsPar };
-  const { data: bookings } = await fetchAll<{ figurant_id: string; date: string; statut: string; fonction: string | null }>((from, to) =>
-    supabase
-      .from("bookings")
-      .select("figurant_id, date, statut, fonction")
-      .eq("projet_id", projetId)
-      .in("date", dates)
-      .order("id")
-      .range(from, to)
-  );
   for (const b of bookings) {
-    if (b.statut !== "proposé") continue;
     joursPar.set(b.figurant_id, Array.from(new Set([...(joursPar.get(b.figurant_id) ?? []), b.date])).sort());
     if (b.fonction) fonctionsPar.set(b.figurant_id, { ...(fonctionsPar.get(b.figurant_id) ?? {}), [b.date]: b.fonction });
   }
+  const dates = Array.from(new Set([...(journees ?? []).map((j) => j.date), ...bookings.map((b) => b.date)])).sort();
   return { dates, joursPar, fonctionsPar };
 }
 

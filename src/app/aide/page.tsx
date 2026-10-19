@@ -644,7 +644,8 @@ export default function AidePage() {
             <>
               <strong className="text-text">🔗 Lien de validation MES</strong> (page Bookings du projet, sous les
               journées) — la validation MES ne se fait que depuis Bookings : <UI>📅 Créer le lien de toutes les
-              journées</UI> montre à la mise en scène chaque journée à venir avec les profils au statut{" "}
+              journées</UI> montre à la mise en scène chaque journée à venir (et les journées passées qui ont encore des
+              profils à valider) avec les profils au statut{" "}
               <UI>Proposé MES</UI> (photos, âge, mensurations, fonction, jamais les coordonnées). Un profil qui change de
               statut quitte le lien. Elle répond{" "}
               <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> et peut commenter ; le lien se met à jour tout seul. Dans la journée, le
