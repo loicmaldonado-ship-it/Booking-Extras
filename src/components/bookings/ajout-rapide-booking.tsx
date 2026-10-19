@@ -8,6 +8,8 @@ import { Modale } from "@/components/ui/modale";
 import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { ajoutRapideBooking, type ResultatAjoutRapide } from "@/lib/bookings/ajout-rapide-actions";
+
+type Doublons = NonNullable<ResultatAjoutRapide["doublons"]>;
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
 
 type Ajoute = { nom: string; detail: string };
@@ -39,6 +41,9 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
   const [apercu, setApercu] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ajoutes, setAjoutes] = useState<Ajoute[]>([]);
+  // Fiches qui ressemblent à la personne saisie : rien n'est créé tant
+  // qu'on n'a pas choisi. La saisie est gardée pour la renvoyer telle quelle.
+  const [doublons, setDoublons] = useState<{ liste: Doublons; saisie: FormData } | null>(null);
   const [pending, demarrer] = useTransition();
 
   async function choisirPhoto(file: File | undefined) {
@@ -65,6 +70,26 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
     });
   }
 
+  function soumettre(fd: FormData) {
+    setErreur(null);
+    demarrer(async () => {
+      const res = await ajoutRapideBooking(projetId, date, fonction, cachet, fd);
+      if (res.error) {
+        setErreur(res.error);
+        return;
+      }
+      if (res.doublons) {
+        setDoublons({ liste: res.doublons, saisie: fd });
+        return;
+      }
+      setDoublons(null);
+      setAjoutes((l) => [...l, { nom: res.nom ?? "", detail: detailAjout(res) }]);
+      reinitialiser();
+      formRef.current?.querySelector<HTMLInputElement>("input[name=prenom]")?.focus();
+      router.refresh();
+    });
+  }
+
   function envoyer(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!fonction.trim() || !cachet) {
@@ -75,18 +100,15 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
     fd.delete("photo_brute");
     fd.delete("fonction");
     if (photo) fd.set("photo", photo);
-    setErreur(null);
-    demarrer(async () => {
-      const res = await ajoutRapideBooking(projetId, date, fonction, cachet, fd);
-      if (res.error) {
-        setErreur(res.error);
-        return;
-      }
-      setAjoutes((l) => [...l, { nom: res.nom ?? "", detail: detailAjout(res) }]);
-      reinitialiser();
-      formRef.current?.querySelector<HTMLInputElement>("input[name=prenom]")?.focus();
-      router.refresh();
-    });
+    soumettre(fd);
+  }
+
+  function trancher(choix: string) {
+    if (!doublons) return;
+    const fd = new FormData();
+    doublons.saisie.forEach((v, k) => fd.append(k, v));
+    fd.set("choix", choix);
+    soumettre(fd);
   }
 
   function fermer() {
@@ -94,6 +116,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
     setOuvert(false);
     setAjoutes([]);
     setErreur(null);
+    setDoublons(null);
     reinitialiser();
   }
 
@@ -112,7 +135,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
           onClose={fermer}
           bloquee={pending}
         >
-          <form ref={formRef} onSubmit={envoyer} className="flex flex-col gap-3">
+          <form ref={formRef} onSubmit={envoyer} onChange={() => setDoublons(null)} className="flex flex-col gap-3">
             <div className="grid grid-cols-1 gap-2 rounded-xl border border-border bg-ink-raised p-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-xs text-text-muted">
                 <span>
@@ -178,6 +201,54 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
             </div>
 
             {erreur && <p className="text-sm text-danger">{erreur}</p>}
+
+            {doublons && (
+              <div className="flex flex-col gap-2 rounded-xl border border-yellow/50 bg-yellow/10 p-3">
+                <p className="text-sm font-semibold">
+                  ⚠️ Cette personne est peut-être déjà dans la base. Rien n&apos;est créé tant que tu n&apos;as pas choisi.
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {doublons.liste.map((d) => (
+                    <li key={d.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-ink p-2">
+                      <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md bg-ink-raised">
+                        {d.photoUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={d.photoUrl} alt="" className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <div className="min-w-[10rem] flex-1 text-sm">
+                        <p className="font-medium">
+                          {d.nom}
+                          {d.age !== null && <span className="text-text-muted"> · {d.age} ans</span>}
+                          {d.ville && <span className="text-text-muted"> · {d.ville}</span>}
+                        </p>
+                        <p className="truncate text-xs text-text-muted">
+                          {[d.telephone, d.email].filter(Boolean).join(" · ") || "Pas de contact"}
+                        </p>
+                        <p className="text-xs">
+                          <span className="font-medium text-yellow">{d.raison}</span>
+                          {d.dejaDansJournee && <span className="text-text-muted"> · déjà dans cette journée</span>}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={pending || d.dejaDansJournee}
+                        onClick={() => trancher(`reprendre:${d.id}`)}
+                        className="w-full sm:w-auto"
+                      >
+                        ✅ C&apos;est elle / lui
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex justify-end">
+                  <Button type="button" variant="secondary" disabled={pending} onClick={() => trancher("nouvelle")}>
+                    ➕ Non, créer une nouvelle fiche
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {ajoutes.length > 0 && (
               <ul className="flex flex-col gap-1 rounded-xl border border-turquoise/40 bg-turquoise/10 px-3 py-2 text-sm">

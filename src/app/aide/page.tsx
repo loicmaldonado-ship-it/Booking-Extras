@@ -662,7 +662,12 @@ export default function AidePage() {
               photo, prénom, nom, email et/ou téléphone, et enchaîne les personnes. La fiche va dans la Base Profils{" "}
               <strong className="text-text">sans compte</strong>, et un mail (depuis la boîte du projet) lui propose de
               créer son compte en choisissant un mot de passe. Une fiche déjà connue (même email, ou même nom + même
-              téléphone) est reprise, jamais dupliquée. Sans email, aucun mail ne part.
+              téléphone) est reprise, jamais dupliquée. Si quelqu&apos;un <strong className="text-text">ressemble</strong>{" "}
+              (même nom aux accents ou tirets près, nom à une lettre près, même téléphone écrit autrement), un encadré{" "}
+              <UI>⚠️ Cette personne est peut-être déjà dans la base</UI> montre sa photo, son âge et sa ville : rien
+              n&apos;est créé tant que tu n&apos;as pas choisi <UI>✅ C&apos;est elle / lui</UI> (sa fiche est reprise,
+              email ou téléphone manquants complétés) ou <UI>➕ Non, créer une nouvelle fiche</UI>. Sans email, aucun
+              mail ne part.
             </>,
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
