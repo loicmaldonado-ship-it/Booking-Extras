@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDayMonth } from "@/lib/format-date";
@@ -17,8 +18,8 @@ export type JourCandidature = {
 // Touches du tri rapide, une par date (rangée du haut d'un clavier AZERTY).
 export const JOUR_KEYS = ["a", "z", "e", "r", "t", "y", "u", "i", "o", "p"];
 
-// Une pastille par date de l'annonce. Pleine = prévue ; contour vert = dispo
-// mais pas prévue ; pointillés barrés = s'est dite pas dispo (reste
+// Une pastille par date de l'annonce. Pleine = rangée dans cette journée
+// (son onglet) ; contour vert = dispo mais pas rangée là ; pointillés barrés = s'est dite pas dispo (reste
 // cliquable) ; ✓ = déjà dans la journée de tournage (ne se modifie plus
 // ici, ça se gère dans Bookings).
 export function JourChipsView({
@@ -46,10 +47,10 @@ export function JourChipsView({
             j.dansLaJournee
               ? "Déjà en booking"
               : j.prevu
-                ? "Dans la journée (prévisionnel) — cliquer pour retirer"
+                ? "Rangé·e dans cette journée — cliquer pour la remettre dans « À trier »"
                 : j.disponible
-                  ? "Dispo — cliquer pour déplacer dans cette journée"
-                  : "S'est dit·e pas dispo — cliquer pour déplacer dans cette journée quand même"
+                  ? "Dispo — cliquer pour la ranger dans cette journée"
+                  : "S'est dit·e pas dispo — cliquer pour la ranger dans cette journée quand même"
           }
           className={cn(
             "flex items-center gap-1 rounded-md border font-medium tabular-nums transition-colors",
@@ -76,8 +77,9 @@ export function JourChipsView({
   );
 }
 
-// Version autonome pour les cartes et la vue liste : un clic prévoit ou
-// retire la personne ce jour-là, affichage immédiat puis enregistrement.
+// Version autonome pour les cartes et la vue liste : un clic range la
+// personne dans cette journée (sa seule place) ou la remet dans « À trier »,
+// affichage immédiat puis enregistrement.
 export function JourChips({
   candidatureId,
   jours,
@@ -87,6 +89,7 @@ export function JourChips({
   jours: JourCandidature[];
   center?: boolean;
 }) {
+  const router = useRouter();
   const [local, setLocal] = useState(jours);
   const [synced, setSynced] = useState(jours);
   const [error, setError] = useState<string | null>(null);
@@ -99,13 +102,16 @@ export function JourChips({
   function toggle(j: JourCandidature) {
     if (j.dansLaJournee) return;
     const before = local;
-    setLocal(local.map((x) => (x.id === j.id ? { ...x, prevu: !x.prevu } : x)));
+    // Une seule place : ranger dans une journée vide les autres.
+    setLocal(local.map((x) => ({ ...x, prevu: x.id === j.id ? !x.prevu : false })));
     setError(null);
     setCandidatureJour(candidatureId, j.id, !j.prevu).then((res) => {
       if (res.error) {
         setLocal(before);
         setError(res.error);
+        return;
       }
+      router.refresh();
     });
   }
 

@@ -4,9 +4,8 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
-import { envoyerCandidaturesDansJour, envoyerJourAuTournage } from "@/lib/candidatures/jours";
+import { envoyerCandidaturesDansJour } from "@/lib/candidatures/jours";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
-import type { BookingStatut } from "@/lib/bookings/types";
 import type { JourCandidature } from "@/components/candidatures/jour-chips";
 
 export type JourPanneau = {
@@ -16,32 +15,20 @@ export type JourPanneau = {
   besoin: number | null;
   // Bookings de la journée hors annulé·es / indispos.
   dansLaJournee: number;
-  stats: { confirmes: number; proposes: number; per: number };
   fonctions: { fonction: string; besoin: number; places: number }[];
-  gens: { bookingId: string; nom: string; statut: BookingStatut; fonction: string | null; portraitUrl: string | null }[];
-  // Annulé·es et indispos de ce jour (pas dans le trombi).
-  horsJournee: number;
-  // Jour ouvert en grand au-dessus des cartes.
-  vu: boolean;
-  vuHref: string;
-  // Candidat·es « prévu·es » ce jour (pastilles des cartes), pas encore
-  // dans la journée.
-  prevusAEnvoyer: number;
-  prevus: number;
-  prevusIds: string[];
-  dispoHref: string;
-  dispoActif: boolean;
-  prevusHref: string;
+  // Profils rangés dans l'onglet de cette journée, encore dans Candidatures.
+  rangees: number;
+  // La journée dans Bookings.
+  bookingHref: string;
 };
 
 export type SelectionJours = { id: string; nom: string; jours: JourCandidature[] };
 
 const champ = "w-full rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm outline-none focus:border-coral";
 
-// Panneau de droite de Candidatures : un bloc par date de l'annonce, avec
+// Envoi en booking depuis Candidatures : un bloc par date de l'annonce, avec
 // la jauge besoin / présent·es, et l'envoi des profils cochés dans ce jour
-// (confirmation sur place). Un clic sur le jour l'ouvre en grand (trombi)
-// au-dessus des cartes.
+// (confirmation sur place).
 export function JoursPanneau({
   jours,
   projetId,
@@ -53,26 +40,22 @@ export function JoursPanneau({
   selection: SelectionJours[];
   onEnvoye: () => void;
 }) {
-  const [envoi, setEnvoi] = useState<{ jourId: string; mode: "selection" | "prevus" } | null>(null);
+  const [envoi, setEnvoi] = useState<{ jourId: string } | null>(null);
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [aussiPasDispo, setAussiPasDispo] = useState(false);
   const [resultat, setResultat] = useState<{ jourId: string; ok: number; deja: number; error?: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function demarrer(jourId: string, mode: "selection" | "prevus") {
-    setEnvoi({ jourId, mode });
+  function demarrer(jourId: string) {
+    setEnvoi({ jourId });
     setResultat(null);
     setAussiPasDispo(false);
   }
 
   function envoyer(jour: JourPanneau, ids: string[]) {
-    const mode = envoi?.mode;
     startTransition(async () => {
-      const res =
-        mode === "prevus"
-          ? await envoyerJourAuTournage(jour.id, fonction, cachet)
-          : await envoyerCandidaturesDansJour(jour.id, ids, fonction, cachet);
+      const res = await envoyerCandidaturesDansJour(jour.id, ids, fonction, cachet);
       setResultat({ jourId: jour.id, ...res });
       if (!res.error) {
         setEnvoi(null);
@@ -92,7 +75,6 @@ export function JoursPanneau({
         const dispo = pasEncore.filter((s) => s.jours.find((x) => x.id === j.id)?.disponible);
         const pasDispo = pasEncore.filter((s) => !s.jours.find((x) => x.id === j.id)?.disponible);
         const aEnvoyer = aussiPasDispo ? pasEncore : dispo;
-        const estOuvert = j.vu;
         const enCours = envoi?.jourId === j.id;
         const complet = j.besoin !== null && j.dansLaJournee >= j.besoin;
         const pc = j.besoin ? Math.min(100, (j.dansLaJournee / j.besoin) * 100) : 0;
@@ -101,15 +83,10 @@ export function JoursPanneau({
             key={j.id}
             className={cn(
               "flex flex-col gap-2 rounded-xl border bg-ink p-3",
-              estOuvert || enCours ? "border-coral/70" : "border-border"
+              enCours ? "border-coral/70" : "border-border"
             )}
           >
-            <Link
-              href={j.vuHref}
-              scroll={false}
-              aria-current={estOuvert ? "true" : undefined}
-              className="flex flex-col gap-1.5 text-left"
-            >
+            <div className="flex flex-col gap-1.5 text-left">
               <span className="flex w-full items-center justify-between gap-2 text-sm font-semibold">
                 <span>
                   {formatDateLong(j.date)}
@@ -141,17 +118,13 @@ export function JoursPanneau({
                   </span>
                 )}
               </span>
-            </Link>
+            </div>
 
             <Link
-              href={j.vuHref}
-              scroll={false}
-              className={cn(
-                "rounded-lg border px-2 py-1.5 text-center text-xs font-medium",
-                estOuvert ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-              )}
+              href={j.bookingHref}
+              className="rounded-lg border border-border-strong px-2 py-1.5 text-center text-xs font-medium hover:border-text"
             >
-              {estOuvert ? "✓ Ouvert en grand · fermer" : `🖼️ Ouvrir la journée (${j.dansLaJournee} en booking)`}
+              📋 Voir la journée dans Bookings ({j.dansLaJournee} en booking)
             </Link>
 
             {resultat?.jourId === j.id && (
@@ -166,19 +139,10 @@ export function JoursPanneau({
             {enCours ? (
               <div className="flex flex-col gap-2 rounded-lg border border-coral/50 bg-coral/5 p-2.5 text-xs">
                 <p className="text-sm">
-                  {envoi.mode === "prevus" ? (
-                    <>
-                      Envoyer les <b>{j.prevusAEnvoyer}</b> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} en booking le{" "}
-                      {formatDayMonth(j.date)} ?
-                    </>
-                  ) : (
-                    <>
-                      Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} en booking le{" "}
-                      {formatDayMonth(j.date)} ?
-                    </>
-                  )}
+                  Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} en booking le{" "}
+                  {formatDayMonth(j.date)} ?
                 </p>
-                {envoi.mode === "selection" && pasDispo.length > 0 && (
+                {pasDispo.length > 0 && (
                   <label className="flex items-start gap-2 text-danger">
                     <input
                       type="checkbox"
@@ -248,7 +212,7 @@ export function JoursPanneau({
                   </button>
                   <button
                     type="button"
-                    disabled={pending || !cachet || (envoi.mode === "selection" && aEnvoyer.length === 0)}
+                    disabled={pending || !cachet || aEnvoyer.length === 0}
                     title={!cachet ? "Choisis un cachet" : undefined}
                     onClick={() => envoyer(j, aEnvoyer.map((s) => s.id))}
                     className="rounded-full bg-coral px-3 py-1.5 font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
@@ -261,20 +225,12 @@ export function JoursPanneau({
               <button
                 type="button"
                 disabled={pasEncore.length === 0}
-                onClick={() => demarrer(j.id, "selection")}
+                onClick={() => demarrer(j.id)}
                 className="rounded-full bg-coral px-3 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:bg-ink-raised-2 disabled:text-text-muted"
               >
                 📅 {pasEncore.length === 0
                   ? "Déjà en booking"
                   : `Envoyer ${dispo.length} en booking${pasDispo.length > 0 ? ` (+${pasDispo.length} pas dispo)` : ""}`}
-              </button>
-            ) : j.prevusAEnvoyer > 0 ? (
-              <button
-                type="button"
-                onClick={() => demarrer(j.id, "prevus")}
-                className="rounded-full border-2 border-coral px-3 py-1.5 text-sm font-semibold text-coral hover:bg-coral/10"
-              >
-                📅 Envoyer les {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} en booking
               </button>
             ) : null}
           </div>

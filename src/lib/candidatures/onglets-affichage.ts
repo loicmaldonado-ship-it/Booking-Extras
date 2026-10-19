@@ -7,13 +7,14 @@ export const sansAccent = (s: string) =>
     .toLowerCase();
 
 // Pictogramme d'un onglet, d'après son nom (onglets communs posés par la
-// migration : Retenu, Peut-être, Ok dispo, OUT ; les autres sont perso).
-export function emojiOnglet(o: Pick<CandidatureOnglet, "nom" | "fixe">): string {
+// migration : Retenu, Peut-être, OUT ; les journées ont le leur, les autres
+// sont perso).
+export function emojiOnglet(o: Pick<CandidatureOnglet, "nom" | "fixe"> & { annonce_date_id?: string | null }): string {
   if (o.fixe) return "🚫";
+  if (o.annonce_date_id) return "📅";
   const n = sansAccent(o.nom);
   if (n.startsWith("retenu")) return "✅";
   if (n.startsWith("peut")) return "🤔";
-  if (n.startsWith("ok")) return "👍";
   return "🗂️";
 }
 

@@ -34,6 +34,8 @@ export type CandidatureOnglet = {
   ordre: number;
   // null = onglet commun à toutes les annonces
   annonce_id: string | null;
+  // Onglet de journée (créé avec la date de l'annonce), null pour les autres.
+  annonce_date_id: string | null;
 };
 
 // Tout ce que le mode "tri rapide" affiche pour une candidature, chargé à
