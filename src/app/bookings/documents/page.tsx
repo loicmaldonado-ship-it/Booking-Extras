@@ -1,4 +1,5 @@
 import { nomComplet } from "@/lib/noms";
+import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
 import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
 import { getEnvoisJournee } from "@/lib/messages/envois";
 import { listerFonctionsProjet } from "@/lib/projets/fonctions";
@@ -97,11 +98,12 @@ export default async function JourneeDashboardPage({
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
-  const [journees, fonctionsProjet, envois, liensMes] = await Promise.all([
+  const [journees, fonctionsProjet, envois, liensMes, candidatureParFigurant] = await Promise.all([
     getJournees(projet_id),
     listerFonctionsProjet(projet_id),
     getEnvoisJournee(projet_id, date),
     getLiens({ projetId: projet_id }),
+    getCandidatureParFigurant(projet_id, (bookingsRaw ?? []).map((b) => b.figurant_id)),
   ]);
   // Dernier avis de la MES (lien de validation Bookings) par figurant·e.
   const avisMes = dernierVoteParProfil(liensMes.votes);
@@ -246,6 +248,7 @@ export default async function JourneeDashboardPage({
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
     indemnites: indemnitesByBooking.get(b.id) ?? [],
     majorations: majorationsByBooking.get(b.id) ?? [],
+    candidatureId: candidatureParFigurant.get(b.figurant_id) ?? null,
     mes: (() => {
       const a = avisMes.get(b.figurant_id);
       return a ? { vote: a.vote, qui: a.visiteur_role ? `${a.visiteur_nom} (${a.visiteur_role})` : a.visiteur_nom, note: a.note } : null;

@@ -13,7 +13,6 @@ import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
 import { BandeauJournees, ModeJournee, type CarteJour } from "@/components/candidatures/mode-journee";
 import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
-import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -222,10 +221,9 @@ export default async function CandidaturesPage({
     .range(from, to)
     .returns<CandidatureWithFilters[]>();
 
-  const [annonceQuestions, annonceDates, templates] = await Promise.all([
+  const [annonceQuestions, annonceDates] = await Promise.all([
     getAnnonceQuestions(annonceId),
     getAnnonceDates(annonceId),
-    getModelesEquipe(),
   ]);
 
   const annonceDateIds = annonceDates.map((d) => d.id);
@@ -393,6 +391,9 @@ export default async function CandidaturesPage({
       return dispoFilter.every((id) => dispos?.has(id));
     });
   }
+  // Journée ouverte : mêmes filtres que la liste (genre, âge, question,
+  // véhicule, dispo…), pour ne pas perdre son tri en y entrant.
+  const pourJournee = candidatures;
   if (jourFilter) candidatures = candidatures.filter((c) => joursPrevus.get(c.id)?.has(jourFilter));
 
   // Compte par onglet avec les mêmes filtres : chaque onglet annonce le
@@ -600,11 +601,15 @@ export default async function CandidaturesPage({
   if (jourVu) {
     const pasDansJournee = (c: CandidatureWithFilters) => !estTransfere(c.figurants?.id, jourVu.id) && c.onglet_id !== ongletOutId;
     const prevusIds = new Set((joursRows ?? []).filter((j) => j.annonce_date_id === jourVu.id).map((j) => j.candidature_id));
-    const prevusC = (candidaturesRaw ?? []).filter((c) => prevusIds.has(c.id) && pasDansJournee(c));
-    const disposTous = (candidaturesRaw ?? []).filter(
-      (c) => !prevusIds.has(c.id) && datesDispoByCandidature.get(c.id)?.has(jourVu.id) && pasDansJournee(c)
-    );
-    const disposC = disposTous.slice(0, 120);
+    const prevusC = pourJournee.filter((c) => prevusIds.has(c.id) && pasDansJournee(c));
+    // Focus sur les profils triés : rangés dans un onglet (pas « À trier »,
+    // pas OUT) ; ceux dispo ce jour d'abord (filtre « Dispo ce jour » côté
+    // page, activé par défaut).
+    const estDispo = (c: CandidatureWithFilters) => datesDispoByCandidature.get(c.id)?.has(jourVu.id) ?? false;
+    const disposTous = pourJournee
+      .filter((c) => !prevusIds.has(c.id) && c.onglet_id !== null && pasDansJournee(c))
+      .sort((a, b) => Number(estDispo(b)) - Number(estDispo(a)));
+    const disposC = disposTous.slice(0, 150);
     disposEnPlus = disposTous.length - disposC.length;
     const toutes = [...prevusC, ...disposC];
     const [photosC, photosF] = await Promise.all([
@@ -617,6 +622,8 @@ export default async function CandidaturesPage({
       meta: [ageOf(c) != null && `${ageOf(c)} ans`, c.figurants?.ville].filter(Boolean).join(" · "),
       portraitUrl: pickPortrait(photosC.get(c.id) ?? (c.figurants ? photosF.get(c.figurants.id) : undefined))?.url ?? null,
       dispo: datesDispoByCandidature.get(c.id)?.has(jourVu.id) ?? false,
+      velo: !!c.figurants?.vehicule_velo,
+      voiture: !!c.figurants?.vehicule_voiture,
     });
     cartesPrevus = trierParNom(prevusC, (c) => c.figurants).map(carte);
     cartesDispos = disposC.map(carte);
@@ -645,7 +652,7 @@ export default async function CandidaturesPage({
       label: `Dispo le ${labelDate(id)}`,
       href: hrefAvec({ dispo: dispoFilter.filter((x) => x !== id) }),
     })),
-    ...(jourFilter ? [{ label: `Prévu·es dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
+    ...(jourFilter ? [{ label: `Dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
     ...(question
       ? [{ label: `${question.label} : ${params.question_reponse ?? "oui"}`, href: hrefAvec({ question_id: null, question_reponse: null }) }]
       : []),
@@ -670,6 +677,7 @@ export default async function CandidaturesPage({
     ...(onglet !== "a_trier" ? { onglet_id: onglet } : {}),
     ...(ordre !== "recentes" ? { ordre } : {}),
     ...(vue === "liste" ? { vue } : {}),
+    ...(params.jour_vu ? { jour_vu: params.jour_vu } : {}),
   })}`;
   const plusActifs = [
     params.myrole,
@@ -764,6 +772,40 @@ export default async function CandidaturesPage({
   );
   const bandeau = annonce && jours.length > 0 && <BandeauJournees jours={jours} />;
 
+  const barreFiltres = (
+    <FiltresCandidatures
+      genres={GENRES.map((g) => ({ value: g, label: GENRE_LABELS[g] ?? g }))}
+      dates={annonceDates.map((d) => ({
+        id: d.id,
+        label: `${formatDayMonth(d.date)} (${dispoCountByDate.get(d.id) ?? 0})`,
+      }))}
+      questions={annonceQuestions.map((q) => ({ id: q.id, label: q.label }))}
+      plusActifs={plusActifs}
+      plus={plus}
+    />
+  );
+  const pucesFiltres = actifs.length > 0 && (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {actifs.map((a) => (
+        <Link
+          key={a.label}
+          href={a.href}
+          scroll={false}
+          className="flex items-center gap-1 rounded-full border border-coral/50 bg-coral/10 px-2.5 py-1 text-xs font-medium text-coral hover:border-coral"
+          aria-label={`Retirer le filtre ${a.label}`}
+        >
+          {a.label} <span aria-hidden>×</span>
+        </Link>
+      ))}
+      <Link href={toutEffacer} scroll={false} className="ml-1 text-xs font-medium text-text-muted underline hover:text-text">
+        Tout effacer
+      </Link>
+      <span className="ml-auto text-xs text-text-muted">
+        {candidatures.length} profil{candidatures.length > 1 ? "s" : ""}
+      </span>
+    </div>
+  );
+
   // Journée ouverte en grand : elle remplace la liste des candidatures.
   const jourOuvert = jours.find((j) => j.vu);
   if (jourOuvert && annonce) {
@@ -771,6 +813,8 @@ export default async function CandidaturesPage({
       <div className="flex flex-col gap-4">
         {entete}
         {bandeau}
+        {barreFiltres}
+        {pucesFiltres}
         <FonctionsDatalist id={`fonctions-projet-${annonce.projet_id}`} projetId={annonce.projet_id} />
         <ModeJournee
           jour={jourOuvert}
@@ -821,38 +865,9 @@ export default async function CandidaturesPage({
         <NouvelOnglet annonceId={annonceId} hrefOnglet={hrefAvec({ onglet_id: "__ONGLET__" })} />
       </nav>
 
-      <FiltresCandidatures
-        genres={GENRES.map((g) => ({ value: g, label: GENRE_LABELS[g] ?? g }))}
-        dates={annonceDates.map((d) => ({
-          id: d.id,
-          label: `${formatDayMonth(d.date)} (${dispoCountByDate.get(d.id) ?? 0})`,
-        }))}
-        questions={annonceQuestions.map((q) => ({ id: q.id, label: q.label }))}
-        plusActifs={plusActifs}
-        plus={plus}
-      />
+      {barreFiltres}
 
-      {actifs.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          {actifs.map((a) => (
-            <Link
-              key={a.label}
-              href={a.href}
-              scroll={false}
-              className="flex items-center gap-1 rounded-full border border-coral/50 bg-coral/10 px-2.5 py-1 text-xs font-medium text-coral hover:border-coral"
-              aria-label={`Retirer le filtre ${a.label}`}
-            >
-              {a.label} <span aria-hidden>×</span>
-            </Link>
-          ))}
-          <Link href={toutEffacer} scroll={false} className="ml-1 text-xs font-medium text-text-muted underline hover:text-text">
-            Tout effacer
-          </Link>
-          <span className="ml-auto text-xs text-text-muted">
-            {candidatures.length} profil{candidatures.length > 1 ? "s" : ""}
-          </span>
-        </div>
-      )}
+      {pucesFiltres}
 
       {(ailleurs.length > 0 || envoyeesTrouvees.length > 0) && (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
@@ -886,7 +901,6 @@ export default async function CandidaturesPage({
         vue={vue}
         recherche={recherche}
         jours={jours}
-        templates={templates}
         pagination={
           <>
             {pagedRows.length === 0 && (

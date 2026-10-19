@@ -13,13 +13,14 @@ import { JourChips, type JourCandidature } from "@/components/candidatures/jour-
 import { TriRapide } from "@/components/candidatures/tri-rapide";
 import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import type { PhotoType } from "@/lib/figurants/types";
 import { setCandidatureOnglet, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
+import { setCandidaturesJourBulk } from "@/lib/candidatures/jours";
+import { formatDateLong, formatDayMonth } from "@/lib/format-date";
 import { emojiOnglet, ongletsRapides, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 
@@ -101,7 +102,6 @@ export function CandidaturesTable({
   vue,
   recherche,
   jours,
-  templates,
   pagination,
 }: {
   rows: Row[];
@@ -114,7 +114,6 @@ export function CandidaturesTable({
   vue: "trombi" | "liste";
   recherche: string;
   jours: JourPanneau[];
-  templates: MessageTemplate[];
   pagination?: ReactNode;
 }) {
   const router = useRouter();
@@ -124,7 +123,8 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | null>(null);
+  const [outil, setOutil] = useState<"deplacer" | "envoi" | "casting" | "journee" | null>(null);
+  const [deplace, setDeplace] = useState<{ ok: boolean; texte: string } | null>(null);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
@@ -188,6 +188,25 @@ export function CandidaturesTable({
       if (res && "error" in res && res.error) setErreur(res.error);
       setSelected(new Set());
       router.refresh();
+    });
+  }
+
+  // Déplacer la sélection dans une journée prévisionnelle (rien n'est créé
+  // dans Bookings).
+  function deplacerDans(j: JourPanneau) {
+    const ids = selection.map((r) => r.id);
+    setDeplace(null);
+    startBulk(async () => {
+      const res = await setCandidaturesJourBulk(ids, j.id, true);
+      if (res.error) setDeplace({ ok: false, texte: res.error });
+      else {
+        setDeplace({
+          ok: true,
+          texte: `✓ ${res.n} déplacé${(res.n ?? 0) > 1 ? "s" : ""} dans la journée du ${formatDayMonth(j.date)} (prévisionnel). Ouvre la journée pour les envoyer en booking.`,
+        });
+        setSelected(new Set());
+        router.refresh();
+      }
     });
   }
 
@@ -307,17 +326,33 @@ export function CandidaturesTable({
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
               {jours.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
-                  aria-expanded={outil === "envoi"}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-xs font-semibold",
-                    outil === "envoi" ? "bg-coral/15 text-coral ring-2 ring-coral" : "bg-coral text-ink hover:bg-coral-hover"
-                  )}
-                >
-                  📅 Envoyer dans la journée de booking ({selection.length})
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeplace(null);
+                      setOutil(outil === "deplacer" ? null : "deplacer");
+                    }}
+                    aria-expanded={outil === "deplacer"}
+                    className={cn(
+                      "rounded-full px-3 py-1.5 text-xs font-semibold",
+                      outil === "deplacer" ? "bg-coral/15 text-coral ring-2 ring-coral" : "bg-coral text-ink hover:bg-coral-hover"
+                    )}
+                  >
+                    📅 Déplacer dans une journée ({selection.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
+                    aria-expanded={outil === "envoi"}
+                    className={cn(
+                      "rounded-full border-2 px-3 py-1.5 text-xs font-semibold",
+                      outil === "envoi" ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-turquoise text-turquoise hover:bg-turquoise/10"
+                    )}
+                  >
+                    📋 Envoyer en booking ({selection.length})
+                  </button>
+                </>
               )}
               <button
                 type="button"
@@ -346,20 +381,42 @@ export function CandidaturesTable({
                   outil === "journee" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
                 )}
               >
-                📅 Envoyer dans une autre journée de booking
+                📋 Envoyer en booking sur une autre date
               </button>
               {jours.length > 0 && (
                 <span className="text-xs text-text-muted xl:inline">
-                  « Prévoir » = pastilles de date des cartes ; « Envoyer » = crée le booking.
+                  Déplacer = journée prévisionnelle, rien dans Bookings. Envoyer en booking = crée le booking.
                 </span>
               )}
+            </div>
+          )}
+          {deplace && <p className={cn("text-sm", deplace.ok ? "font-medium text-turquoise" : "text-danger")}>{deplace.texte}</p>}
+          {selected.size > 0 && outil === "deplacer" && (
+            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
+              <b className="text-sm">📅 Déplacer dans la journée (prévisionnel, rien n&apos;est créé dans Bookings)</b>
+              <div className="flex flex-wrap gap-2">
+                {jours.map((j) => (
+                  <button
+                    key={j.id}
+                    type="button"
+                    disabled={bulkPending}
+                    onClick={() => deplacerDans(j)}
+                    className="rounded-xl border-2 border-border-strong px-3 py-2 text-left text-sm font-semibold hover:border-coral disabled:opacity-50"
+                  >
+                    📅 {formatDateLong(j.date)}
+                    <span className="block text-[11px] font-normal text-text-muted">
+                      ⏳ {j.prevusAEnvoyer} dans la journée · ✓ {j.dansLaJournee} en booking
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {/* Reste ouvert après l'envoi pour montrer la confirmation. */}
           {outil === "envoi" && panneau && (
             <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
               <div className="flex items-center justify-between gap-2">
-                <b className="text-sm">📅 Envoyer dans la journée de booking</b>
+                <b className="text-sm">📋 Envoyer en booking</b>
                 <button
                   type="button"
                   onClick={() => setOutil(null)}
@@ -654,7 +711,7 @@ export function CandidaturesTable({
       </div>
 
       {ecrireA && ecrireA.length > 0 && (
-        <MessageCandidatures destinataires={ecrireA} templates={templates} onClose={() => setEcrireA(null)} />
+        <MessageCandidatures destinataires={ecrireA} onClose={() => setEcrireA(null)} />
       )}
 
       {triOpen && (

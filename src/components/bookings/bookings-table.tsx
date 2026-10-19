@@ -85,6 +85,22 @@ async function copyTextToClipboard(text: string) {
   }
 }
 
+// Rouvrir la candidature d'origine (message, photos, réponses) dans un
+// nouvel onglet, sans quitter la journée.
+function LienCandidature({ id }: { id: string }) {
+  return (
+    <a
+      href={`/candidatures/${id}`}
+      target="_blank"
+      rel="noopener"
+      className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium text-text hover:border-coral/60"
+      title="Voir sa candidature (message, photos, réponses)"
+    >
+      📄 Candidature
+    </a>
+  );
+}
+
 // Avis de la MES (🎬) sur un profil de la journée.
 function BadgeMesBooking({ mes }: { mes: Row["mes"] }) {
   if (!mes?.vote) return null;
@@ -103,6 +119,8 @@ function BadgeMesBooking({ mes }: { mes: Row["mes"] }) {
 
 export type Row = {
   id: string;
+  // Candidature d'origine (annonce de ce projet), pour la rouvrir.
+  candidatureId?: string | null;
   // Dernier avis de la MES sur le lien de validation du projet.
   mes?: { vote: "oui" | "peut" | "non" | null; qui: string; note: string } | null;
   figurant_id?: string;
@@ -1068,6 +1086,11 @@ export function BookingsTable({
               </Badge>
             ))}
           </Link>
+          {r.candidatureId && (
+            <div className="mt-1">
+              <LienCandidature id={r.candidatureId} />
+            </div>
+          )}
           <div className="truncate text-xs text-text-muted">{ageEtVille(r)}</div>
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
@@ -1317,6 +1340,7 @@ export function BookingsTable({
             </Badge>
           ))}
         </Link>
+        {r.candidatureId && <LienCandidature id={r.candidatureId} />}
         {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
         <FonctionSelect

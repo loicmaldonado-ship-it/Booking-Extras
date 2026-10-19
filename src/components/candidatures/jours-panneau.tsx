@@ -84,8 +84,7 @@ export function JoursPanneau({
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-text-muted">
-        <b>Prévoir</b> = pastilles de date des cartes (en cours de choix, rien n&apos;est créé). <b>Envoyer dans la journée de
-        booking</b> = coche des profils puis le bouton du jour : ils quittent Candidatures et arrivent dans la journée de booking (en PER,
+        <b>Envoyer en booking</b> crée le booking (en PER,
         rien n&apos;est envoyé aux figurant·es). Besoins saisis dans Bookings.
       </p>
       {jours.map((j) => {
@@ -131,7 +130,7 @@ export function JoursPanneau({
               <span className="flex w-full flex-wrap justify-between gap-x-2 text-xs text-text-muted">
                 <span className={cn(complet && "font-medium text-turquoise")}>
                   {j.besoin === null
-                    ? `${j.dansLaJournee} dans la journée de booking`
+                    ? `${j.dansLaJournee} en booking`
                     : complet
                       ? "✓ Complet"
                       : `Il manque ${j.besoin - j.dansLaJournee}`}
@@ -152,13 +151,13 @@ export function JoursPanneau({
                 estOuvert ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
               )}
             >
-              {estOuvert ? "✓ Ouvert en grand · fermer" : `🖼️ Voir la journée (${j.dansLaJournee} dans la journée de booking)`}
+              {estOuvert ? "✓ Ouvert en grand · fermer" : `🖼️ Ouvrir la journée (${j.dansLaJournee} en booking)`}
             </Link>
 
             {resultat?.jourId === j.id && (
               <p className={cn("text-xs", resultat.error ? "text-danger" : "font-medium text-turquoise")}>
                 {resultat.error ??
-                  `✓ ${resultat.ok} envoyé${resultat.ok > 1 ? "s" : ""} dans la journée de booking${
+                  `✓ ${resultat.ok} envoyé${resultat.ok > 1 ? "s" : ""} en booking${
                     resultat.deja > 0 ? ` (${resultat.deja} y étai${resultat.deja > 1 ? "ent" : "t"} déjà)` : ""
                   }.`}
               </p>
@@ -169,12 +168,12 @@ export function JoursPanneau({
                 <p className="text-sm">
                   {envoi.mode === "prevus" ? (
                     <>
-                      Envoyer les <b>{j.prevusAEnvoyer}</b> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} dans la journée de booking du{" "}
+                      Envoyer les <b>{j.prevusAEnvoyer}</b> prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} en booking le{" "}
                       {formatDayMonth(j.date)} ?
                     </>
                   ) : (
                     <>
-                      Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} dans la journée de booking du{" "}
+                      Envoyer <b>{aEnvoyer.length}</b> personne{aEnvoyer.length > 1 ? "s" : ""} en booking le{" "}
                       {formatDayMonth(j.date)} ?
                     </>
                   )}
@@ -266,8 +265,8 @@ export function JoursPanneau({
                 className="rounded-full bg-coral px-3 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:bg-ink-raised-2 disabled:text-text-muted"
               >
                 📅 {pasEncore.length === 0
-                  ? "Déjà dans la journée de booking"
-                  : `Envoyer ${dispo.length} dans la journée de booking${pasDispo.length > 0 ? ` (+${pasDispo.length} pas dispo)` : ""}`}
+                  ? "Déjà en booking"
+                  : `Envoyer ${dispo.length} en booking${pasDispo.length > 0 ? ` (+${pasDispo.length} pas dispo)` : ""}`}
               </button>
             ) : j.prevusAEnvoyer > 0 ? (
               <button
@@ -275,7 +274,7 @@ export function JoursPanneau({
                 onClick={() => demarrer(j.id, "prevus")}
                 className="rounded-full border-2 border-coral px-3 py-1.5 text-sm font-semibold text-coral hover:bg-coral/10"
               >
-                📅 Envoyer les {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} dans la journée de booking
+                📅 Envoyer les {j.prevusAEnvoyer} prévu·e{j.prevusAEnvoyer > 1 ? "s" : ""} en booking
               </button>
             ) : null}
           </div>
