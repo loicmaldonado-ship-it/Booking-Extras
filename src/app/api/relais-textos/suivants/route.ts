@@ -4,8 +4,9 @@ import { profilDuRelais } from "@/lib/textos/relais";
 
 export const dynamic = "force-dynamic";
 
-// Le relais Mac demande les prochains textos à envoyer (quelques-uns à la
-// fois). Un texto « pris » depuis plus de 10 min sans résultat (Mac éteint
+// Le relais Mac demande le prochain texto à envoyer (un seul à la fois :
+// avec la vérification et les nouveaux essais, un envoi peut durer
+// quelques minutes). Un texto « pris » depuis plus de 10 min sans résultat (Mac éteint
 // en plein envoi) est remis en file.
 export async function POST(request: Request) {
   const profileId = await profilDuRelais(request);
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     .eq("profile_id", profileId)
     .eq("statut", "en_attente")
     .order("created_at")
-    .limit(3);
+    .limit(1);
   const ids = (suivants ?? []).map((t) => t.id);
   if (ids.length > 0) {
     await supabase.from("textos_file").update({ statut: "envoi", pris_le: new Date().toISOString() }).in("id", ids);

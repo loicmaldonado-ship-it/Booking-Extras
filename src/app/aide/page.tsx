@@ -921,6 +921,9 @@ export default function AidePage() {
                 Ensuite, dans un message de journée (convocation, message libre) ou de casting :{" "}
                 <UI>📱 En textos</UI> → <UI>Depuis mon iPhone</UI> (site ouvert sur l&apos;iPhone) ou{" "}
                 <UI>Depuis mon Mac</UI> (le Mac allumé les envoie un par un, toutes les 8 à 15 secondes, avec Messages).
+                Avec l&apos;<UI>Accès complet au disque</UI> (voir ci-dessous), le relais vérifie que chaque texto est
+                bien parti : s&apos;il finit <strong className="text-text">« Non distribué »</strong>, il le renvoie tout
+                seul (jusqu&apos;à 3 essais) ; après 3 échecs, il compte dans les échecs de Mon compte → Textos.
                 Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle. La fenêtre
                 reprend toujours ton <strong className="text-text">dernier message envoyé</strong> (journée, rôle de
                 casting, candidatures), sur tous tes appareils : plus besoin de le retaper.
