@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 // Le relais Mac demande le prochain texto à envoyer (un seul à la fois :
 // avec la vérification et les nouveaux essais, un envoi peut durer
-// quelques minutes). Un texto « pris » depuis plus de 10 min sans résultat (Mac éteint
+// quelques minutes). Un texto « pris » depuis plus de 20 min sans résultat (Mac éteint
 // en plein envoi) est remis en file.
 export async function POST(request: Request) {
   const profileId = await profilDuRelais(request);
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     .update({ statut: "en_attente", pris_le: null })
     .eq("profile_id", profileId)
     .eq("statut", "envoi")
-    .lt("pris_le", new Date(Date.now() - 10 * 60_000).toISOString());
+    .lt("pris_le", new Date(Date.now() - 20 * 60_000).toISOString());
 
   const { data: suivants } = await supabase
     .from("textos_file")
