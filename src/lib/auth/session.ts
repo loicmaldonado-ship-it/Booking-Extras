@@ -29,6 +29,9 @@ export type CurrentProfile = {
   // personnel (son propre id sert alors de clé). Voir
   // src/lib/figurants/comedien-privacy.ts.
   comedienPoolId: string | null;
+  // Parcourir librement la Base Profils et révoquer l'accès d'un compte
+  // candidat·e (Loïc, Mathieu, Eléa) — voir aAccesComplet.
+  accesComplet: boolean;
 };
 
 const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
@@ -55,7 +58,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees, is_owner, comedien_pool_id")
+    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees, is_owner, comedien_pool_id, acces_complet")
     .eq("id", user.id)
     .single();
 
@@ -86,6 +89,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
     sectionsAutorisees: profile.sections_autorisees,
     isOwner: profile.is_owner,
     comedienPoolId: profile.comedien_pool_id,
+    accesComplet: profile.acces_complet,
   };
 });
 

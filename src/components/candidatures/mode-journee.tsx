@@ -291,7 +291,7 @@ export function ModeJournee({
                 <div className="flex flex-wrap items-end gap-3">
                   <label className="flex flex-col gap-1 text-xs text-text-muted">
                     <span>
-                      Fonction <span className="text-danger">*</span>
+                      Fonction (facultatif)
                     </span>
                     {jour.fonctions.length > 0 && (
                       <span className="flex flex-wrap gap-1">
@@ -342,7 +342,7 @@ export function ModeJournee({
                   </button>
                   <button
                     type="button"
-                    disabled={pending || !fonction.trim() || !cachet}
+                    disabled={pending || !cachet}
                     onClick={envoyer}
                     className="rounded-full bg-coral px-4 py-2 text-sm font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
                   >

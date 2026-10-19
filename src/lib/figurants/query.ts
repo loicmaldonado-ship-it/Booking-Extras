@@ -52,7 +52,7 @@ export function buildFigurantsQuery(
 
   if (params.q) {
     query = query.or(
-      `nom.ilike.%${params.q}%,prenom.ilike.%${params.q}%,email.ilike.%${params.q}%`
+      `nom.ilike.%${params.q}%,prenom.ilike.%${params.q}%,email.ilike.%${params.q}%,telephone.ilike.%${params.q}%`
     );
   }
   if (params.ville) {

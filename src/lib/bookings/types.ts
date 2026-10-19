@@ -24,7 +24,7 @@ export const STATUTS: {
   // "indispo" : rouge plein, plus franc que "danger".
   tone: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger" | "indispo";
 }[] = [
-  { value: "proposé", label: "Proposé", tone: "yellow" },
+  { value: "proposé", label: "Proposé MES", tone: "yellow" },
   { value: "envoyé", label: "PER (pas encore de réponse)", tone: "default" },
   { value: "a_relancer", label: "À relancer", tone: "yellow" },
   { value: "doit_rappeler", label: "Doit rappeler", tone: "yellow" },

@@ -13,11 +13,14 @@ export function AddToJourneeBar({
   projets,
   candidatureIdByFigurant,
   onDone,
+  fonctionFacultative = false,
 }: {
   figurantIds: string[];
   projets: { id: string; nom: string }[];
   candidatureIdByFigurant?: Record<string, string>;
   onDone?: () => void;
+  // Depuis Candidatures : la fonction peut être choisie plus tard.
+  fonctionFacultative?: boolean;
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
@@ -49,7 +52,7 @@ export function AddToJourneeBar({
   }
 
   function submit() {
-    if (!projetId || dates.length === 0 || figurantIds.length === 0 || !fonction.trim() || !cachet) return;
+    if (!projetId || dates.length === 0 || figurantIds.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())) return;
     setResult(null);
     startTransition(async () => {
       const res = await createBookingsFromDropBulk(
@@ -58,7 +61,8 @@ export function AddToJourneeBar({
         dates,
         candidatureIdByFigurant,
         fonction,
-        cachet
+        cachet,
+        fonctionFacultative
       );
       setResult({ ok: res.ok, deja: res.deja, error: res.error });
       if (res.error) return;
@@ -134,7 +138,7 @@ export function AddToJourneeBar({
       </div>
       <div className="flex flex-col gap-1">
         <label className="text-xs text-text-muted">
-          Fonction <span className="text-danger">*</span>
+          Fonction {fonctionFacultative ? "(facultatif)" : <span className="text-danger">*</span>}
         </label>
         <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
         <input
@@ -169,9 +173,9 @@ export function AddToJourneeBar({
       </div>
       <Button
         type="button"
-        disabled={pending || !projetId || dates.length === 0 || !fonction.trim() || !cachet}
+        disabled={pending || !projetId || dates.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())}
         onClick={submit}
-        title={!fonction.trim() || !cachet ? "Choisis une fonction et un cachet" : undefined}
+        title={!cachet || (!fonctionFacultative && !fonction.trim()) ? "Choisis la fonction et le cachet" : undefined}
       >
         {pending
           ? "Envoi..."
@@ -179,8 +183,8 @@ export function AddToJourneeBar({
             ? `Envoyer dans les ${dates.length} journées de booking`
             : "Envoyer dans la journée de booking"}
       </Button>
-      {(!fonction.trim() || !cachet) && (
-        <span className="text-xs text-text-muted">Fonction et cachet obligatoires.</span>
+      {(!cachet || (!fonctionFacultative && !fonction.trim())) && (
+        <span className="text-xs text-text-muted">{fonctionFacultative ? "Cachet obligatoire." : "Fonction et cachet obligatoires."}</span>
       )}
       {result?.error && <span className="text-xs text-danger">{result.error}</span>}
       {result && !result.error && (

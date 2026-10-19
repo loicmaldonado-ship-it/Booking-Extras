@@ -196,7 +196,7 @@ export function JoursPanneau({
                 )}
                 <label className="flex flex-col gap-1 text-text-muted">
                   <span>
-                    Fonction <span className="text-danger">*</span>
+                    Fonction (facultatif)
                   </span>
                   {j.fonctions.length > 0 && (
                     <span className="flex flex-wrap gap-1">
@@ -249,8 +249,8 @@ export function JoursPanneau({
                   </button>
                   <button
                     type="button"
-                    disabled={pending || !fonction.trim() || !cachet || (envoi.mode === "selection" && aEnvoyer.length === 0)}
-                    title={!fonction.trim() || !cachet ? "Choisis une fonction et un cachet" : undefined}
+                    disabled={pending || !cachet || (envoi.mode === "selection" && aEnvoyer.length === 0)}
+                    title={!cachet ? "Choisis un cachet" : undefined}
                     onClick={() => envoyer(j, aEnvoyer.map((s) => s.id))}
                     className="rounded-full bg-coral px-3 py-1.5 font-semibold text-ink hover:bg-coral-hover disabled:opacity-40"
                   >

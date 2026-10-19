@@ -16,7 +16,7 @@ import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
-import { isOwner } from "@/lib/auth/owner";
+import { isOwner, aAccesComplet } from "@/lib/auth/owner";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { Users } from "lucide-react";
 
@@ -25,6 +25,10 @@ export const dynamic = "force-dynamic";
 type SearchParams = FigurantFilters & { vue?: string; page?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
+// Sans accès complet : pas de liste en libre service, un profil se trouve en
+// le cherchant (3 lettres minimum, résultats plafonnés).
+const RECHERCHE_MIN = 3;
+const RESULTATS_MAX = 30;
 
 export default async function FigurantsPage({
   searchParams,
@@ -47,11 +51,17 @@ export default async function FigurantsPage({
   // surtout jamais générer les URL signées des photos) d'un coup. Le
   // compte total vient du même aller-retour que la page (Content-Range),
   // pas d'une requête séparée.
-  const pageParamNum = Math.max(1, Number(pageParam) || 1);
-  const { data: figurants, error, count: totalCount } = await buildFigurantsQuery(supabase, filters, { withCount: true, profile })
-    .range((pageParamNum - 1) * FIGURANTS_PAR_PAGE, pageParamNum * FIGURANTS_PAR_PAGE - 1)
-    .returns<Figurant[]>();
-  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE));
+  const libreService = aAccesComplet(profile);
+  const recherche = (filters.q ?? "").trim();
+  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN;
+  const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
+  const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
+  const { data: figurants, error, count: totalCount } = peutChercher
+    ? await buildFigurantsQuery(supabase, filters, { withCount: true, profile })
+        .range((pageParamNum - 1) * parPage, pageParamNum * parPage - 1)
+        .returns<Figurant[]>()
+    : { data: [] as Figurant[], error: null, count: 0 };
+  const totalPages = libreService ? Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE)) : 1;
   const page = Math.min(totalPages, pageParamNum);
 
   const portraitByFigurant = isTrombi
@@ -91,7 +101,9 @@ export default async function FigurantsPage({
     .order("created_at", { ascending: true });
   const doublonsComedienClause = comedienPoolClause(profile);
   if (doublonsComedienClause) doublonsQuery = doublonsQuery.or(doublonsComedienClause);
-  const { data: tousLesFigurants } = await doublonsQuery.returns<
+  const { data: tousLesFigurants } = !libreService
+    ? { data: [] }
+    : await doublonsQuery.returns<
     { id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string; est_comedien: boolean }[]
   >();
 
@@ -116,8 +128,9 @@ export default async function FigurantsPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Users size={28} strokeWidth={1.75} />Base Profils</h1>
           <p className="mt-1 text-text-muted">
-            {totalCount ?? 0} {isComediens ? "comédien·ne" : "figurant·e"}
-            {(totalCount ?? 0) > 1 ? "s" : ""}
+            {libreService
+              ? `${totalCount ?? 0} ${isComediens ? "comédien·ne" : "figurant·e"}${(totalCount ?? 0) > 1 ? "s" : ""}`
+              : "Cherche un profil par son nom, prénom, email ou téléphone."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -132,7 +145,7 @@ export default async function FigurantsPage({
         </div>
       </div>
 
-      <DoublonsPanel groupes={doublons} />
+      {libreService && <DoublonsPanel groupes={doublons} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Profil :</span>
@@ -182,7 +195,12 @@ export default async function FigurantsPage({
         <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
-          <Input name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
+          <Input
+            name="q"
+            placeholder={libreService ? "Nom, prénom, email..." : "🔎 Nom, prénom, email ou téléphone (3 lettres min.)"}
+            defaultValue={params.q}
+            autoFocus={!libreService}
+          />
           <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
           <Select name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Compte Myrole (tous)</option>
@@ -232,7 +250,19 @@ export default async function FigurantsPage({
         </div>
       )}
 
-      {isTrombi ? (
+      {!libreService && !peutChercher && (
+        <Card className="py-10 text-center text-sm text-text-muted">
+          🔎 La Base Profils ne se parcourt plus en libre service : tape au moins {RECHERCHE_MIN} lettres du nom, du
+          prénom, de l&apos;email ou du téléphone pour trouver un profil.
+        </Card>
+      )}
+      {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (
+        <p className="text-sm text-text-muted">
+          {totalCount} profils correspondent : seuls les {RESULTATS_MAX} premiers s&apos;affichent, précise ta recherche.
+        </p>
+      )}
+
+      {!peutChercher ? null : isTrombi ? (
         <FigurantsTrombiGrid
           figurants={(figurants ?? []).map((f) => ({
             id: f.id,

@@ -14,8 +14,6 @@ import type { JourPanneau } from "@/components/candidatures/jours-panneau";
 import { BandeauJournees, ModeJournee, type CarteJour } from "@/components/candidatures/mode-journee";
 import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { getModelesEquipe } from "@/lib/templates/equipe";
-import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
-import { getSiteOrigin } from "@/lib/partage/data";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -224,15 +222,11 @@ export default async function CandidaturesPage({
     .range(from, to)
     .returns<CandidatureWithFilters[]>();
 
-  const [annonceQuestions, annonceDates, templates, liensValidation, origin] = await Promise.all([
+  const [annonceQuestions, annonceDates, templates] = await Promise.all([
     getAnnonceQuestions(annonceId),
     getAnnonceDates(annonceId),
     getModelesEquipe(),
-    getLiens({ annonceId }),
-    getSiteOrigin(),
   ]);
-  // Dernier avis de la MES par profil (tous liens de l'annonce confondus).
-  const avisMes = dernierVoteParProfil(liensValidation.votes);
 
   const annonceDateIds = annonceDates.map((d) => d.id);
   // Ne garde que des dates de cette annonce : les ids viennent de l'URL.
@@ -350,19 +344,11 @@ export default async function CandidaturesPage({
   // l'annonce. OUT (fixe) : ses candidatures n'apparaissent que là.
   const ongletOutId = onglets.find((o) => o.fixe)?.id ?? null;
   const onglet =
-    params.onglet_id === "tous" || params.onglet_id === "mes" || onglets.some((o) => o.id === params.onglet_id)
+    params.onglet_id === "tous" || onglets.some((o) => o.id === params.onglet_id)
       ? params.onglet_id!
       : "a_trier";
-  // « Validés MES » : profils dont le dernier avis sur un lien de
-  // validation est « Valider », quel que soit leur onglet de rangement.
   const dansOnglet = (c: CandidatureWithFilters, o: string) =>
-    o === "a_trier"
-      ? c.onglet_id === null
-      : o === "tous"
-        ? c.onglet_id !== ongletOutId
-        : o === "mes"
-          ? avisMes.get(c.id)?.vote === "oui"
-          : c.onglet_id === o;
+    o === "a_trier" ? c.onglet_id === null : o === "tous" ? c.onglet_id !== ongletOutId : c.onglet_id === o;
 
   // Filtres d'attributs (tout sauf onglet et dispo).
   let candidatures = candidaturesRaw ?? [];
@@ -414,7 +400,6 @@ export default async function CandidaturesPage({
   const tabCounts: Record<string, number> = {
     a_trier: candidatures.filter((c) => dansOnglet(c, "a_trier")).length,
     tous: candidatures.filter((c) => dansOnglet(c, "tous")).length,
-    mes: candidatures.filter((c) => dansOnglet(c, "mes")).length,
   };
   for (const o of onglets) tabCounts[o.id] = candidatures.filter((c) => c.onglet_id === o.id).length;
 
@@ -500,10 +485,6 @@ export default async function CandidaturesPage({
       message: c.message,
       age: ageOf(c),
       tournages: c.figurants ? (tournagesPage.get(c.figurants.id) ?? 0) : 0,
-      mes: (() => {
-        const a = avisMes.get(c.id);
-        return a ? { vote: a.vote, qui: a.visiteur_role ? `${a.visiteur_nom} (${a.visiteur_role})` : a.visiteur_nom, note: a.note } : null;
-      })(),
       jours: annonceDates.map((d) => ({
         id: d.id,
         date: d.date,
@@ -646,7 +627,6 @@ export default async function CandidaturesPage({
   const tabs = [
     { key: "a_trier", label: "📥 À trier" },
     ...onglets.filter((o) => !o.fixe).map((o) => ({ key: o.id, label: `${emojiOnglet(o)} ${o.nom}` })),
-    ...(liensValidation.liens.length > 0 || onglet === "mes" ? [{ key: "mes", label: "🎬 Validés MES" }] : []),
     { key: "tous", label: "👥 Tous" },
     ...(ongletOut ? [{ key: ongletOut.id, label: `🚫 ${ongletOut.nom}` }] : []),
   ];
@@ -907,11 +887,6 @@ export default async function CandidaturesPage({
         recherche={recherche}
         jours={jours}
         templates={templates}
-        liens={liensValidation.liens}
-        liensOuverts={params.liens === "1"}
-        origin={origin}
-        nomLienParDefaut={annonce?.titre ?? "Validation"}
-        annonceId={annonceId}
         pagination={
           <>
             {pagedRows.length === 0 && (

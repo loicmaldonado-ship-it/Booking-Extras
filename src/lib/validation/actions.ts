@@ -99,6 +99,8 @@ async function lienPublic(token: string): Promise<LienValidation | null> {
     .from("liens_validation")
     .select("id, token, nom, annonce_id, projet_id, created_at, toutes_journees, source")
     .eq("token", token)
+    // Validation MES : seulement depuis Bookings.
+    .eq("source", "bookings")
     .maybeSingle<LienValidation>();
   return data;
 }

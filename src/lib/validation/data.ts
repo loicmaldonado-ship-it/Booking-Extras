@@ -163,7 +163,8 @@ export async function journeesDeLAnnonce(annonceId: string, projetId: string) {
   return { dates: Array.from(dateDe.values()), prevusPar, journeePar };
 }
 
-// Les journées à venir d'un projet (Bookings) et qui y est booké·e.
+// Les journées à venir d'un projet (Bookings) et les profils « Proposé MES »
+// de chacune : seuls ceux-là passent par la validation de la MES.
 export async function journeesDuProjet(projetId: string) {
   const supabase = createAdminClient();
   const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
@@ -187,7 +188,7 @@ export async function journeesDuProjet(projetId: string) {
       .range(from, to)
   );
   for (const b of bookings) {
-    if (HORS_JOURNEE.includes(b.statut)) continue;
+    if (b.statut !== "proposé") continue;
     joursPar.set(b.figurant_id, Array.from(new Set([...(joursPar.get(b.figurant_id) ?? []), b.date])).sort());
     if (b.fonction) fonctionsPar.set(b.figurant_id, { ...(fonctionsPar.get(b.figurant_id) ?? {}), [b.date]: b.fonction });
   }

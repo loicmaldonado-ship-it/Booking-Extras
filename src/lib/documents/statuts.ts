@@ -7,7 +7,7 @@ export type DocStatut = "confirmes" | "proposes" | "per" | "tous";
 
 export const DOC_STATUTS: { key: DocStatut; label: string; statuts: BookingStatut[] }[] = [
   { key: "confirmes", label: "Confirmé·es", statuts: ["confirmé"] },
-  { key: "proposes", label: "Proposé·es", statuts: ["proposé"] },
+  { key: "proposes", label: "Proposé·es MES", statuts: ["proposé"] },
   { key: "per", label: "PER", statuts: ["envoyé"] },
   {
     key: "tous",

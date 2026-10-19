@@ -9,10 +9,13 @@ export function AccesCompteToggle({
   figurantId,
   actif,
   projetId,
+  peutRevoquer = false,
 }: {
   figurantId: string;
   actif: boolean;
   projetId?: string | null;
+  // Réservé aux comptes à accès complet (Loïc, Mathieu, Eléa).
+  peutRevoquer?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -36,9 +39,11 @@ export function AccesCompteToggle({
           Accès à l&apos;espace personnel : {actif ? "activé" : "non activé"}
         </span>
         {actif ? (
+          peutRevoquer && (
           <button type="button" onClick={() => toggle(false)} disabled={pending} className="text-xs text-danger hover:underline">
             Révoquer
           </button>
+          )
         ) : (
           <Button type="button" variant="secondary" disabled={pending} onClick={() => toggle(true)}>
             {pending ? "Envoi..." : "Envoyer le lien"}
