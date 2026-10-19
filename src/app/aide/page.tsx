@@ -424,7 +424,8 @@ export default function AidePage() {
               <UI>📋 Envoyer en booking</UI> : choisis la date, le booking est créé (en PER, rien n&apos;est envoyé aux
               figurant·es) et la personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>,
               la fonction peut attendre. <UI>Tout cocher</UI> dans un onglet de journée envoie toute la journée d&apos;un
-              coup. <UI>📋 Envoyer en booking sur une autre date</UI> sert pour une date hors annonce.
+              coup. <UI>📋 Envoyer en booking sur une autre date</UI> sert pour une date hors annonce. Pas décidé·es ?{" "}
+              <UI>🗄️ Mettre en réserve</UI> les met de côté, à retrouver dans la Réserve de Bookings avec leurs dispos.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
@@ -673,6 +674,17 @@ export default function AidePage() {
               n&apos;est créé tant que tu n&apos;as pas choisi <UI>✅ C&apos;est elle / lui</UI> (sa fiche est reprise,
               email ou téléphone manquants complétés) ou <UI>➕ Non, créer une nouvelle fiche</UI>. Sans email, aucun
               mail ne part.
+            </>,
+            <>
+              <strong className="text-text">🗄️ Réserve</strong> (page Bookings du projet, sous les journées) : les
+              profils qu&apos;on met de côté parce qu&apos;on ne sait pas encore quoi en faire, mais qu&apos;on
+              recontactera peut-être. On y envoie depuis Candidatures (coche, puis <UI>🗄️ Mettre en réserve</UI> : ils
+              quittent la liste) ou depuis une journée (coche, puis <UI>🗄️ Mettre en réserve</UI> : le booking est retiré
+              de la journée, sans message). Chaque profil rappelle <strong className="text-text">où il a postulé</strong> et
+              quand, et les <strong className="text-text">dates qu&apos;il a données dispo (✅) ou pas (🚫)</strong>, avec un
+              lien vers sa candidature. Coche-les pour <UI>📋 Envoyer en booking</UI> (fonction et cachet obligatoires,
+              ils quittent la réserve) ou <UI>↩ Retirer de la réserve</UI> (une candidature retirée revient dans
+              Candidatures).
             </>,
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}

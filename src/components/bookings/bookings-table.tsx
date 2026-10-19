@@ -29,6 +29,7 @@ import { applyMajorationToBookings } from "@/lib/bareme/actions";
 import { formatMajorationValeur, type BaremeMajoration, type MajorationValeurType } from "@/lib/bareme/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { ChangeDateBar } from "@/components/bookings/change-date-bar";
+import { mettreBookingsEnReserve } from "@/lib/reserve/actions";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
@@ -737,6 +738,28 @@ export function BookingsTable({
     if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
     startTransition(async () => {
       const res = await retirerBookings(cibles.map((r) => r.id));
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  // Met la sélection de côté : retirés de la journée, ils rejoignent la
+  // Réserve du projet (page Bookings), avec leur candidature d'origine.
+  function mettreEnReserve() {
+    const cibles = rows.filter((r) => selected.has(r.id));
+    if (cibles.length === 0) return;
+    const noms = cibles
+      .slice(0, 10)
+      .map((r) => nomComplet(r.figurants).trim())
+      .join(", ");
+    const suite = cibles.length > 10 ? ` et ${cibles.length - 10} autre${cibles.length - 10 > 1 ? "s" : ""}` : "";
+    if (!confirm(`Mettre en réserve : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont retirés de la journée" : "Son booking est retiré de la journée"} (aucun message n'est envoyé) et ${cibles.length > 1 ? "ils rejoignent" : "il rejoint"} la Réserve du projet.`)) return;
+    startTransition(async () => {
+      const res = await mettreBookingsEnReserve(cibles.map((r) => r.id));
       if (res.error) {
         alert(res.error);
         return;
@@ -1810,6 +1833,9 @@ export function BookingsTable({
           )}
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             ✖️ Masquer la sélection
+          </Button>
+          <Button type="button" variant="secondary" disabled={pending} onClick={mettreEnReserve}>
+            🗄️ Mettre en réserve
           </Button>
           <Button type="button" variant="danger" disabled={pending} onClick={retirerSelection}>
             🗑 Retirer de la journée

@@ -231,12 +231,13 @@ export default async function CandidaturesPage({
   const annonceDatesIso = annonceDates.map((d) => d.date);
 
   const [
-    { data: candidaturesRaw, error },
+    { data: candidaturesTous, error },
     { data: reponsesMatch },
     { data: disposOui },
     onglets,
     { data: etiquettesRows },
     { data: etiquetteLiens },
+    { data: reserveRows },
     { data: bookingsJours },
     { data: journeesBesoins },
     { data: dejaEnvoyees },
@@ -278,6 +279,17 @@ export default async function CandidaturesPage({
         .range(from, to)
         .returns<{ candidature_id: string; etiquette_id: string }[]>()
     ),
+    annonce
+      ? fetchAll((from, to) =>
+          supabase
+            .from("reserve_profils")
+            .select("id, figurant_id")
+            .eq("projet_id", annonce.projet_id)
+            .order("id")
+            .range(from, to)
+            .returns<{ id: string; figurant_id: string }[]>()
+        )
+      : Promise.resolve({ data: [] as { id: string; figurant_id: string }[] }),
     annonce && annonceDatesIso.length > 0
       ? fetchAll((from, to) =>
           supabase
@@ -330,6 +342,12 @@ export default async function CandidaturesPage({
     datesDispoByCandidature.set(d.candidature_id, set);
   }
 
+  // Les profils en réserve (page Bookings) ne sont plus dans la liste.
+  const enReserve = new Set((reserveRows ?? []).map((r) => r.figurant_id));
+  const candidaturesRaw = (candidaturesTous ?? []).filter((c) => !c.figurants?.id || !enReserve.has(c.figurants.id));
+  const reserveesTrouvees = (candidaturesTous ?? []).filter(
+    (c) => !!c.figurants?.id && enReserve.has(c.figurants.id) && !!recherche && correspondRecherche(c.figurants, recherche)
+  );
   const etiquettes = etiquettesRows ?? [];
   const etiquettesParCandidature = new Map<string, string[]>();
   for (const l of etiquetteLiens ?? []) {
@@ -809,7 +827,7 @@ export default async function CandidaturesPage({
 
       {pucesFiltres}
 
-      {(ailleurs.length > 0 || envoyeesTrouvees.length > 0) && (
+      {(ailleurs.length > 0 || envoyeesTrouvees.length > 0 || reserveesTrouvees.length > 0) && (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
           <span className="font-medium">Aussi trouvé ailleurs :</span>
           {ailleurs.map((a) => (
@@ -821,6 +839,11 @@ export default async function CandidaturesPage({
             <span key={c.id}>
               {nomComplet(c.figurants)} → déjà envoyé·e dans une journée
             </span>
+          ))}
+          {reserveesTrouvees.slice(0, 8).map((c) => (
+            <Link key={c.id} href="/bookings#reserve" className="font-medium text-coral hover:underline">
+              {nomComplet(c.figurants)} → 🗄️ en réserve
+            </Link>
           ))}
         </p>
       )}

@@ -21,6 +21,7 @@ import type { PhotoType } from "@/lib/figurants/types";
 import { setCandidatureOnglet, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
 import { RangementCarte } from "@/components/candidatures/rangement-carte";
 import { creerEtiquette, setEtiquettesBulk, type Etiquette } from "@/lib/candidatures/etiquettes";
+import { mettreCandidaturesEnReserve } from "@/lib/reserve/actions";
 import { emojiOnglet, ongletsRapides, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 
@@ -130,7 +131,8 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "etiquettes" | null>(null);
+  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "etiquettes" | "reserve" | null>(null);
+  const [reserveInfo, setReserveInfo] = useState<{ ok: boolean; texte: string } | null>(null);
   const [nouvelleEtiquette, setNouvelleEtiquette] = useState("");
   const [etiquetteInfo, setEtiquetteInfo] = useState<{ ok: boolean; texte: string } | null>(null);
   const [triOpen, setTriOpen] = useState(false);
@@ -200,6 +202,23 @@ export function CandidaturesTable({
   }
 
   // Pose ou retire une étiquette sur toute la sélection, sans la déplacer.
+  // Met la sélection de côté (réserve du projet, sur la page Bookings).
+  function mettreEnReserve() {
+    const ids = selection.map((r) => r.id);
+    setReserveInfo(null);
+    startBulk(async () => {
+      const res = await mettreCandidaturesEnReserve(ids);
+      if (res.error) {
+        setReserveInfo({ ok: false, texte: res.error });
+        return;
+      }
+      setReserveInfo({ ok: true, texte: `✓ ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""} en réserve.` });
+      setSelected(new Set());
+      setOutil(null);
+      router.refresh();
+    });
+  }
+
   function etiqueter(e: Etiquette, pose: boolean) {
     const ids = selection.map((r) => r.id);
     setEtiquetteInfo(null);
@@ -383,6 +402,20 @@ export function CandidaturesTable({
               </button>
               <button
                 type="button"
+                onClick={() => {
+                  setReserveInfo(null);
+                  setOutil(outil === "reserve" ? null : "reserve");
+                }}
+                aria-expanded={outil === "reserve"}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  outil === "reserve" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                )}
+              >
+                🗄️ Mettre en réserve ({selection.length})
+              </button>
+              <button
+                type="button"
                 onClick={() => setEcrireA(selection)}
                 className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
               >
@@ -412,6 +445,36 @@ export function CandidaturesTable({
               </button>
             </div>
           )}
+          {selected.size > 0 && outil === "reserve" && (
+            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
+              <b className="text-sm">
+                🗄️ Mettre {selection.length} profil{selection.length > 1 ? "s" : ""} en réserve ?
+              </b>
+              <p className="text-xs text-text-muted">
+                Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (page Bookings, sous les journées),
+                avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={bulkPending}
+                  onClick={mettreEnReserve}
+                  className="rounded-full border-2 border-text px-3 py-1.5 text-xs font-semibold text-coral disabled:opacity-40"
+                >
+                  {bulkPending ? "…" : "Confirmer la mise en réserve"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutil(null)}
+                  className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-text"
+                >
+                  Annuler
+                </button>
+              </div>
+              {reserveInfo && !reserveInfo.ok && <p className="text-sm text-danger">{reserveInfo.texte}</p>}
+            </div>
+          )}
+          {reserveInfo?.ok && selected.size === 0 && <p className="text-sm font-medium text-turquoise">{reserveInfo.texte}</p>}
           {selected.size > 0 && outil === "etiquettes" && (
             <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
               <b className="text-sm">🏷️ Étiqueter {selection.length} profil{selection.length > 1 ? "s" : ""} (sans les déplacer)</b>
