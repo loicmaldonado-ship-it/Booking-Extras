@@ -19,12 +19,14 @@ export function FiltresCandidatures({
   genres,
   dates,
   questions,
+  etiquettes,
   plusActifs,
   plus,
 }: {
   genres: { value: string; label: string }[];
   dates: { id: string; label: string }[];
   questions: { id: string; label: string }[];
+  etiquettes: { id: string; label: string }[];
   // Nombre de filtres actifs dans « Plus de filtres ».
   plusActifs: number;
   plus: ReactNode;
@@ -75,6 +77,8 @@ export function FiltresCandidatures({
   const age = AGES.find((a) => a.min === ageMin && a.max === ageMax)?.value ?? (ageMin || ageMax ? "perso" : "");
   const dispos = params.getAll("dispo");
   const dispo = dispos.length === 1 ? dispos[0] : dispos.length > 1 ? "plusieurs" : "";
+  const etiquettesChoisies = params.getAll("etiquette");
+  const etiquette = etiquettesChoisies.length === 1 ? etiquettesChoisies[0] : etiquettesChoisies.length > 1 ? "plusieurs" : "";
   const questionId = params.get("question_id") ?? "";
   const reponse = params.get("question_reponse") ?? "";
   const question = questionId ? `${questionId}|${reponse || "oui"}` : "";
@@ -154,6 +158,23 @@ export function FiltresCandidatures({
               </option>
             ))}
             {dispo === "plusieurs" && <option value="plusieurs">Dispo : plusieurs dates</option>}
+          </select>
+        )}
+
+        {etiquettes.length > 0 && (
+          <select
+            aria-label="Étiquette"
+            value={etiquette}
+            onChange={(e) => aller({ etiquette: e.target.value || null })}
+            className={cn(menu, etiquette ? menuOn : menuOff)}
+          >
+            <option value="">🏷️ Étiquette : toutes</option>
+            {etiquettes.map((e) => (
+              <option key={e.id} value={e.id}>
+                🏷️ {e.label}
+              </option>
+            ))}
+            {etiquette === "plusieurs" && <option value="plusieurs">🏷️ Plusieurs étiquettes</option>}
           </select>
         )}
 

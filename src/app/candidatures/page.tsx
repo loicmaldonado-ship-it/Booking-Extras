@@ -1,4 +1,4 @@
-import { comparerNoms, nomComplet, trierParNom } from "@/lib/noms";
+import { comparerNoms, nomComplet } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
@@ -11,8 +11,6 @@ import { FiltresCandidatures } from "@/components/candidatures/filtres-candidatu
 import { AGES, ORDRES, type Ordre } from "@/lib/candidatures/filtres";
 import { NouvelOnglet } from "@/components/candidatures/nouvel-onglet";
 import type { JourPanneau } from "@/components/candidatures/jours-panneau";
-import { BandeauJournees, ModeJournee, type CarteJour } from "@/components/candidatures/mode-journee";
-import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { getOngletsForAnnonce, getTournagesConfirmesCount } from "@/lib/candidatures/onglets";
 import { emojiOnglet, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { BookingStatut } from "@/lib/bookings/types";
@@ -29,7 +27,7 @@ import { isOwner } from "@/lib/auth/owner";
 import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
-import { formatDateShort, formatDayMonth } from "@/lib/format-date";
+import { formatDateLong, formatDateShort, formatDayMonth } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { getAnnonceQuestions } from "@/lib/annonces/questions";
 import { getAnnonceDates } from "@/lib/annonces/dates";
@@ -50,11 +48,10 @@ type SearchParams = {
   question_id?: string;
   question_reponse?: string;
   dispo?: string | string[];
-  jour?: string;
+  etiquette?: string | string[];
   ordre?: string;
   vue?: string;
   liens?: string;
-  jour_vu?: string;
   page?: string;
 } & MensurationFilters;
 
@@ -230,16 +227,17 @@ export default async function CandidaturesPage({
   // Ne garde que des dates de cette annonce : les ids viennent de l'URL.
   const dispoFilter = toList(params.dispo).filter((id) => annonceDateIds.includes(id));
   const ordre: Ordre = ORDRES.some((o) => o.key === params.ordre) ? (params.ordre as Ordre) : "recentes";
-  const jourFilter = params.jour && annonceDateIds.includes(params.jour) ? params.jour : null;
   const vue = params.vue === "liste" ? "liste" : "trombi";
   const annonceDatesIso = annonceDates.map((d) => d.date);
 
   const [
-    { data: candidaturesRaw, error },
+    { data: candidaturesTous, error },
     { data: reponsesMatch },
     { data: disposOui },
     onglets,
-    { data: joursRows },
+    { data: etiquettesRows },
+    { data: etiquetteLiens },
+    { data: reserveRows },
     { data: bookingsJours },
     { data: journeesBesoins },
     { data: dejaEnvoyees },
@@ -268,20 +266,30 @@ export default async function CandidaturesPage({
         )
       : Promise.resolve({ data: [] as { candidature_id: string; annonce_date_id: string }[] }),
     getOngletsForAnnonce(annonceId),
-    annonceDateIds.length > 0
+    annonce
+      ? supabase.from("candidature_etiquettes").select("id, nom").eq("projet_id", annonce.projet_id).order("nom")
+      : Promise.resolve({ data: [] as { id: string; nom: string }[] }),
+    fetchAll((from, to) =>
+      supabase
+        .from("candidature_etiquette_liens")
+        .select("candidature_id, etiquette_id, candidatures!inner(annonce_id)")
+        .eq("candidatures.annonce_id", annonceId)
+        .order("candidature_id")
+        .order("etiquette_id")
+        .range(from, to)
+        .returns<{ candidature_id: string; etiquette_id: string }[]>()
+    ),
+    annonce
       ? fetchAll((from, to) =>
           supabase
-            .from("candidature_jours")
-            .select("candidature_id, annonce_date_id, candidatures(figurant_id)")
-            .in("annonce_date_id", annonceDateIds)
-            .order("candidature_id")
-            .order("annonce_date_id")
+            .from("reserve_profils")
+            .select("id, figurant_id")
+            .eq("projet_id", annonce.projet_id)
+            .order("id")
             .range(from, to)
-            .returns<{ candidature_id: string; annonce_date_id: string; candidatures: { figurant_id: string } | null }[]>()
+            .returns<{ id: string; figurant_id: string }[]>()
         )
-      : Promise.resolve({
-          data: [] as { candidature_id: string; annonce_date_id: string; candidatures: { figurant_id: string } | null }[],
-        }),
+      : Promise.resolve({ data: [] as { id: string; figurant_id: string }[] }),
     annonce && annonceDatesIso.length > 0
       ? fetchAll((from, to) =>
           supabase
@@ -318,15 +326,11 @@ export default async function CandidaturesPage({
       : Promise.resolve({ data: [] as { id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[] }),
   ]);
 
-  // Jours prévus par candidature, et personnes déjà dans la journée
-  // correspondante (booking sur ce projet à cette date).
+  // Une journée est un onglet du classeur : « prévu » = rangé dans l'onglet
+  // de cette journée. Personnes déjà dans la journée de booking correspondante
+  // (booking sur ce projet à cette date).
   const dateIsoById = new Map(annonceDates.map((d) => [d.id, d.date]));
-  const joursPrevus = new Map<string, Set<string>>();
-  for (const j of joursRows ?? []) {
-    const set = joursPrevus.get(j.candidature_id) ?? new Set<string>();
-    set.add(j.annonce_date_id);
-    joursPrevus.set(j.candidature_id, set);
-  }
+  const ongletParDate = new Map(onglets.filter((o) => o.annonce_date_id).map((o) => [o.annonce_date_id!, o.id]));
   const dansLaJournee = new Set((bookingsJours ?? []).map((b) => `${b.figurant_id}|${b.date}`));
   const estTransfere = (figurantId: string | null | undefined, dateId: string) =>
     !!figurantId && dansLaJournee.has(`${figurantId}|${dateIsoById.get(dateId)}`);
@@ -337,6 +341,19 @@ export default async function CandidaturesPage({
     set.add(d.annonce_date_id);
     datesDispoByCandidature.set(d.candidature_id, set);
   }
+
+  // Les profils en réserve (page Bookings) ne sont plus dans la liste.
+  const enReserve = new Set((reserveRows ?? []).map((r) => r.figurant_id));
+  const candidaturesRaw = (candidaturesTous ?? []).filter((c) => !c.figurants?.id || !enReserve.has(c.figurants.id));
+  const reserveesTrouvees = (candidaturesTous ?? []).filter(
+    (c) => !!c.figurants?.id && enReserve.has(c.figurants.id) && !!recherche && correspondRecherche(c.figurants, recherche)
+  );
+  const etiquettes = etiquettesRows ?? [];
+  const etiquettesParCandidature = new Map<string, string[]>();
+  for (const l of etiquetteLiens ?? []) {
+    etiquettesParCandidature.set(l.candidature_id, [...(etiquettesParCandidature.get(l.candidature_id) ?? []), l.etiquette_id]);
+  }
+  const etiquetteFilter = toList(params.etiquette).filter((id) => etiquettes.some((e) => e.id === id));
 
   // Onglet affiché : « À trier » par défaut, « tous », ou un onglet de
   // l'annonce. OUT (fixe) : ses candidatures n'apparaissent que là.
@@ -385,16 +402,23 @@ export default async function CandidaturesPage({
       dispoCountByDate.set(dateId, (dispoCountByDate.get(dateId) ?? 0) + 1);
     }
   }
+  const etiquetteCount = new Map<string, number>();
+  for (const c of candidatures) {
+    if (!dansOnglet(c, onglet)) continue;
+    for (const id of etiquettesParCandidature.get(c.id) ?? []) etiquetteCount.set(id, (etiquetteCount.get(id) ?? 0) + 1);
+  }
   if (dispoFilter.length > 0) {
     candidatures = candidatures.filter((c) => {
       const dispos = datesDispoByCandidature.get(c.id);
       return dispoFilter.every((id) => dispos?.has(id));
     });
   }
-  // Journée ouverte : mêmes filtres que la liste (genre, âge, question,
-  // véhicule, dispo…), pour ne pas perdre son tri en y entrant.
-  const pourJournee = candidatures;
-  if (jourFilter) candidatures = candidatures.filter((c) => joursPrevus.get(c.id)?.has(jourFilter));
+  if (etiquetteFilter.length > 0) {
+    candidatures = candidatures.filter((c) => {
+      const posees = etiquettesParCandidature.get(c.id);
+      return etiquetteFilter.every((id) => posees?.includes(id));
+    });
+  }
 
   // Compte par onglet avec les mêmes filtres : chaque onglet annonce le
   // nombre qu'on obtiendra en cliquant dessus.
@@ -486,11 +510,11 @@ export default async function CandidaturesPage({
       message: c.message,
       age: ageOf(c),
       tournages: c.figurants ? (tournagesPage.get(c.figurants.id) ?? 0) : 0,
-      jours: annonceDates.map((d) => ({
+      jours: annonceDates.filter((d) => ongletParDate.has(d.id)).map((d) => ({
         id: d.id,
         date: d.date,
         disponible: datesDispoByCandidature.get(c.id)?.has(d.id) ?? false,
-        prevu: joursPrevus.get(c.id)?.has(d.id) ?? false,
+        prevu: !!c.onglet_id && c.onglet_id === ongletParDate.get(d.id),
         dansLaJournee: estTransfere(c.figurants?.id, d.id),
       })),
     };
@@ -540,94 +564,31 @@ export default async function CandidaturesPage({
     return p > 1 ? `${href}&page=${p}` : href;
   };
 
-  // Panneau « Jours de tournage » : par date, la journée telle qu'elle est
-  // dans Bookings (besoins, présent·es, statuts) et les prévu·es d'ici.
+  // Panneau d'envoi en booking : par date, la journée telle qu'elle est dans
+  // Bookings (besoins, présent·es) ; « rangés » = profils de l'onglet de cette
+  // journée, encore dans Candidatures.
   const besoinsParDate = new Map((journeesBesoins ?? []).map((j) => [j.date, j.journee_besoins]));
-  const candidatureVisible = new Set((candidaturesRaw ?? []).map((c) => c.id));
-  // Jour ouvert en grand (trombi) : photos signées pour ce jour seulement.
-  const jourVu = annonceDates.find((d) => d.id === params.jour_vu) ?? null;
-  const bookingsJourVu = jourVu ? (bookingsJours ?? []).filter((b) => b.date === jourVu.date) : [];
-  const photosJourVu = await getPhotosByFigurantId(bookingsJourVu.map((b) => b.figurant_id));
   const jours: JourPanneau[] = annonceDates.map((d) => {
     const bookings = (bookingsJours ?? []).filter((b) => b.date === d.date && !HORS_JOURNEE.includes(b.statut));
     const besoins = besoinsParDate.get(d.date) ?? [];
     const total = besoins.reduce((s, b) => s + b.quantite, 0);
-    const prevues = (joursRows ?? []).filter((j) => j.annonce_date_id === d.id);
-    const dispoActif = dispoFilter.length === 1 && dispoFilter[0] === d.id;
+    const ongletJour = ongletParDate.get(d.id);
     return {
       id: d.id,
       date: d.date,
       besoin: total > 0 ? total : null,
       dansLaJournee: bookings.length,
-      stats: {
-        confirmes: bookings.filter((b) => b.statut === "confirmé").length,
-        proposes: bookings.filter((b) => b.statut === "proposé").length,
-        per: bookings.filter((b) => b.statut === "envoyé").length,
-      },
       fonctions: besoins.map((b) => ({
         fonction: b.fonction,
         besoin: b.quantite,
         places: bookings.filter((x) => sansAccent(x.fonction ?? "") === sansAccent(b.fonction)).length,
       })),
-      gens: trierParNom(bookings, (b) => b.figurants).map((b) => ({
-        bookingId: b.id,
-        nom: nomComplet(b.figurants) || "—",
-        statut: b.statut,
-        fonction: b.fonction,
-        portraitUrl: d.id === jourVu?.id ? (pickPortrait(photosJourVu.get(b.figurant_id), annonce?.projet_id)?.url ?? null) : null,
-      })),
-      horsJournee: (bookingsJours ?? []).filter((b) => b.date === d.date && HORS_JOURNEE.includes(b.statut)).length,
-      vu: d.id === jourVu?.id,
-      vuHref: hrefAvec({ jour_vu: d.id === jourVu?.id ? null : d.id }),
-      prevus: prevues.length,
-      // Prévu·es encore dans Candidatures (pas déjà dans la journée).
-      prevusIds: prevues
-        .filter((j) => !estTransfere(j.candidatures?.figurant_id, d.id) && candidatureVisible.has(j.candidature_id))
-        .map((j) => j.candidature_id),
-      prevusAEnvoyer: prevues.filter((j) => !estTransfere(j.candidatures?.figurant_id, d.id)).length,
-      dispoHref: hrefAvec({ dispo: dispoActif ? null : d.id }),
-      dispoActif,
-      prevusHref: hrefAvec({ jour: d.id }),
+      rangees: ongletJour ? (candidaturesRaw ?? []).filter((c) => c.onglet_id === ongletJour).length : 0,
+      bookingHref: annonce ? `/bookings/documents?projet_id=${annonce.projet_id}&date=${d.date}` : "/bookings",
     };
   });
 
   const projetOption = annonce ? [{ id: annonce.projet_id, nom: annonce.projets?.nom ?? "" }] : [];
-
-  // Journée ouverte : les prévu·es (en cours de choix) et les dispo à
-  // choisir, encore dans Candidatures, pas déjà dans la journée de booking.
-  let cartesPrevus: CarteJour[] = [];
-  let cartesDispos: CarteJour[] = [];
-  let disposEnPlus = 0;
-  if (jourVu) {
-    const pasDansJournee = (c: CandidatureWithFilters) => !estTransfere(c.figurants?.id, jourVu.id) && c.onglet_id !== ongletOutId;
-    const prevusIds = new Set((joursRows ?? []).filter((j) => j.annonce_date_id === jourVu.id).map((j) => j.candidature_id));
-    const prevusC = pourJournee.filter((c) => prevusIds.has(c.id) && pasDansJournee(c));
-    // Focus sur les profils triés : rangés dans un onglet (pas « À trier »,
-    // pas OUT) ; ceux dispo ce jour d'abord (filtre « Dispo ce jour » côté
-    // page, activé par défaut).
-    const estDispo = (c: CandidatureWithFilters) => datesDispoByCandidature.get(c.id)?.has(jourVu.id) ?? false;
-    const disposTous = pourJournee
-      .filter((c) => !prevusIds.has(c.id) && c.onglet_id !== null && pasDansJournee(c))
-      .sort((a, b) => Number(estDispo(b)) - Number(estDispo(a)));
-    const disposC = disposTous.slice(0, 150);
-    disposEnPlus = disposTous.length - disposC.length;
-    const toutes = [...prevusC, ...disposC];
-    const [photosC, photosF] = await Promise.all([
-      getPhotosParCandidature(toutes.map((c) => c.id)),
-      getPhotosByFigurantId(toutes.map((c) => c.figurants?.id).filter((id): id is string => !!id)),
-    ]);
-    const carte = (c: CandidatureWithFilters): CarteJour => ({
-      id: c.id,
-      nom: nomComplet(c.figurants) || "—",
-      meta: [ageOf(c) != null && `${ageOf(c)} ans`, c.figurants?.ville].filter(Boolean).join(" · "),
-      portraitUrl: pickPortrait(photosC.get(c.id) ?? (c.figurants ? photosF.get(c.figurants.id) : undefined))?.url ?? null,
-      dispo: datesDispoByCandidature.get(c.id)?.has(jourVu.id) ?? false,
-      velo: !!c.figurants?.vehicule_velo,
-      voiture: !!c.figurants?.vehicule_voiture,
-    });
-    cartesPrevus = trierParNom(prevusC, (c) => c.figurants).map(carte);
-    cartesDispos = disposC.map(carte);
-  }
 
   // Onglets du classeur : À trier, les onglets de rangement, Tous, OUT.
   const ongletOut = onglets.find((o) => o.fixe);
@@ -652,7 +613,10 @@ export default async function CandidaturesPage({
       label: `Dispo le ${labelDate(id)}`,
       href: hrefAvec({ dispo: dispoFilter.filter((x) => x !== id) }),
     })),
-    ...(jourFilter ? [{ label: `Dans la journée du ${labelDate(jourFilter)}`, href: hrefAvec({ jour: null }) }] : []),
+    ...etiquetteFilter.map((id) => ({
+      label: `🏷️ ${etiquettes.find((e) => e.id === id)?.nom ?? ""}`,
+      href: hrefAvec({ etiquette: etiquetteFilter.filter((x) => x !== id) }),
+    })),
     ...(question
       ? [{ label: `${question.label} : ${params.question_reponse ?? "oui"}`, href: hrefAvec({ question_id: null, question_reponse: null }) }]
       : []),
@@ -677,7 +641,6 @@ export default async function CandidaturesPage({
     ...(onglet !== "a_trier" ? { onglet_id: onglet } : {}),
     ...(ordre !== "recentes" ? { ordre } : {}),
     ...(vue === "liste" ? { vue } : {}),
-    ...(params.jour_vu ? { jour_vu: params.jour_vu } : {}),
   })}`;
   const plusActifs = [
     params.myrole,
@@ -770,7 +733,23 @@ export default async function CandidaturesPage({
         </div>
       </div>
   );
-  const bandeau = annonce && jours.length > 0 && <BandeauJournees jours={jours} />;
+  // Onglet d'une journée ouvert : rappel de la journée de booking.
+  const ongletActif = onglets.find((o) => o.id === onglet);
+  const jourActif = ongletActif?.annonce_date_id ? jours.find((j) => j.id === ongletActif.annonce_date_id) : null;
+  const bandeau = jourActif && (
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-ink-raised px-4 py-2.5 text-sm">
+      <span>
+        📅 <b>{formatDateLong(jourActif.date)}</b> · {jourActif.dansLaJournee}
+        {jourActif.besoin !== null && ` / ${jourActif.besoin}`} en booking
+        {jourActif.besoin !== null && jourActif.dansLaJournee < jourActif.besoin && (
+          <span className="text-text-muted"> (il en manque {jourActif.besoin - jourActif.dansLaJournee})</span>
+        )}
+      </span>
+      <Link href={jourActif.bookingHref} className="font-medium text-coral hover:underline">
+        Voir la journée dans Bookings →
+      </Link>
+    </div>
+  );
 
   const barreFiltres = (
     <FiltresCandidatures
@@ -780,6 +759,7 @@ export default async function CandidaturesPage({
         label: `${formatDayMonth(d.date)} (${dispoCountByDate.get(d.id) ?? 0})`,
       }))}
       questions={annonceQuestions.map((q) => ({ id: q.id, label: q.label }))}
+      etiquettes={etiquettes.map((e) => ({ id: e.id, label: `${e.nom} (${etiquetteCount.get(e.id) ?? 0})` }))}
       plusActifs={plusActifs}
       plus={plus}
     />
@@ -805,28 +785,6 @@ export default async function CandidaturesPage({
       </span>
     </div>
   );
-
-  // Journée ouverte en grand : elle remplace la liste des candidatures.
-  const jourOuvert = jours.find((j) => j.vu);
-  if (jourOuvert && annonce) {
-    return (
-      <div className="flex flex-col gap-4">
-        {entete}
-        {bandeau}
-        {barreFiltres}
-        {pucesFiltres}
-        <FonctionsDatalist id={`fonctions-projet-${annonce.projet_id}`} projetId={annonce.projet_id} />
-        <ModeJournee
-          jour={jourOuvert}
-          projetId={annonce.projet_id}
-          fermerHref={jourOuvert.vuHref}
-          prevus={cartesPrevus}
-          dispos={cartesDispos}
-          disposEnPlus={disposEnPlus}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -869,7 +827,7 @@ export default async function CandidaturesPage({
 
       {pucesFiltres}
 
-      {(ailleurs.length > 0 || envoyeesTrouvees.length > 0) && (
+      {(ailleurs.length > 0 || envoyeesTrouvees.length > 0 || reserveesTrouvees.length > 0) && (
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
           <span className="font-medium">Aussi trouvé ailleurs :</span>
           {ailleurs.map((a) => (
@@ -881,6 +839,11 @@ export default async function CandidaturesPage({
             <span key={c.id}>
               {nomComplet(c.figurants)} → déjà envoyé·e dans une journée
             </span>
+          ))}
+          {reserveesTrouvees.slice(0, 8).map((c) => (
+            <Link key={c.id} href={`/bookings/reserve?projet_id=${annonce?.projet_id ?? ""}`} className="font-medium text-coral hover:underline">
+              {nomComplet(c.figurants)} → 🗄️ en réserve
+            </Link>
           ))}
         </p>
       )}
@@ -901,6 +864,9 @@ export default async function CandidaturesPage({
         vue={vue}
         recherche={recherche}
         jours={jours}
+        annonceId={annonceId}
+        etiquettes={etiquettes}
+        etiquettesParCandidature={Object.fromEntries(etiquettesParCandidature)}
         pagination={
           <>
             {pagedRows.length === 0 && (

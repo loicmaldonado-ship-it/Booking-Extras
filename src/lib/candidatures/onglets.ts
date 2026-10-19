@@ -8,13 +8,20 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // finit dans un filtre PostgREST `.or()` : validé en UUID avant.
 export async function getOngletsForAnnonce(annonceId: string | null | undefined): Promise<CandidatureOnglet[]> {
   const supabase = createAdminClient();
-  let query = supabase.from("candidature_onglets").select("id, nom, couleur, fixe, ordre, annonce_id").order("ordre");
+  let query = supabase.from("candidature_onglets").select("id, nom, couleur, fixe, ordre, annonce_id, annonce_date_id").order("ordre");
   query =
     annonceId && UUID_RE.test(annonceId)
       ? query.or(`annonce_id.is.null,annonce_id.eq.${annonceId}`)
       : query.is("annonce_id", null);
   const { data } = await query.returns<CandidatureOnglet[]>();
-  return data ?? [];
+  const tous = data ?? [];
+  // Ordre du classeur : les onglets de rangement, les journées par date,
+  // puis OUT.
+  return [
+    ...tous.filter((o) => !o.fixe && !o.annonce_date_id),
+    ...tous.filter((o) => !o.fixe && o.annonce_date_id),
+    ...tous.filter((o) => o.fixe),
+  ];
 }
 
 // Nombre de tournages différents sur lesquels chaque personne a été

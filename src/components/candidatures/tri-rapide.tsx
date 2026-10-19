@@ -13,7 +13,6 @@ import { formatDateShort } from "@/lib/format-date";
 import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChipsView, JOUR_KEYS } from "@/components/candidatures/jour-chips";
-import { setCandidatureJour } from "@/lib/candidatures/jours";
 
 type Option = { id: string | null; nom: string; couleur: CandidatureOnglet["couleur"]; key: string };
 
@@ -45,14 +44,16 @@ export function TriRapide({
   const [rangesIds, setRangesIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
-  // Jours prévus modifiés pendant ce tri, par candidature puis par date.
-  const [jourOverride, setJourOverride] = useState<Record<string, Record<string, boolean>>>({});
   const requested = useRef(new Set<string>());
 
   // 0 = "À trier", puis 1..9 dans l'ordre des onglets (OUT toujours dernier).
+  // Les journées ont leurs propres touches (a, z, e…), voir plus bas.
   const options: Option[] = [
     { id: null, nom: "À trier", couleur: "default", key: "0" },
-    ...onglets.slice(0, 9).map((o, i) => ({ id: o.id, nom: o.nom, couleur: o.couleur, key: String(i + 1) })),
+    ...onglets
+      .filter((o) => !o.annonce_date_id)
+      .slice(0, 9)
+      .map((o, i) => ({ id: o.id, nom: o.nom, couleur: o.couleur, key: String(i + 1) })),
   ];
 
   const load = useCallback((id: string | undefined) => {
@@ -79,30 +80,6 @@ export function TriRapide({
   const currentId = ids[index];
   const current = currentId ? cache[currentId] : undefined;
   const data = current && !("error" in current) ? current : null;
-  const jours = useMemo(
-    () => (data ? data.jours.map((j) => ({ ...j, prevu: jourOverride[data.id]?.[j.id] ?? j.prevu })) : []),
-    [data, jourOverride]
-  );
-
-  const toggleJour = useCallback(
-    (jourId: string) => {
-      if (!data) return;
-      const j = jours.find((x) => x.id === jourId);
-      if (!j || j.dansLaJournee) return;
-      const id = data.id;
-      const prevu = !j.prevu;
-      setError(null);
-      setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: prevu } }));
-      setCandidatureJour(id, jourId, prevu).then((res) => {
-        if (res.error) {
-          setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: !prevu } }));
-          setError(`${nomComplet(data.figurant)} : ${res.error}`);
-        }
-      });
-    },
-    [data, jours]
-  );
-
   const ongletActuel = currentId
     ? currentId in ongletOverride
       ? ongletOverride[currentId]
@@ -135,6 +112,30 @@ export function TriRapide({
       });
     },
     [currentId, data, index, ongletActuel, goTo]
+  );
+
+  // Une journée = un onglet : la pastille d'une date range la personne dans
+  // cette journée (ou la remet dans « À trier » si elle y est déjà), puis on
+  // passe à la suivante, comme pour les autres onglets.
+  const ongletDuJour = useCallback(
+    (annonceDateId: string) => onglets.find((o) => o.annonce_date_id === annonceDateId)?.id ?? null,
+    [onglets]
+  );
+  const jours = useMemo(
+    () =>
+      data
+        ? data.jours.map((j) => ({ ...j, prevu: !!ongletActuel && ongletActuel === ongletDuJour(j.id) }))
+        : [],
+    [data, ongletActuel, ongletDuJour]
+  );
+  const toggleJour = useCallback(
+    (jourId: string) => {
+      const j = jours.find((x) => x.id === jourId);
+      const cible = ongletDuJour(jourId);
+      if (!j || j.dansLaJournee || !cible) return;
+      assign(j.prevu ? null : cible);
+    },
+    [jours, ongletDuJour, assign]
   );
 
   useEffect(() => {
@@ -350,11 +351,11 @@ export function TriRapide({
                     {jours.length > 0 && (
                       <div>
                         <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
-                          Déplacer dans une journée
+                          Ranger dans une journée
                         </h3>
                         <JourChipsView jours={jours} onToggle={(j) => toggleJour(j.id)} size="lg" showKeys />
                         <p className="mt-1.5 text-[11px] text-text-muted">
-                          Contour vert = dispo, plein = dans la journée (prévisionnel), ✓ = déjà en booking.
+                          Contour vert = dispo, plein = rangé·e dans cette journée, ✓ = déjà en booking.
                         </p>
                       </div>
                     )}
@@ -440,7 +441,7 @@ export function TriRapide({
                   </button>
                   <span className="hidden text-xs text-text-muted md:inline">
                     Touches : 0–{options.length - 1} ranger
-                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} déplacer dans une journée`} · ← →
+                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} ranger dans une journée`} · ← →
                     naviguer · ↑ ↓ photos · Échap fermer
                   </span>
                   <button

@@ -111,7 +111,7 @@ export function OngletPicker({
                 creer();
               }
             }}
-            placeholder="Ex. Ok dispo le 26/06"
+            placeholder="Ex. Gueules"
             className="w-44 rounded-lg border border-border bg-ink px-2 py-1 text-xs outline-none focus:border-coral"
           />
           <button type="button" onClick={creer} disabled={pending || !nouveauNom.trim()} className="text-xs text-coral hover:underline">

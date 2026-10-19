@@ -19,8 +19,9 @@ import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import type { PhotoType } from "@/lib/figurants/types";
 import { setCandidatureOnglet, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
-import { setCandidaturesJourBulk } from "@/lib/candidatures/jours";
-import { formatDateLong, formatDayMonth } from "@/lib/format-date";
+import { RangementCarte } from "@/components/candidatures/rangement-carte";
+import { creerEtiquette, setEtiquettesBulk, type Etiquette } from "@/lib/candidatures/etiquettes";
+import { mettreCandidaturesEnReserve } from "@/lib/reserve/actions";
 import { emojiOnglet, ongletsRapides, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
 
@@ -102,6 +103,9 @@ export function CandidaturesTable({
   vue,
   recherche,
   jours,
+  annonceId,
+  etiquettes,
+  etiquettesParCandidature,
   pagination,
 }: {
   rows: Row[];
@@ -114,6 +118,10 @@ export function CandidaturesTable({
   vue: "trombi" | "liste";
   recherche: string;
   jours: JourPanneau[];
+  annonceId: string;
+  etiquettes: Etiquette[];
+  // Étiquettes posées, par candidature.
+  etiquettesParCandidature: Record<string, string[]>;
   pagination?: ReactNode;
 }) {
   const router = useRouter();
@@ -123,8 +131,10 @@ export function CandidaturesTable({
   const [enCours, setEnCours] = useState<Set<string>>(new Set());
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
-  const [outil, setOutil] = useState<"deplacer" | "envoi" | "casting" | "journee" | null>(null);
-  const [deplace, setDeplace] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "etiquettes" | "reserve" | null>(null);
+  const [reserveInfo, setReserveInfo] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [nouvelleEtiquette, setNouvelleEtiquette] = useState("");
+  const [etiquetteInfo, setEtiquetteInfo] = useState<{ ok: boolean; texte: string } | null>(null);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
   const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
@@ -191,20 +201,58 @@ export function CandidaturesTable({
     });
   }
 
-  // Déplacer la sélection dans une journée prévisionnelle (rien n'est créé
-  // dans Bookings).
-  function deplacerDans(j: JourPanneau) {
+  // Pose ou retire une étiquette sur toute la sélection, sans la déplacer.
+  // Met la sélection de côté (réserve du projet, sur la page Bookings).
+  function mettreEnReserve() {
     const ids = selection.map((r) => r.id);
-    setDeplace(null);
+    setReserveInfo(null);
     startBulk(async () => {
-      const res = await setCandidaturesJourBulk(ids, j.id, true);
-      if (res.error) setDeplace({ ok: false, texte: res.error });
+      const res = await mettreCandidaturesEnReserve(ids);
+      if (res.error) {
+        setReserveInfo({ ok: false, texte: res.error });
+        return;
+      }
+      setReserveInfo({ ok: true, texte: `✓ ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""} en réserve.` });
+      setSelected(new Set());
+      setOutil(null);
+      router.refresh();
+    });
+  }
+
+  function etiqueter(e: Etiquette, pose: boolean) {
+    const ids = selection.map((r) => r.id);
+    setEtiquetteInfo(null);
+    startBulk(async () => {
+      const res = await setEtiquettesBulk(ids, e.id, pose);
+      if (res.error) setEtiquetteInfo({ ok: false, texte: res.error });
       else {
-        setDeplace({
+        setEtiquetteInfo({
           ok: true,
-          texte: `✓ ${res.n} déplacé${(res.n ?? 0) > 1 ? "s" : ""} dans la journée du ${formatDayMonth(j.date)} (prévisionnel). Ouvre la journée pour les envoyer en booking.`,
+          texte: `✓ « ${e.nom} » ${pose ? "posée sur" : "retirée de"} ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""}.`,
         });
-        setSelected(new Set());
+        router.refresh();
+      }
+    });
+  }
+
+  function etiquetterNouvelle() {
+    const nom = nouvelleEtiquette.trim();
+    if (!nom) return;
+    setEtiquetteInfo(null);
+    startBulk(async () => {
+      const cree = await creerEtiquette(annonceId, nom);
+      if (cree.error || !cree.etiquette) {
+        setEtiquetteInfo({ ok: false, texte: cree.error ?? "Création impossible." });
+        return;
+      }
+      const res = await setEtiquettesBulk(selection.map((r) => r.id), cree.etiquette.id, true);
+      if (res.error) setEtiquetteInfo({ ok: false, texte: res.error });
+      else {
+        setNouvelleEtiquette("");
+        setEtiquetteInfo({
+          ok: true,
+          texte: `✓ « ${cree.etiquette.nom} » posée sur ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""}.`,
+        });
         router.refresh();
       }
     });
@@ -305,8 +353,8 @@ export function CandidaturesTable({
               </>
             ) : (
               <span className="text-xs text-text-muted">
-                Coche des profils pour les ranger ou les envoyer dans un jour, ou range-les un par un avec les boutons sous
-                chaque photo.
+                Coche des profils pour les ranger, les étiqueter ou les envoyer en booking, ou change la place d&apos;un
+                profil depuis sa carte (📍).
               </span>
             )}
             <span className="flex-1" />
@@ -326,34 +374,46 @@ export function CandidaturesTable({
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
               {jours.length > 0 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeplace(null);
-                      setOutil(outil === "deplacer" ? null : "deplacer");
-                    }}
-                    aria-expanded={outil === "deplacer"}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-semibold",
-                      outil === "deplacer" ? "bg-coral/15 text-coral ring-2 ring-coral" : "bg-coral text-ink hover:bg-coral-hover"
-                    )}
-                  >
-                    📅 Déplacer dans une journée ({selection.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
-                    aria-expanded={outil === "envoi"}
-                    className={cn(
-                      "rounded-full border-2 px-3 py-1.5 text-xs font-semibold",
-                      outil === "envoi" ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-turquoise text-turquoise hover:bg-turquoise/10"
-                    )}
-                  >
-                    📋 Envoyer en booking ({selection.length})
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
+                  aria-expanded={outil === "envoi"}
+                  className={cn(
+                    "rounded-full border-2 px-3 py-1.5 text-xs font-semibold",
+                    outil === "envoi" ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-turquoise text-turquoise hover:bg-turquoise/10"
+                  )}
+                >
+                  📋 Envoyer en booking ({selection.length})
+                </button>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  setEtiquetteInfo(null);
+                  setOutil(outil === "etiquettes" ? null : "etiquettes");
+                }}
+                aria-expanded={outil === "etiquettes"}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  outil === "etiquettes" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                )}
+              >
+                🏷️ Étiqueter ({selection.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setReserveInfo(null);
+                  setOutil(outil === "reserve" ? null : "reserve");
+                }}
+                aria-expanded={outil === "reserve"}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium",
+                  outil === "reserve" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                )}
+              >
+                🗄️ Mettre en réserve ({selection.length})
+              </button>
               <button
                 type="button"
                 onClick={() => setEcrireA(selection)}
@@ -383,33 +443,94 @@ export function CandidaturesTable({
               >
                 📋 Envoyer en booking sur une autre date
               </button>
-              {jours.length > 0 && (
-                <span className="text-xs text-text-muted xl:inline">
-                  Déplacer = journée prévisionnelle, rien dans Bookings. Envoyer en booking = crée le booking.
-                </span>
-              )}
             </div>
           )}
-          {deplace && <p className={cn("text-sm", deplace.ok ? "font-medium text-turquoise" : "text-danger")}>{deplace.texte}</p>}
-          {selected.size > 0 && outil === "deplacer" && (
+          {selected.size > 0 && outil === "reserve" && (
             <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
-              <b className="text-sm">📅 Déplacer dans la journée (prévisionnel, rien n&apos;est créé dans Bookings)</b>
-              <div className="flex flex-wrap gap-2">
-                {jours.map((j) => (
-                  <button
-                    key={j.id}
-                    type="button"
-                    disabled={bulkPending}
-                    onClick={() => deplacerDans(j)}
-                    className="rounded-xl border-2 border-border-strong px-3 py-2 text-left text-sm font-semibold hover:border-coral disabled:opacity-50"
-                  >
-                    📅 {formatDateLong(j.date)}
-                    <span className="block text-[11px] font-normal text-text-muted">
-                      ⏳ {j.prevusAEnvoyer} dans la journée · ✓ {j.dansLaJournee} en booking
-                    </span>
-                  </button>
-                ))}
+              <b className="text-sm">
+                🗄️ Mettre {selection.length} profil{selection.length > 1 ? "s" : ""} en réserve ?
+              </b>
+              <p className="text-xs text-text-muted">
+                Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (bouton <b>🗄️ Réserve</b> de la page Bookings),
+                avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={bulkPending}
+                  onClick={mettreEnReserve}
+                  className="rounded-full border-2 border-text px-3 py-1.5 text-xs font-semibold text-coral disabled:opacity-40"
+                >
+                  {bulkPending ? "…" : "Confirmer la mise en réserve"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOutil(null)}
+                  className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-text"
+                >
+                  Annuler
+                </button>
               </div>
+              {reserveInfo && !reserveInfo.ok && <p className="text-sm text-danger">{reserveInfo.texte}</p>}
+            </div>
+          )}
+          {reserveInfo?.ok && selected.size === 0 && <p className="text-sm font-medium text-turquoise">{reserveInfo.texte}</p>}
+          {selected.size > 0 && outil === "etiquettes" && (
+            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
+              <b className="text-sm">🏷️ Étiqueter {selection.length} profil{selection.length > 1 ? "s" : ""} (sans les déplacer)</b>
+              {etiquettes.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {etiquettes.map((e) => (
+                    <span key={e.id} className="flex items-center overflow-hidden rounded-full border border-border-strong text-xs font-medium">
+                      <span className="px-2.5 py-1">{e.nom}</span>
+                      <button
+                        type="button"
+                        disabled={bulkPending}
+                        onClick={() => etiqueter(e, true)}
+                        className="border-l border-border-strong px-2 py-1 text-turquoise hover:bg-turquoise/10 disabled:opacity-50"
+                        title={`Poser « ${e.nom} » sur la sélection`}
+                      >
+                        ＋ Poser
+                      </button>
+                      <button
+                        type="button"
+                        disabled={bulkPending}
+                        onClick={() => etiqueter(e, false)}
+                        className="border-l border-border-strong px-2 py-1 text-danger hover:bg-danger/10 disabled:opacity-50"
+                        title={`Retirer « ${e.nom} » de la sélection`}
+                      >
+                        − Retirer
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input
+                  value={nouvelleEtiquette}
+                  onChange={(e) => setNouvelleEtiquette(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      etiquetterNouvelle();
+                    }
+                  }}
+                  placeholder="Nouvelle étiquette (ex. Vélo)"
+                  maxLength={40}
+                  className="min-w-0 flex-1 rounded-lg border border-border-strong bg-ink px-3 py-1.5 text-sm outline-none focus:border-coral sm:max-w-xs"
+                />
+                <button
+                  type="button"
+                  disabled={bulkPending || !nouvelleEtiquette.trim()}
+                  onClick={etiquetterNouvelle}
+                  className="rounded-full border-2 border-text px-3 py-1.5 text-xs font-semibold text-coral disabled:opacity-40"
+                >
+                  Créer et poser
+                </button>
+              </div>
+              {etiquetteInfo && (
+                <p className={cn("text-sm", etiquetteInfo.ok ? "font-medium text-turquoise" : "text-danger")}>{etiquetteInfo.texte}</p>
+              )}
             </div>
           )}
           {/* Reste ouvert après l'envoi pour montrer la confirmation. */}
@@ -589,6 +710,14 @@ export function CandidaturesTable({
                     )}
                     <HabitueBadge tournages={s?.tournages ?? 0} className="mt-0.5 self-start" />
                   </div>
+                  <RangementCarte
+                    candidatureId={r.id}
+                    annonceId={annonceId}
+                    ongletId={r.onglet_id}
+                    onglets={onglets}
+                    etiquettes={etiquettes}
+                    poses={etiquettesParCandidature[r.id] ?? []}
+                  />
                   <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
                   <div className="mt-auto">
                     {boutonsRanger(r, true)}
@@ -614,7 +743,7 @@ export function CandidaturesTable({
                   <th className="px-3 py-2.5 font-medium">Nom</th>
                   <th className="px-3 py-2.5 font-medium">Âge · ville</th>
                   <th className="px-3 py-2.5 font-medium">Message</th>
-                  <th className="px-3 py-2.5 font-medium">Jours</th>
+                  <th className="px-3 py-2.5 font-medium">Place · étiquettes · jours</th>
                   <th className="px-3 py-2.5 font-medium">Réponses</th>
                   <th className="px-3 py-2.5 font-medium">Ranger</th>
                 </tr>
@@ -690,8 +819,18 @@ export function CandidaturesTable({
                           onToggle={() => setMessagesOuverts((prev) => bascule(prev, r.id))}
                         />
                       </td>
-                      <td className="px-3 py-2.5">
-                        <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
+                      <td className="min-w-[11rem] px-3 py-2.5">
+                        <div className="flex flex-col gap-1.5">
+                          <RangementCarte
+                            candidatureId={r.id}
+                            annonceId={annonceId}
+                            ongletId={r.onglet_id}
+                            onglets={onglets}
+                            etiquettes={etiquettes}
+                            poses={etiquettesParCandidature[r.id] ?? []}
+                          />
+                          <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
+                        </div>
                       </td>
                       <td className="min-w-[8rem] px-3 py-2.5">
                         <Reponses questions={s?.questions ?? []} />

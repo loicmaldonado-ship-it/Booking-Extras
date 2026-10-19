@@ -402,31 +402,36 @@ export default function AidePage() {
               d&apos;une carte ouvre cette même vue sur elle (Cmd/Ctrl-clic ouvre sa page détaillée).
             </>,
             <>
-              <strong className="text-text">Une sélection, deux actions.</strong> Coche des profils, puis :{" "}
-              <UI>📅 Déplacer dans une journée</UI> : ils passent dans la journée <strong className="text-text">prévisionnelle</strong>{" "}
-              (en cours de choix, rien n&apos;est créé dans Bookings, on peut les retirer) ; ou{" "}
-              <UI>📋 Envoyer en booking</UI> : le booking est créé (en PER, rien n&apos;est envoyé aux figurant·es) et la
-              personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>, la fonction peut
-              attendre. Les pastilles de date d&apos;une carte (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un
-              par un) déplacent aussi dans une journée.
+              <strong className="text-text">Une place par profil, comme dans un classeur.</strong> Chaque date de
+              l&apos;annonce a son <strong className="text-text">onglet de journée</strong> (📅 Jeu 22/10), créé tout
+              seul avec la date, à côté de Retenu, Peut-être et de tes onglets : ranger un profil dans une journée, c&apos;est
+              le mettre dans cet onglet (il n&apos;a qu&apos;une place à la fois, rien n&apos;est créé dans Bookings). Pour
+              changer un profil de place : <UI>📍</UI> sur sa carte (un tap, tous les onglets proposés), les boutons
+              ✅ 🤔 🚫, les pastilles de date (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un), ou coche
+              plusieurs profils puis <UI>Ranger dans :</UI>. Dans un onglet de journée, un rappel indique le nombre en
+              booking face au besoin et mène à la journée dans Bookings.
             </>,
             <>
-              <strong className="text-text">Les journées de l&apos;annonce</strong>, en haut de la page : une carte par
-              date avec ⏳ le nombre dans la journée (prévisionnel) et ✓ le nombre en booking face au besoin.{" "}
-              <UI>Ouvrir la journée →</UI> l&apos;affiche à la place de la liste, centrée sur les profils triés :{" "}
-              <UI>⏳ Dans la journée</UI> (coche, puis <UI>📋 Envoyer en booking</UI> ou <UI>Retirer de la journée</UI> ;
-              sans rien cocher, l&apos;envoi porte sur tout le monde), <UI>＋ Ajouter des profils triés</UI> (rangés en
-              Retenu, Peut-être…, dispo ce jour : coche puis <UI>📅 Déplacer dans cette journée</UI>) et{" "}
-              <UI>👁 Déjà en booking</UI>, en simple consultation. Les filtres de la liste (genre, âge, question, véhicule…)
-              restent appliqués dans la journée, la barre de filtres reste là, et des filtres rapides s&apos;ajoutent :{" "}
-              <UI>📅 Dispo ce jour</UI>, <UI>🚲 A un vélo</UI>, <UI>🚗 A une voiture</UI>. Sans rien cocher, l&apos;envoi
-              porte sur les profils affichés. <UI>← Revenir aux candidatures</UI> pour ressortir, filtres compris.
+              <strong className="text-text">Étiquettes.</strong> Pour ce qui ne change pas la place : Marc est dans
+              « Jeu 22/10 » <em>et</em> a un vélo → <UI>＋ Étiquette</UI> sur sa carte (ou coche des profils puis{" "}
+              <UI>🏷️ Étiqueter</UI> : <UI>＋ Poser</UI> / <UI>− Retirer</UI>, ou <UI>Créer et poser</UI> une nouvelle).
+              Les étiquettes sont communes aux annonces d&apos;un même projet, et le menu{" "}
+              <UI>🏷️ Étiquette</UI> de la barre de filtres retrouve tous les profils qui la portent, dans n&apos;importe
+              quel onglet.
+            </>,
+            <>
+              <strong className="text-text">Envoyer en booking.</strong> Coche des profils puis{" "}
+              <UI>📋 Envoyer en booking</UI> : choisis la date, le booking est créé (en PER, rien n&apos;est envoyé aux
+              figurant·es) et la personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>,
+              la fonction peut attendre. <UI>Tout cocher</UI> dans un onglet de journée envoie toute la journée d&apos;un
+              coup. <UI>📋 Envoyer en booking sur une autre date</UI> sert pour une date hors annonce. Pas décidé·es ?{" "}
+              <UI>🗄️ Mettre en réserve</UI> les met de côté, à retrouver avec leurs dispos dans le bouton 🗄️ Réserve de Bookings.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
               coche des profils puis <UI>💬 Message</UI> : message libre seulement (pas de modèles ici). Mail (depuis la
               boîte du projet, confirmation avant un envoi groupé) ou <UI>📱 En textos</UI>. Les trombis, eux, se font
-              dans la journée (<UI>Trombi du jour</UI> dans le panneau Jours de tournage).
+              dans la journée de Bookings.
             </>,
             <>
               <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
@@ -669,6 +674,18 @@ export default function AidePage() {
               n&apos;est créé tant que tu n&apos;as pas choisi <UI>✅ C&apos;est elle / lui</UI> (sa fiche est reprise,
               email ou téléphone manquants complétés) ou <UI>➕ Non, créer une nouvelle fiche</UI>. Sans email, aucun
               mail ne part.
+            </>,
+            <>
+              <strong className="text-text">🗄️ Réserve</strong> (bouton en haut de la page Bookings du projet : une page à part, en trombinoscope) : les
+              profils qu&apos;on met de côté parce qu&apos;on ne sait pas encore quoi en faire, mais qu&apos;on
+              recontactera peut-être. On y envoie depuis Candidatures (coche, puis <UI>🗄️ Mettre en réserve</UI> : ils
+              quittent la liste) ou depuis une journée (coche, puis <UI>🗄️ Mettre en réserve</UI> : le booking est retiré
+              de la journée, sans message). Chaque profil rappelle <strong className="text-text">où il a postulé</strong> et
+              quand, et les <strong className="text-text">dates qu&apos;il a données dispo (✅) ou pas (🚫)</strong>, avec un
+              lien vers sa candidature. Ils sont <strong className="text-text">classés par dispo</strong> (le plus de
+              jours dispo d&apos;abord) et une ligne de dates <UI>✅ 22/10</UI>… ne garde que ceux dispo ce jour-là. Coche-les pour <UI>📋 Envoyer en booking</UI> (fonction et cachet obligatoires,
+              ils quittent la réserve) ou <UI>↩ Retirer de la réserve</UI> (une candidature retirée revient dans
+              Candidatures).
             </>,
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}

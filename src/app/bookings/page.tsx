@@ -14,6 +14,7 @@ import { BookOpen } from "lucide-react";
 import { getLiens } from "@/lib/validation/data";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { LiensValidation } from "@/components/validation/liens-validation";
+import { compterReserve } from "@/lib/reserve/data";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +62,11 @@ export default async function BookingsPage({
     return <ProjetPicker projets={await accessibleProjets()} />;
   }
 
-  const [journees, liensMes, origin] = await Promise.all([
+  const [journees, liensMes, origin, nbReserve] = await Promise.all([
     getJournees(currentProjetId),
     getLiens({ projetId: currentProjetId }),
     getSiteOrigin(),
+    compterReserve(currentProjetId),
   ]);
 
   return (
@@ -89,6 +91,9 @@ export default async function BookingsPage({
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/bookings/resume?projet_id=${currentProjetId}`} variant="secondary">
             Vue globale du projet
+          </ButtonLink>
+          <ButtonLink href={`/bookings/reserve?projet_id=${currentProjetId}`} variant="secondary">
+            🗄️ Réserve ({nbReserve})
           </ButtonLink>
           <ButtonLink href="/candidatures" variant="secondary">
             📄 Candidatures
