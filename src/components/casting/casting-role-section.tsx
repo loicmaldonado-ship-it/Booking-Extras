@@ -621,6 +621,8 @@ export function CastingRoleSection({
                       nom: nomComplet(e.figurants),
                       telephone: e.figurants!.telephone,
                       texte: substituteTokens(bulkMessage, tokens(e)),
+                      figurantId: e.figurant_id,
+                      projetId,
                     }))}
                 />
                 <Button type="button" disabled={!bulkMessage.trim()} onClick={sendToAll}>

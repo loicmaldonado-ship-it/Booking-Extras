@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { telephoneInternational, type DestinataireTexto } from "@/lib/textos/telephone";
-import { mettreEnFileTextos } from "@/lib/textos/actions";
+import { mettreEnFileTextos, noterTextosEnvoyesIphone } from "@/lib/textos/actions";
 
 export const NOM_RACCOURCI = "Booking Extras Textos";
 
@@ -56,6 +56,8 @@ export function EnvoyerTextos({
       texte: `Liste de ${valides.length} texto${valides.length > 1 ? "s" : ""} copiée : le raccourci les envoie.`,
     });
     onEnvoye?.(valides.flatMap((d) => (d.cle ? [d.cle] : [])));
+    // Noté côté site avant d'ouvrir le raccourci (la page passe en arrière-plan).
+    await noterTextosEnvoyesIphone(valides.map((d) => ({ ...d, telephone: d.tel })));
     window.location.href = `shortcuts://run-shortcut?name=${encodeURIComponent(NOM_RACCOURCI)}`;
   }
 

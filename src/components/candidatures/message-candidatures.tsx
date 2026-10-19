@@ -190,6 +190,8 @@ export function MessageCandidatures({
                 .map((r) => ({
                   nom: nomComplet(r.figurants),
                   telephone: r.figurants!.telephone,
+                  figurantId: r.figurants!.id,
+                  projetId: r.annonces?.projet_id ?? null,
                   texte: substituteTokens(corps, tokensDe(r)),
                 }))}
             />

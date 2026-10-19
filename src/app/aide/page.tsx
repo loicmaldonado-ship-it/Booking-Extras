@@ -920,8 +920,10 @@ export default function AidePage() {
                 <strong className="text-text">Réponses texto sur le site.</strong> Le relais Mac peut aussi remonter
                 les réponses reçues dans Messages (onglet Messages de la journée, fiche du profil). Une seule fois :
                 Réglages Système → Confidentialité et sécurité → <UI>Accès complet au disque</UI> → + → Cmd+Maj+G →{" "}
-                <code>/bin/bash</code>, et l&apos;activer. Seules les réponses des numéros à qui le site a écrit sont
-                lues ; l&apos;état s&apos;affiche dans Mon compte → Textos.
+                <code>/bin/bash</code>, et l&apos;activer. Seules les réponses à un texto envoyé depuis l&apos;appli
+                (ces 30 derniers jours) sont remontées, et seulement celles reçues après cet envoi : un échange perso avec
+                quelqu&apos;un de booké, ou avec un membre de l&apos;équipe, ne remonte jamais. L&apos;état s&apos;affiche
+                dans Mon compte → Textos.
               </>,
             ]}
           />

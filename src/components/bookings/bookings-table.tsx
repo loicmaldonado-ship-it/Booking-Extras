@@ -1959,6 +1959,8 @@ export function BookingsTable({
                       nom: nomComplet(r.figurants),
                       telephone: r.figurants!.telephone,
                       texte: convocationFor(r).body,
+                      figurantId: r.figurant_id ?? null,
+                      projetId: projetId ?? null,
                     }))}
                 />
                 <Button
@@ -2031,6 +2033,8 @@ export function BookingsTable({
                           nom: nomComplet(r.figurants),
                           telephone: r.figurants!.telephone,
                           texte: substituteTokens(libreMessage, rowTokens(r, journeeLieu)),
+                          figurantId: r.figurant_id ?? null,
+                          projetId: projetId ?? null,
                         }))}
                     />
                     <Button
