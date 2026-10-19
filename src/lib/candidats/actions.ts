@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { aCreeSonCompte, definirMotDePasse, motDePasseCorrect } from "@/lib/candidats/mot-de-passe";
+import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { sendEmail } from "@/lib/email/send";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
@@ -112,7 +113,7 @@ export async function sendAccesCompteActiveEmail(
 export async function requestMagicLink(
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; sentTo?: string }> {
+): Promise<{ error?: string; sentTo?: string; invitationEnvoyee?: boolean }> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return { error: "Merci de renseigner votre email." };
 
@@ -135,6 +136,10 @@ export async function requestMagicLink(
     };
   }
   if (!figurant.acces_compte) {
+    // Fiche de la base sans compte (ajoutée par l'équipe) : lien « Crée ton
+    // compte » plutôt qu'une connexion.
+    const invitation = await invitationPourFicheSansCompte(figurant.id, null, retourAutorise(formData.get("retour")));
+    if (invitation) return invitation;
     return {
       error: "Votre espace n'est pas encore activé. Contactez le casting si besoin.",
     };
