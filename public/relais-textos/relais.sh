@@ -4,7 +4,9 @@
 # envoie un par un avec l'app Messages, depuis ton numéro, en espaçant les
 # envois pour ne pas être pris pour du spam. Remonte aussi au site les
 # réponses reçues dans Messages, uniquement de la part des numéros à qui le
-# site a écrit (il faut autoriser l'« Accès complet au disque »).
+# site a écrit (il faut autoriser l'« Accès complet au disque »). Avec cet
+# accès, chaque texto est aussi vérifié après l'envoi et renvoyé tout seul
+# s'il finit « Non distribué ».
 DOSSIER="${BOOKING_RELAIS_DOSSIER:-$HOME/Library/Application Support/BookingExtrasRelais}"
 source "$DOSSIER/config"   # SITE, CLE, MODE, DELAI_MIN, DELAI_MAX, TEST
 TMP="$DOSSIER/reponse.json"
@@ -63,6 +65,50 @@ relever_reponses() {
   fi
 }
 
+# Distribution d'un texto qu'on vient de confier à Messages : regarde dans
+# sa base le message parti vers ce numéro après « avant ». Affiche « ok »,
+# « echec <code> » ou « inconnu » (pas d'accès à la base, ou toujours en
+# cours au bout de 90 s). Sert à renvoyer tout seul les « Non distribué ».
+etat_distribution() {
+  local tel="$1" avant="$2" t ligne
+  sqlite3 "file:$CHATDB?mode=ro" "select 1" > /dev/null 2>&1 || { echo inconnu; return; }
+  for ((t = 0; t < ${VERIF_TOURS:-18}; t++)); do
+    sleep 5
+    ligne=$(sqlite3 "file:$CHATDB?mode=ro" "SELECT m.error || '|' || m.is_sent || '|' || m.service FROM message m JOIN handle h ON h.ROWID = m.handle_id WHERE m.is_from_me = 1 AND m.ROWID > ${avant:-0} AND h.id = '$tel' ORDER BY m.ROWID DESC LIMIT 1" 2> /dev/null)
+    [ -z "$ligne" ] && continue
+    IFS='|' read -r code envoye service <<< "$ligne"
+    if [ "${code:-0}" != "0" ]; then echo "echec $code ($service)"; return; fi
+    if [ "$envoye" = "1" ]; then echo "ok ($service)"; return; fi
+  done
+  echo inconnu
+}
+
+dernier_message() {
+  sqlite3 "file:$CHATDB?mode=ro" "SELECT COALESCE(MAX(ROWID),0) FROM message" 2> /dev/null || echo 0
+}
+
+# Confie le texto à Messages puis vérifie qu'il est parti ; « Non
+# distribué » → nouvel essai (comme « Réessayer » dans Messages), jusqu'à 3.
+envoyer_avec_verification() {
+  local tel="$1" texte="$2" essai avant sortie etat
+  for essai in 1 2 3; do
+    avant=$(dernier_message)
+    if ! sortie=$(osascript "$DOSSIER/envoyer.applescript" "$tel" "$texte" "$MODE" 2>&1); then
+      erreur="$sortie"
+    else
+      etat=$(etat_distribution "$tel" "$avant")
+      case "$etat" in
+        ok*) journal "Envoyé à $tel ($etat, essai $essai)"; return 0 ;;
+        inconnu) journal "Envoyé à $tel (distribution non vérifiée)"; return 0 ;;
+        *) erreur="Non distribué : $etat" ;;
+      esac
+    fi
+    journal "Essai $essai pour $tel : $erreur"
+    [ "$essai" -lt 3 ] && sleep $(( essai * 20 ))
+  done
+  return 1
+}
+
 json_resultat() {
   osascript -l JavaScript -e 'function run(a){return JSON.stringify({id:a[0],ok:a[1]==="1",erreur:a[2]})}' "$1" "$2" "$3"
 }
@@ -87,12 +133,15 @@ while true; do
     if [ -n "$TEST" ]; then
       journal "TEST — pas envoyé à $tel : ${texte:0:60}…"
       ok=1; erreur=""
-    elif sortie=$(osascript "$DOSSIER/envoyer.applescript" "$tel" "$texte" "$MODE" 2>&1); then
-      journal "Envoyé à $tel"
-      ok=1; erreur=""
     else
-      journal "Échec pour $tel : $sortie"
-      ok=0; erreur="$sortie"
+      tel="${tel//[^+0-9]/}"
+      erreur=""
+      if envoyer_avec_verification "$tel" "$texte"; then
+        ok=1; erreur=""
+      else
+        journal "Échec pour $tel après 3 essais : $erreur"
+        ok=0
+      fi
     fi
     curl -fsS -m 30 -X POST -H "Authorization: Bearer $CLE" -H "Content-Type: application/json" \
       --data "$(json_resultat "$id" "$ok" "$erreur")" "$SITE/api/relais-textos/resultat" > /dev/null
