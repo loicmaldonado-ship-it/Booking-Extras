@@ -101,8 +101,25 @@ essai_envoi() {
   etat_distribution "$tel" "$avant" "$tours"
 }
 
-# iMessage d'abord (part directement du Mac, instantané pour les iPhone) ;
-# s'il échoue (numéro sans iMessage), SMS par l'iPhone, avec un nouvel
+# iMessage ou SMS pour ce numéro, d'après l'historique de Messages (90 jours) :
+# dernier iMessage refusé → « sms » ; iMessage passé ou reçu → « imessage » ;
+# message reçu en SMS / RCS → « sms » ; inconnu → « imessage » (essayé
+# d'abord). Les SMS qu'on a envoyés ne comptent pas (l'ancien relais forçait
+# le SMS, même pour les iPhone).
+service_prefere() {
+  local tel="$1" ligne service moi code envoye
+  ligne=$(sqlite3 "file:$CHATDB?mode=ro" "SELECT m.service || '|' || m.is_from_me || '|' || m.error || '|' || m.is_sent FROM message m JOIN handle h ON h.ROWID = m.handle_id WHERE h.id = '$tel' AND m.date > (strftime('%s','now') - 978307200 - 90*86400) * 1000000000 AND (m.service = 'iMessage' OR m.is_from_me = 0) ORDER BY m.ROWID DESC LIMIT 1" 2> /dev/null)
+  [ -z "$ligne" ] && { echo imessage; return; }
+  IFS='|' read -r service moi code envoye <<< "$ligne"
+  if [ "$service" = "iMessage" ]; then
+    if [ "$moi" = "1" ] && [ "${code:-0}" != "0" ]; then echo sms; else echo imessage; fi
+  else
+    echo sms
+  fi
+}
+
+# iMessage d'abord (part directement du Mac, instantané pour les iPhone),
+# sauf numéro connu sans iMessage ; s'il échoue, SMS par l'iPhone, avec un nouvel
 # essai si « Non distribué ». Sans Accès complet au disque : un seul envoi
 # dans le mode réglé, sans vérification (ancien fonctionnement).
 envoyer_avec_verification() {
@@ -115,11 +132,13 @@ envoyer_avec_verification() {
     erreur="$sortie"
     return 1
   fi
-  etat=$(essai_envoi "$tel" "$texte" imessage-seul 6)
-  case "$etat" in
-    ok*) journal "Envoyé à $tel ($etat)"; return 0 ;;
-  esac
-  journal "iMessage impossible pour $tel ($etat), passage en SMS"
+  if [ "$(service_prefere "$tel")" = "imessage" ]; then
+    etat=$(essai_envoi "$tel" "$texte" imessage-seul 6)
+    case "$etat" in
+      ok*) journal "Envoyé à $tel ($etat)"; return 0 ;;
+    esac
+    journal "iMessage impossible pour $tel ($etat), passage en SMS"
+  fi
   for essai in 1 2; do
     etat=$(essai_envoi "$tel" "$texte" sms-seul 36)
     case "$etat" in

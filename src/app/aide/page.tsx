@@ -923,7 +923,10 @@ export default function AidePage() {
                 <UI>Depuis mon Mac</UI> (le Mac allumé les envoie un par un, toutes les 8 à 15 secondes, avec Messages).
                 Avec l&apos;<UI>Accès complet au disque</UI> (voir ci-dessous), chaque texto part d&apos;abord en{" "}
                 <strong className="text-text">iMessage</strong> (directement du Mac, instantané pour les iPhone), puis
-                en <strong className="text-text">SMS</strong> par ton iPhone si la personne n&apos;a pas iMessage ; un SMS{" "}
+                en <strong className="text-text">SMS</strong> par ton iPhone si la personne n&apos;a pas iMessage. Le relais
+                s&apos;en souvient (historique de Messages) : un numéro sans iMessage reçoit directement un SMS les fois
+                suivantes, une seule bulle « Non distribué » de ton côté la première fois (la personne, elle, ne reçoit
+                que le SMS). Un SMS{" "}
                 « Non distribué » est renvoyé une fois tout seul. Un échec, ou un SMS bloqué « en cours » plus de 3 min
                 (Transfert de SMS de l&apos;iPhone à vérifier), compte dans les échecs de Mon compte → Textos.
                 Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle. La fenêtre
