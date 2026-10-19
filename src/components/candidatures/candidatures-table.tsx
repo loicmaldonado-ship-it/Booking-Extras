@@ -451,7 +451,7 @@ export function CandidaturesTable({
                 🗄️ Mettre {selection.length} profil{selection.length > 1 ? "s" : ""} en réserve ?
               </b>
               <p className="text-xs text-text-muted">
-                Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (page Bookings, sous les journées),
+                Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (bouton <b>🗄️ Réserve</b> de la page Bookings),
                 avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
               </p>
               <div className="flex gap-2">

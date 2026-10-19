@@ -425,7 +425,7 @@ export default function AidePage() {
               figurant·es) et la personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>,
               la fonction peut attendre. <UI>Tout cocher</UI> dans un onglet de journée envoie toute la journée d&apos;un
               coup. <UI>📋 Envoyer en booking sur une autre date</UI> sert pour une date hors annonce. Pas décidé·es ?{" "}
-              <UI>🗄️ Mettre en réserve</UI> les met de côté, à retrouver dans la Réserve de Bookings avec leurs dispos.
+              <UI>🗄️ Mettre en réserve</UI> les met de côté, à retrouver avec leurs dispos dans le bouton 🗄️ Réserve de Bookings.
             </>,
             <>
               <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
@@ -676,7 +676,7 @@ export default function AidePage() {
               mail ne part.
             </>,
             <>
-              <strong className="text-text">🗄️ Réserve</strong> (page Bookings du projet, sous les journées) : les
+              <strong className="text-text">🗄️ Réserve</strong> (bouton en haut de la page Bookings du projet : une page à part, en trombinoscope) : les
               profils qu&apos;on met de côté parce qu&apos;on ne sait pas encore quoi en faire, mais qu&apos;on
               recontactera peut-être. On y envoie depuis Candidatures (coche, puis <UI>🗄️ Mettre en réserve</UI> : ils
               quittent la liste) ou depuis une journée (coche, puis <UI>🗄️ Mettre en réserve</UI> : le booking est retiré

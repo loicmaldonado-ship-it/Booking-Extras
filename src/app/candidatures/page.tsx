@@ -841,7 +841,7 @@ export default async function CandidaturesPage({
             </span>
           ))}
           {reserveesTrouvees.slice(0, 8).map((c) => (
-            <Link key={c.id} href="/bookings#reserve" className="font-medium text-coral hover:underline">
+            <Link key={c.id} href={`/bookings/reserve?projet_id=${annonce?.projet_id ?? ""}`} className="font-medium text-coral hover:underline">
               {nomComplet(c.figurants)} → 🗄️ en réserve
             </Link>
           ))}

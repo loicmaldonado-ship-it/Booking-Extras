@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { Card } from "@/components/ui/card";
+import { ZoomableImage } from "@/components/ui/zoomable-image";
 import { Button } from "@/components/ui/button";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { retirerDeLaReserve } from "@/lib/reserve/actions";
@@ -54,30 +53,61 @@ export function ReservePanel({
   }
 
   return (
-    <Card className="flex flex-col gap-3" id="reserve">
+    <div className="flex flex-col gap-4" id="reserve">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">🗄️ Réserve ({profils.length})</h2>
+        <p className="text-sm text-text-muted">
+          Mets des profils de côté depuis Candidatures (<b>🗄️ Mettre en réserve</b>) ou depuis une journée (<b>🗄️ Mettre
+          en réserve</b> sur la sélection). Chacun rappelle où il a postulé et ses dispos.
+        </p>
         {profils.length > 0 && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setSelection(tousCoches ? new Set() : new Set(profils.map((p) => p.id)))}
-            className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-text"
           >
-            {tousCoches ? "Tout décocher" : "Tout cocher"}
-          </button>
+            {tousCoches ? "Tout décocher" : "Tout cocher"} ({profils.length})
+          </Button>
         )}
       </div>
-      <p className="text-sm text-text-muted">
-        Les profils mis de côté pour plus tard : depuis Candidatures (<b>🗄️ Mettre en réserve</b>) ou depuis une
-        journée (<b>🗄️ Mettre en réserve</b> sur la sélection). Chacun rappelle où il a postulé et ses dispos.
-      </p>
+
+      {choisis.length > 0 && (
+        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-xl border border-border-strong bg-ink-raised px-3 py-2.5 shadow">
+          <div className="flex flex-wrap items-center gap-2">
+            <b className="text-sm">
+              {choisis.length} sélectionné{choisis.length > 1 ? "s" : ""}
+            </b>
+            <Button type="button" variant="secondary" onClick={() => setEnvoi((v) => !v)} aria-expanded={envoi}>
+              📋 Envoyer en booking
+            </Button>
+            <Button type="button" variant="ghost" disabled={pending} onClick={() => retirer(choisis.map((p) => p.id))}>
+              ↩ Retirer de la réserve
+            </Button>
+          </div>
+          {envoi && (
+            <AddToJourneeBar
+              figurantIds={choisis.map((p) => p.figurantId)}
+              candidatureIdByFigurant={Object.fromEntries(
+                choisis.filter((p) => p.candidatureId).map((p) => [p.figurantId, p.candidatureId!])
+              )}
+              projets={[projet]}
+              onDone={() => {
+                // Envoyés en booking : ils quittent la réserve.
+                const ids = choisis.map((p) => p.id);
+                setEnvoi(false);
+                retirer(ids);
+              }}
+            />
+          )}
+        </div>
+      )}
+      {erreur && <p className="text-sm text-danger">{erreur}</p>}
 
       {profils.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-text-muted">
+        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-text-muted">
           La réserve est vide.
         </p>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
           {profils.map((p) => {
             const coche = selection.has(p.id);
             const dispoOui = p.dispos.filter((d) => d.disponible === true);
@@ -87,28 +117,36 @@ export function ReservePanel({
               <div
                 key={p.id}
                 className={cn(
-                  "flex gap-3 rounded-xl border-2 p-2.5 transition-colors",
-                  coche ? "border-coral bg-coral/10" : "border-border bg-ink"
+                  "flex flex-col gap-2 rounded-xl border-2 p-2.5 transition-colors",
+                  coche ? "border-coral bg-coral/10" : "border-border bg-ink-raised"
                 )}
               >
-                <button
-                  type="button"
-                  onClick={() => basculer(p.id)}
-                  aria-pressed={coche}
-                  aria-label={`Sélectionner ${p.nom}`}
-                  className="relative h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-lg bg-ink-raised-2"
-                >
-                  {p.portraitUrl && <Image src={p.portraitUrl} alt="" fill sizes="72px" className="object-cover" />}
-                  <span
+                <div className="relative aspect-[4/5] w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                  {p.portraitUrl ? (
+                    <ZoomableImage
+                      src={p.portraitUrl}
+                      alt={p.nom}
+                      sizes="(max-width: 640px) 50vw, 240px"
+                      gallery={p.galerie}
+                      index={Math.max(0, p.galerie.findIndex((g) => g.src === p.portraitUrl))}
+                    />
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center text-xs text-text-muted">Pas de photo</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => basculer(p.id)}
+                    aria-pressed={coche}
+                    aria-label={`Sélectionner ${p.nom}`}
                     className={cn(
-                      "absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded-md border-2 text-xs font-bold shadow",
-                      coche ? "border-coral bg-coral text-ink" : "border-white/80 bg-ink/70 text-transparent"
+                      "absolute left-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-md border-2 text-sm font-bold shadow",
+                      coche ? "border-coral bg-coral text-ink" : "border-white/80 bg-ink/70 text-transparent hover:text-white/70"
                     )}
                   >
                     ✓
-                  </span>
-                </button>
-                <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1 text-sm">
                   <b className="leading-tight">{p.nom}</b>
                   <span className="text-xs text-text-muted">
                     {[p.age != null && `${p.age} ans`, p.ville].filter(Boolean).join(" · ") || "—"}
@@ -158,38 +196,6 @@ export function ReservePanel({
           })}
         </div>
       )}
-
-      {choisis.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <b className="text-sm">
-              {choisis.length} sélectionné{choisis.length > 1 ? "s" : ""}
-            </b>
-            <Button type="button" variant="secondary" onClick={() => setEnvoi((v) => !v)} aria-expanded={envoi}>
-              📋 Envoyer en booking
-            </Button>
-            <Button type="button" variant="ghost" disabled={pending} onClick={() => retirer(choisis.map((p) => p.id))}>
-              ↩ Retirer de la réserve
-            </Button>
-          </div>
-          {envoi && (
-            <AddToJourneeBar
-              figurantIds={choisis.map((p) => p.figurantId)}
-              candidatureIdByFigurant={Object.fromEntries(
-                choisis.filter((p) => p.candidatureId).map((p) => [p.figurantId, p.candidatureId!])
-              )}
-              projets={[projet]}
-              onDone={() => {
-                // Envoyés en booking : ils quittent la réserve.
-                const ids = choisis.map((p) => p.id);
-                setEnvoi(false);
-                retirer(ids);
-              }}
-            />
-          )}
-        </div>
-      )}
-      {erreur && <p className="text-sm text-danger">{erreur}</p>}
-    </Card>
+    </div>
   );
 }

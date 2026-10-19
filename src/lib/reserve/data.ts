@@ -4,6 +4,8 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { getPhotosByFigurantId, getPhotosParCandidature, pickPortrait } from "@/lib/documents/data";
 import { nomComplet, trierParNom } from "@/lib/noms";
+import { toGalleryPhotos } from "@/lib/figurants/photo-labels";
+import type { GalleryPhoto } from "@/components/ui/zoomable-image";
 
 export type ReserveProfil = {
   id: string;
@@ -12,6 +14,8 @@ export type ReserveProfil = {
   age: number | null;
   ville: string | null;
   portraitUrl: string | null;
+  // Toutes ses photos, pour agrandir le portrait.
+  galerie: GalleryPhoto[];
   miseLe: string;
   // Candidature d'origine : où il a postulé et quand (null = ajouté sans
   // candidature).
@@ -87,6 +91,7 @@ export async function getReserve(projetId: string): Promise<ReserveProfil[]> {
         age: computeAge(l.figurants!.date_naissance),
         ville: l.figurants!.ville,
         portraitUrl: pickPortrait(photos, projetId)?.url ?? null,
+        galerie: toGalleryPhotos(photos),
         miseLe: l.created_at,
         candidatureId: c?.id ?? null,
         annonceTitre: c?.annonces?.titre ?? null,
@@ -99,4 +104,12 @@ export async function getReserve(projetId: string): Promise<ReserveProfil[]> {
           : [],
       };
   });
+}
+
+export async function compterReserve(projetId: string): Promise<number> {
+  const { count } = await createAdminClient()
+    .from("reserve_profils")
+    .select("id", { count: "exact", head: true })
+    .eq("projet_id", projetId);
+  return count ?? 0;
 }
