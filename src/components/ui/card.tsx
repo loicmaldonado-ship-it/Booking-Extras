@@ -18,7 +18,7 @@ export function Badge({
   tone = "default",
   ...props
 }: ComponentProps<"span"> & {
-  tone?: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger" | "indispo";
+  tone?: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger" | "indispo" | "orange" | "bleu" | "rougePale";
 }) {
   const tones = {
     default: "bg-ink-raised-2 text-text-muted",
@@ -28,6 +28,9 @@ export function Badge({
     yellow: "bg-yellow/15 text-yellow",
     danger: "bg-danger/15 text-danger",
     indispo: "bg-danger font-semibold text-white",
+    orange: "bg-[#c2410c] font-semibold text-white",
+    bleu: "bg-[#1e3a8a] font-semibold text-white",
+    rougePale: "bg-[#fbd5d5] font-semibold text-[#9b1c1c]",
   };
   return (
     <span

@@ -12,7 +12,18 @@ export const DOC_STATUTS: { key: DocStatut; label: string; statuts: BookingStatu
   {
     key: "tous",
     label: "Tout le monde",
-    statuts: ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide", "confirmé"],
+    statuts: [
+      "proposé",
+      "envoyé",
+      "attente_reponse_booking",
+      "a_relancer",
+      "doit_rappeler",
+      "a_rappeler",
+      "attente_validation",
+      "valide",
+      "confirmé",
+      "a_annuler",
+    ],
   },
 ];
 

@@ -660,7 +660,8 @@ export default function AidePage() {
             <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
               <strong className="text-text">cachet</strong> et <strong className="text-text">statut</strong>{" "}
-              pour chaque profil. Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
+              pour chaque profil (dont <UI>Proposé MES</UI>, <UI>Attente réponse booking</UI> en orange foncé,{" "}
+              <UI>À rappeler</UI> en bleu foncé et <UI>À annuler</UI> en rouge pâle). Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
               fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
               nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
               besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
