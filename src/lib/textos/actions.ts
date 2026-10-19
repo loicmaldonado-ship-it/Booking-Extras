@@ -65,6 +65,51 @@ export async function statutRelais(): Promise<StatutRelais | null> {
   };
 }
 
+type LigneTexto = {
+  profile_id: string;
+  telephone: string;
+  destinataire: string;
+  message: string;
+  figurant_id: string | null;
+  projet_id: string | null;
+};
+
+function lignesTextos(profileId: string, destinataires: DestinataireTexto[]) {
+  const sansNumero: string[] = [];
+  const lignes: LigneTexto[] = [];
+  for (const d of destinataires.slice(0, MAX_PAR_ENVOI)) {
+    const tel = telephoneInternational(d.telephone);
+    const texte = d.texte.trim();
+    if (!tel || !texte) {
+      sansNumero.push(d.nom);
+      continue;
+    }
+    lignes.push({
+      profile_id: profileId,
+      telephone: tel,
+      destinataire: d.nom.slice(0, 120),
+      message: texte.slice(0, 2000),
+      figurant_id: d.figurantId ?? null,
+      projet_id: d.projetId ?? null,
+    });
+  }
+  return { lignes, sansNumero };
+}
+
+// Textos envoyés depuis l'iPhone (raccourci) : notés comme déjà envoyés,
+// pour que le relais Mac sache que les réponses de ces numéros viennent
+// d'un échange de l'appli.
+export async function noterTextosEnvoyesIphone(destinataires: DestinataireTexto[]): Promise<void> {
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+  const { lignes } = lignesTextos(profile.id, destinataires);
+  if (lignes.length === 0) return;
+  const maintenant = new Date().toISOString();
+  await createAdminClient()
+    .from("textos_file")
+    .insert(lignes.map((l) => ({ ...l, statut: "envoye", pris_le: maintenant, envoye_le: maintenant })));
+}
+
 // Met des textos en file pour le relais Mac de la personne connectée.
 export async function mettreEnFileTextos(
   destinataires: DestinataireTexto[]
@@ -75,17 +120,7 @@ export async function mettreEnFileTextos(
   const { data: relais } = await supabase.from("relais_textos").select("profile_id").eq("profile_id", profile.id).maybeSingle();
   if (!relais) return { error: "Relais Mac pas encore installé (Mon compte → Textos).", enFile: 0, sansNumero: [] };
 
-  const sansNumero: string[] = [];
-  const lignes: { profile_id: string; telephone: string; destinataire: string; message: string }[] = [];
-  for (const d of destinataires.slice(0, MAX_PAR_ENVOI)) {
-    const tel = telephoneInternational(d.telephone);
-    const texte = d.texte.trim();
-    if (!tel || !texte) {
-      sansNumero.push(d.nom);
-      continue;
-    }
-    lignes.push({ profile_id: profile.id, telephone: tel, destinataire: d.nom.slice(0, 120), message: texte.slice(0, 2000) });
-  }
+  const { lignes, sansNumero } = lignesTextos(profile.id, destinataires);
   if (lignes.length > 0) {
     const { error } = await supabase.from("textos_file").insert(lignes);
     if (error) return { error: error.message, enFile: 0, sansNumero };

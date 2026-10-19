@@ -13,4 +13,13 @@ export function telephoneInternational(brut: string | null | undefined): string 
 }
 
 // `cle` : identifiant libre de l'appelant, renvoyé dans onEnvoye.
-export type DestinataireTexto = { nom: string; telephone: string | null; texte: string; cle?: string };
+// figurantId / projetId : à qui et pour quel projet, pour ne remonter que les
+// réponses à ces textos (relais Mac).
+export type DestinataireTexto = {
+  nom: string;
+  telephone: string | null;
+  texte: string;
+  cle?: string;
+  figurantId?: string | null;
+  projetId?: string | null;
+};
