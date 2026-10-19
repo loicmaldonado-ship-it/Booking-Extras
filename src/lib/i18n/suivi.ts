@@ -18,6 +18,7 @@ const DICT = {
   commentaires_titre: { fr: "Commentaires pour l'équipe casting", en: "Comments for the casting team" },
   fermer: { fr: "Fermer", en: "Close" },
   vous: { fr: "Vous", en: "You" },
+  pas_moi: { fr: "Ce n'est pas moi", en: "Not me" },
   aucun_commentaire: { fr: "Pas encore de commentaire.", en: "No comments yet." },
   equipe_casting: { fr: "équipe casting", en: "casting team" },
   un_mot: { fr: "Un mot pour l'équipe casting…", en: "A note for the casting team…" },
