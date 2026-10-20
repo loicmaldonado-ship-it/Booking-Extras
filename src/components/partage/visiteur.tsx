@@ -66,7 +66,9 @@ export function useVisiteur(): Visiteur | null {
 
 // Prénom et rôle : en fenêtre à l'arrivée, ou dans la page (inline) au
 // moment d'écrire un commentaire.
-export function AccueilVisiteur({ inline = false, lang = "fr" }: { inline?: boolean; lang?: Lang }) {
+// `focus` : place le curseur dans le prénom (clavier ouvert sur téléphone) ; faux quand
+// le formulaire est simplement affiché au milieu d'une fenêtre.
+export function AccueilVisiteur({ inline = false, lang = "fr", focus = !inline }: { inline?: boolean; lang?: Lang; focus?: boolean }) {
   const [prenom, setPrenom] = useState("");
   const [role, setRole] = useState(ROLES[lang][0]);
 
@@ -92,7 +94,7 @@ export function AccueilVisiteur({ inline = false, lang = "fr" }: { inline?: bool
         <label className="flex flex-col gap-1 text-sm">
           {ts(lang, "votre_prenom")}
           <input
-            autoFocus
+            autoFocus={focus}
             required
             value={prenom}
             onChange={(e) => setPrenom(e.target.value)}

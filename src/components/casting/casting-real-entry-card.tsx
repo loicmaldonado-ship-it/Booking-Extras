@@ -89,7 +89,7 @@ function AvisProfil({ entryId, lang }: { entryId: string; lang: Lang }) {
         })}
       </div>
       {reel.apercu && <p className="text-xs text-text-muted">{t(lang, "apercu_avis")}</p>}
-      {sansIdentite && demanderNom && <AccueilVisiteur inline lang={lang} />}
+      {sansIdentite && demanderNom && <AccueilVisiteur inline focus lang={lang} />}
       {erreur && <p className="text-xs text-danger">{erreur}</p>}
     </div>
   );
@@ -302,7 +302,7 @@ function CastingRealMediaModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/85 p-2 sm:p-4"
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-black/85 p-2 pb-[4.5rem] sm:p-4"
       onClick={(e) => {
         e.stopPropagation();
         onClose();
@@ -324,7 +324,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:left-3"
+          className="absolute bottom-3 left-3 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
           aria-label={t(lang, "profil_precedent")}
         >
           ‹
@@ -334,7 +334,7 @@ function CastingRealMediaModal({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "grid max-h-[94vh] w-full gap-x-5 gap-y-4 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-4 sm:p-5",
+          "grid max-h-[calc(100dvh-5.5rem)] w-full gap-x-5 gap-y-4 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-4 sm:max-h-[94vh] sm:p-5",
           "[grid-template-areas:'tete'_'video'_'avis'_'photos']",
           aDroite
             ? "max-w-6xl lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:[grid-template-areas:'video_tete'_'video_avis'_'photos_avis']"
@@ -465,7 +465,7 @@ function CastingRealMediaModal({
         )}
 
         {item.photos.length > 0 && (
-          <div className="grid min-w-0 grid-cols-4 gap-2 sm:grid-cols-5 [grid-area:photos]">
+          <div className="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-5 [grid-area:photos]">
             {item.photos.map((p, i) => (
               <div key={p.url} className="relative flex flex-col gap-1">
                 <div className="relative aspect-square overflow-hidden rounded-lg bg-ink-raised-2">
@@ -486,7 +486,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:right-3"
+          className="absolute bottom-3 right-3 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
           aria-label={t(lang, "profil_suivant")}
         >
           ›
@@ -506,11 +506,14 @@ export function CastingRealEntryCard({
   index,
   roleLabel,
   afficherStatut = true,
+  masquerRole = false,
   lang = DEFAULT_LANG,
 }: {
   items: CastingRealEntryItem[];
   index: number;
   roleLabel?: string | null;
+  // Vrai sous un titre de rôle : le rôle et sa date ne sont pas répétés sur la carte.
+  masquerRole?: boolean;
   // Faux dans la section « Profils validés » : le statut y est évident.
   afficherStatut?: boolean;
   lang?: Lang;
@@ -569,15 +572,15 @@ export function CastingRealEntryCard({
           )}
         </div>
         <div className="flex flex-col gap-1.5 px-3 py-2.5">
-          <span className="break-words text-sm font-medium leading-snug sm:text-base">{item.nom}</span>
-          {ligneInfos && <span className="-mt-1 truncate text-xs text-text-muted">{ligneInfos}</span>}
+          <span className="break-words text-base font-semibold leading-snug">{item.nom}</span>
+          {ligneInfos && <span className="-mt-1 text-sm text-text-muted sm:truncate sm:text-xs">{ligneInfos}</span>}
           <div className="flex flex-wrap gap-1.5">
-            {(item.role ?? roleLabel) && <Badge>{item.role ?? roleLabel}</Badge>}
+            {!masquerRole && (item.role ?? roleLabel) && <Badge>{item.role ?? roleLabel}</Badge>}
             {afficherStatut && (
               <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
             )}
           </div>
-          {item.roleDate && <span className="text-xs text-text-muted">{item.roleDate}</span>}
+          {!masquerRole && item.roleDate && <span className="text-xs text-text-muted">{item.roleDate}</span>}
         </div>
       </button>
       {open && (
