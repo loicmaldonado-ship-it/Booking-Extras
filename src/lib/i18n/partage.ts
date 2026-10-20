@@ -93,6 +93,9 @@ const DICT = {
   photo: { fr: "photo", en: "photo" },
   photos: { fr: "photos", en: "photos" },
   valide: { fr: "Validé·e", en: "Approved" },
+  profils_a_valider: { fr: "Profils à valider", en: "Profiles pending approval" },
+  roles_a_venir: { fr: "Rôles en cours de casting :", en: "Roles still being cast:" },
+  profils_valides: { fr: "Profils validés", en: "Approved profiles" },
   a_valider: { fr: "À valider", en: "Pending approval" },
   fermer: { fr: "Fermer", en: "Close" },
   profil_precedent: { fr: "Profil précédent", en: "Previous profile" },
@@ -115,6 +118,7 @@ const DICT = {
   aucun_commentaire_profil: { fr: "Pas encore de commentaire.", en: "No comment yet." },
   ville_label: { fr: "Ville", en: "City" },
   apercu_avis: { fr: "Aperçu équipe : avis et commentaires désactivés.", en: "Team preview: opinions and comments are disabled." },
+  lancer_video: { fr: "Lancer la vidéo", en: "Play video" },
   enchainer: { fr: "Enchaîner les vidéos", en: "Play videos in a row" },
   essai_n: { fr: "Vidéo {n}", en: "Video {n}" },
 
