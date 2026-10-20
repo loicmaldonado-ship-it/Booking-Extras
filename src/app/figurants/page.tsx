@@ -11,6 +11,7 @@ import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { hasActiveMensurationFilters } from "@/lib/figurants/mensuration-filters";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
@@ -25,10 +26,11 @@ export const dynamic = "force-dynamic";
 type SearchParams = FigurantFilters & { vue?: string; page?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
-// Sans accès complet : pas de liste en libre service, un profil se trouve en
-// le cherchant (3 lettres minimum, résultats plafonnés).
+// Sans accès complet : pas de liste en libre service. Un profil se trouve en
+// le cherchant par nom (3 lettres minimum) ou par critères (ville, âge,
+// taille, poids…), résultats plafonnés. Le genre seul ne suffit pas.
 const RECHERCHE_MIN = 3;
-const RESULTATS_MAX = 30;
+const RESULTATS_MAX = 60;
 
 export default async function FigurantsPage({
   searchParams,
@@ -53,7 +55,10 @@ export default async function FigurantsPage({
   // pas d'une requête séparée.
   const libreService = aAccesComplet(profile);
   const recherche = (filters.q ?? "").trim();
-  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN;
+  const parCriteres =
+    !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
+    hasActiveMensurationFilters(filters);
+  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
   const { data: figurants, error, count: totalCount } = peutChercher
@@ -130,7 +135,7 @@ export default async function FigurantsPage({
           <p className="mt-1 text-text-muted">
             {libreService
               ? `${totalCount ?? 0} ${isComediens ? "comédien·ne" : "figurant·e"}${(totalCount ?? 0) > 1 ? "s" : ""}`
-              : "Cherche un profil par son nom, prénom, email ou téléphone."}
+              : "Cherche un profil par son nom, ou par critères (âge, taille, poids…)."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -199,10 +204,9 @@ export default async function FigurantsPage({
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Input
               name="q"
-              placeholder={libreService ? "Nom, prénom, email..." : "🔎 Nom, prénom, email ou téléphone (3 lettres min.)"}
+              placeholder={libreService ? "Nom, prénom, email..." : "Nom, prénom, email ou téléphone (3 lettres min.)"}
               defaultValue={params.q}
-              autoFocus={!libreService}
-            />
+                          />
             <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
           </div>
 
@@ -261,7 +265,7 @@ export default async function FigurantsPage({
             <Link href={`/figurants${isComediens ? "?profil=comediens" : ""}`} className="text-sm font-medium text-text hover:text-coral">
               Réinitialiser
             </Link>
-            {libreService && peutChercher && <span className="text-sm text-text-muted">{totalCount ?? 0} profil{(totalCount ?? 0) > 1 ? "s correspondent" : " correspond"}</span>}
+            {peutChercher && <span className="text-sm text-text-muted">{totalCount ?? 0} profil{(totalCount ?? 0) > 1 ? "s correspondent" : " correspond"}</span>}
           </div>
         </form>
       </Card>
@@ -274,8 +278,8 @@ export default async function FigurantsPage({
 
       {!libreService && !peutChercher && (
         <Card className="py-10 text-center text-sm text-text-muted">
-          🔎 La Base Profils ne se parcourt plus en libre service : tape au moins {RECHERCHE_MIN} lettres du nom, du
-          prénom, de l&apos;email ou du téléphone pour trouver un profil.
+          🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
+          téléphone), ou par critères : âge, taille, poids, ville… (le genre seul ne suffit pas, ajoute une fourchette).
         </Card>
       )}
       {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (

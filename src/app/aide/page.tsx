@@ -241,17 +241,17 @@ export default function AidePage() {
           items={[
             <>
               <strong className="text-text">Pas de libre service</strong> : pour ouvrir un profil, cherche-le par son nom,
-              prénom, email ou téléphone (3 lettres minimum, 30 résultats au plus). Seuls Loïc, Mathieu et Eléa voient la
+              prénom, email ou téléphone (3 lettres minimum), ou par critères (60 résultats au plus). Seuls Loïc, Mathieu et Eléa voient la
               liste complète. Eux seuls peuvent aussi <strong className="text-text">révoquer l&apos;accès</strong> d&apos;un
               compte (espace candidat·e d&apos;un profil, ou assistant·e dans Équipe).
             </>,
             <>
-              <strong className="text-text">Chercher par critères</strong> (accès complet) : dans{" "}
+              <strong className="text-text">Chercher par critères</strong> (pour tout le monde) : dans{" "}
               <UI>🔎 Chercher dans la base</UI>, choisis le <UI>Genre</UI> et donne des fourchettes{" "}
               <UI>Âge</UI>, <UI>Taille</UI>, <UI>Poids</UI> (ex. Homme, 90 à 100 kg), puis{" "}
               <UI>🔎 Rechercher</UI> : tous les profils de la base qui correspondent s&apos;affichent, avec leur taille
               et leur poids sur la carte. <UI>Plus de critères</UI> ajoute pointure, tours de poitrine/taille/hanches,
-              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas.
+              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas. Les comptes sans accès complet ne parcourent pas toute la base, mais voient tous les profils qui correspondent à leur recherche (60 au plus, le genre seul ne suffit pas).
             </>,
             <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce : dès
