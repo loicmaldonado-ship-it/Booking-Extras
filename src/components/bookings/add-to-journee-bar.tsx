@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createBookingsFromDropBulk } from "@/lib/bookings/actions";
@@ -11,11 +11,13 @@ export function AddToJourneeBar({
   figurantIds,
   projets,
   candidatureIdByFigurant,
+  candidatureProjectByFigurant,
   onDone,
 }: {
   figurantIds: string[];
   projets: { id: string; nom: string }[];
   candidatureIdByFigurant?: Record<string, string>;
+  candidatureProjectByFigurant?: Record<string, string>;
   onDone?: () => void;
 }) {
   const router = useRouter();
@@ -25,8 +27,9 @@ export function AddToJourneeBar({
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
   const [pending, startTransition] = useTransition();
-  const [result, setResult] = useState<{ ok: number; deja: number } | null>(null);
+  const [result, setResult] = useState<{ ok: number; deja: number; error?: string } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const fieldId = useId();
 
   useEffect(() => {
     if (!calendarOpen) return;
@@ -48,21 +51,34 @@ export function AddToJourneeBar({
   }
 
   function submit() {
-    if (!projetId || dates.length === 0 || figurantIds.length === 0) return;
+    if (pending || !projetId || dates.length === 0 || figurantIds.length === 0) return;
     setResult(null);
     startTransition(async () => {
-      const res = await createBookingsFromDropBulk(
-        figurantIds,
-        projetId,
-        dates,
-        candidatureIdByFigurant,
-        fonction,
-        cachet
-      );
-      setResult({ ok: res.ok, deja: res.deja });
-      setDates([]);
-      router.refresh();
-      onDone?.();
+      try {
+        // Staff may book a known profile on another project. In that case
+        // don't attach a candidature belonging to the previous project.
+        const referenceIds = candidatureIdByFigurant && candidatureProjectByFigurant
+          ? Object.fromEntries(Object.entries(candidatureIdByFigurant)
+              .filter(([id]) => candidatureProjectByFigurant[id] === projetId))
+          : candidatureIdByFigurant;
+        const res = await createBookingsFromDropBulk(
+          figurantIds,
+          projetId,
+          dates,
+          referenceIds,
+          fonction,
+          cachet
+        );
+        setResult({ ok: res.ok, deja: res.deja, error: res.error });
+        if (res.ok > 0) router.refresh();
+        // Never discard the user's dates or close this panel on partial/failed inserts.
+        if (!res.error) {
+          setDates([]);
+          onDone?.();
+        }
+      } catch {
+        setResult({ ok: 0, deja: 0, error: "Impossible d'ajouter les bookings. Vérifie la connexion puis réessaie." });
+      }
     });
   }
 
@@ -72,8 +88,9 @@ export function AddToJourneeBar({
         {figurantIds.length} sélectionné·e{figurantIds.length > 1 ? "s" : ""}
       </span>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Projet</label>
+        <label htmlFor={`${fieldId}-projet`} className="text-xs text-text-muted">Projet</label>
         <select
+          id={`${fieldId}-projet`}
           value={projetId}
           onChange={(e) => setProjetId(e.target.value)}
           disabled={pending}
@@ -131,8 +148,9 @@ export function AddToJourneeBar({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Fonction (optionnel)</label>
+        <label htmlFor={`${fieldId}-fonction`} className="text-xs text-text-muted">Fonction (optionnel)</label>
         <input
+          id={`${fieldId}-fonction`}
           type="text"
           value={fonction}
           onChange={(e) => setFonction(e.target.value)}
@@ -142,8 +160,9 @@ export function AddToJourneeBar({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Cachet (optionnel)</label>
+        <label htmlFor={`${fieldId}-cachet`} className="text-xs text-text-muted">Cachet (optionnel)</label>
         <select
+          id={`${fieldId}-cachet`}
           value={cachet}
           onChange={(e) => setCachet(e.target.value as Cachet | "")}
           disabled={pending}
@@ -165,8 +184,10 @@ export function AddToJourneeBar({
             : "Ajouter à la journée"}
       </Button>
       {result && (
-        <span className="text-xs text-text-muted">
-          {result.ok} ajouté{result.ok > 1 ? "s" : ""}
+        <span role={result.error ? "alert" : "status"}
+          className={`text-xs ${result.error ? "text-danger" : "text-text-muted"}`}>
+          {result.error ? `${result.error} ` : ""}
+          {result.ok > 0 ? `${result.ok} ajouté${result.ok > 1 ? "s" : ""}` : ""}
           {result.deja > 0 ? ` · ${result.deja} déjà booké${result.deja > 1 ? "s" : ""}` : ""}
         </span>
       )}

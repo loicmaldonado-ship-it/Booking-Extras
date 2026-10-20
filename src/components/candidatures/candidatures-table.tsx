@@ -84,6 +84,7 @@ export function CandidaturesTable({
   const router = useRouter();
   const [, startStatutTransition] = useTransition();
   const [bulkOngletPending, startBulkOngletTransition] = useTransition();
+  const [bulkOngletError, setBulkOngletError] = useState<string | null>(null);
   const [isTrombi, setIsTrombi] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
@@ -190,11 +191,21 @@ export function CandidaturesTable({
   }
 
   function bulkSetOnglet(ongletId: string | null) {
+    if (bulkOngletPending || selected.size === 0) return;
+    setBulkOngletError(null);
     const ids = Array.from(selected);
     startBulkOngletTransition(async () => {
-      await setCandidaturesOngletBulk(ids, ongletId);
-      setSelected(new Set());
-      router.refresh();
+      try {
+        const result = await setCandidaturesOngletBulk(ids, ongletId);
+        if (result.error) {
+          setBulkOngletError(result.error);
+          return;
+        }
+        setSelected(new Set());
+        router.refresh();
+      } catch {
+        setBulkOngletError("Rangement impossible pour le moment. Réessaie.");
+      }
     });
   }
 
@@ -250,6 +261,7 @@ export function CandidaturesTable({
 
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
+          {bulkOngletError && <p role="alert" className="w-full text-sm text-danger">{bulkOngletError}</p>}
           <span className="text-sm font-medium">
             Changer le statut de {selected.size} profil{selected.size > 1 ? "s" : ""} :
           </span>
@@ -340,11 +352,15 @@ export function CandidaturesTable({
           })()}
 
           <AddToJourneeBar
-            figurantIds={rows
+            figurantIds={Array.from(new Set(rows
               .filter((r) => selected.has(r.id) && r.figurants?.id)
-              .map((r) => r.figurants!.id)}
+              .map((r) => r.figurants!.id)))}
             candidatureIdByFigurant={Object.fromEntries(
               rows.filter((r) => selected.has(r.id) && r.figurants?.id).map((r) => [r.figurants!.id, r.id])
+            )}
+            candidatureProjectByFigurant={Object.fromEntries(
+              rows.filter((r) => selected.has(r.id) && r.figurants?.id)
+                .map((r) => [r.figurants!.id, r.annonces?.projet_id ?? ""])
             )}
             projets={projets}
             onDone={() => setSelected(new Set())}

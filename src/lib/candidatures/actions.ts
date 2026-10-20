@@ -13,6 +13,8 @@ import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
+import { validateCandidatureChoices } from "./validation";
+import { validateCandidatureBulkIds } from "./bulk-guard";
 import { getTournagesConfirmesCount } from "./onglets";
 import { appliquerMessagesOut, lireOngletsAvant } from "./out";
 import type { Cachet, TriCandidature } from "./types";
@@ -212,30 +214,29 @@ export async function postulerAnnonce(
     return { error: "Merci de renseigner ton agent ou de cocher « Je n'ai pas d'agent »." };
   }
   if (annonce.limite_candidatures !== null) {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("candidatures")
       .select("id", { count: "exact", head: true })
       .eq("annonce_id", annonce.id);
-    if ((count ?? 0) >= annonce.limite_candidatures) {
+    // Une panne de lecture ne doit pas autoriser une candidature au-delà de la limite.
+    if (countError || count === null) return { error: "Nombre de candidatures indisponible. Réessaie plus tard." };
+    if (count >= annonce.limite_candidatures) {
       return { error: "Cette annonce a atteint son nombre maximum de candidatures." };
     }
   }
 
-  const [{ data: questions }, { data: annonceDates }] = await Promise.all([
+  const [questionsResult, datesResult] = await Promise.all([
     supabase.from("annonce_questions").select("id").eq("annonce_id", annonce.id),
     supabase.from("annonce_dates").select("id").eq("annonce_id", annonce.id),
   ]);
-
-  for (const q of questions ?? []) {
-    if (!str(formData, `question_${q.id}`)) {
-      return { error: "Merci de répondre à toutes les questions." };
-    }
+  // Une lecture incomplète rendrait les questions/dates obligatoires invisibles.
+  if (questionsResult.error || datesResult.error || !questionsResult.data || !datesResult.data) {
+    return { error: "Formulaire momentanément indisponible. Réessaie plus tard." };
   }
-  for (const d of annonceDates ?? []) {
-    if (!str(formData, `date_${d.id}`)) {
-      return { error: "Merci d'indiquer ta disponibilité pour toutes les dates proposées." };
-    }
-  }
+  const questions = questionsResult.data;
+  const annonceDates = datesResult.data;
+  const choix = validateCandidatureChoices(formData, questions, annonceDates);
+  if (!choix.ok) return { error: choix.error };
 
   const champsProfil = {
     ville,
@@ -266,7 +267,8 @@ export async function postulerAnnonce(
     // Connecté·e : la candidature va sur son compte, quel que soit l'email
     // tapé ; la fiche est mise à jour avec ce qui vient d'être confirmé.
     figurantId = session.id;
-    await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+    const { error: profilError } = await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+    if (profilError) return { error: "Impossible d'actualiser ton profil. Réessaie plus tard." };
   } else {
     // Pas connecté·e : un email déjà connu (ou même nom + même téléphone) ne
     // se rattache jamais sans connexion — sinon n'importe qui pourrait
@@ -360,26 +362,36 @@ export async function postulerAnnonce(
     return { error: candidatureError?.message ?? "Erreur inconnue." };
   }
 
-  const reponses = (questions ?? []).map((q) => ({
-    candidature_id: candidature.id,
-    annonce_question_id: q.id,
-    reponse: str(formData, `question_${q.id}`) === "oui",
-  }));
-  if (reponses.length > 0) await supabase.from("candidature_reponses").insert(reponses);
+  const reponses = choix.reponses.map((r) => ({ candidature_id: candidature.id, ...r }));
+  if (reponses.length > 0) {
+    const { error: reponsesError } = await supabase.from("candidature_reponses").insert(reponses);
+    if (reponsesError) {
+      const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+      return { error: rollbackError
+        ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+        : "Réponses non enregistrées. Réessaie ta candidature." };
+    }
+  }
 
-  const disponibilites = (annonceDates ?? []).map((d) => ({
-    candidature_id: candidature.id,
-    annonce_date_id: d.id,
-    disponible: str(formData, `date_${d.id}`) === "oui",
-  }));
-  if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
+  const disponibilites = choix.disponibilites.map((d) => ({ candidature_id: candidature.id, ...d }));
+  if (disponibilites.length > 0) {
+    const { error: disponibilitesError } = await supabase.from("candidature_disponibilites").insert(disponibilites);
+    if (disponibilitesError) {
+      const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+      return { error: rollbackError
+        ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+        : "Disponibilités non enregistrées. Réessaie ta candidature." };
+    }
+  }
 
   const photosResultat = await enregistrerPhotosCandidature(figurantId, candidature.id, formData);
   if (photosResultat.error) {
     // Candidature annulée (réponses et dispos suivent en cascade) : un
     // nouvel essai repart de zéro au lieu de « déjà postulé ».
-    await supabase.from("candidatures").delete().eq("id", candidature.id);
-    return { error: photosResultat.error };
+    const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+    return { error: rollbackError
+      ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+      : photosResultat.error };
   }
 
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
@@ -470,7 +482,9 @@ export async function updateCandidature(id: string, formData: FormData) {
   const cachet_assigne = str(formData, "cachet_assigne") as Cachet | null;
 
   const supabase = createAdminClient();
-  await supabase.from("candidatures").update({ fonction_assignee, cachet_assigne }).eq("id", id);
+  const { error } = await supabase.from("candidatures")
+    .update({ fonction_assignee, cachet_assigne }).eq("id", id);
+  if (error) throw new Error("Impossible de mettre à jour la candidature.");
 
   revalidatePath("/candidatures");
 }
@@ -489,37 +503,51 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
   }
   const avant = await lireOngletsAvant([id]);
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
+  if (error) return { error: "Impossible de ranger la candidature. Réessaie." };
   revalidatePath("/candidatures");
-  if (error) return { error: error.message };
   await appliquerMessagesOut(avant, ongletId);
   return { success: true as const };
 }
 
 export async function setCandidaturesOngletBulk(ids: string[], ongletId: string | null) {
-  if (ids.length === 0) return { success: true as const };
-  const supabase = createAdminClient();
+  const selected = validateCandidatureBulkIds(ids);
+  if (!selected.ok) return { error: selected.error };
+  if (selected.ids.length === 0) return { success: true as const };
 
-  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", ids);
-  const annonceIds = Array.from(new Set((candidatures ?? []).map((c) => c.annonce_id)));
-  if (annonceIds.length > 0) {
-    const { data: annonces } = await supabase.from("annonces").select("projet_id").in("id", annonceIds);
-    const projetIds = Array.from(new Set((annonces ?? []).map((a) => a.projet_id)));
-    for (const projetId of projetIds) {
-      const accessError = await checkProjetAccess(projetId);
-      if (accessError) return { error: accessError };
-    }
+  const supabase = createAdminClient();
+  // service_role bypasses RLS: prove that *every* requested row exists, and
+  // resolve its project, before updating even one candidature.
+  const { data: candidatures, error: candidaturesError } = await supabase
+    .from("candidatures").select("id, annonce_id").in("id", selected.ids);
+  if (candidaturesError || !candidatures || candidatures.length !== selected.ids.length ||
+      new Set(candidatures.map((c) => c.id)).size !== selected.ids.length) {
+    return { error: "Sélection de candidatures incomplète ou indisponible." };
+  }
+  const annonceIds = Array.from(new Set(candidatures.map((c) => c.annonce_id)));
+  const { data: annonces, error: annoncesError } = await supabase
+    .from("annonces").select("id, projet_id").in("id", annonceIds);
+  if (annoncesError || !annonces || annonces.length !== annonceIds.length ||
+      new Set(annonces.map((a) => a.id)).size !== annonceIds.length) {
+    return { error: "Impossible de vérifier les projets des candidatures." };
+  }
+  for (const projetId of new Set(annonces.map((a) => a.projet_id))) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
   }
 
   if (ongletId) {
-    const ongletError = await checkOngletMatchesAnnonces(ongletId, ids);
+    const ongletError = await checkOngletMatchesAnnonces(ongletId, selected.ids);
     if (ongletError) return { error: ongletError };
   }
 
-  const avant = await lireOngletsAvant(ids);
-  const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
-  revalidatePath("/candidatures");
-  if (error) return { error: error.message };
+  const avant = await lireOngletsAvant(selected.ids);
+  const { data: updated, error } = await supabase.from("candidatures")
+    .update({ onglet_id: ongletId }).in("id", selected.ids).select("id");
+  if (error || !updated || updated.length !== selected.ids.length) {
+    return { error: "Rangement incomplet. Actualise la liste avant de réessayer." };
+  }
   await appliquerMessagesOut(avant, ongletId);
+  revalidatePath("/candidatures");
   return { success: true as const };
 }
 
@@ -534,8 +562,12 @@ async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: stri
     .maybeSingle();
   if (!onglet) return "Onglet introuvable.";
   if (!onglet.annonce_id) return null;
-  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", candidatureIds);
-  if ((candidatures ?? []).some((c) => c.annonce_id !== onglet.annonce_id)) {
+  const { data: candidatures, error } = await supabase.from("candidatures")
+    .select("annonce_id").in("id", candidatureIds);
+  if (error || !candidatures || candidatures.length !== candidatureIds.length) {
+    return "Impossible de vérifier les candidatures de cet onglet.";
+  }
+  if (candidatures.some((c) => c.annonce_id !== onglet.annonce_id)) {
     return "Cet onglet appartient à une autre annonce.";
   }
   return null;
@@ -723,10 +755,23 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
 
 export async function deleteCandidatureOnglet(id: string) {
   const supabase = createAdminClient();
-  const { data: onglet } = await supabase.from("candidature_onglets").select("fixe").eq("id", id).single();
-  if (onglet?.fixe) return { error: "Cet onglet ne peut pas être supprimé." };
+  const { data: onglet, error: lookupError } = await supabase.from("candidature_onglets")
+    .select("fixe, annonce_id").eq("id", id).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier cet onglet." };
+  // Shared tabs and fixed tabs are part of the application's global workflow.
+  if (!onglet || onglet.fixe || !onglet.annonce_id) {
+    return { error: "Cet onglet ne peut pas être supprimé." };
+  }
+  const { data: annonce, error: annonceError } = await supabase.from("annonces")
+    .select("projet_id").eq("id", onglet.annonce_id).maybeSingle();
+  if (annonceError || !annonce) return { error: "Projet de l'onglet introuvable." };
+  const denied = await checkProjetAccess(annonce.projet_id);
+  if (denied) return { error: denied };
 
-  await supabase.from("candidature_onglets").delete().eq("id", id);
+  const { data: deleted, error } = await supabase.from("candidature_onglets")
+    .delete().eq("id", id).eq("fixe", false).eq("annonce_id", onglet.annonce_id)
+    .select("id").maybeSingle();
+  if (error || !deleted) return { error: "Suppression impossible. Réessaie." };
   revalidatePath("/candidatures");
   return { success: true as const };
 }

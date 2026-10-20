@@ -348,6 +348,7 @@ export function BookingsTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const [activeFonction, setActiveFonction] = useState<string | null>(null);
   const [activeCachet, setActiveCachet] = useState<string | null>(null);
   const [groupDims, setGroupDims] = useState<Dimension[]>(["fonction", "cachet"]);
@@ -496,7 +497,8 @@ export function BookingsTable({
   }
 
   function applyBulkChanges() {
-    if (selected.size === 0) return;
+    if (selected.size === 0 || pending) return;
+    setBulkError(null);
     const changes: Parameters<typeof bulkUpdateBookings>[1] = {};
     if (bulkStatut) changes.statut = bulkStatut as BookingStatut;
     if (bulkFonction.trim()) changes.fonction = bulkFonction.trim();
@@ -505,13 +507,21 @@ export function BookingsTable({
     if (Object.keys(changes).length === 0) return;
     const ids = Array.from(selected);
     startTransition(async () => {
-      await bulkUpdateBookings(ids, changes);
-      setSelected(new Set());
-      setBulkStatut("");
-      setBulkFonction("");
-      setBulkCachet("");
-      setBulkHeure("");
-      router.refresh();
+      try {
+        const result = await bulkUpdateBookings(ids, changes);
+        if (result.error) {
+          setBulkError(result.error);
+          return;
+        }
+        setSelected(new Set());
+        setBulkStatut("");
+        setBulkFonction("");
+        setBulkCachet("");
+        setBulkHeure("");
+        router.refresh();
+      } catch {
+        setBulkError("Mise à jour impossible. Réessaie lorsque la connexion est rétablie.");
+      }
     });
   }
 
@@ -1466,6 +1476,7 @@ export function BookingsTable({
               {pending ? "Mise à jour..." : "Appliquer"}
             </Button>
           </div>
+          {bulkError && <p role="alert" className="w-full text-xs text-danger">{bulkError}</p>}
           {(projetIndemnites.length > 0 || baremeMajorations.length > 0) && (
             <select
               onChange={(e) => {

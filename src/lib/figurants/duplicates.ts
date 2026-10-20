@@ -1,14 +1,11 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { normalizeTelephoneForDuplicate } from "./duplicate-normalization";
 
 export type PossibleDuplicate = {
   figurant: { id: string; prenom: string; nom: string; email: string | null; telephone: string | null; ville: string | null };
   reason: "telephone" | "date_naissance_nom";
 };
-
-function normalizeTelephone(tel: string | null) {
-  return tel ? tel.replace(/\s+/g, "") : null;
-}
 
 const DIACRITICS = /[̀-ͯ]/g;
 
@@ -55,7 +52,7 @@ export async function findPossibleDuplicates(figurantId: string): Promise<Possib
 
   const results = new Map<string, PossibleDuplicate>();
 
-  const tel = normalizeTelephone(figurant.telephone);
+  const tel = normalizeTelephoneForDuplicate(figurant.telephone);
   if (tel) {
     const { data: candidats } = await supabase
       .from("figurants")
@@ -63,7 +60,7 @@ export async function findPossibleDuplicates(figurantId: string): Promise<Possib
       .neq("id", figurantId)
       .not("telephone", "is", null);
     for (const c of candidats ?? []) {
-      if (normalizeTelephone(c.telephone) === tel) {
+      if (normalizeTelephoneForDuplicate(c.telephone) === tel) {
         results.set(c.id, { figurant: c, reason: "telephone" });
       }
     }

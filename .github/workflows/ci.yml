@@ -17,6 +17,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # Only deployable packages: 2026-10-20 audit reports high findings in
+      # ESLint-related devDependencies and moderate findings in ExcelJS.
+      # New high/critical production advisories must block merges.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - run: npm run lint
       - run: npm run typecheck
