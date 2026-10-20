@@ -545,8 +545,9 @@ export default function AidePage() {
           <UI>Partage réal — Casting</UI> montre au réalisateur·ice les rôles et profils que tu as
           explicitement marqués visibles, jamais les infos de contact. Les profils <UI>Validé·e</UI> montent en haut,
           dans <UI>Profils validés</UI>, avec leur rôle et sa date sur chaque carte ; en dessous, <UI>Profils à valider</UI>
-          garde ceux qui ne le sont pas encore, tant que tu ne les as pas mis en invisible (un rôle sans profil est
-          simplement cité en bas). Chaque profil affiche{" "}
+          reste en mode casting : un bloc par rôle (son nom et sa date) avec ses profils dessous, tant que tu ne les
+          as pas mis en invisible (un rôle sans profil est simplement cité en bas). Sur téléphone, la page passe en deux
+          colonnes de grandes cartes, avec des boutons plus gros. Chaque profil affiche{" "}
           <UI>Validé·e</UI> ou <UI>À valider</UI> selon son statut. Les boutons{" "}
           <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
           montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une

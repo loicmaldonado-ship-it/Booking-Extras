@@ -120,7 +120,7 @@ export function PresencePartage({
             </div>
             {erreur && <p className="text-sm text-danger">{erreur}</p>}
             {!moi ? (
-              <AccueilVisiteur inline lang={lang} />
+              <AccueilVisiteur inline focus lang={lang} />
             ) : (
             <div className="flex gap-2">
               <textarea

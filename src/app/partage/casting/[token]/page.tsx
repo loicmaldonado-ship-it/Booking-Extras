@@ -9,7 +9,7 @@ import {
 } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import { vignetteCasting } from "@/lib/casting/vignette";
-import { Card, Badge } from "@/components/ui/card";
+import { Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
 import { ReelProvider } from "@/components/casting/reel-context";
@@ -163,7 +163,19 @@ export default async function PartageCastingPage({
     (entriesByRole.get(role.id) ?? []).filter((e) => e.statut !== "valide").map((e) => construire(e, role, true))
   );
   const groupesValides = parCategorie(valides, categorieDuProfil);
-  const groupesEnCours = parCategorie(enCours, categorieDuProfil);
+  // « Profils à valider » reste en mode casting : un bloc par rôle (nom, date)
+  // avec ses profils dessous, rangés par catégorie quand le lien couvre tout.
+  let debutRole = 0;
+  const rolesEnCours = rolesAvecProfils.flatMap((role) => {
+    const n = (entriesByRole.get(role.id) ?? []).filter((e) => e.statut !== "valide").length;
+    if (n === 0) return [];
+    const bloc = { role, debut: debutRole, items: enCours.slice(debutRole, debutRole + n) };
+    debutRole += n;
+    return [bloc];
+  });
+  const groupesEnCours = CATEGORIES.map((cat) => ({ cat, roles: rolesEnCours.filter((b) => b.role.categorie_cachet === cat) })).filter(
+    (g) => g.roles.length > 0
+  );
   const sousTitres = categorieLien === null && new Set([...groupesValides, ...groupesEnCours].map((g) => g.cat)).size > 1;
   const grille = (items: CastingRealEntryItem[], groupes: typeof groupesValides) =>
     groupes.map((g) => (
@@ -173,7 +185,7 @@ export default async function PartageCastingPage({
             {CATEGORIE_CACHET_LABELS[g.cat]}s <span className="font-normal">({g.items.length})</span>
           </h3>
         )}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] sm:gap-4">
           {g.items.map((item, i) => (
             <CastingRealEntryCard key={item.id} items={items} index={g.debut + i} lang={lang} afficherStatut={false} />
           ))}
@@ -196,7 +208,7 @@ export default async function PartageCastingPage({
         href={`/partage/casting/${token}/fiches-mensuration?role=${role.id}${lang === "en" ? "&lang=en" : ""}`}
         target="_blank"
         rel="noreferrer"
-        className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+        className="rounded-full border border-coral/60 bg-coral/10 px-3.5 py-2 text-sm font-medium text-coral hover:bg-coral/20 sm:py-1.5 sm:text-xs"
       >
         📏 {t(lang, "fiches_mensuration_titre")} — {role.nom}
       </a>
@@ -238,7 +250,7 @@ export default async function PartageCastingPage({
                 href={`/partage/casting/${token}/liste-artistique`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3.5 py-2 text-sm font-medium text-coral hover:bg-coral/20 sm:py-1.5 sm:text-xs"
               >
                 📋 Liste artistique
               </a>
@@ -248,7 +260,7 @@ export default async function PartageCastingPage({
                 href={`/partage/casting/${token}/fiches-roles`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3.5 py-2 text-sm font-medium text-coral hover:bg-coral/20 sm:py-1.5 sm:text-xs"
               >
                 🪪 Fiches rôles validés
               </a>
@@ -258,7 +270,7 @@ export default async function PartageCastingPage({
                 href={`/partage/casting/${token}/distribution`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+                className="rounded-full border border-coral/60 bg-coral/10 px-3.5 py-2 text-sm font-medium text-coral hover:bg-coral/20 sm:py-1.5 sm:text-xs"
               >
                 🎬 Distribution
               </a>
@@ -268,30 +280,50 @@ export default async function PartageCastingPage({
       </div>
 
       {valides.length > 0 && (
-        <Card className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 sm:rounded-2xl sm:border sm:border-border sm:bg-ink-raised sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-xl font-semibold">
               {t(lang, "profils_valides")} <span className="text-text-muted">({valides.length})</span>
             </h2>
             <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(true))}</div>
           </div>
           {grille(valides, groupesValides)}
-        </Card>
+        </section>
       )}
 
-      {/* Profils pas encore validés : sous les validés, avec leur rôle sur
-          chaque carte, tant que l'équipe ne les a pas mis en invisible. Plus de
-          grand cadre par rôle autour d'un seul profil. */}
+      {/* Profils pas encore validés : sous les validés, en mode casting (un
+          bloc par rôle avec ses profils), tant que l'équipe ne les a pas mis
+          en invisible. Le bloc s'adapte à son contenu. */}
       {enCours.length > 0 && (
-        <Card className="flex flex-col gap-4">
+        <section className="flex flex-col gap-4 sm:rounded-2xl sm:border sm:border-border sm:bg-ink-raised sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-xl font-semibold">
               {t(lang, "profils_a_valider")} <span className="text-text-muted">({enCours.length})</span>
             </h2>
             <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(false))}</div>
           </div>
-          {grille(enCours, groupesEnCours)}
-        </Card>
+          {groupesEnCours.map((g) => (
+            <div key={g.cat} className="flex flex-col gap-3">
+              {sousTitres && (
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{CATEGORIE_CACHET_LABELS[g.cat]}s</h3>
+              )}
+              {g.roles.map((b) => (
+                <div key={b.role.id} className="flex w-full flex-col gap-3 sm:w-fit sm:max-w-full sm:rounded-xl sm:border sm:border-border sm:bg-ink sm:p-4">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-2 sm:border-0 sm:pb-0">
+                    <h3 className="text-lg font-semibold">{b.role.nom}</h3>
+                    {dateDuRole(b.role) && <span className="text-xs text-text-muted">{dateDuRole(b.role)}</span>}
+                    <span className="text-xs text-text-muted">({b.items.length})</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] sm:gap-4">
+                    {b.items.map((item, i) => (
+                      <CastingRealEntryCard key={item.id} items={enCours} index={b.debut + i} lang={lang} afficherStatut={false} masquerRole />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
       )}
 
       {rolesSansProfil.length > 0 && (
