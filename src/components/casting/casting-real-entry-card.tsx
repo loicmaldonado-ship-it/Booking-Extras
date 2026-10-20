@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
@@ -315,6 +315,7 @@ function CastingRealMediaModal({
                 autoPlay
                 playsInline
                 preload="auto"
+                data-reel-video
                 onEnded={finDeVideo}
                 className="aspect-video max-h-[70vh] w-full rounded-xl bg-black"
               />
@@ -451,11 +452,27 @@ export function CastingRealEntryCard({
         type="button"
         onClick={() => {
           if (!peutOuvrir) return;
-          // Plein écran dès le clic (seul moment où le navigateur l'autorise) ;
-          // ignoré là où il n'existe pas (iPhone) : la fenêtre remplit déjà l'écran.
-          if (item.videoUrls.length > 0) document.documentElement.requestFullscreen?.().catch(() => {});
-          setCurrent(index);
-          setOpen(true);
+          // La fenêtre s'affiche tout de suite, puis la vidéo passe en plein écran
+          // dans ce même clic (seul moment où le navigateur l'autorise). C'est la
+          // vidéo qui passe en plein écran, pas la page : son bouton plein écran
+          // garde son fonctionnement normal, et le lecteur restant le même d'une
+          // vidéo à l'autre, le plein écran dure tout l'enchaînement. Sans effet
+          // là où l'API n'existe pas (iPhone : plein écran avec le bouton du lecteur).
+          flushSync(() => {
+            setCurrent(index);
+            setOpen(true);
+          });
+          if (item.videoUrls.length > 0) {
+            const lecteur = document.querySelector<HTMLVideoElement>("video[data-reel-video]") as
+              | (HTMLVideoElement & { webkitRequestFullscreen?: () => Promise<void> | void })
+              | null;
+            try {
+              const demande = lecteur?.requestFullscreen?.() ?? lecteur?.webkitRequestFullscreen?.();
+              Promise.resolve(demande).catch(() => {});
+            } catch {
+              // Pas de plein écran possible ici : la fenêtre reste grande.
+            }
+          }
         }}
         disabled={!peutOuvrir}
         className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"
