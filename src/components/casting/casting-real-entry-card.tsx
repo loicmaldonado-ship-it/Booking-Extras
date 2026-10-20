@@ -197,20 +197,37 @@ function CastingRealMediaModal({
   const item = items[index] ?? items[0];
   const gallery: GalleryPhoto[] = (item?.photos ?? []).map((p) => ({ src: p.url, alt: p.label }));
 
-  // Essai affiché (le premier à l'ouverture) ; la lecture ne démarre toute
-  // seule qu'après un choix explicite d'un essai. Réinitialisé à chaque
-  // changement de profil, pendant le rendu (pas dans un effet).
+  // Essai affiché (le premier à l'ouverture), réinitialisé à chaque changement
+  // de profil, pendant le rendu (pas dans un effet). La vidéo démarre toute
+  // seule (l'ouverture du profil est le geste de l'utilisateur) et s'enchaîne :
+  // essai suivant, puis profil suivant du rôle qui a une vidéo. Un seul
+  // lecteur reste monté, donc le plein écran dure d'une vidéo à l'autre.
   const [essai, setEssai] = useState(0);
-  const [lecture, setLecture] = useState(false);
+  const [enchainer, setEnchainer] = useState(true);
   const [essaiItemId, setEssaiItemId] = useState(item?.id);
   if (item?.id !== essaiItemId) {
     setEssaiItemId(item?.id);
     setEssai(0);
-    setLecture(false);
   }
 
   const goPrev = useCallback(() => onIndexChange((index - 1 + items.length) % items.length), [index, items.length, onIndexChange]);
   const goNext = useCallback(() => onIndexChange((index + 1) % items.length), [index, items.length, onIndexChange]);
+
+  // Fin d'une vidéo : l'essai suivant, sinon le prochain profil du rôle qui a
+  // une vidéo ; à la fin de la liste, on s'arrête.
+  function finDeVideo() {
+    if (!enchainer || !item) return;
+    if (essai < item.videoUrls.length - 1) {
+      setEssai(essai + 1);
+      return;
+    }
+    for (let i = index + 1; i < items.length; i++) {
+      if (items[i].videoUrls.length > 0) {
+        onIndexChange(i);
+        return;
+      }
+    }
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -293,26 +310,21 @@ function CastingRealMediaModal({
             <>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
               <video
-                key={video.url}
+                src={video.url}
                 controls
-                autoPlay={lecture}
+                autoPlay
                 playsInline
-                preload="metadata"
-                poster={item.portraitUrl ?? undefined}
-                className="aspect-video w-full rounded-xl bg-black"
-              >
-                <source src={video.url} />
-              </video>
-              {item.videoUrls.length > 1 && (
-                <div className="flex flex-wrap gap-2">
-                  {item.videoUrls.map((v, i) => (
+                preload="auto"
+                onEnded={finDeVideo}
+                className="aspect-video max-h-[70vh] w-full rounded-xl bg-black"
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                {item.videoUrls.length > 1 &&
+                  item.videoUrls.map((v, i) => (
                     <button
                       key={v.url}
                       type="button"
-                      onClick={() => {
-                        setEssai(i);
-                        setLecture(true);
-                      }}
+                      onClick={() => setEssai(i)}
                       aria-pressed={i === essai}
                       className={cn(
                         "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
@@ -322,13 +334,23 @@ function CastingRealMediaModal({
                       {v.label || t(lang, "essai_n", { n: String(i + 1) })}
                     </button>
                   ))}
-                </div>
-              )}
+                {(item.videoUrls.length > 1 || hasMultiple) && (
+                  <label className="ml-auto flex cursor-pointer items-center gap-2 text-xs text-text-muted">
+                    <input
+                      type="checkbox"
+                      checked={enchainer}
+                      onChange={(e) => setEnchainer(e.target.checked)}
+                      className="h-4 w-4 accent-coral"
+                    />
+                    {t(lang, "enchainer")}
+                  </label>
+                )}
+              </div>
             </>
           ) : (
             item.portraitUrl && (
-              <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-xl bg-ink-raised-2">
-                <Image src={item.portraitUrl} alt={item.nom} fill sizes="400px" className="object-cover" />
+              <div className="relative mx-auto aspect-[4/5] w-full max-w-[16rem] overflow-hidden rounded-xl bg-ink-raised-2">
+                <Image src={item.portraitUrl} alt={item.nom} fill sizes="256px" className="object-cover" />
               </div>
             )
           )}
@@ -429,6 +451,9 @@ export function CastingRealEntryCard({
         type="button"
         onClick={() => {
           if (!peutOuvrir) return;
+          // Plein écran dès le clic (seul moment où le navigateur l'autorise) ;
+          // ignoré là où il n'existe pas (iPhone) : la fenêtre remplit déjà l'écran.
+          if (item.videoUrls.length > 0) document.documentElement.requestFullscreen?.().catch(() => {});
           setCurrent(index);
           setOpen(true);
         }}
@@ -479,7 +504,10 @@ export function CastingRealEntryCard({
           index={current}
           roleLabel={roleLabel}
           onIndexChange={setCurrent}
-          onClose={() => setOpen(false)}
+          onClose={() => {
+            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            setOpen(false);
+          }}
           lang={lang}
         />
       )}

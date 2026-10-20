@@ -92,8 +92,8 @@ export const OPTIONS_REEL_PAR_DEFAUT: OptionsReel = {
   taille: true,
   mensurations: true,
   reponses: true,
-  avis: false,
-  commentairesProfil: false,
+  avis: true,
+  commentairesProfil: true,
 };
 
 export const COLONNES_OPTIONS_REEL: Record<keyof OptionsReel, string> = {

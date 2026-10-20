@@ -549,9 +549,12 @@ export default function AidePage() {
           <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
           sont toujours montrés ; une info décochée n&apos;est même pas envoyée à la page), et ce qu&apos;il·elle peut
           faire : <UI>Avis Oui / Peut-être / Non</UI> sur chaque profil et <UI>Commentaires par profil</UI>. Un
-          profil ouvre une <strong className="text-text">salle de visionnage</strong> : la vidéo en grand avec ses
+          profil ouvre une <strong className="text-text">salle de visionnage</strong> en plein écran : sa vidéo
+          démarre toute seule, sans aperçu de photo avant, et les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
+          (essai suivant, puis profil suivant du rôle ; case <UI>Enchaîner les vidéos</UI> pour couper), avec ses
           essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
-          profil suivant du rôle. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
+          profil suivant du rôle. L&apos;avis et les commentaires par profil sont activés par défaut. Les profils
+          s&apos;affichent en cartes de taille raisonnable, même quand il n&apos;y en a qu&apos;un. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
           De ton côté, la carte du profil montre les avis (<UI>✓ Martine</UI>) et le nombre de commentaires, et
           chaque avis ou commentaire t&apos;envoie une alerte ; les commentaires par profil apparaissent aussi dans
           le fil <UI>💬</UI> du lien, avec le nom du profil.
