@@ -169,8 +169,10 @@ export default async function PartageCastingPage({
 
       {rolesAvecProfils.map((role) => {
         const roleEntries = entriesByRole.get(role.id) ?? [];
+        // Sur grand écran, le cadre du rôle épouse ses profils (un seul profil =
+        // un petit cadre, pas une bande pleine largeur) ; sur téléphone, pleine largeur.
         return (
-          <Card key={role.id} className="flex flex-col gap-4">
+          <Card key={role.id} className="flex flex-col gap-4 sm:w-fit sm:min-w-[20rem] sm:max-w-full">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">{role.nom}</h2>
               <div className="flex flex-wrap items-center gap-2">
@@ -198,7 +200,7 @@ export default async function PartageCastingPage({
               </div>
             </div>
 
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               {(() => {
                 const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
                   id: entry.id,
