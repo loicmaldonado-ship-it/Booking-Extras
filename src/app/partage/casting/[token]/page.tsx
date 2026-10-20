@@ -22,6 +22,31 @@ import type { CastingEntry } from "@/lib/casting/types";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
+// Salle de visionnage : thème sombre propre à cette page (les couleurs du site
+// sont des variables, redéfinies ici seulement ; la fenêtre de profil, rendue
+// dans le body, en profite aussi). On regarde des vidéos : le fond sombre
+// laisse les images ressortir.
+const THEME_SOMBRE = `
+:root {
+  --color-ink: #14101c;
+  --color-ink-raised: #1e1829;
+  --color-ink-raised-2: #2a2339;
+  --color-border: #3b3150;
+  --color-border-strong: #7a6a9a;
+  --color-text: #f3effa;
+  --color-text-muted: #b5abc9;
+  --color-coral: #a8c79a;
+  --color-coral-hover: #bfd8b3;
+  --color-turquoise: #5fd08a;
+  --color-yellow: #f0b84f;
+  --color-danger: #f58a8a;
+  --color-danger-hover: #f9a3a3;
+  color-scheme: dark;
+}
+html body { background: linear-gradient(160deg, #14101c 0%, #191323 50%, #221a31 100%) fixed; }
+.logo-sombre span[style] { color: #e9e0fb !important; }
+`;
+
 export default async function PartageCastingPage({
   params,
   searchParams,
@@ -79,18 +104,25 @@ export default async function PartageCastingPage({
 
   return (
     <ReelProvider token={token} lang={lang} avisActifs={options.avis} commentairesActifs={options.commentairesProfil}>
+    <style>{THEME_SOMBRE}</style>
     <div className="flex flex-col gap-8">
       <PresencePartage token={token} demander="commentaire" lang={lang} />
       <div>
         <div className="flex items-center justify-between gap-3">
-          <Logo iconSize={26} textClassName="text-lg" />
+          <span className="logo-sombre">
+            <Logo iconSize={26} textClassName="text-lg" />
+          </span>
           <LangToggle lang={lang} basePath={`/partage/casting/${token}`} />
         </div>
         {(documentTemplate.logoUrl || projet.societe_production) && (
           <div className="mt-5 flex items-center gap-3">
             {documentTemplate.logoUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- logo de la production (URL signée)
-              <img src={documentTemplate.logoUrl} alt={projet.societe_production ?? ""} className="h-14 w-auto max-w-[220px] object-contain" />
+              <img
+                src={documentTemplate.logoUrl}
+                alt={projet.societe_production ?? ""}
+                className="h-14 w-auto max-w-[220px] rounded-lg bg-white object-contain p-1.5"
+              />
             )}
             {projet.societe_production && (
               <span className="text-sm font-semibold uppercase tracking-wide text-text-muted">{projet.societe_production}</span>

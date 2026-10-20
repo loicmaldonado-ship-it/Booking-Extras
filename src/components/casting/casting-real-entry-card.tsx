@@ -31,9 +31,9 @@ export type CastingRealEntryItem = {
 };
 
 const AVIS: { valeur: Avis; cle: "oui" | "avis_peut_etre" | "non"; symbole: string; actif: string }[] = [
-  { valeur: "oui", cle: "oui", symbole: "✓", actif: "border-turquoise bg-turquoise text-white" },
-  { valeur: "peut_etre", cle: "avis_peut_etre", symbole: "?", actif: "border-yellow bg-yellow text-white" },
-  { valeur: "non", cle: "non", symbole: "✕", actif: "border-danger bg-danger text-white" },
+  { valeur: "oui", cle: "oui", symbole: "✓", actif: "border-turquoise bg-turquoise text-ink" },
+  { valeur: "peut_etre", cle: "avis_peut_etre", symbole: "?", actif: "border-yellow bg-yellow text-ink" },
+  { valeur: "non", cle: "non", symbole: "✕", actif: "border-danger bg-danger text-ink" },
 ];
 
 const POINT_AVIS: Record<Avis, string> = { oui: "bg-turquoise", peut_etre: "bg-yellow", non: "bg-danger" };
@@ -244,7 +244,7 @@ function CastingRealMediaModal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-text/80 text-xl text-white hover:bg-danger"
+        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-xl text-white hover:bg-danger"
         aria-label={t(lang, "fermer")}
       >
         ×
@@ -257,7 +257,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:left-3"
+          className="absolute left-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:left-3"
           aria-label={t(lang, "profil_precedent")}
         >
           ‹
@@ -385,7 +385,7 @@ function CastingRealMediaModal({
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-text/80 text-2xl text-white hover:bg-text sm:right-3"
+          className="absolute right-1 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/70 text-2xl text-white hover:bg-black sm:right-3"
           aria-label={t(lang, "profil_suivant")}
         >
           ›
@@ -448,7 +448,7 @@ export function CastingRealEntryCard({
           {monAvis && (
             <span
               className={cn(
-                "absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white shadow",
+                "absolute left-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-ink shadow",
                 POINT_AVIS[monAvis]
               )}
               aria-label={t(lang, monAvis === "oui" ? "oui" : monAvis === "non" ? "non" : "avis_peut_etre")}
@@ -457,7 +457,7 @@ export function CastingRealEntryCard({
             </span>
           )}
           {hasMedia && (
-            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-text/80 px-2 py-0.5 text-[11px] text-white">
+            <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[11px] text-white">
               {item.videoUrls.length > 0 && `${item.videoUrls.length} ${t(lang, item.videoUrls.length > 1 ? "videos" : "video")}`}
               {item.videoUrls.length > 0 && item.photos.length > 0 && " · "}
               {item.photos.length > 0 && `${item.photos.length} ${t(lang, item.photos.length > 1 ? "photos" : "photo")}`}
