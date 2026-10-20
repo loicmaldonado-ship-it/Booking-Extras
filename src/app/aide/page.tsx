@@ -246,6 +246,14 @@ export default function AidePage() {
               compte (espace candidat·e d&apos;un profil, ou assistant·e dans Équipe).
             </>,
             <>
+              <strong className="text-text">Chercher par critères</strong> (accès complet) : dans{" "}
+              <UI>🔎 Chercher dans la base</UI>, choisis le <UI>Genre</UI> et donne des fourchettes{" "}
+              <UI>Âge</UI>, <UI>Taille</UI>, <UI>Poids</UI> (ex. Homme, 90 à 100 kg), puis{" "}
+              <UI>🔎 Rechercher</UI> : tous les profils de la base qui correspondent s&apos;affichent, avec leur taille
+              et leur poids sur la carte. <UI>Plus de critères</UI> ajoute pointure, tours de poitrine/taille/hanches,
+              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas.
+            </>,
+            <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce : dès
               qu&apos;une personne a créé son compte, elle apparaît dans la Base Profils (avec son âge, calculé
               d&apos;après sa date de naissance, sous son nom). Identité,
