@@ -520,11 +520,15 @@ export default function AidePage() {
           />
         </div>
         <Callout>
-          <strong className="text-text">Compression automatique.</strong> Les photos et vidéos envoyées par les
-          candidat·es sont réduites automatiquement dans leur navigateur avant l&apos;envoi (résolution et débit
-          plus raisonnables, sans perte visible à l&apos;écran) — ça évite les échecs d&apos;envoi liés à la
-          taille et allège le stockage. Rien à faire de ton côté ; si un fichier est déjà petit ou dans un format
-          non pris en charge par le navigateur du candidat, il part tel quel.
+          <strong className="text-text">Envoi des vidéos : direct, sans compression.</strong> Le·la candidat·e
+          choisit sa vidéo (ou glisse-la) et elle <strong className="text-text">part tout de suite</strong>, telle
+          quelle, pendant qu&apos;il·elle remplit sa fiche : barre de progression avec le temps restant, reprise
+          automatique si le réseau coupe, <UI>Annuler</UI> / <UI>Réessayer</UI> à tout moment. Le bouton{" "}
+          <UI>Envoyer</UI> s&apos;active dès que la vidéo est arrivée. Côté équipe, sur la carte d&apos;un profil,{" "}
+          <UI>＋ Ajouter des vidéos</UI> (ou glisse plusieurs fichiers) : elles partent l&apos;une après
+          l&apos;autre dans l&apos;ordre choisi et s&apos;ajoutent toutes seules au profil, avec le nom du
+          fichier (à changer ensuite sur la vidéo). Taille maximale : 2 Go par vidéo. Seules les photos sont encore
+          réduites automatiquement avant l&apos;envoi.
         </Callout>
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
