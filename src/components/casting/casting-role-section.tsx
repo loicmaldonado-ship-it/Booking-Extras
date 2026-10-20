@@ -25,6 +25,7 @@ import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
+import type { AvisReel } from "@/lib/casting/avis";
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
@@ -61,6 +62,8 @@ export function CastingRoleSection({
   templates,
   presentielJournees,
   presentielAssignments,
+  avisReelByEntry,
+  commentairesReelByEntry,
   position,
 }: {
   projetId: string;
@@ -77,6 +80,9 @@ export function CastingRoleSection({
   templates: MessageTemplate[];
   presentielJournees: PresentielJourneeAvecCreneaux[];
   presentielAssignments: Map<string, PresentielAssignment>;
+  // Retour du·de la réal (lien réal) par profil.
+  avisReelByEntry: Record<string, AvisReel[]>;
+  commentairesReelByEntry: Record<string, number>;
   // Position 1-indexée dans l'ordre d'affichage actuel du projet — pas
   // juste role.ordre brut (qui peut être décalé/non contigu) : ce que le
   // champ numéro doit montrer et permettre de changer directement.
@@ -448,6 +454,8 @@ export function CastingRoleSection({
             previewIndex={i}
             showAgent={role.categorie_cachet === "role"}
             dateLimiteEnvoi={role.date_limite_envoi}
+            avisReel={avisReelByEntry[entry.id] ?? []}
+            commentairesReel={commentairesReelByEntry[entry.id] ?? 0}
           />
         ))}
         {entries.length === 0 && <p className="text-sm text-text-muted">Aucun profil dans ce rôle pour l&apos;instant.</p>}

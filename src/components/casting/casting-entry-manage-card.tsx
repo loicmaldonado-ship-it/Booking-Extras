@@ -15,6 +15,7 @@ import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { envoyerVideo, declencherAllegement, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
 import { cn } from "@/lib/cn";
+import { AVIS_LIBELLES, type AvisReel } from "@/lib/casting/avis";
 import {
   deleteCastingEntry,
   deleteCastingPhoto,
@@ -613,6 +614,8 @@ export function CastingEntryManageCard({
   previewIndex,
   showAgent,
   dateLimiteEnvoi,
+  avisReel = [],
+  commentairesReel = 0,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
@@ -626,6 +629,9 @@ export function CastingEntryManageCard({
   previewIndex?: number;
   showAgent?: boolean;
   dateLimiteEnvoi?: string | null;
+  // Ce que les réal ont répondu sur le lien réal.
+  avisReel?: AvisReel[];
+  commentairesReel?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -704,6 +710,27 @@ export function CastingEntryManageCard({
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
+      {(avisReel.length > 0 || commentairesReel > 0) && (
+        <div className="flex flex-wrap gap-1.5" aria-label="Retour du·de la réal">
+          {avisReel.map((a) => (
+            <span
+              key={`${a.nom}-${a.role}`}
+              title={`${a.nom}${a.role ? ` (${a.role})` : ""} : ${AVIS_LIBELLES[a.avis]}`}
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[11px] font-semibold text-white",
+                a.avis === "oui" ? "bg-turquoise" : a.avis === "non" ? "bg-danger" : "bg-yellow"
+              )}
+            >
+              {a.avis === "oui" ? "✓" : a.avis === "non" ? "✕" : "?"} {a.nom}
+            </span>
+          ))}
+          {commentairesReel > 0 && (
+            <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium" title="Voir dans le fil du lien réal (💬)">
+              💬 {commentairesReel}
+            </span>
+          )}
+        </div>
+      )}
       {dateLimiteEnvoi && !entry.submitted_at && (
         <p className={cn("text-xs", dateLimiteEnvoi < todayIso ? "font-medium text-danger" : "text-text-muted")}>
           {dateLimiteEnvoi < todayIso ? "Envoi clos depuis le " : "Envoi avant le "}

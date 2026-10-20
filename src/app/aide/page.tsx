@@ -544,6 +544,19 @@ export default function AidePage() {
           sur le lien réal) — change-le pour déplacer le rôle à cette place, les autres se décalent tout seuls.
         </Callout>
         <Callout>
+          <strong className="text-text">Réglages du lien réal.</strong> Sous <UI>Partage réal</UI> (bas de la page
+          Casting), tu choisis ce que le·la réal voit : <UI>Âge</UI>, <UI>Ville</UI>, <UI>Taille</UI>,{" "}
+          <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
+          sont toujours montrés ; une info décochée n&apos;est même pas envoyée à la page), et ce qu&apos;il·elle peut
+          faire : <UI>Avis Oui / Peut-être / Non</UI> sur chaque profil et <UI>Commentaires par profil</UI>. Un
+          profil ouvre une <strong className="text-text">salle de visionnage</strong> : la vidéo en grand avec ses
+          essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
+          profil suivant du rôle. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
+          De ton côté, la carte du profil montre les avis (<UI>✓ Martine</UI>) et le nombre de commentaires, et
+          chaque avis ou commentaire t&apos;envoie une alerte ; les commentaires par profil apparaissent aussi dans
+          le fil <UI>💬</UI> du lien, avec le nom du profil.
+        </Callout>
+        <Callout>
           <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les
           profils du casting par <UI>Mode</UI> (Selftape / Présentiel) et/ou par <UI>Statut</UI> — pratique pour
           repérer d&apos;un coup d&apos;œil, par exemple, tout ce qui reste <UI>Incomplet</UI> quel que soit le

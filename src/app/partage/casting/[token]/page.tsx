@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
-import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getReelOptions, type OptionsReel } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -12,6 +12,7 @@ import { vignetteCasting } from "@/lib/casting/vignette";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
+import { ReelProvider } from "@/components/casting/reel-context";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
@@ -41,12 +42,13 @@ export default async function PartageCastingPage({
     );
   }
 
-  const [roles, entries, titre, docsVisibility, documentTemplate] = await Promise.all([
+  const [roles, entries, titre, docsVisibility, documentTemplate, options] = await Promise.all([
     getCastingRoles(projet.id),
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
     getCastingDocsVisibilityByToken(token),
     getDocumentTemplate(createAdminClient(), projet.id),
+    getReelOptions({ token }),
   ]);
   // Le staff décide seul de la visibilité — dès qu'un profil ou un rôle est
   // coché visible, il apparaît, même sans vidéo envoyée ou sans aucun
@@ -76,6 +78,7 @@ export default async function PartageCastingPage({
   );
 
   return (
+    <ReelProvider token={token} lang={lang} avisActifs={options.avis} commentairesActifs={options.commentairesProfil}>
     <div className="flex flex-col gap-8">
       <PresencePartage token={token} demander="commentaire" lang={lang} />
       <div>
@@ -175,9 +178,11 @@ export default async function PartageCastingPage({
                     ...(entryPhotosByEntry.get(entry.id) ?? []),
                     ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
                   ],
-                  age: computeAge(entry.figurants?.date_naissance ?? null),
-                  mensurations: mensurationsDe(entry.figurants),
-                  reponses: entry.reponses ?? [],
+                  // Seulement ce que l'équipe a choisi de montrer sur ce lien.
+                  age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
+                  ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
+                  mensurations: mensurationsDe(entry.figurants, options),
+                  reponses: options.reponses ? (entry.reponses ?? []) : [],
                 }));
                 return items.map((item, i) => (
                   <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
@@ -193,18 +198,21 @@ export default async function PartageCastingPage({
 
       {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
     </div>
+    </ReelProvider>
   );
 }
 
 // Mensurations montrées au·à la réal (seulement celles renseignées).
-function mensurationsDe(f: CastingEntry["figurants"]): CastingRealEntryItem["mensurations"] {
+function mensurationsDe(f: CastingEntry["figurants"], options: OptionsReel): CastingRealEntryItem["mensurations"] {
   if (!f) return [];
   const liste: CastingRealEntryItem["mensurations"] = [];
-  if (f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
-  if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
-  if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
-  if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
-  if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  if (options.taille && f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
+  if (options.mensurations) {
+    if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
+    if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
+    if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
+    if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  }
   return liste;
 }
 
