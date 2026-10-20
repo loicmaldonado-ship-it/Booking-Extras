@@ -80,7 +80,7 @@ export default async function PartageEssayagesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Logo iconSize={26} textClassName="text-lg" />
         <LangToggle lang={lang} basePath={`/partage/essayages/${token}`} />
       </div>
@@ -98,7 +98,7 @@ export default async function PartageEssayagesPage({
                 {date === "Date à confirmer" ? t(lang, "date_a_confirmer") : formatDateShort(date)}
               </h2>
               {date !== "Date à confirmer" && (
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <ButtonLink href={`/partage/essayages/${token}/planning?date=${date}&lang=${lang}`} variant="secondary">
                     {t(lang, "telecharger_planning")}
                   </ButtonLink>
@@ -108,7 +108,57 @@ export default async function PartageEssayagesPage({
                 </div>
               )}
             </div>
-            <table className="w-full text-sm">
+            {/* Une fiche par essayage sur téléphone ; les mêmes données restent dans le tableau desktop. */}
+            <div className="grid gap-3 md:hidden" aria-label={t(lang, "planning_essayages_jour")}>
+              {items.map(({ row: e, slotLabel: label, showSlotHeader, slotNumber }) => {
+                const portrait = e.figurants ? pickPortrait(photosByFigurant.get(e.figurants.id), projet.id) : null;
+                const cf = e.figurants ? cachetFonctionByFigurant.get(e.figurants.id) : null;
+                const tournageDates = e.figurants ? bookingDatesByFigurant.get(e.figurants.id) ?? [] : [];
+                return (
+                  <Fragment key={e.id}>
+                    {showSlotHeader && (
+                      <h3 className="pt-2 text-xs font-semibold uppercase tracking-wide text-coral">
+                        {t(lang, "creneau")} {slotNumber} : {label}
+                      </h3>
+                    )}
+                    <article className="min-w-0 rounded-xl border border-border bg-ink-raised-2 p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-ink-raised">
+                          {portrait?.url && <Image src={portrait.url} alt="" fill className="object-cover" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="break-words font-semibold">
+                            #{e.numero} {e.figurants ? `${e.figurants.prenom} ${e.figurants.nom}` : "—"}
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            <Badge tone={e.statut === "fait" ? "turquoise" : "coral"}>
+                              {tStatut(lang, e.statut)}
+                            </Badge>
+                            {e.numero_costume && <Badge tone="coral">{e.numero_costume}</Badge>}
+                          </div>
+                        </div>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+                        <dt className="text-text-muted">{t(lang, "col_fonction")}</dt>
+                        <dd className="min-w-0 break-words">{cf?.fonction ?? "—"}</dd>
+                        <dt className="text-text-muted">{t(lang, "col_cachet")}</dt>
+                        <dd className="min-w-0 break-words">{tCachet(lang, cf?.cachet ?? null) ?? "—"}</dd>
+                        <dt className="text-text-muted">{t(lang, "col_dates_tournage")}</dt>
+                        <dd className="min-w-0 break-words">
+                          {tournageDates.length > 0 ? tournageDates.map((b) => formatDateShort(b.date)).join(", ") : "—"}
+                        </dd>
+                        <dt className="text-text-muted">{t(lang, "col_lieu")}</dt>
+                        <dd className="min-w-0 break-words">{e.lieu ?? "—"}</dd>
+                        <dt className="text-text-muted">{t(lang, "col_notes")}</dt>
+                        <dd className="min-w-0 break-words whitespace-pre-wrap">{e.notes ?? "—"}</dd>
+                      </dl>
+                    </article>
+                  </Fragment>
+                );
+              })}
+            </div>
+            <div className="hidden max-w-full overflow-x-auto md:block">
+              <table className="w-full min-w-[980px] text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-text-muted">
                   <th className="py-2 pr-4 font-medium">{t(lang, "col_photo")}</th>
@@ -171,7 +221,8 @@ export default async function PartageEssayagesPage({
                   );
                 })}
               </tbody>
-            </table>
+              </table>
+            </div>
           </Card>
         ))}
         {groups.length === 0 && <p className="text-sm text-text-muted">{t(lang, "aucun_essayage")}</p>}

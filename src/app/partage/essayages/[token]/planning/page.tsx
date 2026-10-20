@@ -82,11 +82,11 @@ export default async function PartageEssayagesPlanningPage({
         {t(lang, "retour_planning")}
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           {t(lang, "planning_essayage_titre")} — {projetNomPublic(projet)} — {formatDateShort(date)}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <LangToggle lang={lang} basePath={`/partage/essayages/${token}/planning`} otherParams={{ date }} />
           <DownloadPdfButton filename={`planning-essayage-${projet.nom}-${date}.pdf`} orientation="landscape" lang={lang} />
           <PrintButton lang={lang} />

@@ -90,7 +90,7 @@ export default async function CastingPresentielPlanningPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="print-hide flex items-center justify-between gap-3">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <BackLink href={`/casting/presentiel/journee?projet_id=${projet_id}&date=${date}`} label="Retour à la journée" />
         <ButtonLink href="/casting" variant="ghost">
           🎬 Casting
@@ -99,7 +99,7 @@ export default async function CastingPresentielPlanningPage({
 
       <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Planning — Casting présentiel</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-2">
             <Link
               href={baseUrl}
