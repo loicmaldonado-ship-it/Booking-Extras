@@ -16,23 +16,24 @@ import { AVIS_LIBELLES, type Avis } from "@/lib/casting/avis";
 const VISITEUR_RE = /^[A-Za-z0-9-]{8,64}$/;
 const TOKEN_RE = /^[A-Za-z0-9-]{16,64}$/;
 
-async function lienCasting(token: string): Promise<{ id: string; projetId: string; options: OptionsReel } | null> {
+async function lienCasting(token: string): Promise<{ id: string; projetId: string; categorie: string | null; options: OptionsReel } | null> {
   if (!TOKEN_RE.test(token)) return null;
-  const { data } = await createAdminClient().from("partage_liens").select("id, projet_id").eq("token", token).eq("type", "casting").maybeSingle();
+  const { data } = await createAdminClient().from("partage_liens").select("id, projet_id, categorie").eq("token", token).eq("type", "casting").maybeSingle();
   if (!data) return null;
-  return { id: data.id, projetId: data.projet_id, options: await getReelOptions({ token }) };
+  return { id: data.id, projetId: data.projet_id, categorie: data.categorie, options: await getReelOptions({ token }) };
 }
 
 // Un profil visible sur ce lien (même règle que la page publique).
-async function profilVisible(projetId: string, entryId: string) {
+async function profilVisible(projetId: string, entryId: string, categorie: string | null) {
   const { data } = await createAdminClient()
     .from("casting_entries")
-    .select("id, figurants(prenom, nom), casting_roles(nom, visible_partage)")
+    .select("id, figurants(prenom, nom), casting_roles(nom, visible_partage, categorie_cachet)")
     .eq("id", entryId)
     .eq("projet_id", projetId)
     .eq("visible_partage", true)
-    .maybeSingle<{ id: string; figurants: { prenom: string; nom: string } | null; casting_roles: { nom: string; visible_partage: boolean } | null }>();
+    .maybeSingle<{ id: string; figurants: { prenom: string; nom: string } | null; casting_roles: { nom: string; visible_partage: boolean; categorie_cachet: string } | null }>();
   if (!data || !data.casting_roles?.visible_partage) return null;
+  if (categorie && data.casting_roles.categorie_cachet !== categorie) return null;
   return { nom: nomComplet(data.figurants), role: data.casting_roles.nom };
 }
 
@@ -67,7 +68,7 @@ export async function donnerAvis(token: string, visiteurId: string, entryId: str
   const lien = await lienCasting(token);
   if (!lien || !lien.options.avis || !VISITEUR_RE.test(visiteurId)) return { error: "Lien invalide." };
   if (avis !== null && !(avis in AVIS_LIBELLES)) return { error: "Avis invalide." };
-  const [profil, v] = await Promise.all([profilVisible(lien.projetId, entryId), visiteur(lien.id, visiteurId)]);
+  const [profil, v] = await Promise.all([profilVisible(lien.projetId, entryId, lien.categorie), visiteur(lien.id, visiteurId)]);
   if (!profil) return { error: "Ce profil n'est plus sur le lien." };
   if (!v) return { error: "Indique d'abord ton prénom." };
 
@@ -112,7 +113,7 @@ export async function commenterProfil(token: string, visiteurId: string, entryId
   const t = texte.trim().slice(0, 2000);
   if (!lien || !lien.options.commentairesProfil || !VISITEUR_RE.test(visiteurId)) return { error: "Lien invalide." };
   if (!t) return { error: "Message vide." };
-  const [profil, v] = await Promise.all([profilVisible(lien.projetId, entryId), visiteur(lien.id, visiteurId)]);
+  const [profil, v] = await Promise.all([profilVisible(lien.projetId, entryId, lien.categorie), visiteur(lien.id, visiteurId)]);
   if (!profil) return { error: "Ce profil n'est plus sur le lien." };
   if (!v) return { error: "Indique d'abord ton prénom." };
   const { error } = await createAdminClient()

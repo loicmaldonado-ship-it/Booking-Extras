@@ -547,6 +547,17 @@ export default function AidePage() {
           sur le lien réal) — change-le pour déplacer le rôle à cette place, les autres se décalent tout seuls.
         </Callout>
         <Callout>
+          <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
+          Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de profils) : chaque
+          onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
+          Tout en bas, deux liens <UI>Partage réal</UI> : un <strong className="text-text">lien séparé</strong> pour la
+          catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}
+          <UI>Tout le casting</UI> qui range les profils par catégorie (Rôles, Silhouettes, Doublures) dans{" "}
+          <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
+          liens séparés — chaque lien a ses propres réglages, son titre et son suivi, et les avis reçus restent sur le
+          profil dans l&apos;espace casting.
+        </Callout>
+        <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Sous <UI>Partage réal</UI> (bas de la page
           Casting), tu choisis ce que le·la réal voit : <UI>Âge</UI>, <UI>Ville</UI>, <UI>Taille</UI>,{" "}
           <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos

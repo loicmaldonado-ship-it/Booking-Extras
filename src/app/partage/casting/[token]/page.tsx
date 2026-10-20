@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
-import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getReelOptions, type OptionsReel } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getCategorieLienCasting, getReelOptions, type OptionsReel } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -18,7 +18,7 @@ import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { CastingEntry } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, type CastingEntry, type CategorieCachet } from "@/lib/casting/types";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -67,8 +67,11 @@ export default async function PartageCastingPage({
     );
   }
 
+  // Lien limité à une catégorie (rôles, silhouettes ou doublures), ou null
+  // pour tout le casting : dans ce cas les profils sont rangés par catégorie.
+  const categorieLien = await getCategorieLienCasting(token);
   const [roles, entries, titre, docsVisibility, documentTemplate, options] = await Promise.all([
-    getCastingRoles(projet.id),
+    getCastingRoles(projet.id, categorieLien),
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
     getCastingDocsVisibilityByToken(token),
@@ -87,7 +90,10 @@ export default async function PartageCastingPage({
     list.push(e);
     entriesByRole.set(e.role_id, list);
   }
-  const rolesAvecProfils = roles.filter((r) => r.visible_partage);
+  const CATEGORIES: CategorieCachet[] = ["role", "silhouette", "doublure"];
+  // Rangés par catégorie (rôles, puis silhouettes, puis doublures), dans
+  // l'ordre voulu par l'équipe à l'intérieur de chacune.
+  const rolesAvecProfils = CATEGORIES.flatMap((c) => roles.filter((r) => r.visible_partage && r.categorie_cachet === c));
 
   const entryIds = visibleEntries.map((e) => e.id);
   const figurantIds = visibleEntries.map((e) => e.figurant_id);
@@ -134,6 +140,21 @@ export default async function PartageCastingPage({
     reponses: options.reponses ? (entry.reponses ?? []) : [],
   });
 
+  // Une sous-section par catégorie quand le lien couvre tout le casting.
+  const parCategorie = (items: CastingRealEntryItem[], roleParId: Map<string, CategorieCachet>) => {
+    const groupes: { cat: CategorieCachet; debut: number; items: CastingRealEntryItem[] }[] = [];
+    let debut = 0;
+    for (const cat of CATEGORIES) {
+      const dans = items.filter((it) => roleParId.get(it.id) === cat);
+      if (dans.length > 0) groupes.push({ cat, debut, items: dans });
+      debut += dans.length;
+    }
+    return groupes;
+  };
+  const categorieDuProfil = new Map<string, CategorieCachet>(
+    rolesAvecProfils.flatMap((role) => (entriesByRole.get(role.id) ?? []).map((e) => [e.id, role.categorie_cachet] as const))
+  );
+
   // Profils validés de tous les rôles visibles, dans l'ordre des rôles.
   const valides = rolesAvecProfils.flatMap((role) =>
     (entriesByRole.get(role.id) ?? []).filter((e) => e.statut === "valide").map((e) => construire(e, role, true))
@@ -141,6 +162,25 @@ export default async function PartageCastingPage({
   const enCours = rolesAvecProfils.flatMap((role) =>
     (entriesByRole.get(role.id) ?? []).filter((e) => e.statut !== "valide").map((e) => construire(e, role, true))
   );
+  const groupesValides = parCategorie(valides, categorieDuProfil);
+  const groupesEnCours = parCategorie(enCours, categorieDuProfil);
+  const sousTitres = categorieLien === null && new Set([...groupesValides, ...groupesEnCours].map((g) => g.cat)).size > 1;
+  const grille = (items: CastingRealEntryItem[], groupes: typeof groupesValides) =>
+    groupes.map((g) => (
+      <div key={g.cat} className="flex flex-col gap-3">
+        {sousTitres && (
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">
+            {CATEGORIE_CACHET_LABELS[g.cat]}s <span className="font-normal">({g.items.length})</span>
+          </h3>
+        )}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
+          {g.items.map((item, i) => (
+            <CastingRealEntryCard key={item.id} items={items} index={g.debut + i} lang={lang} afficherStatut={false} />
+          ))}
+        </div>
+      </div>
+    ));
+
   // Rôles visibles sans aucun profil pour l'instant : cités sous les sections.
   const rolesSansProfil = rolesAvecProfils.filter((r) => (entriesByRole.get(r.id) ?? []).length === 0);
   const rolesMensuration = (statutValide: boolean) =>
@@ -189,7 +229,7 @@ export default async function PartageCastingPage({
             )}
           </div>
         )}
-        <h1 className="mt-4 text-2xl font-semibold">{titre || `Casting — ${projetNomPublic(projet)}`}</h1>
+        <h1 className="mt-4 text-2xl font-semibold">{titre || (categorieLien ? `${CATEGORIE_CACHET_LABELS[categorieLien]}s — ${projetNomPublic(projet)}` : `Casting — ${projetNomPublic(projet)}`)}</h1>
         <p className="mt-1 text-sm text-text-muted">{t(lang, "clique_profil")}</p>
         {(docsVisibility.listeArtistique || docsVisibility.fichesRoles || docsVisibility.distribution) && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -235,11 +275,7 @@ export default async function PartageCastingPage({
             </h2>
             <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(true))}</div>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
-            {valides.map((item, i) => (
-              <CastingRealEntryCard key={item.id} items={valides} index={i} lang={lang} afficherStatut={false} />
-            ))}
-          </div>
+          {grille(valides, groupesValides)}
         </Card>
       )}
 
@@ -254,11 +290,7 @@ export default async function PartageCastingPage({
             </h2>
             <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(false))}</div>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
-            {enCours.map((item, i) => (
-              <CastingRealEntryCard key={item.id} items={enCours} index={i} lang={lang} afficherStatut={false} />
-            ))}
-          </div>
+          {grille(enCours, groupesEnCours)}
         </Card>
       )}
 

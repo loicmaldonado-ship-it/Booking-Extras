@@ -7,7 +7,7 @@ import { lireSuiviPartage, repondrePartage, type SuiviPartage, type TypeLienSuiv
 
 // Sous un lien de partage, côté équipe : qui l'a ouvert, qui est en ligne,
 // et le fil de commentaires avec réponse. Rafraîchi toutes les 30 s.
-export function SuiviPartageLien({ projetId, type, date }: { projetId: string; type: TypeLienSuivi; date?: string }) {
+export function SuiviPartageLien({ projetId, type, date, categorie = null }: { projetId: string; type: TypeLienSuivi; date?: string; categorie?: string | null }) {
   const [suivi, setSuivi] = useState<SuiviPartage | null>(null);
   const [ouvert, setOuvert] = useState(false);
   const [reponse, setReponse] = useState("");
@@ -15,11 +15,11 @@ export function SuiviPartageLien({ projetId, type, date }: { projetId: string; t
   const [pending, startTransition] = useTransition();
 
   const charger = useCallback(() => {
-    lireSuiviPartage(projetId, type, date).then((res) => {
+    lireSuiviPartage(projetId, type, date, categorie).then((res) => {
       if ("error" in res) setErreur(res.error);
       else setSuivi(res);
     });
-  }, [projetId, type, date]);
+  }, [projetId, type, date, categorie]);
 
   useEffect(() => {
     charger();
@@ -31,7 +31,7 @@ export function SuiviPartageLien({ projetId, type, date }: { projetId: string; t
     if (!reponse.trim()) return;
     setErreur(null);
     startTransition(async () => {
-      const res = await repondrePartage(projetId, type, reponse, date);
+      const res = await repondrePartage(projetId, type, reponse, date, categorie);
       if (res.error) setErreur(res.error);
       else {
         setReponse("");

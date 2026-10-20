@@ -26,17 +26,18 @@ import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
-import { CASTING_MODE_LABELS, CASTING_STATUTS } from "@/lib/casting/types";
+import { CASTING_MODE_LABELS, CASTING_STATUTS, CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import { Select } from "@/components/ui/field";
 import Link from "next/link";
 import { Video } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 export const dynamic = "force-dynamic";
 
 export default async function CastingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ switch?: string; mode?: string; statut?: string }>;
+  searchParams: Promise<{ switch?: string; mode?: string; statut?: string; cat?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createAdminClient();
@@ -63,6 +64,9 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
+  // Onglet ouvert : une catégorie à la fois (rôles, silhouettes, doublures).
+  const CATEGORIES = Object.keys(CATEGORIE_CACHET_LABELS) as CategorieCachet[];
+
   let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
@@ -70,41 +74,59 @@ export default async function CastingPage({
   const [
     roles,
     entries,
-    partageToken,
-    partageTitre,
-    docsVisibility,
     origin,
     { data: allFigurants },
     { data: templates },
     signature,
     presentielJournees,
     presentielAssignments,
-    optionsReel,
     retourReel,
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
     getCastingEntries(currentProjetId),
-    getPartageToken(currentProjetId, "casting"),
-    getPartageTitre(currentProjetId, "casting"),
-    getCastingDocsVisibility(currentProjetId),
     getSiteOrigin(),
     allFigurantsQuery,
     getModelesEquipe().then((data) => ({ data })),
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),
     getPresentielAssignmentsByRole(currentProjetId),
-    getReelOptions({ projetId: currentProjetId }),
     getRetourReel(currentProjetId),
   ]);
 
+  const roleIdsParCategorie = new Map<CategorieCachet, Set<string>>(CATEGORIES.map((c) => [c, new Set<string>()]));
+  for (const role of roles) roleIdsParCategorie.get(role.categorie_cachet)?.add(role.id);
+  const categorie: CategorieCachet =
+    CATEGORIES.find((c) => c === params.cat) ?? CATEGORIES.find((c) => roleIdsParCategorie.get(c)!.size > 0) ?? "role";
+  const rolesCategorie = roles.filter((role) => role.categorie_cachet === categorie);
+  const comptes = Object.fromEntries(
+    CATEGORIES.map((c) => [
+      c,
+      { roles: roleIdsParCategorie.get(c)!.size, profils: entries.filter((e) => roleIdsParCategorie.get(c)!.has(e.role_id)).length },
+    ])
+  ) as Record<CategorieCachet, { roles: number; profils: number }>;
+
+  // Un lien pour la catégorie ouverte, un autre pour tout le casting.
+  const [liensCategorie, lienTout] = await Promise.all(
+    [categorie, null].map(async (cat) => {
+      const [token, titre, docs, options] = await Promise.all([
+        getPartageToken(currentProjetId, "casting", cat),
+        getPartageTitre(currentProjetId, "casting", cat),
+        getCastingDocsVisibility(currentProjetId, cat),
+        getReelOptions({ projetId: currentProjetId, categorie: cat }),
+      ]);
+      return { cat, token, titre, docs, options };
+    })
+  );
+
   // Filtre appliqué avant même de récupérer photos/vidéos des entrées
   // écartées — pas la peine de les signer si elles ne s'affichent pas.
-  let filteredEntries = entries;
+  let filteredEntries = entries.filter((e) => roleIdsParCategorie.get(categorie)!.has(e.role_id));
   if (params.mode === "selftape" || params.mode === "presentiel") {
     filteredEntries = filteredEntries.filter((e) => e.mode === params.mode);
   }
   if (params.statut) filteredEntries = filteredEntries.filter((e) => e.statut === params.statut);
   const entriesFiltered = params.mode || params.statut;
+  const totalCategorie = comptes[categorie].profils;
 
   const figurantIds = filteredEntries.map((e) => e.figurant_id);
   const entryIds = filteredEntries.map((e) => e.id);
@@ -145,9 +167,9 @@ export default async function CastingPage({
             {projet.nom}
           </h1>
           <p className="mt-1 text-text-muted">
-            {roles.length} rôle{roles.length > 1 ? "s" : ""} · {filteredEntries.length} profil
+            {rolesCategorie.length} casting{rolesCategorie.length > 1 ? "s" : ""} · {filteredEntries.length} profil
             {filteredEntries.length > 1 ? "s" : ""}
-            {entriesFiltered ? ` sur ${entries.length}` : ""}
+            {entriesFiltered ? ` sur ${totalCategorie}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
@@ -181,7 +203,27 @@ export default async function CastingPage({
         </div>
       </div>
 
+      <nav className="flex flex-wrap gap-2" aria-label="Catégories de casting">
+        {CATEGORIES.map((c) => {
+          const actif = c === categorie;
+          return (
+            <Link
+              key={c}
+              href={`/casting?cat=${c}`}
+              aria-current={actif ? "page" : undefined}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-semibold",
+                actif ? "border-coral bg-coral text-ink" : "border-border-strong text-text hover:border-coral"
+              )}
+            >
+              {CATEGORIE_CACHET_LABELS[c]}s · {comptes[c].profils}
+            </Link>
+          );
+        })}
+      </nav>
+
       <form className="flex flex-wrap items-center gap-2" method="get">
+        <input type="hidden" name="cat" value={categorie} />
         <Select name="mode" defaultValue={params.mode ?? ""} className="w-44">
           <option value="">Mode (tous)</option>
           <option value="selftape">{CASTING_MODE_LABELS.selftape}</option>
@@ -202,15 +244,15 @@ export default async function CastingPage({
           Filtrer
         </button>
         {entriesFiltered && (
-          <Link href="/casting" className="text-sm font-medium text-text hover:text-text">
+          <Link href={`/casting?cat=${categorie}`} className="text-sm font-medium text-text hover:text-text">
             Réinitialiser
           </Link>
         )}
       </form>
 
-      <NewCastingRoleCard projetId={currentProjetId} />
+      <NewCastingRoleCard projetId={currentProjetId} categorie={categorie} />
 
-      {roles.map((role, i) => (
+      {rolesCategorie.map((role, i) => (
         <CastingRoleSection
           key={role.id}
           projetId={currentProjetId}
@@ -233,34 +275,47 @@ export default async function CastingPage({
         />
       ))}
 
-      {roles.length === 0 && (
+      {rolesCategorie.length === 0 && (
         <Card>
           <p className="text-sm text-text-muted">
-            Aucun rôle pour l&apos;instant — crée-en un ci-dessus, ou envoie une sélection depuis Base Profils,
-            Bookings ou Candidatures (bouton « Envoyer au casting »).
+            Aucun casting dans « {CATEGORIE_CACHET_LABELS[categorie]}s » pour l&apos;instant — crée-en un ci-dessus, ou
+            envoie une sélection depuis Base Profils, Bookings ou Candidatures (bouton « Envoyer au casting »).
           </p>
         </Card>
       )}
 
-      <PartageCard
-        projetId={currentProjetId}
-        type="casting"
-        label={`Partage réal — Casting « ${projet.nom} »`}
-        description="Lien en lecture seule pour le réalisateur·ice, classé par rôle."
-        token={partageToken}
-        publicBaseUrl={`${origin}/partage/casting`}
-        titre={partageTitre}
-        titrePlaceholder={`Casting — ${projet.nom}`}
-      >
-        <CastingDocsVisibilityToggle
+      {[liensCategorie, lienTout].map((lien) => (
+        <PartageCard
+          key={lien.cat ?? "tout"}
           projetId={currentProjetId}
-          listeArtistique={docsVisibility.listeArtistique}
-          fichesRoles={docsVisibility.fichesRoles}
-          distribution={docsVisibility.distribution}
-          fichesRolesMasquerContact={docsVisibility.fichesRolesMasquerContact}
-        />
-        <CastingReelOptions projetId={currentProjetId} options={optionsReel} />
-      </PartageCard>
+          type="casting"
+          categorie={lien.cat}
+          label={
+            lien.cat
+              ? `Partage réal — ${CATEGORIE_CACHET_LABELS[lien.cat]}s « ${projet.nom} »`
+              : `Partage réal — Tout le casting « ${projet.nom} »`
+          }
+          description={
+            lien.cat
+              ? `Lien séparé : uniquement les ${CATEGORIE_CACHET_LABELS[lien.cat].toLowerCase()}s, classées par rôle.`
+              : "Un seul lien pour les rôles, les silhouettes et les doublures, rangés par catégorie."
+          }
+          token={lien.token}
+          publicBaseUrl={`${origin}/partage/casting`}
+          titre={lien.titre}
+          titrePlaceholder={lien.cat ? `${CATEGORIE_CACHET_LABELS[lien.cat]}s — ${projet.nom}` : `Casting — ${projet.nom}`}
+        >
+          <CastingDocsVisibilityToggle
+            projetId={currentProjetId}
+            categorie={lien.cat}
+            listeArtistique={lien.docs.listeArtistique}
+            fichesRoles={lien.docs.fichesRoles}
+            distribution={lien.docs.distribution}
+            fichesRolesMasquerContact={lien.docs.fichesRolesMasquerContact}
+          />
+          <CastingReelOptions projetId={currentProjetId} categorie={lien.cat} options={lien.options} />
+        </PartageCard>
+      ))}
     </div>
   );
 }
