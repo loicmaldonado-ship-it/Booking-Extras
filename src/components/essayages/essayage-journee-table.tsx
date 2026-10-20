@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
@@ -220,7 +221,14 @@ export function EssayageJourneeTable({
   return (
     <div className="flex flex-col gap-4">
       {sendError && (
-        <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
+        <Modale titre="Action impossible" onClose={() => setSendError(null)}>
+          <p className="text-sm text-danger">{sendError}</p>
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setSendError(null)}>
+              Fermer
+            </Button>
+          </div>
+        </Modale>
       )}
       {selected.size > 0 && projetId && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
@@ -238,37 +246,39 @@ export function EssayageJourneeTable({
           <Button type="button" variant="ghost" onClick={() => setSelected(new Set())}>
             Désélectionner
           </Button>
-          {moveOpen && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-coral/40 pt-3">
-              <datalist id="autres-journees-essayage">
-                {autresJournees.map((j) => (
-                  <option key={j.id} value={j.date}>
-                    {formatDateShort(j.date)} — {j.total} profil{j.total > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </datalist>
-              <input
-                type="date"
-                list="autres-journees-essayage"
-                value={moveDate}
-                onChange={(e) => setMoveDate(e.target.value)}
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <input
-                value={moveLieu}
-                onChange={(e) => setMoveLieu(e.target.value)}
-                placeholder="Lieu (optionnel, si nouvelle date)"
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <Button type="button" variant="turquoise" disabled={pending || !moveDate} onClick={moveSelected}>
-                {pending ? "Déplacement..." : "Déplacer"}
-              </Button>
-              {moveResult && <span className="text-xs text-text-muted">{moveResult}</span>}
-            </div>
-          )}
         </div>
+      )}
+      {moveOpen && (
+        <Modale titre="Déplacer vers une autre date" sousTitre={selected.size > 0 ? `${selected.size} profil${selected.size > 1 ? "s" : ""}` : undefined} onClose={() => setMoveOpen(false)} bloquee={pending}>
+          <div className="flex flex-wrap items-center gap-2">
+            <datalist id="autres-journees-essayage">
+              {autresJournees.map((j) => (
+                <option key={j.id} value={j.date}>
+                  {formatDateShort(j.date)} — {j.total} profil{j.total > 1 ? "s" : ""}
+                </option>
+              ))}
+            </datalist>
+            <input
+              type="date"
+              list="autres-journees-essayage"
+              value={moveDate}
+              onChange={(e) => setMoveDate(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <input
+              value={moveLieu}
+              onChange={(e) => setMoveLieu(e.target.value)}
+              placeholder="Lieu (optionnel, si nouvelle date)"
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="turquoise" disabled={pending || !moveDate || selected.size === 0} onClick={moveSelected}>
+              {pending ? "Déplacement..." : "Déplacer"}
+            </Button>
+          </div>
+          {moveResult && <p className="text-sm font-medium">{moveResult}</p>}
+        </Modale>
       )}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-text-muted">

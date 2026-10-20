@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateCastingDocVisible, updateFichesRolesMasquerContact } from "@/lib/partage/actions";
+import { updateCastingDocVisible, updateFichesRolesMasquerContact, type CategorieLien } from "@/lib/partage/actions";
 import { cn } from "@/lib/cn";
 
 export function CastingDocsVisibilityToggle({
@@ -11,26 +11,28 @@ export function CastingDocsVisibilityToggle({
   fichesRoles,
   distribution,
   fichesRolesMasquerContact,
+  categorie = null,
 }: {
   projetId: string;
   listeArtistique: boolean;
   fichesRoles: boolean;
   distribution: boolean;
   fichesRolesMasquerContact: boolean;
+  categorie?: CategorieLien;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function toggle(doc: "liste_artistique" | "fiches_roles" | "distribution", visible: boolean) {
     startTransition(async () => {
-      await updateCastingDocVisible(projetId, doc, visible);
+      await updateCastingDocVisible(projetId, doc, visible, categorie);
       router.refresh();
     });
   }
 
   function toggleMasquerContact(masquer: boolean) {
     startTransition(async () => {
-      await updateFichesRolesMasquerContact(projetId, masquer);
+      await updateFichesRolesMasquerContact(projetId, masquer, categorie);
       router.refresh();
     });
   }

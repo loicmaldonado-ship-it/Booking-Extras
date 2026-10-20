@@ -15,6 +15,8 @@ import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-
 import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
+import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import type { PhotoType } from "@/lib/figurants/types";
@@ -132,6 +134,9 @@ export function CandidaturesTable({
   const [erreur, setErreur] = useState<string | null>(null);
   const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
   const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "etiquettes" | "reserve" | null>(null);
+  // Profils cochés au moment d'ouvrir une fenêtre d'action : elle les garde
+  // même une fois la sélection vidée par l'envoi, pour afficher le résultat.
+  const [figee, setFigee] = useState<Row[]>([]);
   const [reserveInfo, setReserveInfo] = useState<{ ok: boolean; texte: string } | null>(null);
   const [nouvelleEtiquette, setNouvelleEtiquette] = useState("");
   const [etiquetteInfo, setEtiquetteInfo] = useState<{ ok: boolean; texte: string } | null>(null);
@@ -169,6 +174,13 @@ export function CandidaturesTable({
   }
 
   // Un profil : re-cliquer sur son rangement actuel le renvoie dans « À trier ».
+  function ouvrir(o: NonNullable<typeof outil>) {
+    setFigee(selection);
+    setEtiquetteInfo(null);
+    setReserveInfo(null);
+    setOutil(o);
+  }
+
   function rangerUn(r: Row, ongletId: string) {
     const cible = r.onglet_id === ongletId ? null : ongletId;
     setErreur(null);
@@ -204,7 +216,7 @@ export function CandidaturesTable({
   // Pose ou retire une étiquette sur toute la sélection, sans la déplacer.
   // Met la sélection de côté (réserve du projet, sur la page Bookings).
   function mettreEnReserve() {
-    const ids = selection.map((r) => r.id);
+    const ids = figee.map((r) => r.id);
     setReserveInfo(null);
     startBulk(async () => {
       const res = await mettreCandidaturesEnReserve(ids);
@@ -214,13 +226,12 @@ export function CandidaturesTable({
       }
       setReserveInfo({ ok: true, texte: `✓ ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""} en réserve.` });
       setSelected(new Set());
-      setOutil(null);
       router.refresh();
     });
   }
 
   function etiqueter(e: Etiquette, pose: boolean) {
-    const ids = selection.map((r) => r.id);
+    const ids = figee.map((r) => r.id);
     setEtiquetteInfo(null);
     startBulk(async () => {
       const res = await setEtiquettesBulk(ids, e.id, pose);
@@ -245,7 +256,7 @@ export function CandidaturesTable({
         setEtiquetteInfo({ ok: false, texte: cree.error ?? "Création impossible." });
         return;
       }
-      const res = await setEtiquettesBulk(selection.map((r) => r.id), cree.etiquette.id, true);
+      const res = await setEtiquettesBulk(figee.map((r) => r.id), cree.etiquette.id, true);
       if (res.error) setEtiquetteInfo({ ok: false, texte: res.error });
       else {
         setNouvelleEtiquette("");
@@ -259,9 +270,8 @@ export function CandidaturesTable({
   }
 
   function apresEnvoi() {
+    // La fenêtre reste ouverte : la confirmation reste lisible, on la ferme à la main.
     setSelected(new Set());
-    // L'envoi dans un jour garde sa fenêtre ouverte : la confirmation reste lisible.
-    setOutil((o) => (o === "envoi" ? o : null));
     router.refresh();
   }
 
@@ -304,7 +314,7 @@ export function CandidaturesTable({
     <JoursPanneau
       jours={jours}
       projetId={projetId}
-      selection={selection.map((r) => ({ id: r.id, nom: nomComplet(r.figurants), jours: summaries[r.id]?.jours ?? [] }))}
+      selection={figee.map((r) => ({ id: r.id, nom: nomComplet(r.figurants), jours: summaries[r.id]?.jours ?? [] }))}
       onEnvoye={apresEnvoi}
     />
   );
@@ -376,44 +386,27 @@ export function CandidaturesTable({
               {jours.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setOutil(outil === "envoi" ? null : "envoi")}
-                  aria-expanded={outil === "envoi"}
-                  className={cn(
-                    "rounded-full border-2 px-3 py-1.5 text-xs font-semibold",
-                    outil === "envoi" ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-turquoise text-turquoise hover:bg-turquoise/10"
-                  )}
+                  onClick={() => ouvrir("envoi")}
+                  className="rounded-full border-2 border-turquoise px-3 py-1.5 text-xs font-semibold text-turquoise hover:bg-turquoise/10"
                 >
                   📋 Envoyer en booking ({selection.length})
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  setEtiquetteInfo(null);
-                  setOutil(outil === "etiquettes" ? null : "etiquettes");
-                }}
-                aria-expanded={outil === "etiquettes"}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium",
-                  outil === "etiquettes" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-                )}
-              >
-                🏷️ Étiqueter ({selection.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setReserveInfo(null);
-                  setOutil(outil === "reserve" ? null : "reserve");
-                }}
-                aria-expanded={outil === "reserve"}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium",
-                  outil === "reserve" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-                )}
-              >
-                🗄️ Mettre en réserve ({selection.length})
-              </button>
+              {(
+                [
+                  ["etiquettes", `🏷️ Étiqueter (${selection.length})`],
+                  ["reserve", `🗄️ Mettre en réserve (${selection.length})`],
+                ] as const
+              ).map(([o, label]) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => ouvrir(o)}
+                  className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+                >
+                  {label}
+                </button>
+              ))}
               <button
                 type="button"
                 onClick={() => setEcrireA(selection)}
@@ -423,148 +416,144 @@ export function CandidaturesTable({
               </button>
               <button
                 type="button"
-                onClick={() => setOutil(outil === "casting" ? null : "casting")}
-                aria-expanded={outil === "casting"}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium",
-                  outil === "casting" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-                )}
+                onClick={() => ouvrir("casting")}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
               >
                 🎭 Ajouter au casting
               </button>
               <button
                 type="button"
-                onClick={() => setOutil(outil === "journee" ? null : "journee")}
-                aria-expanded={outil === "journee"}
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium",
-                  outil === "journee" ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
-                )}
+                onClick={() => ouvrir("journee")}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
               >
                 📋 Envoyer en booking sur une autre date
               </button>
             </div>
           )}
-          {selected.size > 0 && outil === "reserve" && (
-            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
-              <b className="text-sm">
-                🗄️ Mettre {selection.length} profil{selection.length > 1 ? "s" : ""} en réserve ?
-              </b>
-              <p className="text-xs text-text-muted">
-                Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (bouton <b>🗄️ Réserve</b> de la page Bookings),
-                avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={bulkPending}
-                  onClick={mettreEnReserve}
-                  className="rounded-full border-2 border-text px-3 py-1.5 text-xs font-semibold text-coral disabled:opacity-40"
-                >
-                  {bulkPending ? "…" : "Confirmer la mise en réserve"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOutil(null)}
-                  className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-text"
-                >
-                  Annuler
-                </button>
-              </div>
-              {reserveInfo && !reserveInfo.ok && <p className="text-sm text-danger">{reserveInfo.texte}</p>}
-            </div>
-          )}
-          {reserveInfo?.ok && selected.size === 0 && <p className="text-sm font-medium text-turquoise">{reserveInfo.texte}</p>}
-          {selected.size > 0 && outil === "etiquettes" && (
-            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
-              <b className="text-sm">🏷️ Étiqueter {selection.length} profil{selection.length > 1 ? "s" : ""} (sans les déplacer)</b>
-              {etiquettes.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {etiquettes.map((e) => (
-                    <span key={e.id} className="flex items-center overflow-hidden rounded-full border border-border-strong text-xs font-medium">
-                      <span className="px-2.5 py-1">{e.nom}</span>
-                      <button
-                        type="button"
-                        disabled={bulkPending}
-                        onClick={() => etiqueter(e, true)}
-                        className="border-l border-border-strong px-2 py-1 text-turquoise hover:bg-turquoise/10 disabled:opacity-50"
-                        title={`Poser « ${e.nom} » sur la sélection`}
-                      >
-                        ＋ Poser
-                      </button>
-                      <button
-                        type="button"
-                        disabled={bulkPending}
-                        onClick={() => etiqueter(e, false)}
-                        className="border-l border-border-strong px-2 py-1 text-danger hover:bg-danger/10 disabled:opacity-50"
-                        title={`Retirer « ${e.nom} » de la sélection`}
-                      >
-                        − Retirer
-                      </button>
-                    </span>
-                  ))}
+        </div>
+
+        {outil === "reserve" && (
+          <Modale titre="🗄️ Mettre en réserve" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)} bloquee={bulkPending}>
+            {reserveInfo?.ok ? (
+              <>
+                <p className="text-sm font-medium text-turquoise">{reserveInfo.texte}</p>
+                <div className="flex justify-end">
+                  <Button type="button" onClick={() => setOutil(null)}>
+                    Fermer
+                  </Button>
                 </div>
-              )}
-              <div className="flex items-center gap-2">
-                <input
-                  value={nouvelleEtiquette}
-                  onChange={(e) => setNouvelleEtiquette(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      etiquetterNouvelle();
-                    }
-                  }}
-                  placeholder="Nouvelle étiquette (ex. Vélo)"
-                  maxLength={40}
-                  className="min-w-0 flex-1 rounded-lg border border-border-strong bg-ink px-3 py-1.5 text-sm outline-none focus:border-coral sm:max-w-xs"
-                />
-                <button
-                  type="button"
-                  disabled={bulkPending || !nouvelleEtiquette.trim()}
-                  onClick={etiquetterNouvelle}
-                  className="rounded-full border-2 border-text px-3 py-1.5 text-xs font-semibold text-coral disabled:opacity-40"
-                >
-                  Créer et poser
-                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-text-muted">
+                  Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (bouton <b>🗄️ Réserve</b> de la page
+                  Bookings), avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
+                </p>
+                {reserveInfo && <p className="text-sm text-danger">{reserveInfo.texte}</p>}
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setOutil(null)}>
+                    Annuler
+                  </Button>
+                  <Button type="button" disabled={bulkPending} onClick={mettreEnReserve}>
+                    {bulkPending ? "…" : "Confirmer la mise en réserve"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Modale>
+        )}
+
+        {outil === "etiquettes" && (
+          <Modale titre="🏷️ Étiqueter" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}` + " (sans les déplacer)"} onClose={() => setOutil(null)} bloquee={bulkPending}>
+            {etiquettes.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {etiquettes.map((e) => (
+                  <span key={e.id} className="flex items-center overflow-hidden rounded-full border border-border-strong text-sm font-medium">
+                    <span className="px-3 py-1.5">{e.nom}</span>
+                    <button
+                      type="button"
+                      disabled={bulkPending}
+                      onClick={() => etiqueter(e, true)}
+                      className="border-l border-border-strong px-2.5 py-1.5 text-turquoise hover:bg-turquoise/10 disabled:opacity-50"
+                      title={`Poser « ${e.nom} » sur la sélection`}
+                    >
+                      ＋ Poser
+                    </button>
+                    <button
+                      type="button"
+                      disabled={bulkPending}
+                      onClick={() => etiqueter(e, false)}
+                      className="border-l border-border-strong px-2.5 py-1.5 text-danger hover:bg-danger/10 disabled:opacity-50"
+                      title={`Retirer « ${e.nom} » de la sélection`}
+                    >
+                      − Retirer
+                    </button>
+                  </span>
+                ))}
               </div>
-              {etiquetteInfo && (
-                <p className={cn("text-sm", etiquetteInfo.ok ? "font-medium text-turquoise" : "text-danger")}>{etiquetteInfo.texte}</p>
-              )}
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                value={nouvelleEtiquette}
+                onChange={(e) => setNouvelleEtiquette(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    etiquetterNouvelle();
+                  }
+                }}
+                placeholder="Nouvelle étiquette (ex. Vélo)"
+                maxLength={40}
+                className="min-w-0 flex-1 rounded-lg border border-border-strong bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              <Button type="button" variant="secondary" disabled={bulkPending || !nouvelleEtiquette.trim()} onClick={etiquetterNouvelle}>
+                Créer et poser
+              </Button>
             </div>
-          )}
-          {/* Reste ouvert après l'envoi pour montrer la confirmation. */}
-          {outil === "envoi" && panneau && (
-            <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-ink p-3">
-              <div className="flex items-center justify-between gap-2">
-                <b className="text-sm">📋 Envoyer en booking</b>
-                <button
-                  type="button"
-                  onClick={() => setOutil(null)}
-                  className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-coral/60"
-                >
-                  Fermer
-                </button>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 [&>div]:contents [&>div>p]:col-span-full">{panneau}</div>
+            {etiquetteInfo && (
+              <p className={cn("text-sm", etiquetteInfo.ok ? "font-medium text-turquoise" : "text-danger")}>{etiquetteInfo.texte}</p>
+            )}
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setOutil(null)}>
+                Terminé
+              </Button>
             </div>
-          )}
-          {selected.size > 0 && outil === "casting" && (
-            <AddToCastingBar figurantIds={selection.map((r) => r.figurants!.id)} projets={projets} onDone={apresEnvoi} />
-          )}
-          {selected.size > 0 && outil === "journee" && (
+          </Modale>
+        )}
+
+        {outil === "envoi" && panneau && (
+          <Modale titre="📋 Envoyer en booking" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)} large>
+            <div className="grid gap-3 md:grid-cols-2 [&>div]:contents [&>div>p]:col-span-full">{panneau}</div>
+          </Modale>
+        )}
+
+        {outil === "casting" && (
+          <Modale titre="🎭 Ajouter au casting" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
+            <AddToCastingBar figurantIds={figee.map((r) => r.figurants!.id)} projets={projets} onDone={apresEnvoi} />
+          </Modale>
+        )}
+
+        {outil === "journee" && (
+          <Modale titre="📋 Envoyer en booking sur une autre date" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
             <AddToJourneeBar
               fonctionFacultative
-              figurantIds={selection.map((r) => r.figurants!.id)}
-              candidatureIdByFigurant={Object.fromEntries(selection.map((r) => [r.figurants!.id, r.id]))}
+              figurantIds={figee.map((r) => r.figurants!.id)}
+              candidatureIdByFigurant={Object.fromEntries(figee.map((r) => [r.figurants!.id, r.id]))}
               projets={projets}
               onDone={apresEnvoi}
             />
-          )}
-        </div>
+          </Modale>
+        )}
 
         {erreur && (
-          <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-2 text-sm text-danger">{erreur}</div>
+          <Modale titre="Action impossible" onClose={() => setErreur(null)}>
+            <p className="text-sm text-danger">{erreur}</p>
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setErreur(null)}>
+                Fermer
+              </Button>
+            </div>
+          </Modale>
         )}
 
         {vue === "trombi" ? (

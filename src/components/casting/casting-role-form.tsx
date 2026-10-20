@@ -4,17 +4,20 @@ import { useActionState, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
-import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole, type CategorieCachet } from "@/lib/casting/types";
 
 const DEFAULT_LABELS = ["Portrait", "Pied", "Autre"];
 
 export function CastingRoleForm({
   projetId,
   role,
+  categorieParDefaut = "role",
   onDone,
 }: {
   projetId: string;
   role?: CastingRole;
+  // Catégorie proposée pour un nouveau casting (celle de l'onglet ouvert).
+  categorieParDefaut?: CategorieCachet;
   onDone?: () => void;
 }) {
   const action = role ? updateCastingRoleCalibration.bind(null, role.id) : createCastingRole.bind(null, projetId);
@@ -61,7 +64,7 @@ export function CastingRoleForm({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Field label="Catégorie de cachet" required>
-          <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>
+          <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? categorieParDefaut}>
             {Object.entries(CATEGORIE_CACHET_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateReelOption } from "@/lib/partage/actions";
+import { updateReelOption, type CategorieLien } from "@/lib/partage/actions";
 import type { OptionsReel } from "@/lib/partage/data";
 import { cn } from "@/lib/cn";
 
@@ -22,13 +22,13 @@ const RETOUR: { cle: keyof OptionsReel; libelle: string; aide: string }[] = [
 // Réglage du lien réal : ce qui est montré (le nom, les vidéos et les photos
 // le sont toujours) et ce que le·la réal peut faire. Chaque case s'applique
 // tout de suite au lien.
-export function CastingReelOptions({ projetId, options }: { projetId: string; options: OptionsReel }) {
+export function CastingReelOptions({ projetId, options, categorie = null }: { projetId: string; options: OptionsReel; categorie?: CategorieLien }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   function changer(cle: keyof OptionsReel, valeur: boolean) {
     startTransition(async () => {
-      await updateReelOption(projetId, cle, valeur);
+      await updateReelOption(projetId, cle, valeur, categorie);
       router.refresh();
     });
   }

@@ -3,16 +3,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CastingRole, CastingEntry } from "./types";
 
-export async function getCastingRoles(projetId: string): Promise<CastingRole[]> {
+// `categorie` restreint aux rôles / silhouettes / doublures (lien réal séparé).
+export async function getCastingRoles(projetId: string, categorie: string | null = null): Promise<CastingRole[]> {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  let query = supabase
     .from("casting_roles")
     .select(
       "id, projet_id, nom, date_tournage, date_tournage_fin, date_limite_envoi, categorie_cachet, ordre, mode, nb_videos, photo_labels, demande_bande_demo, message_corps, visible_partage, pdf_storage_path, pdf_filename, created_at, public_token, lien_public_actif, questions"
     )
-    .eq("projet_id", projetId)
-    .order("ordre", { ascending: true })
-    .returns<CastingRole[]>();
+    .eq("projet_id", projetId);
+  if (categorie) query = query.eq("categorie_cachet", categorie);
+  const { data } = await query.order("ordre", { ascending: true }).returns<CastingRole[]>();
 
   return data ?? [];
 }

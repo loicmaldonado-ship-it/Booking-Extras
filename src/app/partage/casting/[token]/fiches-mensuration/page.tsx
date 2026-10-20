@@ -8,7 +8,7 @@ import { DocumentLetterhead } from "@/components/documents/letterhead";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { computeAge } from "@/lib/documents/fields";
-import { resolvePartageToken } from "@/lib/partage/data";
+import { resolvePartageToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { getCastingRoles } from "@/lib/casting/data";
 import { projetNomPublic } from "@/lib/projets/types";
 import { t, parseLang } from "@/lib/i18n/partage";
@@ -30,7 +30,7 @@ export default async function PartageCastingFichesMensurationPage({
   const { role: roleId, lang: langParam } = await searchParams;
   const lang = parseLang(langParam);
   const projet = await resolvePartageToken(token, "casting");
-  const roles = projet ? await getCastingRoles(projet.id) : [];
+  const roles = projet ? await getCastingRoles(projet.id, await getCategorieLienCasting(token)) : [];
   const role = roles.find((r) => r.id === roleId);
 
   if (!projet || !role || !role.visible_partage || !["silhouette", "doublure"].includes(role.categorie_cachet)) {

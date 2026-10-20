@@ -5,7 +5,7 @@ import { DistributionSheet } from "@/components/casting/distribution-sheet";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import { vignetteCasting } from "@/lib/casting/vignette";
-import { resolvePartageToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export default async function PartageDistributionPage({ params }: { params: Prom
     );
   }
 
-  const items = await getListeArtistiqueItems(projet.id);
+  const items = await getListeArtistiqueItems(projet.id, await getCategorieLienCasting(token));
   const portraitByFigurant = await getPhotosByFigurantId(items.map((i) => i.entry.figurant_id));
   const portraitUrlByFigurant = new Map(
     items.map((i) => [i.entry.figurant_id, vignetteCasting(i.entry, portraitByFigurant.get(i.entry.figurant_id), projet.id)])

@@ -383,7 +383,7 @@ export default function AidePage() {
               genre, âge, dispo par date, réponse à une question, et <UI>＋ Plus de filtres</UI> (Myrole, véhicule, code
               postal, mensurations). Les filtres actifs s&apos;affichent en dessous, chacun se retire d&apos;un clic sur{" "}
               <UI>×</UI>. La recherche signale aussi les personnes trouvées dans un autre onglet ou déjà envoyées dans une
-              journée. Le menu <UI>Trier</UI> range par arrivée, nom, âge ou habitué·es ; <UI>🖼️ Trombi</UI> /{" "}
+              journée. Les boutons <UI>Trier :</UI> rangent par arrivée, nom, âge ou habitué·es, et s&apos;appliquent tout de suite ; les actions sur la sélection (étiqueter, réserve, casting, booking) s&apos;ouvrent dans une fenêtre qui affiche le résultat et se ferme avec <UI>Fermer</UI> ; <UI>🖼️ Trombi</UI> /{" "}
               <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
@@ -547,6 +547,17 @@ export default function AidePage() {
           sur le lien réal) — change-le pour déplacer le rôle à cette place, les autres se décalent tout seuls.
         </Callout>
         <Callout>
+          <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
+          Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de profils) : chaque
+          onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
+          Tout en bas, deux liens <UI>Partage réal</UI> : un <strong className="text-text">lien séparé</strong> pour la
+          catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}
+          <UI>Tout le casting</UI> qui range les profils par catégorie (Rôles, Silhouettes, Doublures) dans{" "}
+          <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
+          liens séparés — chaque lien a ses propres réglages, son titre et son suivi, et les avis reçus restent sur le
+          profil dans l&apos;espace casting.
+        </Callout>
+        <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Sous <UI>Partage réal</UI> (bas de la page
           Casting), tu choisis ce que le·la réal voit : <UI>Âge</UI>, <UI>Ville</UI>, <UI>Taille</UI>,{" "}
           <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
@@ -557,7 +568,7 @@ export default function AidePage() {
           aperçu de photo avant), puis les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
           (essai suivant, puis profil suivant du rôle ; case <UI>Enchaîner les vidéos</UI> pour couper), avec ses
           essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
-          profil suivant du rôle. L&apos;avis et les commentaires par profil sont activés par défaut. Les profils
+          profil suivant du rôle. La barre du lecteur se masque toute seule pendant la lecture (elle revient au mouvement ou en pause). L&apos;avis et les commentaires par profil sont activés par défaut ; l&apos;avis Oui / Peut-être / Non disparaît sur un profil déjà validé. Les profils
           s&apos;affichent en cartes de taille raisonnable, même quand il n&apos;y en a qu&apos;un. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
           De ton côté, la carte du profil montre les avis (<UI>✓ Martine</UI>) et le nombre de commentaires, et
           chaque avis ou commentaire t&apos;envoie une alerte ; les commentaires par profil apparaissent aussi dans
@@ -565,7 +576,7 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les
-          profils du casting par <UI>Mode</UI> (Selftape / Présentiel) et/ou par <UI>Statut</UI> — pratique pour
+          profils du casting avec les boutons <UI>Mode</UI> (Selftape / Présentiel) et/ou <UI>Statut</UI> (appliqués dès le clic) — pratique pour
           repérer d&apos;un coup d&apos;œil, par exemple, tout ce qui reste <UI>Incomplet</UI> quel que soit le
           rôle.
         </Callout>

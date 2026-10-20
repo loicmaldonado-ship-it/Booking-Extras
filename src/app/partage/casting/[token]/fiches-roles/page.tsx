@@ -5,7 +5,7 @@ import { FicheRoleValideSheet } from "@/components/casting/fiche-role-valide-she
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import { vignetteCasting } from "@/lib/casting/vignette";
-import { resolvePartageToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function PartageFichesRolesPage({ params }: { params: Promi
     );
   }
 
-  const [roles, entries] = await Promise.all([getCastingRoles(projet.id), getCastingEntries(projet.id)]);
+  const [roles, entries] = await Promise.all([getCastingRoles(projet.id, await getCategorieLienCasting(token)), getCastingEntries(projet.id)]);
   const entriesByRole = new Map<string, typeof entries>();
   for (const e of entries) {
     const list = entriesByRole.get(e.role_id) ?? [];

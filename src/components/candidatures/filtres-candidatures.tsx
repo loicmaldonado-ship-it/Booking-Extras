@@ -211,18 +211,20 @@ export function FiltresCandidatures({
 
         <span className="hidden flex-1 lg:block" />
 
-        <select
-          aria-label="Trier"
-          value={ordre}
-          onChange={(e) => aller({ ordre: e.target.value === "recentes" ? null : e.target.value })}
-          className={cn(menu, menuOff)}
-        >
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Trier">
+          <span className="text-xs font-medium text-text">Trier :</span>
           {ORDRES.map((o) => (
-            <option key={o.key} value={o.key}>
-              Trier : {o.label}
-            </option>
+            <button
+              key={o.key}
+              type="button"
+              onClick={() => aller({ ordre: o.key === "recentes" ? null : o.key })}
+              aria-pressed={ordre === o.key}
+              className={cn(menu, ordre === o.key ? "border-coral bg-coral text-ink" : menuOff)}
+            >
+              {o.label}
+            </button>
           ))}
-        </select>
+        </div>
 
         <div className="flex overflow-hidden rounded-full border border-border-strong" role="group" aria-label="Affichage">
           {(

@@ -53,14 +53,15 @@ async function lienParToken(token: string): Promise<LienResolu | null> {
 }
 
 // Côté équipe : retrouve le lien d'un projet (et d'une date pour une journée).
-async function lienDuProjet(projetId: string, type: TypeLienSuivi, date?: string) {
+async function lienDuProjet(projetId: string, type: TypeLienSuivi, date?: string, categorie: string | null = null) {
   const supabase = createAdminClient();
   if (type === "journee") {
     if (!date) return null;
     const { data } = await supabase.from("partage_journee_liens").select("id").eq("projet_id", projetId).eq("date", date).maybeSingle();
     return data?.id ?? null;
   }
-  const { data } = await supabase.from("partage_liens").select("id").eq("projet_id", projetId).eq("type", type).maybeSingle();
+  const base = supabase.from("partage_liens").select("id").eq("projet_id", projetId).eq("type", type);
+  const { data } = await (categorie ? base.eq("categorie", categorie) : base.is("categorie", null)).maybeSingle();
   return data?.id ?? null;
 }
 
@@ -155,10 +156,10 @@ export type SuiviPartage = {
   commentaires: CommentairePartage[];
 };
 
-export async function lireSuiviPartage(projetId: string, type: TypeLienSuivi, date?: string): Promise<SuiviPartage | { error: string }> {
+export async function lireSuiviPartage(projetId: string, type: TypeLienSuivi, date?: string, categorie: string | null = null): Promise<SuiviPartage | { error: string }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
-  const lienId = await lienDuProjet(projetId, type, date);
+  const lienId = await lienDuProjet(projetId, type, date, categorie);
   if (!lienId) return { visites: [], commentaires: [] };
   const [{ data: visites }, commentaires] = await Promise.all([
     createAdminClient()
@@ -176,12 +177,12 @@ export async function lireSuiviPartage(projetId: string, type: TypeLienSuivi, da
   };
 }
 
-export async function repondrePartage(projetId: string, type: TypeLienSuivi, texte: string, date?: string): Promise<{ error?: string }> {
+export async function repondrePartage(projetId: string, type: TypeLienSuivi, texte: string, date?: string, categorie: string | null = null): Promise<{ error?: string }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
   const t = texte.trim().slice(0, 2000);
   if (!t) return { error: "Message vide." };
-  const lienId = await lienDuProjet(projetId, type, date);
+  const lienId = await lienDuProjet(projetId, type, date, categorie);
   if (!lienId) return { error: "Lien introuvable." };
   const profile = await getCurrentProfile();
   const { error } = await createAdminClient()
