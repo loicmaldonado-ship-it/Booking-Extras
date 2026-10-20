@@ -555,7 +555,7 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
-          Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de profils) : chaque
+          Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de rôles et de profils) : chaque
           onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
           Tout en bas, deux liens <UI>Partage réal</UI> : un <strong className="text-text">lien séparé</strong> pour la
           catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}

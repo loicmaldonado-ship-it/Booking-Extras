@@ -215,7 +215,10 @@ export default async function CastingPage({
                 actif ? "border-coral bg-coral text-ink" : "border-border-strong text-text hover:border-coral"
               )}
             >
-              {CATEGORIE_CACHET_LABELS[c]}s · {comptes[c].profils}
+              {CATEGORIE_CACHET_LABELS[c]}s · {comptes[c].roles}
+              <span className={cn("ml-1.5 text-xs font-medium", actif ? "text-ink/80" : "text-text-muted")}>
+                ({comptes[c].profils} profil{comptes[c].profils > 1 ? "s" : ""})
+              </span>
             </Link>
           );
         })}
