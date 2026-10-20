@@ -251,7 +251,7 @@ export default function AidePage() {
               <UI>Âge</UI>, <UI>Taille</UI>, <UI>Poids</UI> (ex. Homme, 90 à 100 kg), puis{" "}
               <UI>🔎 Rechercher</UI> : tous les profils de la base qui correspondent s&apos;affichent, avec leur taille
               et leur poids sur la carte. <UI>Plus de critères</UI> ajoute pointure, tours de poitrine/taille/hanches,
-              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas. Les comptes sans accès complet ne parcourent pas toute la base, mais voient tous les profils qui correspondent à leur recherche (60 au plus : précise ta recherche s'il y en a davantage).
+              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas. Les comptes sans accès complet ne parcourent pas toute la base, mais voient tous les profils qui correspondent à leur recherche (60 au plus, le genre seul ne suffit pas).
             </>,
             <>
               <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce : dès
