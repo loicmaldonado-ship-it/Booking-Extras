@@ -20,6 +20,10 @@ export type CastingRealEntryItem = {
   nom: string;
   portraitUrl: string | null;
   valide: boolean;
+  // Rôle (et sa date) affichés sur le profil dans la section « Profils
+  // validés », où les profils de plusieurs rôles se côtoient.
+  role: string | null;
+  roleDate: string | null;
   videoUrls: { url: string; label: string }[];
   photos: { label: string; url: string }[];
   // Seulement ce que l'équipe a choisi de montrer sur ce lien (filtré côté
@@ -181,6 +185,7 @@ function CastingRealMediaModal({
   items,
   index,
   roleLabel,
+  afficherStatut,
   onIndexChange,
   onClose,
   lang,
@@ -188,6 +193,7 @@ function CastingRealMediaModal({
   items: CastingRealEntryItem[];
   index: number;
   roleLabel?: string | null;
+  afficherStatut: boolean;
   onIndexChange: (index: number) => void;
   onClose: () => void;
   lang: Lang;
@@ -322,8 +328,11 @@ function CastingRealMediaModal({
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-lg font-semibold leading-tight sm:text-xl">{item.nom}</span>
             <div className="flex flex-wrap gap-1.5">
-              {roleLabel && <Badge>{roleLabel}</Badge>}
-              <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
+              {(item.role ?? roleLabel) && <Badge>{item.role ?? roleLabel}</Badge>}
+              {item.roleDate && <Badge>{item.roleDate}</Badge>}
+              {afficherStatut && (
+                <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
+              )}
             </div>
           </div>
           {hasMultiple && <span className="shrink-0 text-xs tabular-nums text-text-muted">{index + 1} / {items.length}</span>}
@@ -468,11 +477,14 @@ export function CastingRealEntryCard({
   items,
   index,
   roleLabel,
+  afficherStatut = true,
   lang = DEFAULT_LANG,
 }: {
   items: CastingRealEntryItem[];
   index: number;
   roleLabel?: string | null;
+  // Faux dans la section « Profils validés » : le statut y est évident.
+  afficherStatut?: boolean;
   lang?: Lang;
 }) {
   const reel = useReel();
@@ -532,9 +544,12 @@ export function CastingRealEntryCard({
           <span className="break-words text-sm font-medium leading-snug sm:text-base">{item.nom}</span>
           {ligneInfos && <span className="-mt-1 truncate text-xs text-text-muted">{ligneInfos}</span>}
           <div className="flex flex-wrap gap-1.5">
-            {roleLabel && <Badge>{roleLabel}</Badge>}
-            <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
+            {(item.role ?? roleLabel) && <Badge>{item.role ?? roleLabel}</Badge>}
+            {afficherStatut && (
+              <Badge tone={item.valide ? "turquoise" : "yellow"}>{t(lang, item.valide ? "valide" : "a_valider")}</Badge>
+            )}
           </div>
+          {item.roleDate && <span className="text-xs text-text-muted">{item.roleDate}</span>}
         </div>
       </button>
       {open && (
@@ -542,6 +557,7 @@ export function CastingRealEntryCard({
           items={items}
           index={current}
           roleLabel={roleLabel}
+          afficherStatut={afficherStatut}
           onIndexChange={setCurrent}
           onClose={() => {
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});

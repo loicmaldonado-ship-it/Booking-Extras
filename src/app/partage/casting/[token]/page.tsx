@@ -102,6 +102,66 @@ export default async function PartageCastingPage({
     visibleEntries.map((e) => [e.id, (videoPairsByEntry.get(e.id) ?? []).map((p) => ({ url: p.url, label: p.label }))])
   );
 
+  const dateDuRole = (role: (typeof rolesAvecProfils)[number]) =>
+    role.date_tournage
+      ? role.date_tournage_fin && role.date_tournage_fin !== role.date_tournage
+        ? t(lang, "tournage_du_au", { debut: formatDateShort(role.date_tournage), fin: formatDateShort(role.date_tournage_fin) })
+        : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")
+      : null;
+
+  // Un profil du lien, avec seulement ce que l'équipe a choisi de montrer.
+  // Dans la section « Profils validés » (avecRole), le rôle et sa date
+  // s'affichent sur chaque profil.
+  const construire = (
+    entry: (typeof visibleEntries)[number],
+    role: (typeof rolesAvecProfils)[number],
+    avecRole: boolean
+  ): CastingRealEntryItem => ({
+    id: entry.id,
+    nom: nomComplet(entry.figurants).trim(),
+    valide: entry.statut === "valide",
+    role: avecRole ? role.nom : null,
+    roleDate: avecRole ? dateDuRole(role) : null,
+    portraitUrl: vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id),
+    videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
+    photos: [
+      ...(entryPhotosByEntry.get(entry.id) ?? []),
+      ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
+    ],
+    age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
+    ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
+    mensurations: mensurationsDe(entry.figurants, options),
+    reponses: options.reponses ? (entry.reponses ?? []) : [],
+  });
+
+  // Profils validés de tous les rôles visibles, dans l'ordre des rôles.
+  const valides = rolesAvecProfils.flatMap((role) =>
+    (entriesByRole.get(role.id) ?? []).filter((e) => e.statut === "valide").map((e) => construire(e, role, true))
+  );
+  const enCours = rolesAvecProfils.flatMap((role) =>
+    (entriesByRole.get(role.id) ?? []).filter((e) => e.statut !== "valide").map((e) => construire(e, role, true))
+  );
+  // Rôles visibles sans aucun profil pour l'instant : cités sous les sections.
+  const rolesSansProfil = rolesAvecProfils.filter((r) => (entriesByRole.get(r.id) ?? []).length === 0);
+  const rolesMensuration = (statutValide: boolean) =>
+    rolesAvecProfils.filter(
+      (r) =>
+        (r.categorie_cachet === "silhouette" || r.categorie_cachet === "doublure") &&
+        (entriesByRole.get(r.id) ?? []).some((e) => (e.statut === "valide") === statutValide)
+    );
+  const liensMensuration = (roles: typeof rolesAvecProfils) =>
+    roles.map((role) => (
+      <a
+        key={role.id}
+        href={`/partage/casting/${token}/fiches-mensuration?role=${role.id}${lang === "en" ? "&lang=en" : ""}`}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
+      >
+        📏 {t(lang, "fiches_mensuration_titre")} — {role.nom}
+      </a>
+    ));
+
   return (
     <ReelProvider token={token} lang={lang} avisActifs={options.avis} commentairesActifs={options.commentairesProfil}>
     <style>{THEME_SOMBRE}</style>
@@ -167,68 +227,53 @@ export default async function PartageCastingPage({
         )}
       </div>
 
-      {rolesAvecProfils.map((role) => {
-        const roleEntries = entriesByRole.get(role.id) ?? [];
-        return (
-          <Card key={role.id} className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold">{role.nom}</h2>
-              <div className="flex flex-wrap items-center gap-2">
-                {role.date_tournage && (
-                  <Badge>
-                    {role.date_tournage_fin && role.date_tournage_fin !== role.date_tournage
-                      ? t(lang, "tournage_du_au", {
-                          debut: formatDateShort(role.date_tournage),
-                          fin: formatDateShort(role.date_tournage_fin),
-                        })
-                      : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")}
-                  </Badge>
-                )}
-                {(role.categorie_cachet === "silhouette" || role.categorie_cachet === "doublure") &&
-                  roleEntries.length > 0 && (
-                    <a
-                      href={`/partage/casting/${token}/fiches-mensuration?role=${role.id}${lang === "en" ? "&lang=en" : ""}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1.5 text-xs font-medium text-coral hover:bg-coral/20"
-                    >
-                      📏 {t(lang, "fiches_mensuration_titre")}
-                    </a>
-                  )}
-              </div>
-            </div>
+      {valides.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">
+              {t(lang, "profils_valides")} <span className="text-text-muted">({valides.length})</span>
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(true))}</div>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
+            {valides.map((item, i) => (
+              <CastingRealEntryCard key={item.id} items={valides} index={i} lang={lang} afficherStatut={false} />
+            ))}
+          </div>
+        </Card>
+      )}
 
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
-              {(() => {
-                const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
-                  id: entry.id,
-                  nom: nomComplet(entry.figurants).trim(),
-                  valide: entry.statut === "valide",
-                  portraitUrl: vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id),
-                  videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
-                  photos: [
-                    ...(entryPhotosByEntry.get(entry.id) ?? []),
-                    ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
-                  ],
-                  // Seulement ce que l'équipe a choisi de montrer sur ce lien.
-                  age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
-                  ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
-                  mensurations: mensurationsDe(entry.figurants, options),
-                  reponses: options.reponses ? (entry.reponses ?? []) : [],
-                }));
-                return items.map((item, i) => (
-                  <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
-                ));
-              })()}
-              {roleEntries.length === 0 && (
-                <p className="text-sm text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
-              )}
-            </div>
-          </Card>
-        );
-      })}
+      {/* Profils pas encore validés : sous les validés, avec leur rôle sur
+          chaque carte, tant que l'équipe ne les a pas mis en invisible. Plus de
+          grand cadre par rôle autour d'un seul profil. */}
+      {enCours.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">
+              {t(lang, "profils_a_valider")} <span className="text-text-muted">({enCours.length})</span>
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">{liensMensuration(rolesMensuration(false))}</div>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
+            {enCours.map((item, i) => (
+              <CastingRealEntryCard key={item.id} items={enCours} index={i} lang={lang} afficherStatut={false} />
+            ))}
+          </div>
+        </Card>
+      )}
 
-      {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
+      {rolesSansProfil.length > 0 && (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
+          {t(lang, "roles_a_venir")}
+          {rolesSansProfil.map((r) => (
+            <Badge key={r.id}>{r.nom}</Badge>
+          ))}
+        </p>
+      )}
+
+      {valides.length === 0 && enCours.length === 0 && rolesSansProfil.length === 0 && (
+        <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>
+      )}
     </div>
     </ReelProvider>
   );
