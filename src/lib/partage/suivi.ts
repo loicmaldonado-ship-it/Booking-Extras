@@ -64,17 +64,42 @@ async function lienDuProjet(projetId: string, type: TypeLienSuivi, date?: string
   return data?.id ?? null;
 }
 
-export type CommentairePartage = { id: string; auteur: string; equipe: boolean; texte: string; created_at: string };
+export type CommentairePartage = {
+  id: string;
+  auteur: string;
+  equipe: boolean;
+  texte: string;
+  created_at: string;
+  // Profil visé (commentaire posé sur un profil du lien réal du casting).
+  profil: string | null;
+};
 
 async function lireCommentaires(type: TypeLienSuivi, lienId: string): Promise<CommentairePartage[]> {
   const { data } = await createAdminClient()
     .from("partage_commentaires")
-    .select("id, auteur, visiteur_id, texte, created_at")
+    .select("id, auteur, visiteur_id, texte, created_at, casting_entries(figurants(prenom, nom))")
     .eq("lien_type", type)
     .eq("lien_id", lienId)
     .order("created_at")
-    .limit(300);
-  return (data ?? []).map((c) => ({ id: c.id, auteur: c.auteur, equipe: !c.visiteur_id, texte: c.texte, created_at: c.created_at }));
+    .limit(300)
+    .returns<
+      {
+        id: string;
+        auteur: string;
+        visiteur_id: string | null;
+        texte: string;
+        created_at: string;
+        casting_entries: { figurants: { prenom: string; nom: string } | null } | null;
+      }[]
+    >();
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    auteur: c.auteur,
+    equipe: !c.visiteur_id,
+    texte: c.texte,
+    created_at: c.created_at,
+    profil: c.casting_entries?.figurants ? nomComplet(c.casting_entries.figurants) : null,
+  }));
 }
 
 // ---------- Page publique ----------

@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
-import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getReelOptions, type OptionsReel } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -12,6 +12,7 @@ import { vignetteCasting } from "@/lib/casting/vignette";
 import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
+import { ReelProvider } from "@/components/casting/reel-context";
 import { LangToggle } from "@/components/partage/lang-toggle";
 import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
@@ -20,6 +21,31 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { CastingEntry } from "@/lib/casting/types";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+
+// Salle de visionnage : thème sombre propre à cette page (les couleurs du site
+// sont des variables, redéfinies ici seulement ; la fenêtre de profil, rendue
+// dans le body, en profite aussi). On regarde des vidéos : le fond sombre
+// laisse les images ressortir sans tomber dans le noir : un violet profond.
+const THEME_SOMBRE = `
+:root {
+  --color-ink: #2b2147;
+  --color-ink-raised: #382c5c;
+  --color-ink-raised-2: #45386d;
+  --color-border: #5a4b85;
+  --color-border-strong: #a393cf;
+  --color-text: #f6f2ff;
+  --color-text-muted: #cdc3e6;
+  --color-coral: #b9d4ad;
+  --color-coral-hover: #cde2c3;
+  --color-turquoise: #6fdc9a;
+  --color-yellow: #f5c05c;
+  --color-danger: #ff9a9a;
+  --color-danger-hover: #ffb4b4;
+  color-scheme: dark;
+}
+html body { background: linear-gradient(160deg, #3a2c63 0%, #2f2352 55%, #271c47 100%) fixed; }
+.logo-sombre span[style] { color: #f1eaff !important; }
+`;
 
 export default async function PartageCastingPage({
   params,
@@ -41,12 +67,13 @@ export default async function PartageCastingPage({
     );
   }
 
-  const [roles, entries, titre, docsVisibility, documentTemplate] = await Promise.all([
+  const [roles, entries, titre, docsVisibility, documentTemplate, options] = await Promise.all([
     getCastingRoles(projet.id),
     getCastingEntries(projet.id),
     getPartageTitreByToken(token, "casting"),
     getCastingDocsVisibilityByToken(token),
     getDocumentTemplate(createAdminClient(), projet.id),
+    getReelOptions({ token }),
   ]);
   // Le staff décide seul de la visibilité — dès qu'un profil ou un rôle est
   // coché visible, il apparaît, même sans vidéo envoyée ou sans aucun
@@ -76,18 +103,26 @@ export default async function PartageCastingPage({
   );
 
   return (
+    <ReelProvider token={token} lang={lang} avisActifs={options.avis} commentairesActifs={options.commentairesProfil}>
+    <style>{THEME_SOMBRE}</style>
     <div className="flex flex-col gap-8">
       <PresencePartage token={token} demander="commentaire" lang={lang} />
       <div>
         <div className="flex items-center justify-between gap-3">
-          <Logo iconSize={26} textClassName="text-lg" />
+          <span className="logo-sombre">
+            <Logo iconSize={26} textClassName="text-lg" />
+          </span>
           <LangToggle lang={lang} basePath={`/partage/casting/${token}`} />
         </div>
         {(documentTemplate.logoUrl || projet.societe_production) && (
           <div className="mt-5 flex items-center gap-3">
             {documentTemplate.logoUrl && (
               // eslint-disable-next-line @next/next/no-img-element -- logo de la production (URL signée)
-              <img src={documentTemplate.logoUrl} alt={projet.societe_production ?? ""} className="h-14 w-auto max-w-[220px] object-contain" />
+              <img
+                src={documentTemplate.logoUrl}
+                alt={projet.societe_production ?? ""}
+                className="h-14 w-auto max-w-[220px] rounded-lg bg-white object-contain p-1.5"
+              />
             )}
             {projet.societe_production && (
               <span className="text-sm font-semibold uppercase tracking-wide text-text-muted">{projet.societe_production}</span>
@@ -175,9 +210,11 @@ export default async function PartageCastingPage({
                     ...(entryPhotosByEntry.get(entry.id) ?? []),
                     ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
                   ],
-                  age: computeAge(entry.figurants?.date_naissance ?? null),
-                  mensurations: mensurationsDe(entry.figurants),
-                  reponses: entry.reponses ?? [],
+                  // Seulement ce que l'équipe a choisi de montrer sur ce lien.
+                  age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
+                  ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
+                  mensurations: mensurationsDe(entry.figurants, options),
+                  reponses: options.reponses ? (entry.reponses ?? []) : [],
                 }));
                 return items.map((item, i) => (
                   <CastingRealEntryCard key={item.id} items={items} index={i} lang={lang} />
@@ -193,18 +230,21 @@ export default async function PartageCastingPage({
 
       {rolesAvecProfils.length === 0 && <p className="text-text-muted">{t(lang, "aucun_profil_disponible")}</p>}
     </div>
+    </ReelProvider>
   );
 }
 
 // Mensurations montrées au·à la réal (seulement celles renseignées).
-function mensurationsDe(f: CastingEntry["figurants"]): CastingRealEntryItem["mensurations"] {
+function mensurationsDe(f: CastingEntry["figurants"], options: OptionsReel): CastingRealEntryItem["mensurations"] {
   if (!f) return [];
   const liste: CastingRealEntryItem["mensurations"] = [];
-  if (f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
-  if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
-  if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
-  if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
-  if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  if (options.taille && f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
+  if (options.mensurations) {
+    if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
+    if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
+    if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
+    if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
+  }
   return liste;
 }
 

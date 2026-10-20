@@ -113,6 +113,7 @@ export function PresencePartage({
                   <span className="block text-[11px] text-text-muted">
                     {c.equipe ? `${c.auteur} · ${ts(lang, "equipe_casting")}` : c.auteur} · {dateHeure(c.created_at, lang)}
                   </span>
+                  {c.profil && <span className="block text-[11px] font-semibold text-coral">↳ {c.profil}</span>}
                   <span className="whitespace-pre-wrap">{c.texte}</span>
                 </div>
               ))}

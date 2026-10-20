@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
+import { COLONNES_OPTIONS_REEL, type OptionsReel } from "@/lib/partage/data";
 
 export type PartageType = "documents" | "essayages" | "casting";
 
@@ -142,4 +143,19 @@ export async function revokeJourneePartageLien(projetId: string, date: string) {
   const supabase = createAdminClient();
   await supabase.from("partage_journee_liens").delete().eq("projet_id", projetId).eq("date", date);
   revalidatePath("/bookings/documents");
+}
+
+// Réglage du lien réal du casting : ce qui est montré au·à la réal (âge,
+// ville, taille, autres mensurations, réponses aux questions) et ce qu'il·elle
+// peut faire (avis Oui / Peut-être / Non, commentaires par profil).
+export async function updateReelOption(projetId: string, cle: keyof OptionsReel, valeur: boolean) {
+  await requireAccessOrThrow(projetId);
+  const colonne = COLONNES_OPTIONS_REEL[cle];
+  if (!colonne) return;
+  await createAdminClient()
+    .from("partage_liens")
+    .update({ [colonne]: valeur })
+    .eq("projet_id", projetId)
+    .eq("type", "casting");
+  revalidatePath("/casting");
 }

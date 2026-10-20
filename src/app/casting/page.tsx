@@ -7,6 +7,9 @@ import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin, getCastingDocsVisibility } from "@/lib/partage/data";
 import { CastingDocsVisibilityToggle } from "@/components/casting/casting-docs-visibility-toggle";
+import { CastingReelOptions } from "@/components/casting/casting-reel-options";
+import { getReelOptions } from "@/lib/partage/data";
+import { getRetourReel } from "@/lib/casting/reel-data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -76,6 +79,8 @@ export default async function CastingPage({
     signature,
     presentielJournees,
     presentielAssignments,
+    optionsReel,
+    retourReel,
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
     getCastingEntries(currentProjetId),
@@ -88,6 +93,8 @@ export default async function CastingPage({
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),
     getPresentielAssignmentsByRole(currentProjetId),
+    getReelOptions({ projetId: currentProjetId }),
+    getRetourReel(currentProjetId),
   ]);
 
   // Filtre appliqué avant même de récupérer photos/vidéos des entrées
@@ -220,6 +227,8 @@ export default async function CastingPage({
           templates={templates ?? []}
           presentielJournees={presentielJournees}
           presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
+          avisReelByEntry={retourReel.avisParEntry}
+          commentairesReelByEntry={retourReel.commentairesParEntry}
           position={i + 1}
         />
       ))}
@@ -250,6 +259,7 @@ export default async function CastingPage({
           distribution={docsVisibility.distribution}
           fichesRolesMasquerContact={docsVisibility.fichesRolesMasquerContact}
         />
+        <CastingReelOptions projetId={currentProjetId} options={optionsReel} />
       </PartageCard>
     </div>
   );

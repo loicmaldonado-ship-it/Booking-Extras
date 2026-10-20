@@ -74,6 +74,51 @@ export async function getCastingDocsVisibilityByToken(token: string): Promise<Ca
   };
 }
 
+// Ce que le·la réal voit et peut faire sur le lien casting (réglé côté
+// équipe, par lien).
+export type OptionsReel = {
+  age: boolean;
+  ville: boolean;
+  taille: boolean;
+  mensurations: boolean;
+  reponses: boolean;
+  avis: boolean;
+  commentairesProfil: boolean;
+};
+
+export const OPTIONS_REEL_PAR_DEFAUT: OptionsReel = {
+  age: true,
+  ville: false,
+  taille: true,
+  mensurations: true,
+  reponses: true,
+  avis: false,
+  commentairesProfil: false,
+};
+
+export const COLONNES_OPTIONS_REEL: Record<keyof OptionsReel, string> = {
+  age: "reel_afficher_age",
+  ville: "reel_afficher_ville",
+  taille: "reel_afficher_taille",
+  mensurations: "reel_afficher_mensurations",
+  reponses: "reel_afficher_reponses",
+  avis: "reel_avis",
+  commentairesProfil: "reel_commentaires_profil",
+};
+
+export async function getReelOptions(filtre: { token: string } | { projetId: string }): Promise<OptionsReel> {
+  let q = createAdminClient()
+    .from("partage_liens")
+    .select(Object.values(COLONNES_OPTIONS_REEL).join(", "))
+    .eq("type", "casting");
+  q = "token" in filtre ? q.eq("token", filtre.token) : q.eq("projet_id", filtre.projetId);
+  const { data } = await q.maybeSingle<Record<string, boolean>>();
+  if (!data) return OPTIONS_REEL_PAR_DEFAUT;
+  return Object.fromEntries(
+    (Object.keys(COLONNES_OPTIONS_REEL) as (keyof OptionsReel)[]).map((k) => [k, data[COLONNES_OPTIONS_REEL[k]] ?? OPTIONS_REEL_PAR_DEFAUT[k]])
+  ) as OptionsReel;
+}
+
 type ProjetPublic = {
   id: string;
   nom: string;

@@ -107,6 +107,15 @@ const DICT = {
   reponses_titre: { fr: "Réponses", en: "Answers" },
   oui: { fr: "Oui", en: "Yes" },
   non: { fr: "Non", en: "No" },
+  mon_avis: { fr: "Mon avis", en: "My opinion" },
+  avis_peut_etre: { fr: "Peut-être", en: "Maybe" },
+  retirer_avis: { fr: "Toucher à nouveau pour retirer", en: "Tap again to remove" },
+  mot_profil: { fr: "Un mot sur ce profil…", en: "A note on this profile…" },
+  commentaires_profil: { fr: "Commentaires sur ce profil", en: "Comments on this profile" },
+  aucun_commentaire_profil: { fr: "Pas encore de commentaire.", en: "No comment yet." },
+  ville_label: { fr: "Ville", en: "City" },
+  apercu_avis: { fr: "Aperçu équipe : avis et commentaires désactivés.", en: "Team preview: opinions and comments are disabled." },
+  essai_n: { fr: "Vidéo {n}", en: "Video {n}" },
 
   // Essayages
   planning_essayages_jour: { fr: "Planning des essayages par jour — lecture seule.", en: "Fitting schedule by day — read only." },

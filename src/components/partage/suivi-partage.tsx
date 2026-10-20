@@ -94,7 +94,8 @@ export function SuiviPartageLien({ projetId, type, date }: { projetId: string; t
                 <span className="block text-[10px] text-text-muted">
                   {c.auteur} · {formatDateTime(c.created_at)}
                 </span>
-                <span className="whitespace-pre-wrap">{c.texte}</span>
+                {c.profil && <span className="block text-[11px] font-semibold text-coral">↳ {c.profil}</span>}
+                  <span className="whitespace-pre-wrap">{c.texte}</span>
               </div>
             ))}
             <div className="flex gap-1.5">
