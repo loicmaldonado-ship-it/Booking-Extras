@@ -25,26 +25,26 @@ import { projetNomPublic } from "@/lib/projets/types";
 // Salle de visionnage : thème sombre propre à cette page (les couleurs du site
 // sont des variables, redéfinies ici seulement ; la fenêtre de profil, rendue
 // dans le body, en profite aussi). On regarde des vidéos : le fond sombre
-// laisse les images ressortir.
+// laisse les images ressortir sans tomber dans le noir : un violet profond.
 const THEME_SOMBRE = `
 :root {
-  --color-ink: #14101c;
-  --color-ink-raised: #1e1829;
-  --color-ink-raised-2: #2a2339;
-  --color-border: #3b3150;
-  --color-border-strong: #7a6a9a;
-  --color-text: #f3effa;
-  --color-text-muted: #b5abc9;
-  --color-coral: #a8c79a;
-  --color-coral-hover: #bfd8b3;
-  --color-turquoise: #5fd08a;
-  --color-yellow: #f0b84f;
-  --color-danger: #f58a8a;
-  --color-danger-hover: #f9a3a3;
+  --color-ink: #2b2147;
+  --color-ink-raised: #382c5c;
+  --color-ink-raised-2: #45386d;
+  --color-border: #5a4b85;
+  --color-border-strong: #a393cf;
+  --color-text: #f6f2ff;
+  --color-text-muted: #cdc3e6;
+  --color-coral: #b9d4ad;
+  --color-coral-hover: #cde2c3;
+  --color-turquoise: #6fdc9a;
+  --color-yellow: #f5c05c;
+  --color-danger: #ff9a9a;
+  --color-danger-hover: #ffb4b4;
   color-scheme: dark;
 }
-html body { background: linear-gradient(160deg, #14101c 0%, #191323 50%, #221a31 100%) fixed; }
-.logo-sombre span[style] { color: #e9e0fb !important; }
+html body { background: linear-gradient(160deg, #3a2c63 0%, #2f2352 55%, #271c47 100%) fixed; }
+.logo-sombre span[style] { color: #f1eaff !important; }
 `;
 
 export default async function PartageCastingPage({
