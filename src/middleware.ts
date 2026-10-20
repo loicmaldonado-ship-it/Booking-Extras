@@ -20,6 +20,7 @@ const PUBLIC_PREFIXES = [
   "/casting/rejoindre",
   "/api/relais-textos",
   "/api/cron/",
+  "/api/videos/alleger",
   "/relais-textos",
   "/recu/",
   "/compte",

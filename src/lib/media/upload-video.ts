@@ -212,3 +212,19 @@ export async function envoyerVideo({
   await journal("erreur", message);
   throw new Error(message);
 }
+
+// Une fois la vidéo rattachée à un profil : demande son allègement en
+// arrière-plan côté serveur (ffmpeg). Sans effet visible, jamais bloquant :
+// si ça n'aboutit pas, une tâche planifiée rattrape.
+export function declencherAllegement(path: string): void {
+  try {
+    fetch("/api/videos/alleger", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // ignoré
+  }
+}

@@ -527,8 +527,11 @@ export default function AidePage() {
           <UI>Envoyer</UI> s&apos;active dès que la vidéo est arrivée. Côté équipe, sur la carte d&apos;un profil,{" "}
           <UI>＋ Ajouter des vidéos</UI> (ou glisse plusieurs fichiers) : elles partent l&apos;une après
           l&apos;autre dans l&apos;ordre choisi et s&apos;ajoutent toutes seules au profil, avec le nom du
-          fichier (à changer ensuite sur la vidéo). Taille maximale : 2 Go par vidéo. Seules les photos sont encore
-          réduites automatiquement avant l&apos;envoi.
+          fichier (à changer ensuite sur la vidéo). Taille maximale : 2 Go par vidéo. Une fois la vidéo ajoutée au profil, le
+          site l&apos;<strong className="text-text">allège tout seul en arrière-plan</strong> (720p, quelques minutes
+          au plus) et remplace le fichier : rien à faire, et l&apos;original reste en place si l&apos;allègement échoue
+          ou si la vidéo est trop lourde (plus de 300 Mo) ou trop longue (plus de 4 min). Les photos, elles, sont
+          réduites avant l&apos;envoi.
         </Callout>
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}

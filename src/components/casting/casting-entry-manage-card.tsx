@@ -13,7 +13,7 @@ import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
-import { envoyerVideo, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
+import { envoyerVideo, declencherAllegement, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
 import { cn } from "@/lib/cn";
 import {
   deleteCastingEntry,
@@ -260,6 +260,7 @@ function AddVideoButton({ entryId }: { entryId: string }) {
       });
       const res = await addCastingVideo(entryId, path, item.label);
       if (res?.error) throw new Error(res.error);
+      declencherAllegement(path);
       maj(item.id, { statut: "ok", progression: { pct: 100, restant: 0, essai: 1 } });
       router.refresh();
       setTimeout(() => setEnvois((l) => l.filter((e) => e.id !== item.id)), 2500);

@@ -12,7 +12,7 @@ import type { ReponseCasting } from "@/lib/casting/types";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
-import { envoyerVideo, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
+import { envoyerVideo, declencherAllegement, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
 
@@ -425,6 +425,7 @@ export function CastingUploadForm({
         setStep(null);
         return;
       }
+      videoPaths.forEach(declencherAllegement);
       setSuccess(true);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
