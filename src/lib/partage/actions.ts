@@ -22,12 +22,13 @@ async function requireAccessOrThrow(projetId: string) {
 export async function getPartageToken(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("partage_liens")
     .select("token")
     .eq("projet_id", projetId)
     .eq("type", type)
     .maybeSingle();
+  if (error) throw new Error("Impossible de consulter le lien de partage.");
   return data?.token ?? null;
 }
 
@@ -37,12 +38,13 @@ export async function getPartageToken(projetId: string, type: PartageType) {
 export async function getPartageTitre(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("partage_liens")
     .select("titre")
     .eq("projet_id", projetId)
     .eq("type", type)
     .maybeSingle();
+  if (error) throw new Error("Impossible de consulter le titre du partage.");
   return data?.titre ?? null;
 }
 
@@ -50,7 +52,9 @@ export async function updatePartageTitre(projetId: string, type: PartageType, ti
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await supabase.from("partage_liens").update({ titre }).eq("projet_id", projetId).eq("type", type);
+  const { error } = await supabase.from("partage_liens")
+    .update({ titre }).eq("projet_id", projetId).eq("type", type);
+  if (error) throw new Error("Impossible de modifier le titre du partage.");
   revalidatePath("/casting");
 }
 
@@ -80,6 +84,11 @@ export async function updateCastingDocVisible(
   visible: boolean
 ) {
   await requireAccessOrThrow(projetId);
+  // "use server" : TypeScript ne valide pas les arguments désérialisés.
+  if (doc !== "liste_artistique" && doc !== "fiches_roles" && doc !== "distribution") {
+    throw new Error("Document de casting invalide.");
+  }
+  if (typeof visible !== "boolean") throw new Error("Visibilité invalide.");
 
   const supabase = createAdminClient();
   const column =
@@ -88,7 +97,9 @@ export async function updateCastingDocVisible(
       : doc === "fiches_roles"
         ? "fiches_roles_visible"
         : "distribution_visible";
-  await supabase.from("partage_liens").update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting");
+  const { error } = await supabase.from("partage_liens")
+    .update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting");
+  if (error) throw new Error("Impossible de modifier la visibilité du document.");
   revalidatePath("/casting");
 }
 
@@ -96,13 +107,15 @@ export async function updateCastingDocVisible(
 // toucher à la visibilité du document lui-même.
 export async function updateFichesRolesMasquerContact(projetId: string, masquer: boolean) {
   await requireAccessOrThrow(projetId);
+  if (typeof masquer !== "boolean") throw new Error("Paramètre de confidentialité invalide.");
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("partage_liens")
     .update({ fiches_roles_masquer_contact: masquer })
     .eq("projet_id", projetId)
     .eq("type", "casting");
+  if (error) throw new Error("Impossible de modifier la confidentialité des fiches rôles.");
   revalidatePath("/casting");
 }
 
@@ -110,7 +123,9 @@ export async function revokePartageLien(projetId: string, type: PartageType) {
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await supabase.from("partage_liens").delete().eq("projet_id", projetId).eq("type", type);
+  const { error } = await supabase.from("partage_liens")
+    .delete().eq("projet_id", projetId).eq("type", type);
+  if (error) throw new Error("Impossible de révoquer le lien de partage.");
   revalidatePath("/partage");
   revalidatePath("/essayages");
 }
@@ -118,12 +133,13 @@ export async function revokePartageLien(projetId: string, type: PartageType) {
 export async function getJourneePartageLien(projetId: string, date: string) {
   await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("partage_journee_liens")
     .select("token, show_contacts")
     .eq("projet_id", projetId)
     .eq("date", date)
     .maybeSingle();
+  if (error) throw new Error("Impossible de consulter le lien de journée.");
   return data ? { token: data.token, showContacts: data.show_contacts } : null;
 }
 
@@ -145,6 +161,8 @@ export async function revokeJourneePartageLien(projetId: string, date: string) {
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await supabase.from("partage_journee_liens").delete().eq("projet_id", projetId).eq("date", date);
+  const { error } = await supabase.from("partage_journee_liens")
+    .delete().eq("projet_id", projetId).eq("date", date);
+  if (error) throw new Error("Impossible de révoquer le lien de journée.");
   revalidatePath("/bookings/documents");
 }
