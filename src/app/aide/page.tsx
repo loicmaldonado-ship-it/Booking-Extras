@@ -557,7 +557,7 @@ export default function AidePage() {
           aperçu de photo avant), puis les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
           (essai suivant, puis profil suivant du rôle ; case <UI>Enchaîner les vidéos</UI> pour couper), avec ses
           essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
-          profil suivant du rôle. L&apos;avis et les commentaires par profil sont activés par défaut. Les profils
+          profil suivant du rôle. La barre du lecteur se masque toute seule pendant la lecture (elle revient au mouvement ou en pause). L&apos;avis et les commentaires par profil sont activés par défaut ; l&apos;avis Oui / Peut-être / Non disparaît sur un profil déjà validé. Les profils
           s&apos;affichent en cartes de taille raisonnable, même quand il n&apos;y en a qu&apos;un. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
           De ton côté, la carte du profil montre les avis (<UI>✓ Martine</UI>) et le nombre de commentaires, et
           chaque avis ou commentaire t&apos;envoie une alerte ; les commentaires par profil apparaissent aussi dans

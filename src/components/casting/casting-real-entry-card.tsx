@@ -212,6 +212,24 @@ function CastingRealMediaModal({
   // reste monté, donc le plein écran dure d'une vidéo à l'autre. Passer à un
   // autre profil à la main (‹ ›) demande de relancer ; l'enchaînement, non.
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Barre du lecteur : visible en pause et quand la souris / le doigt bouge,
+  // masquée après 2,5 s d'immobilité pendant la lecture (surtout en plein
+  // écran, où elle restait affichée sur l'image).
+  const [controles, setControles] = useState(true);
+  const minuteurControles = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const montrerControles = useCallback(() => {
+    setControles(true);
+    if (minuteurControles.current) clearTimeout(minuteurControles.current);
+    minuteurControles.current = setTimeout(() => {
+      if (videoRef.current && !videoRef.current.paused) setControles(false);
+    }, 2500);
+  }, []);
+  useEffect(
+    () => () => {
+      if (minuteurControles.current) clearTimeout(minuteurControles.current);
+    },
+    []
+  );
   const [essai, setEssai] = useState(0);
   const [enchainer, setEnchainer] = useState(true);
   const [demarre, setDemarre] = useState(false);
@@ -278,7 +296,9 @@ function CastingRealMediaModal({
     ...(item.ville ? [{ cle: t(lang, "ville_label"), valeur: item.ville }] : []),
     ...item.mensurations.map((m) => ({ cle: t(lang, m.cle), valeur: m.valeur })),
   ];
-  const aDroite = infos.length > 0 || item.reponses.length > 0 || reel?.avisActifs || reel?.commentairesActifs;
+  // Un profil déjà validé n'a plus besoin d'avis Oui / Peut-être / Non.
+  const avisAffiche = !!reel?.avisActifs && !item.valide;
+  const aDroite = infos.length > 0 || item.reponses.length > 0 || avisAffiche || reel?.commentairesActifs;
 
   return createPortal(
     <div
@@ -346,12 +366,20 @@ function CastingRealMediaModal({
                 <video
                   ref={videoRef}
                   src={video.url}
-                  controls
+                  controls={controles}
                   autoPlay={demarre}
                   playsInline
                   preload="auto"
                   onEnded={finDeVideo}
-                  className="aspect-video max-h-[70vh] w-full rounded-xl bg-black"
+                  onPlay={montrerControles}
+                  onPause={() => {
+                    if (minuteurControles.current) clearTimeout(minuteurControles.current);
+                    setControles(true);
+                  }}
+                  onMouseMove={montrerControles}
+                  onTouchStart={montrerControles}
+                  onClick={montrerControles}
+                  className={cn("aspect-video max-h-[70vh] w-full rounded-xl bg-black", !controles && "cursor-none")}
                 />
                 {!demarre && (
                   <button
@@ -431,7 +459,7 @@ function CastingRealMediaModal({
                 ))}
               </div>
             )}
-            <AvisProfil entryId={item.id} lang={lang} />
+            {avisAffiche && <AvisProfil entryId={item.id} lang={lang} />}
             <CommentairesProfil entryId={item.id} lang={lang} />
           </div>
         )}
