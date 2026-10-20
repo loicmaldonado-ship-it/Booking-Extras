@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import type { ReponseCasting } from "@/lib/casting/types";
 import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
 import { createCastingUploadSlot, finalizeCastingUpload } from "@/lib/casting/upload-actions";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
-import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
+import { envoyerVideo, declencherAllegement, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
 import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 import { cn } from "@/lib/cn";
 
@@ -89,6 +89,129 @@ function FileSlot({
   );
 }
 
+type VideoCandidat = {
+  file: File | null;
+  statut: "vide" | "envoi" | "ok" | "erreur";
+  progression: Progression | null;
+  path: string | null;
+  erreur: string | null;
+};
+
+const VIDEO_VIDE: VideoCandidat = { file: null, statut: "vide", progression: null, path: null, erreur: null };
+
+// Une vidéo : elle part dès qu'elle est choisie (pendant qu'on remplit la
+// fiche), avec sa barre de progression.
+function VideoSlot({
+  label,
+  required,
+  video,
+  onChoisir,
+  onRetirer,
+  onReessayer,
+}: {
+  label: string;
+  required?: boolean;
+  video: VideoCandidat;
+  onChoisir: (file: File) => void;
+  onRetirer: () => void;
+  onReessayer: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const pct = video.progression?.pct ?? 0;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs font-medium text-text-muted">
+        {label}
+        {required ? " *" : ""}
+      </span>
+      {video.statut === "vide" ? (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) onChoisir(f);
+          }}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors",
+            dragOver ? "border-coral bg-coral/10" : "border-border-strong bg-ink-raised-2 hover:border-text"
+          )}
+        >
+          <span className="text-2xl">🎬</span>
+          <span className="text-sm font-semibold">Choisir ou glisser la vidéo</span>
+          <span className="text-xs text-text-muted">Elle part tout de suite, pas besoin de la compresser.</span>
+        </button>
+      ) : (
+        <div
+          className={cn(
+            "flex flex-col gap-2 rounded-xl border-2 px-3 py-3",
+            video.statut === "ok" ? "border-turquoise/60 bg-turquoise/10" : video.statut === "erreur" ? "border-danger/50 bg-danger/10" : "border-border bg-ink-raised-2"
+          )}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-sm font-medium" title={video.file?.name}>
+              🎬 {video.file?.name}
+            </span>
+            <button
+              type="button"
+              onClick={onRetirer}
+              className="shrink-0 rounded-full border border-border-strong px-3 py-1 text-xs font-medium hover:border-text"
+            >
+              {video.statut === "envoi" ? "Annuler" : "Retirer"}
+            </button>
+          </div>
+          {video.statut === "envoi" && (
+            <>
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-ink-raised">
+                <div className="h-full rounded-full bg-turquoise transition-[width]" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs tabular-nums text-text-muted">
+                Envoi {pct} %
+                {video.progression?.restant != null && video.progression.restant > 1 ? ` · ${formatRestant(video.progression.restant)}` : ""} ·{" "}
+                {formatTaille(video.file?.size ?? 0)}
+                {(video.progression?.essai ?? 1) > 1 ? ` · nouvel essai (${video.progression?.essai}/3)` : ""}
+              </span>
+            </>
+          )}
+          {video.statut === "ok" && <span className="text-sm font-medium text-turquoise">✓ Vidéo envoyée ({formatTaille(video.file?.size ?? 0)})</span>}
+          {video.statut === "erreur" && (
+            <>
+              <span className="text-sm text-danger">{video.erreur}</span>
+              <button
+                type="button"
+                onClick={onReessayer}
+                className="self-start rounded-full border border-text px-3 py-1 text-xs font-semibold text-coral"
+              >
+                Réessayer
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="video/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onChoisir(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
 export function CastingUploadForm({
   token,
   nbVideos,
@@ -110,7 +233,8 @@ export function CastingUploadForm({
   questions?: string[];
 }) {
   const ficheRef = useRef<HTMLFormElement>(null);
-  const [videos, setVideos] = useState<(File | null)[]>(Array.from({ length: nbVideos }, () => null));
+  const [videos, setVideos] = useState<VideoCandidat[]>(Array.from({ length: nbVideos }, () => VIDEO_VIDE));
+  const controllersVideo = useRef(new Map<number, AbortController>());
   const [photos, setPhotos] = useState<Record<string, File | null>>({});
   const [bandeDemo, setBandeDemo] = useState("");
   const [step, setStep] = useState<string | null>(null);
@@ -119,9 +243,8 @@ export function CastingUploadForm({
   const [pending, setPending] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Photos uniquement — l'envoi vidéo (compression + envoi avec course
-  // contre timeout/annulation) est mutualisé avec la carte équipe dans
-  // compress-and-upload-video.ts.
+  // Photos uniquement — les vidéos partent dès qu'elles sont choisies
+  // (envoyerVideo, mutualisé avec la carte équipe).
   async function uploadOnePhoto(slot: string, file: File, signal: AbortSignal) {
     const attempt = (async () => {
       const target = await createCastingUploadSlot(token, "photo", slot);
@@ -154,6 +277,51 @@ export function CastingUploadForm({
       }, reject);
     });
   }
+
+  function majVideo(i: number, patch: Partial<VideoCandidat>) {
+    setVideos((prev) => prev.map((v, idx) => (idx === i ? { ...v, ...patch } : v)));
+  }
+
+  // Envoi immédiat d'une vidéo choisie (remplace celle du créneau s'il y en a une).
+  async function lancerVideo(i: number, file: File) {
+    controllersVideo.current.get(i)?.abort();
+    const controller = new AbortController();
+    controllersVideo.current.set(i, controller);
+    setError(null);
+    majVideo(i, { file, statut: "envoi", progression: { pct: 0, restant: null, essai: 1 }, path: null, erreur: null });
+    try {
+      const path = await envoyerVideo({
+        file,
+        signal: controller.signal,
+        onProgress: (progression) => majVideo(i, { progression }),
+        createSlot: () => createCastingUploadSlot(token, "video", String(i)),
+        logContext: { source: "candidat", requestToken: token },
+      });
+      majVideo(i, { statut: "ok", path, progression: { pct: 100, restant: 0, essai: 1 } });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      majVideo(i, { statut: "erreur", erreur: e instanceof Error ? e.message : "Échec de l'envoi." });
+    } finally {
+      if (controllersVideo.current.get(i) === controller) controllersVideo.current.delete(i);
+    }
+  }
+
+  function retirerVideo(i: number) {
+    controllersVideo.current.get(i)?.abort();
+    controllersVideo.current.delete(i);
+    majVideo(i, VIDEO_VIDE);
+  }
+
+  // Une vidéo encore en route : on prévient avant de quitter la page.
+  const videoEnCours = videos.some((v) => v.statut === "envoi");
+  useEffect(() => {
+    if (!videoEnCours) return;
+    const avertir = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", avertir);
+    return () => window.removeEventListener("beforeunload", avertir);
+  }, [videoEnCours]);
 
   function lireFiche(): FicheCasting | null {
     const form = ficheRef.current;
@@ -215,28 +383,23 @@ export function CastingUploadForm({
       setError("Indique ta date de naissance.");
       return;
     }
-    if (nbVideos > 0 && !videos[0]) {
-      setError("Au moins une vidéo est obligatoire.");
+    if (nbVideos > 0 && videos[0].statut !== "ok") {
+      setError(
+        videos[0].statut === "erreur"
+          ? "La vidéo n'a pas pu être envoyée : touche « Réessayer »."
+          : "Au moins une vidéo est obligatoire."
+      );
+      return;
+    }
+    if (videos.some((v) => v.statut === "erreur")) {
+      setError("Une vidéo n'a pas pu être envoyée : touche « Réessayer » ou retire-la.");
       return;
     }
     setPending(true);
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const videoPaths: string[] = [];
-      for (let i = 0; i < videos.length; i++) {
-        const file = videos[i];
-        if (!file) continue;
-        if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
-        const path = await compressAndUploadVideo({
-          file,
-          signal: controller.signal,
-          onProgress: (label) => setStep(`Vidéo ${i + 1} — ${label}`),
-          createSlot: () => createCastingUploadSlot(token, "video", String(i)),
-          logContext: { source: "candidat", requestToken: token },
-        });
-        videoPaths.push(path);
-      }
+      const videoPaths = videos.map((v) => v.path).filter((p): p is string => !!p);
 
       const uploadedPhotos: { label: string; path: string }[] = [];
       for (const label of photoLabels) {
@@ -262,6 +425,7 @@ export function CastingUploadForm({
         setStep(null);
         return;
       }
+      videoPaths.forEach(declencherAllegement);
       setSuccess(true);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -370,13 +534,15 @@ export function CastingUploadForm({
       </Card>
       {nbVideos > 0 && (
         <Card className="flex flex-col gap-4">
-          {videos.map((_, i) => (
-            <FileSlot
+          {videos.map((v, i) => (
+            <VideoSlot
               key={i}
               label={`Vidéo ${i + 1}`}
-              accept="video/*"
               required={i === 0}
-              onSelect={(file) => setVideos((prev) => prev.map((v, idx) => (idx === i ? file : v)))}
+              video={v}
+              onChoisir={(file) => lancerVideo(i, file)}
+              onRetirer={() => retirerVideo(i)}
+              onReessayer={() => v.file && lancerVideo(i, v.file)}
             />
           ))}
         </Card>
@@ -405,8 +571,12 @@ export function CastingUploadForm({
       )}
 
       <div className="flex gap-2">
-        <Button type="button" disabled={pending} onClick={submit} className="flex-1">
-          {pending ? step ?? "Envoi..." : "Envoyer"}
+        <Button type="button" disabled={pending || videoEnCours} onClick={submit} className="flex-1">
+          {pending
+            ? step ?? "Envoi..."
+            : videoEnCours
+              ? `Vidéo en cours d'envoi… ${videos.find((v) => v.statut === "envoi")?.progression?.pct ?? 0} %`
+              : "Envoyer"}
         </Button>
         {pending && (
           <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
