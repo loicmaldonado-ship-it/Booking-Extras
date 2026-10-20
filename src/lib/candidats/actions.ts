@@ -121,11 +121,16 @@ export async function markMessageBienRecu(messageId: string) {
   if (error) return { error: error.message };
 
   if (message?.booking_id) {
-    const { error: bookingError } = await supabase
+    // The message is authenticated, but its booking reference is still
+    // untrusted. Never mutate another candidate's booking via service_role.
+    const { data: updatedBooking, error: bookingError } = await supabase
       .from("bookings")
       .update({ reponse_recue: true, reponse_recue_le: new Date().toISOString() })
-      .eq("id", message.booking_id);
-    if (bookingError) return { error: "Message reçu, mais mise à jour du booking impossible." };
+      .eq("id", message.booking_id)
+      .eq("figurant_id", figurant.id)
+      .select("id")
+      .maybeSingle();
+    if (bookingError || !updatedBooking) return { error: "Message reçu, mais mise à jour du booking impossible." };
     revalidatePath("/bookings/documents");
   }
 
