@@ -115,6 +115,7 @@ const DICT = {
   aucun_commentaire_profil: { fr: "Pas encore de commentaire.", en: "No comment yet." },
   ville_label: { fr: "Ville", en: "City" },
   apercu_avis: { fr: "Aperçu équipe : avis et commentaires désactivés.", en: "Team preview: opinions and comments are disabled." },
+  enchainer: { fr: "Enchaîner les vidéos", en: "Play videos in a row" },
   essai_n: { fr: "Vidéo {n}", en: "Video {n}" },
 
   // Essayages

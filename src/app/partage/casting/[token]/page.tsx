@@ -198,7 +198,7 @@ export default async function PartageCastingPage({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,15rem))] gap-3 sm:gap-4">
               {(() => {
                 const items: CastingRealEntryItem[] = roleEntries.map((entry) => ({
                   id: entry.id,
