@@ -28,7 +28,7 @@ type SearchParams = FigurantFilters & { vue?: string; page?: string };
 const FIGURANTS_PAR_PAGE = 60;
 // Sans accès complet : pas de liste en libre service. Un profil se trouve en
 // le cherchant par nom (3 lettres minimum) ou par critères (ville, âge,
-// taille, poids…), résultats plafonnés. Le genre seul ne suffit pas.
+// taille, poids, genre…), résultats plafonnés.
 const RECHERCHE_MIN = 3;
 const RESULTATS_MAX = 60;
 
@@ -56,7 +56,7 @@ export default async function FigurantsPage({
   const libreService = aAccesComplet(profile);
   const recherche = (filters.q ?? "").trim();
   const parCriteres =
-    !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
+    !!(filters.ville || filters.genre || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
     hasActiveMensurationFilters(filters);
   const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
@@ -279,7 +279,7 @@ export default async function FigurantsPage({
       {!libreService && !peutChercher && (
         <Card className="py-10 text-center text-sm text-text-muted">
           🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
-          téléphone), ou par critères : âge, taille, poids, ville… (le genre seul ne suffit pas, ajoute une fourchette).
+          téléphone), ou par critères : âge, taille, poids, ville….
         </Card>
       )}
       {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (
