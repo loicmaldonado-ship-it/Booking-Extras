@@ -27,7 +27,6 @@ import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { CASTING_MODE_LABELS, CASTING_STATUTS, CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
-import { Select } from "@/components/ui/field";
 import Link from "next/link";
 import { Video } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -222,33 +221,50 @@ export default async function CastingPage({
         })}
       </nav>
 
-      <form className="flex flex-wrap items-center gap-2" method="get">
-        <input type="hidden" name="cat" value={categorie} />
-        <Select name="mode" defaultValue={params.mode ?? ""} className="w-44">
-          <option value="">Mode (tous)</option>
-          <option value="selftape">{CASTING_MODE_LABELS.selftape}</option>
-          <option value="presentiel">{CASTING_MODE_LABELS.presentiel}</option>
-        </Select>
-        <Select name="statut" defaultValue={params.statut ?? ""} className="w-44">
-          <option value="">Statut (tous)</option>
-          {CASTING_STATUTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </Select>
-        <button
-          type="submit"
-          className="rounded-full bg-ink-raised-2 px-4 py-2 text-sm font-medium hover:border hover:border-coral/60"
-        >
-          Filtrer
-        </button>
-        {entriesFiltered && (
-          <Link href={`/casting?cat=${categorie}`} className="text-sm font-medium text-text hover:text-text">
-            Réinitialiser
-          </Link>
-        )}
-      </form>
+      {/* Filtres en boutons : un clic et c'est appliqué. */}
+      {[
+        {
+          cle: "mode" as const,
+          titre: "Mode",
+          options: [
+            { value: "selftape", label: CASTING_MODE_LABELS.selftape },
+            { value: "presentiel", label: CASTING_MODE_LABELS.presentiel },
+          ],
+        },
+        { cle: "statut" as const, titre: "Statut", options: CASTING_STATUTS.map((s) => ({ value: s.value as string, label: s.label })) },
+      ].map((groupe) => {
+        const actuel = params[groupe.cle] ?? "";
+        const lien = (valeur: string) => {
+          const sp = new URLSearchParams({ cat: categorie });
+          const autre = groupe.cle === "mode" ? "statut" : "mode";
+          if (params[autre]) sp.set(autre, params[autre]!);
+          if (valeur) sp.set(groupe.cle, valeur);
+          return `/casting?${sp.toString()}`;
+        };
+        return (
+          <div key={groupe.cle} className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{groupe.titre} :</span>
+            {[{ value: "", label: "Tous" }, ...groupe.options].map((o) => (
+              <Link
+                key={o.value || "tous"}
+                href={lien(o.value)}
+                aria-pressed={actuel === o.value}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-semibold",
+                  actuel === o.value ? "border-coral bg-coral text-ink" : "border-border-strong text-text hover:border-coral"
+                )}
+              >
+                {o.label}
+              </Link>
+            ))}
+          </div>
+        );
+      })}
+      {entriesFiltered && (
+        <Link href={`/casting?cat=${categorie}`} className="text-sm font-medium text-text hover:text-coral">
+          Réinitialiser les filtres
+        </Link>
+      )}
 
       <NewCastingRoleCard projetId={currentProjetId} categorie={categorie} />
 

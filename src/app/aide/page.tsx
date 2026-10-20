@@ -383,7 +383,7 @@ export default function AidePage() {
               genre, âge, dispo par date, réponse à une question, et <UI>＋ Plus de filtres</UI> (Myrole, véhicule, code
               postal, mensurations). Les filtres actifs s&apos;affichent en dessous, chacun se retire d&apos;un clic sur{" "}
               <UI>×</UI>. La recherche signale aussi les personnes trouvées dans un autre onglet ou déjà envoyées dans une
-              journée. Le menu <UI>Trier</UI> range par arrivée, nom, âge ou habitué·es ; <UI>🖼️ Trombi</UI> /{" "}
+              journée. Les boutons <UI>Trier :</UI> rangent par arrivée, nom, âge ou habitué·es, et s&apos;appliquent tout de suite ; les actions sur la sélection (étiqueter, réserve, casting, booking) s&apos;ouvrent dans une fenêtre qui affiche le résultat et se ferme avec <UI>Fermer</UI> ; <UI>🖼️ Trombi</UI> /{" "}
               <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
@@ -576,7 +576,7 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les
-          profils du casting par <UI>Mode</UI> (Selftape / Présentiel) et/ou par <UI>Statut</UI> — pratique pour
+          profils du casting avec les boutons <UI>Mode</UI> (Selftape / Présentiel) et/ou <UI>Statut</UI> (appliqués dès le clic) — pratique pour
           repérer d&apos;un coup d&apos;œil, par exemple, tout ce qui reste <UI>Incomplet</UI> quel que soit le
           rôle.
         </Callout>

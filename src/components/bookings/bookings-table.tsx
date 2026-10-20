@@ -537,6 +537,9 @@ export function BookingsTable({
   const [changeDateOpen, setChangeDateOpen] = useState(false);
   const [changeDateMessage, setChangeDateMessage] = useState<string | null>(null);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
+  // Personnes cochées à l'ouverture d'une fenêtre d'action : elle les garde
+  // même quand l'envoi vide la sélection, pour montrer le résultat.
+  const [figee, setFigee] = useState<{ bookingIds: string[]; figurantIds: string[] }>({ bookingIds: [], figurantIds: [] });
   const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number; dejaCompte?: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
@@ -845,6 +848,18 @@ export function BookingsTable({
   }
 
   const selectedRows = rows.filter((r) => selected.has(r.id));
+  function ouvrirOutil(outil: "essayage" | "casting" | "changeDate" | "addDates") {
+    setFigee({
+      bookingIds: selectedRows.map((r) => r.id),
+      figurantIds: selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id),
+    });
+    setEssayageOpen(outil === "essayage");
+    setCastingOpen(outil === "casting");
+    setChangeDateOpen(outil === "changeDate");
+    setAddDatesOpen(outil === "addDates");
+    if (outil === "essayage") setEssayageResult(null);
+  }
+
   const selectedWithEmail = selectedRows.filter((r) => r.figurants?.email && r.figurant_id);
   const selectedWithoutEmail = selectedRows.length - selectedWithEmail.length;
   // La convocation ne repart pas toute seule à quelqu'un qui l'a déjà
@@ -1677,12 +1692,75 @@ export function BookingsTable({
       )}
 
       {changeDateMessage && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-2 text-sm text-turquoise">
-          {changeDateMessage}
-          <button type="button" onClick={() => setChangeDateMessage(null)} className="text-xs text-text hover:text-text">
-            Fermer
-          </button>
-        </div>
+        <Modale titre="🔀 Changement de date" onClose={() => setChangeDateMessage(null)}>
+          <p className="text-sm font-medium text-turquoise">{changeDateMessage}</p>
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setChangeDateMessage(null)}>
+              Fermer
+            </Button>
+          </div>
+        </Modale>
+      )}
+
+      {changeDateOpen && projetId && (
+        <Modale titre="🔀 Changer de date" onClose={() => setChangeDateOpen(false)} bloquee={pending}>
+          <ChangeDateBar
+            bookingIds={figee.bookingIds}
+            currentDate={date}
+            autresJournees={autresJournees}
+            onDone={(message) => {
+              setChangeDateOpen(false);
+              setSelected(new Set());
+              setChangeDateMessage(message);
+            }}
+            onPartial={(restantIds) => setSelected(new Set(restantIds))}
+          />
+        </Modale>
+      )}
+
+      {addDatesOpen && projetId && (
+        <Modale titre="📅 Ajouter des dates" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setAddDatesOpen(false)} bloquee={pending}>
+          <AddToJourneeBar
+            figurantIds={figee.figurantIds}
+            projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+            onDone={() => setSelected(new Set())}
+          />
+        </Modale>
+      )}
+
+      {castingOpen && projetId && (
+        <Modale titre="🎬 Envoyer au casting" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setCastingOpen(false)} bloquee={pending}>
+          <AddToCastingBar
+            figurantIds={figee.figurantIds}
+            projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+            onDone={() => setSelected(new Set())}
+          />
+        </Modale>
+      )}
+
+      {essayageOpen && projetId && (
+        <Modale titre="👗 Envoyer à un essayage" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setEssayageOpen(false)} bloquee={pending}>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              value={essayageDate}
+              onChange={(e) => setEssayageDate(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <input
+              value={essayageLieu}
+              onChange={(e) => setEssayageLieu(e.target.value)}
+              placeholder="Lieu (optionnel)"
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="turquoise" disabled={pending || !essayageDate || selected.size === 0} onClick={sendToEssayage}>
+              {pending ? "Envoi..." : "Envoyer"}
+            </Button>
+          </div>
+          {essayageResult && <p className="text-sm font-medium">{essayageResult}</p>}
+        </Modale>
       )}
 
       {selected.size > 0 && (
@@ -1783,12 +1861,12 @@ export function BookingsTable({
             💬 Message libre
           </Button>
           {projetId && (
-            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setEssayageOpen((v) => !v)}>
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => ouvrirOutil("essayage")}>
               👗 Envoyer à un essayage
             </Button>
           )}
           {projetId && (
-            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setCastingOpen((v) => !v)}>
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => ouvrirOutil("casting")}>
               🎬 Envoyer au casting
             </Button>
           )}
@@ -1797,10 +1875,7 @@ export function BookingsTable({
               type="button"
               variant="secondary"
               disabled={pending}
-              onClick={() => {
-                setChangeDateOpen((v) => !v);
-                setAddDatesOpen(false);
-              }}
+              onClick={() => ouvrirOutil("changeDate")}
             >
               🔀 Changer de date
             </Button>
@@ -1810,10 +1885,7 @@ export function BookingsTable({
               type="button"
               variant="secondary"
               disabled={pending}
-              onClick={() => {
-                setAddDatesOpen((v) => !v);
-                setChangeDateOpen(false);
-              }}
+              onClick={() => ouvrirOutil("addDates")}
             >
               📅 Ajouter des dates
             </Button>
@@ -1840,68 +1912,6 @@ export function BookingsTable({
           <Button type="button" variant="danger" disabled={pending} onClick={retirerSelection}>
             🗑 Retirer de la journée
           </Button>
-          {changeDateOpen && projetId && (
-            <div className="w-full border-t border-coral/40 pt-3">
-              <ChangeDateBar
-                bookingIds={selectedRows.map((r) => r.id)}
-                currentDate={date}
-                autresJournees={autresJournees}
-                onDone={(message) => {
-                  setChangeDateOpen(false);
-                  setSelected(new Set());
-                  setChangeDateMessage(message);
-                }}
-                onPartial={(restantIds) => setSelected(new Set(restantIds))}
-              />
-            </div>
-          )}
-          {addDatesOpen && projetId && (
-            <div className="w-full border-t border-turquoise/40 pt-3">
-              <AddToJourneeBar
-                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
-                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
-                onDone={() => {
-                  setAddDatesOpen(false);
-                  setSelected(new Set());
-                }}
-              />
-            </div>
-          )}
-          {essayageOpen && projetId && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
-              <input
-                type="date"
-                value={essayageDate}
-                onChange={(e) => setEssayageDate(e.target.value)}
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <input
-                value={essayageLieu}
-                onChange={(e) => setEssayageLieu(e.target.value)}
-                placeholder="Lieu (optionnel)"
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <Button type="button" variant="turquoise" disabled={pending || !essayageDate} onClick={sendToEssayage}>
-                {pending ? "Envoi..." : "Envoyer"}
-              </Button>
-              {essayageResult && <span className="text-xs text-text-muted">{essayageResult}</span>}
-            </div>
-          )}
-          {castingOpen && projetId && (
-            <div className="w-full border-t border-turquoise/40 pt-3">
-              <AddToCastingBar
-                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
-                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
-                onDone={() => {
-                  setCastingOpen(false);
-                  setSelected(new Set());
-                }}
-              />
-            </div>
-          )}
-
           {espacePersoOpen && projetId && (
             <Modale titre="🔗 Lien espace perso" onClose={() => setEspacePersoOpen(false)} bloquee={pending}>
             <div className="flex flex-wrap items-center gap-2">

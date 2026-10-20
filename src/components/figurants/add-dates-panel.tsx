@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 
 export function AddDatesPanel({
@@ -13,17 +14,16 @@ export function AddDatesPanel({
 }) {
   const [open, setOpen] = useState(false);
 
-  if (!open) {
-    return (
+  return (
+    <>
       <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
         + Ajouter des dates
       </Button>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <AddToJourneeBar figurantIds={[figurantId]} projets={projets} onDone={() => setOpen(false)} />
-    </div>
+      {open && (
+        <Modale titre="📅 Ajouter des dates" onClose={() => setOpen(false)}>
+          <AddToJourneeBar figurantIds={[figurantId]} projets={projets} />
+        </Modale>
+      )}
+    </>
   );
 }
