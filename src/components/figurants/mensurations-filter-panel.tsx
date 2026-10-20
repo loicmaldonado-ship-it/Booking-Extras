@@ -10,18 +10,25 @@ import {
 // s'affiche pas mais participe quand même à la soumission du <form> GET
 // qui l'englobe — pas besoin de JS pour garder les filtres actifs visibles
 // sans imposer la liste complète des mensurations à l'écran en permanence.
-export function MensurationsFilterPanel({ defaultValues }: { defaultValues: MensurationFilters }) {
+export function MensurationsFilterPanel({
+  defaultValues,
+  masques = [],
+}: {
+  defaultValues: MensurationFilters;
+  // Critères déjà saisis ailleurs dans le formulaire (évite les champs en double).
+  masques?: string[];
+}) {
   return (
     <details
       className="col-span-2 rounded-xl border border-border p-3 md:col-span-4"
       open={hasActiveMensurationFilters(defaultValues)}
     >
       <summary className="cursor-pointer text-sm font-medium text-text-muted">
-        Code postal &amp; mensurations
+        Plus de critères : code postal &amp; autres mensurations
       </summary>
       <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Input name="code_postal" placeholder="Code postal" defaultValue={defaultValues.code_postal ?? ""} />
-        {MENSURATION_RANGE_FIELDS.map((f) => (
+        {MENSURATION_RANGE_FIELDS.filter((f) => !masques.includes(f.key)).map((f) => (
           <div key={f.key} className="col-span-2 flex gap-1.5 md:col-span-1">
             <Input
               type="number"

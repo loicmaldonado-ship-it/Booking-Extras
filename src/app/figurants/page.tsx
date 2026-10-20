@@ -11,6 +11,7 @@ import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { hasActiveMensurationFilters } from "@/lib/figurants/mensuration-filters";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
@@ -25,10 +26,11 @@ export const dynamic = "force-dynamic";
 type SearchParams = FigurantFilters & { vue?: string; page?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
-// Sans accès complet : pas de liste en libre service, un profil se trouve en
-// le cherchant (3 lettres minimum, résultats plafonnés).
+// Sans accès complet : pas de liste en libre service. Un profil se trouve en
+// le cherchant par nom (3 lettres minimum) ou par critères (ville, âge,
+// taille, poids…), résultats plafonnés. Le genre seul ne suffit pas.
 const RECHERCHE_MIN = 3;
-const RESULTATS_MAX = 30;
+const RESULTATS_MAX = 60;
 
 export default async function FigurantsPage({
   searchParams,
@@ -53,7 +55,10 @@ export default async function FigurantsPage({
   // pas d'une requête séparée.
   const libreService = aAccesComplet(profile);
   const recherche = (filters.q ?? "").trim();
-  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN;
+  const parCriteres =
+    !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
+    hasActiveMensurationFilters(filters);
+  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
   const { data: figurants, error, count: totalCount } = peutChercher
@@ -130,7 +135,7 @@ export default async function FigurantsPage({
           <p className="mt-1 text-text-muted">
             {libreService
               ? `${totalCount ?? 0} ${isComediens ? "comédien·ne" : "figurant·e"}${(totalCount ?? 0) > 1 ? "s" : ""}`
-              : "Cherche un profil par son nom, prénom, email ou téléphone."}
+              : "Cherche un profil par son nom, ou par critères (âge, taille, poids…)."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -192,55 +197,76 @@ export default async function FigurantsPage({
       </div>
 
       <Card>
-        <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
+        <form className="flex flex-col gap-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
-          <Input
-            name="q"
-            placeholder={libreService ? "Nom, prénom, email..." : "🔎 Nom, prénom, email ou téléphone (3 lettres min.)"}
-            defaultValue={params.q}
-            autoFocus={!libreService}
-          />
-          <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
-          <Select name="myrole" defaultValue={params.myrole ?? ""}>
-            <option value="">Compte Myrole (tous)</option>
-            <option value="oui">Avec compte Myrole</option>
-            <option value="non">Sans compte Myrole</option>
-          </Select>
-          <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
-            <option value="">Véhicule (tous)</option>
-            <option value="oui">A un véhicule</option>
-            <option value="non">Sans véhicule</option>
-            <option value="voiture">Voiture</option>
-            <option value="velo">Vélo</option>
-            <option value="moto">Moto</option>
-            <option value="scooter">Scooter</option>
-          </Select>
-          <Select name="genre" defaultValue={params.genre ?? ""}>
-            <option value="">Genre (tous)</option>
-            {GENRES.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </Select>
-          <div className="col-span-2 flex gap-2 md:col-span-1">
-            <Input type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
-            <Input type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
+          <h2 className="text-sm font-semibold">🔎 Chercher dans la base</h2>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Input
+              name="q"
+              placeholder={libreService ? "Nom, prénom, email..." : "Nom, prénom, email ou téléphone (3 lettres min.)"}
+              defaultValue={params.q}
+                          />
+            <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
           </div>
-          <MensurationsFilterPanel defaultValues={filters} />
-          <button
-            type="submit"
-            className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-1"
-          >
-            Filtrer
-          </button>
-          <Link
-            href="/figurants"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
-          >
-            Réinitialiser
-          </Link>
+
+          <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Genre">
+            <span className="text-xs font-medium text-text">Genre :</span>
+            {[{ value: "", label: "Tous" }, ...GENRES.map((g) => ({ value: g as string, label: g }))].map((g) => (
+              <label key={g.value || "tous"} className="cursor-pointer">
+                <input type="radio" name="genre" value={g.value} defaultChecked={(params.genre ?? "") === g.value} className="peer sr-only" />
+                <span className="inline-block rounded-full border border-border-strong px-3 py-1.5 text-xs font-semibold text-text peer-checked:border-coral peer-checked:bg-coral peer-checked:text-ink peer-focus-visible:ring-2 peer-focus-visible:ring-coral">
+                  {g.label}
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {(
+              [
+                ["Âge", "age_min", "age_max", params.age_min, params.age_max],
+                ["Taille (cm)", "taille_min", "taille_max", filters.taille_min, filters.taille_max],
+                ["Poids (kg)", "poids_min", "poids_max", filters.poids_min, filters.poids_max],
+              ] as const
+            ).map(([label, min, max, vMin, vMax]) => (
+              <div key={min} className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-text">{label}</span>
+                <div className="flex items-center gap-2">
+                  <Input type="number" name={min} placeholder="de" defaultValue={vMin} min={0} aria-label={`${label} minimum`} />
+                  <span className="text-xs text-text-muted">à</span>
+                  <Input type="number" name={max} placeholder="à" defaultValue={vMax} min={0} aria-label={`${label} maximum`} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Select name="myrole" defaultValue={params.myrole ?? ""}>
+              <option value="">Compte Myrole (tous)</option>
+              <option value="oui">Avec compte Myrole</option>
+              <option value="non">Sans compte Myrole</option>
+            </Select>
+            <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
+              <option value="">Véhicule (tous)</option>
+              <option value="oui">A un véhicule</option>
+              <option value="non">Sans véhicule</option>
+              <option value="voiture">Voiture</option>
+              <option value="velo">Vélo</option>
+              <option value="moto">Moto</option>
+              <option value="scooter">Scooter</option>
+            </Select>
+          </div>
+
+          <MensurationsFilterPanel defaultValues={filters} masques={["taille", "poids"]} />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit">🔎 Rechercher</Button>
+            <Link href={`/figurants${isComediens ? "?profil=comediens" : ""}`} className="text-sm font-medium text-text hover:text-coral">
+              Réinitialiser
+            </Link>
+            {peutChercher && <span className="text-sm text-text-muted">{totalCount ?? 0} profil{(totalCount ?? 0) > 1 ? "s correspondent" : " correspond"}</span>}
+          </div>
         </form>
       </Card>
 
@@ -252,8 +278,8 @@ export default async function FigurantsPage({
 
       {!libreService && !peutChercher && (
         <Card className="py-10 text-center text-sm text-text-muted">
-          🔎 La Base Profils ne se parcourt plus en libre service : tape au moins {RECHERCHE_MIN} lettres du nom, du
-          prénom, de l&apos;email ou du téléphone pour trouver un profil.
+          🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
+          téléphone), ou par critères : âge, taille, poids, ville… (le genre seul ne suffit pas, ajoute une fourchette).
         </Card>
       )}
       {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (
@@ -270,6 +296,8 @@ export default async function FigurantsPage({
             nom: f.nom,
             ville: f.ville,
             age: computeAge(f.date_naissance),
+            tailleCm: f.taille_cm,
+            poidsKg: f.poids_kg,
             telephone: f.telephone,
             email: f.email,
             portraitUrl: pickPortrait(portraitByFigurant.get(f.id))?.url ?? null,
@@ -286,6 +314,8 @@ export default async function FigurantsPage({
               <th className="px-6 py-3 font-medium"></th>
               <th className="px-6 py-3 font-medium">Nom</th>
               <th className="px-6 py-3 font-medium">Âge</th>
+              <th className="px-6 py-3 font-medium">Taille</th>
+              <th className="px-6 py-3 font-medium">Poids</th>
               <th className="px-6 py-3 font-medium">Ville</th>
               <th className="px-6 py-3 font-medium">Contact</th>
               <th className="px-6 py-3 font-medium">Myrole</th>
@@ -323,6 +353,8 @@ export default async function FigurantsPage({
                 <td className="px-6 py-3 text-text-muted tabular-nums">
                   {computeAge(f.date_naissance) != null ? `${computeAge(f.date_naissance)} ans` : "—"}
                 </td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">{f.taille_cm ? `${f.taille_cm} cm` : "—"}</td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">{f.poids_kg ? `${f.poids_kg} kg` : "—"}</td>
                 <td className="px-6 py-3 text-text-muted">{f.ville ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
                   <div className="flex items-center gap-2">
@@ -350,7 +382,7 @@ export default async function FigurantsPage({
             ))}
             {(figurants ?? []).length === 0 && !error && (
               <tr>
-                <td colSpan={7} className="px-6 py-10 text-center text-text-muted">
+                <td colSpan={9} className="px-6 py-10 text-center text-text-muted">
                   Aucun·e figurant·e pour l&apos;instant.
                 </td>
               </tr>
