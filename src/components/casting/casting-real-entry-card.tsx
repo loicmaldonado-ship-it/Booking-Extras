@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
-import { createPortal, flushSync } from "react-dom";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Badge } from "@/components/ui/card";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
@@ -198,16 +198,39 @@ function CastingRealMediaModal({
   const gallery: GalleryPhoto[] = (item?.photos ?? []).map((p) => ({ src: p.url, alt: p.label }));
 
   // Essai affiché (le premier à l'ouverture), réinitialisé à chaque changement
-  // de profil, pendant le rendu (pas dans un effet). La vidéo démarre toute
-  // seule (l'ouverture du profil est le geste de l'utilisateur) et s'enchaîne :
-  // essai suivant, puis profil suivant du rôle qui a une vidéo. Un seul
-  // lecteur reste monté, donc le plein écran dure d'une vidéo à l'autre.
+  // de profil, pendant le rendu (pas dans un effet). Le profil s'ouvre sans
+  // rien lancer ; c'est le bouton « Lancer la vidéo » qui démarre la lecture
+  // ET la passe en plein écran (dans ce même clic, seul moment où le
+  // navigateur l'autorise). Ensuite les vidéos s'enchaînent : essai suivant,
+  // puis profil suivant du rôle qui a une vidéo, sans relancer. Un seul lecteur
+  // reste monté, donc le plein écran dure d'une vidéo à l'autre. Passer à un
+  // autre profil à la main (‹ ›) demande de relancer ; l'enchaînement, non.
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [essai, setEssai] = useState(0);
   const [enchainer, setEnchainer] = useState(true);
+  const [demarre, setDemarre] = useState(false);
+  const [chaine, setChaine] = useState(false);
   const [essaiItemId, setEssaiItemId] = useState(item?.id);
   if (item?.id !== essaiItemId) {
     setEssaiItemId(item?.id);
     setEssai(0);
+    setDemarre(chaine);
+    setChaine(false);
+  }
+
+  function lancerVideo() {
+    const lecteur = videoRef.current as (HTMLVideoElement & { webkitRequestFullscreen?: () => Promise<void> | void }) | null;
+    if (!lecteur) return;
+    setDemarre(true);
+    lecteur.play().catch(() => {});
+    try {
+      // Sans effet là où l'API n'existe pas (iPhone : le lecteur passe en plein
+      // écran avec son propre bouton).
+      const demande = lecteur.requestFullscreen?.() ?? lecteur.webkitRequestFullscreen?.();
+      Promise.resolve(demande).catch(() => {});
+    } catch {
+      // Pas de plein écran possible ici : la fenêtre reste grande.
+    }
   }
 
   const goPrev = useCallback(() => onIndexChange((index - 1 + items.length) % items.length), [index, items.length, onIndexChange]);
@@ -223,6 +246,7 @@ function CastingRealMediaModal({
     }
     for (let i = index + 1; i < items.length; i++) {
       if (items[i].videoUrls.length > 0) {
+        setChaine(true);
         onIndexChange(i);
         return;
       }
@@ -308,17 +332,34 @@ function CastingRealMediaModal({
         <div className="flex min-w-0 flex-col gap-2 [grid-area:video]">
           {video ? (
             <>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
-              <video
-                src={video.url}
-                controls
-                autoPlay
-                playsInline
-                preload="auto"
-                data-reel-video
-                onEnded={finDeVideo}
-                className="aspect-video max-h-[70vh] w-full rounded-xl bg-black"
-              />
+              <div className="relative">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
+                <video
+                  ref={videoRef}
+                  src={video.url}
+                  controls
+                  autoPlay={demarre}
+                  playsInline
+                  preload="auto"
+                  onEnded={finDeVideo}
+                  className="aspect-video max-h-[70vh] w-full rounded-xl bg-black"
+                />
+                {!demarre && (
+                  <button
+                    type="button"
+                    onClick={lancerVideo}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/60 text-white transition-colors hover:bg-black/45"
+                    aria-label={t(lang, "lancer_video")}
+                  >
+                    <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 text-black">
+                      <svg viewBox="0 0 24 24" className="ml-1 h-9 w-9 fill-current" aria-hidden="true">
+                        <path d="M7 4.5v15l13-7.5z" />
+                      </svg>
+                    </span>
+                    <span className="text-sm font-semibold">{t(lang, "lancer_video")}</span>
+                  </button>
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {item.videoUrls.length > 1 &&
                   item.videoUrls.map((v, i) => (
@@ -452,27 +493,8 @@ export function CastingRealEntryCard({
         type="button"
         onClick={() => {
           if (!peutOuvrir) return;
-          // La fenêtre s'affiche tout de suite, puis la vidéo passe en plein écran
-          // dans ce même clic (seul moment où le navigateur l'autorise). C'est la
-          // vidéo qui passe en plein écran, pas la page : son bouton plein écran
-          // garde son fonctionnement normal, et le lecteur restant le même d'une
-          // vidéo à l'autre, le plein écran dure tout l'enchaînement. Sans effet
-          // là où l'API n'existe pas (iPhone : plein écran avec le bouton du lecteur).
-          flushSync(() => {
-            setCurrent(index);
-            setOpen(true);
-          });
-          if (item.videoUrls.length > 0) {
-            const lecteur = document.querySelector<HTMLVideoElement>("video[data-reel-video]") as
-              | (HTMLVideoElement & { webkitRequestFullscreen?: () => Promise<void> | void })
-              | null;
-            try {
-              const demande = lecteur?.requestFullscreen?.() ?? lecteur?.webkitRequestFullscreen?.();
-              Promise.resolve(demande).catch(() => {});
-            } catch {
-              // Pas de plein écran possible ici : la fenêtre reste grande.
-            }
-          }
+          setCurrent(index);
+          setOpen(true);
         }}
         disabled={!peutOuvrir}
         className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"

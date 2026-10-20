@@ -549,8 +549,9 @@ export default function AidePage() {
           <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
           sont toujours montrés ; une info décochée n&apos;est même pas envoyée à la page), et ce qu&apos;il·elle peut
           faire : <UI>Avis Oui / Peut-être / Non</UI> sur chaque profil et <UI>Commentaires par profil</UI>. Un
-          profil ouvre une <strong className="text-text">salle de visionnage</strong> en plein écran : sa vidéo
-          démarre toute seule, sans aperçu de photo avant, et les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
+          profil ouvre une <strong className="text-text">salle de visionnage</strong> : rien ne démarre à
+          l&apos;ouverture ; <UI>Lancer la vidéo</UI> la lit <strong className="text-text">en plein écran</strong> (sans
+          aperçu de photo avant), puis les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
           (essai suivant, puis profil suivant du rôle ; case <UI>Enchaîner les vidéos</UI> pour couper), avec ses
           essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
           profil suivant du rôle. L&apos;avis et les commentaires par profil sont activés par défaut. Les profils
