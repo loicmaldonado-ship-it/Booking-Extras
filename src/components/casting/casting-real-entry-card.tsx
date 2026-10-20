@@ -463,11 +463,19 @@ export function CastingRealEntryCard({
             setOpen(true);
           });
           if (item.videoUrls.length > 0) {
-            document.querySelector<HTMLVideoElement>("video[data-reel-video]")?.requestFullscreen?.().catch(() => {});
+            const lecteur = document.querySelector<HTMLVideoElement>("video[data-reel-video]") as
+              | (HTMLVideoElement & { webkitRequestFullscreen?: () => Promise<void> | void })
+              | null;
+            try {
+              const demande = lecteur?.requestFullscreen?.() ?? lecteur?.webkitRequestFullscreen?.();
+              Promise.resolve(demande).catch(() => {});
+            } catch {
+              // Pas de plein écran possible ici : la fenêtre reste grande.
+            }
           }
         }}
         disabled={!peutOuvrir}
-        className="group flex w-[calc(50%-0.375rem)] flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border sm:w-60"
+        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-ink text-left transition-colors hover:border-coral/60 disabled:cursor-default disabled:hover:border-border"
       >
         <div className="relative aspect-square w-full overflow-hidden bg-ink-raised-2">
           {item.portraitUrl && (
