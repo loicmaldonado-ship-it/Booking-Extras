@@ -58,7 +58,7 @@ export default async function ProjetsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Clapperboard size={28} strokeWidth={1.75} />Projets</h1>
           <p className="mt-1 text-text-muted">
@@ -69,7 +69,7 @@ export default async function ProjetsPage({
       </div>
 
       <Card>
-        <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
+        <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
           <Input name="q" placeholder="Nom, réalisateur·ice, société..." defaultValue={params.q} />
           <Select name="type" defaultValue={params.type ?? ""}>
             <option value="">Type (tous)</option>
@@ -97,7 +97,7 @@ export default async function ProjetsPage({
           </button>
           <Link
             href="/projets"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1"
+            className="flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text sm:col-span-2 md:col-span-1"
           >
             Réinitialiser
           </Link>
@@ -110,8 +110,46 @@ export default async function ProjetsPage({
         </div>
       )}
 
-      <Card className="p-0">
-        <table className="w-full text-sm">
+      <section className="grid gap-3 md:hidden" aria-label="Liste des projets">
+        {(projets ?? []).map((p) => (
+          <Card key={p.id} className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <Link href={"/projets/" + p.id} className="min-w-0 flex-1 break-words font-semibold hover:text-coral">
+                {p.nom}
+              </Link>
+              <div className="flex flex-wrap gap-1.5">
+                {p.confidentiel && <Badge tone="coral">Confidentiel</Badge>}
+                {p.archive && <Badge>Archivé</Badge>}
+              </div>
+            </div>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-text-muted">Type</dt>
+              <dd className="min-w-0 break-words">{p.type ?? "—"}</dd>
+              <dt className="text-text-muted">Réalisation</dt>
+              <dd className="min-w-0 break-words">{p.realisateur ?? "—"}</dd>
+              <dt className="text-text-muted">Tournage</dt>
+              <dd>
+                {p.date_debut ? (
+                  <>
+                    {formatDateShort(p.date_debut)}
+                    {p.date_fin ? " → " + formatDateShort(p.date_fin) : ""}
+                  </>
+                ) : "—"}
+              </dd>
+              <dt className="text-text-muted">Lieu</dt>
+              <dd className="min-w-0 break-words">{p.lieu ?? "—"}</dd>
+            </dl>
+          </Card>
+        ))}
+        {(projets ?? []).length === 0 && !error && (
+          <Card className="py-8 text-center text-sm text-text-muted">
+            Aucun projet pour l&apos;instant.
+          </Card>
+        )}
+      </section>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium">Nom</th>

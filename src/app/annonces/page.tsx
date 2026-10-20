@@ -55,7 +55,7 @@ export default async function AnnoncesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Megaphone size={28} strokeWidth={1.75} />Annonces</h1>
           <p className="mt-1 text-text-muted">
@@ -77,7 +77,7 @@ export default async function AnnoncesPage({
       </Card>
 
       <Card>
-        <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
+        <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
           <Input name="q" placeholder="Titre..." defaultValue={params.q} />
           <Select name="projet_id" defaultValue={params.projet_id ?? ""}>
             <option value="">Projet (tous)</option>
@@ -100,7 +100,7 @@ export default async function AnnoncesPage({
           </button>
           <Link
             href="/annonces"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1"
+            className="flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text sm:col-span-2 md:col-span-1"
           >
             Réinitialiser
           </Link>
@@ -113,8 +113,36 @@ export default async function AnnoncesPage({
         </div>
       )}
 
-      <Card className="p-0">
-        <table className="w-full text-sm">
+      <section className="grid gap-3 md:hidden" aria-label="Liste des annonces">
+        {(annonces ?? []).map((a) => (
+          <Card key={a.id} className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <Link href={"/annonces/" + a.id} className="min-w-0 flex-1 break-words font-semibold hover:text-coral">
+                {a.titre}
+              </Link>
+              <Badge tone={a.statut === "ouverte" ? "turquoise" : "default"}>
+                {a.statut === "ouverte" ? "Ouverte" : "Fermée"}
+              </Badge>
+            </div>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-text-muted">Projet</dt>
+              <dd className="min-w-0 break-words">{a.projets?.nom ?? "—"}</dd>
+              <dt className="text-text-muted">Date recherchée</dt>
+              <dd>{a.date_recherchee ? formatDateShort(a.date_recherchee) : "—"}</dd>
+              <dt className="text-text-muted">Lieu</dt>
+              <dd className="min-w-0 break-words">{a.lieu ?? "—"}</dd>
+            </dl>
+          </Card>
+        ))}
+        {(annonces ?? []).length === 0 && !error && (
+          <Card className="py-8 text-center text-sm text-text-muted">
+            Aucune annonce pour l&apos;instant.
+          </Card>
+        )}
+      </section>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
+        <table className="w-full min-w-[680px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium">Titre</th>

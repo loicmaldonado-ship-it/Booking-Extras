@@ -30,7 +30,7 @@ export default async function RgpdPage({
       </div>
 
       <Card>
-        <form className="flex items-center gap-3" method="get">
+        <form className="flex flex-wrap items-center gap-3" method="get">
           <span className="text-sm text-text-muted">Inactifs depuis plus de :</span>
           <Select name="seuil" defaultValue={String(seuilAns)} className="w-40">
             {SEUILS.map((s) => (
@@ -48,8 +48,30 @@ export default async function RgpdPage({
         </form>
       </Card>
 
-      <Card className="p-0">
-        <table className="w-full text-sm">
+      <section className="grid gap-3 md:hidden" aria-label="Profils inactifs">
+        {figurants.map((f) => (
+          <Card key={f.id} className="flex flex-col gap-3">
+            <h2 className="break-words font-semibold">{f.prenom} {f.nom}</h2>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-text-muted">Email</dt>
+              <dd className="min-w-0 break-all">{f.email ?? "—"}</dd>
+              <dt className="text-text-muted">Dernière activité</dt>
+              <dd>{f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}</dd>
+            </dl>
+            <div className="flex flex-wrap items-center gap-2">
+              <AnonymiserButton figurantId={f.id} nom={f.prenom + " " + f.nom} />
+            </div>
+          </Card>
+        ))}
+        {figurants.length === 0 && (
+          <Card className="py-8 text-center text-sm text-text-muted">
+            Aucun profil inactif depuis plus de {seuilAns} an{seuilAns > 1 ? "s" : ""}.
+          </Card>
+        )}
+      </section>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium">Profil</th>
