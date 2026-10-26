@@ -7,3 +7,5 @@ Le bouton vérifie le résultat réel du nettoyage : une erreur ou interruption 
 Vérifications : onze tests ciblés de sécurité et de comportement, types et ESLint OK. Dans le navigateur local : page accessible au compte propriétaire fictif, accès direct refusé (404) au compte assistant fictif, sans coordonnées globales rendues. Capture jointe.
 
 La purge complète des données liées reste un chantier distinct : l’ancien traitement ne nettoie pas encore tous les textes/messages et médias de casting. Le bilan LEG-05 doit conserver cette limite tant que ce traitement n’a pas été développé et vérifié.
+
+Le premier contrôle de types a signalé un accès incorrect au champ error de l’union de résultat. Le contrôle explicite de ce champ est corrigé ; le contrôle de types final et les trois tests du bouton passent. Le journal initial est conservé séparément.

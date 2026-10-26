@@ -16,7 +16,7 @@ export function AnonymiserButton({ figurantId, nom }: { figurantId: string; nom:
       setError(null);
       try {
         const result = await anonymiserFigurant(figurantId);
-        if (result.error) { setError(result.error); setConfirming(false); return; }
+        if ("error" in result && result.error) { setError(result.error); setConfirming(false); return; }
         router.refresh();
       } catch {
         setError("Nettoyage interrompu. Aucune réussite confirmée. Réessaie.");

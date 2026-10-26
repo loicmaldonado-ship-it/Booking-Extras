@@ -2,7 +2,3 @@
 > booking-extras@0.1.0 typecheck
 > tsc --noEmit
 
-src/components/rgpd/anonymiser-button.tsx(19,20): error TS2339: Property 'error' does not exist on type '{ error?: string | undefined; } | { success: true; }'.
-  Property 'error' does not exist on type '{ success: true; }'.
-src/components/rgpd/anonymiser-button.tsx(19,45): error TS2339: Property 'error' does not exist on type '{ error?: string | undefined; } | { success: true; }'.
-  Property 'error' does not exist on type '{ success: true; }'.

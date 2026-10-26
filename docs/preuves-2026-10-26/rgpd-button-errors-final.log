@@ -1,0 +1,11 @@
+✔ anonymisation displays a returned cleanup error instead of refreshing as if it succeeded (105.063166ms)
+✔ anonymisation displays an interruption without claiming success (24.654119ms)
+✔ only successful anonymisation refreshes the profile list (13.334659ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 838.477783
