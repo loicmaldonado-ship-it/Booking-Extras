@@ -325,6 +325,14 @@ export async function assignPresentielEntryToCreneau(entryId: string, creneauId:
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ creneau_id: creneauId }).eq("id", entryId);
+  if (creneauId) {
+    const [current, target] = await Promise.all([
+      supabase.from("casting_presentiel_entries").select("journee_id").eq("id", entryId).maybeSingle(),
+      supabase.from("casting_presentiel_creneaux").select("journee_id").eq("id", creneauId).maybeSingle(),
+    ]);
+    if (current.error || target.error || !current.data || !target.data || current.data.journee_id !== target.data.journee_id) return { error: "Le créneau doit appartenir à cette journée." };
+  }
+  const { error } = await supabase.from("casting_presentiel_entries").update({ creneau_id: creneauId }).eq("id", entryId);
+  if (error) return { error: "Affectation du créneau impossible." };
   revalidatePath("/casting/presentiel/journee");
 }

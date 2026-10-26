@@ -68,7 +68,8 @@ export async function ajouterPeriodeAnnonce(
       .insert(nouvelles.map((date) => ({ annonce_id: annonceId, date })));
     if (error) return { error: error.message };
   }
-  await supabase.from("annonces").update({ dispos_par_calendrier: true }).eq("id", annonceId);
+  const { error: modeError } = await supabase.from("annonces").update({ dispos_par_calendrier: true }).eq("id", annonceId);
+  if (modeError) return { error: "Dates enregistrées, mais le mode calendrier n’a pas pu être activé. Réessaie." };
 
   revalidatePath(`/annonces/${annonceId}`);
   return { ajoutes: nouvelles.length };

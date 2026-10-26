@@ -1,0 +1,37 @@
+do $test$
+declare pA uuid:='00000000-0000-4000-8000-0000000070e0'; pB uuid:=gen_random_uuid(); f uuid:=gen_random_uuid();
+ dA uuid:=gen_random_uuid(); dB uuid:=gen_random_uuid(); cA uuid:=gen_random_uuid(); cB uuid:=gen_random_uuid();
+ rA uuid:=gen_random_uuid(); rB uuid:=gen_random_uuid(); entry uuid:=gen_random_uuid();
+ eA uuid:=gen_random_uuid(); eB uuid:=gen_random_uuid(); ecA uuid:=gen_random_uuid(); ecB uuid:=gen_random_uuid(); fitting uuid:=gen_random_uuid();
+begin begin
+ insert into public.projets(id,nom,owner_id) values(pB,'Projet fixture créneaux','00000000-0000-4000-8000-00000000c0c0');
+ insert into public.figurants(id,prenom,nom) values(f,'Créneau','Fixture');
+ insert into public.casting_presentiel_journees(id,projet_id,date) values(dA,pA,current_date+20),(dB,pB,current_date+20);
+ insert into public.casting_presentiel_creneaux(id,journee_id,heure_debut,heure_fin) values(cA,dA,'10:00','11:00'),(cB,dB,'10:00','11:00');
+ insert into public.casting_roles(id,projet_id,nom) values(rA,pA,'Rôle fixture A'),(rB,pB,'Rôle fixture B');
+ insert into public.essayage_journees(id,projet_id,date) values(eA,pA,current_date+20),(eB,pB,current_date+20);
+ insert into public.essayage_creneaux(id,essayage_journee_id,heure_debut,heure_fin) values(ecA,eA,'10:00','11:00'),(ecB,eB,'10:00','11:00');
+ set local role service_role;
+ insert into public.casting_presentiel_entries(id,projet_id,journee_id,creneau_id,figurant_id,role_id) values(entry,pA,dA,cA,f,rA);
+ begin update public.casting_presentiel_entries set creneau_id=cB where id=entry;
+  raise exception using errcode='ZX002',message='Créneau casting étranger accepté'; exception when foreign_key_violation then null; end;
+ begin update public.casting_presentiel_entries set role_id=rB where id=entry;
+  raise exception using errcode='ZX002',message='Rôle étranger accepté'; exception when foreign_key_violation then null; end;
+ begin update public.casting_presentiel_entries set journee_id=dB where id=entry;
+  raise exception using errcode='ZX002',message='Journée casting étrangère acceptée'; exception when foreign_key_violation then null; end;
+ begin update public.casting_presentiel_creneaux set journee_id=dB where id=cA;
+  raise exception using errcode='ZX002',message='Mutation parent incohérente acceptée'; exception when foreign_key_violation then null; end;
+ assert (select creneau_id=cA and role_id=rA and journee_id=dA from public.casting_presentiel_entries where id=entry),'État casting modifié après refus';
+ insert into public.essayages(id,figurant_id,projet_id,date,essayage_journee_id,creneau_id) values(fitting,f,pA,current_date+20,eA,ecA);
+ begin update public.essayages set creneau_id=ecB where id=fitting;
+  raise exception using errcode='ZX002',message='Créneau essayage étranger accepté'; exception when foreign_key_violation then null; end;
+ begin update public.essayages set essayage_journee_id=eB,creneau_id=null where id=fitting;
+  raise exception using errcode='ZX002',message='Journée essayage étrangère acceptée'; exception when foreign_key_violation then null; end;
+ begin update public.essayages set essayage_journee_id=null where id=fitting;
+  raise exception using errcode='ZX002',message='Créneau sans journée accepté'; exception when check_violation then null; end;
+ update public.essayages set creneau_id=null where id=fitting;
+ assert (select essayage_journee_id=eA and creneau_id is null from public.essayages where id=fitting),'Désaffectation légitime refusée';
+ reset role;
+ raise exception using errcode='ZX001',message='Rollback fixtures';
+exception when sqlstate 'ZX001' then raise notice 'PASS casting/essayages : affectation normale, créneau/journée/rôle étranger refusés même en service_role, parent protégé, aucune mutation partielle';
+end; end $test$;

@@ -391,6 +391,9 @@ export async function moveEssayagesToJournee(
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
+  const { data: toMove, error: selectionError } = await supabase.from("essayages").select("id, figurant_id, projet_id").in("id", ids);
+  if (selectionError || !toMove || new Set(ids).size !== ids.length || toMove.length !== ids.length || toMove.some(e => e.projet_id !== projetId)) return { error: "La sélection contient des essayages non accessibles sur ce projet." };
+
 
   const { data: existingJournee } = await supabase
     .from("essayage_journees")
@@ -410,7 +413,6 @@ export async function moveEssayagesToJournee(
     journeeId = created.id;
   }
 
-  const { data: toMove } = await supabase.from("essayages").select("id, figurant_id").in("id", ids);
   const { data: dejaPresents } = await supabase
     .from("essayages")
     .select("figurant_id")
@@ -535,7 +537,15 @@ export async function assignFigurantToCreneau(essayageId: string, creneauId: str
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("essayages").update({ creneau_id: creneauId }).eq("id", essayageId);
+  if (creneauId) {
+    const [current, target] = await Promise.all([
+      supabase.from("essayages").select("essayage_journee_id").eq("id", essayageId).maybeSingle(),
+      supabase.from("essayage_creneaux").select("essayage_journee_id").eq("id", creneauId).maybeSingle(),
+    ]);
+    if (current.error || target.error || !current.data || !target.data || current.data.essayage_journee_id !== target.data.essayage_journee_id) return { error: "Le créneau doit appartenir à cette journée." };
+  }
+  const { error } = await supabase.from("essayages").update({ creneau_id: creneauId }).eq("id", essayageId);
+  if (error) return { error: "Affectation du créneau impossible." };
   revalidatePath("/essayages/journee");
   revalidatePath("/partage/essayages");
 }
