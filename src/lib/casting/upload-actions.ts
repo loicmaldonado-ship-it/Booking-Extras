@@ -200,6 +200,17 @@ export async function finalizeCastingUpload(
     return { error: "Chemin photo non autorisé." };
   }
 
+  // Réponses aux questions du rôle : une par question, oui / non.
+  if (payload.reponses !== undefined && !Array.isArray(payload.reponses)) return { error: "Réponses de casting invalides." };
+  const questions = role?.questions ?? [];
+  const reponses: ReponseCasting[] = [];
+  for (const question of questions) {
+    const r = (payload.reponses ?? []).find((x) => x && x.question === question);
+    if (!r || (r.reponse !== "oui" && r.reponse !== "non")) return { error: "Réponds à toutes les questions." };
+    reponses.push({ question, reponse: r.reponse, precision: typeof r.precision === "string" ? r.precision.trim().slice(0, 200) || null : null });
+  }
+
+
   const supabase = createAdminClient();
   // Check presence of all files before writing any business data. Storage
   // signed-upload URLs and paths must not be taken as proof of upload.
@@ -264,15 +275,6 @@ export async function finalizeCastingUpload(
   // "Complet" directement, ça reste un choix du staff une fois relu. Ne
   // fait jamais régresser un statut déjà avancé à la main (ex. si le staff
   // a déjà relancé ou validé avant un renvoi via ce même lien).
-  // Réponses aux questions du rôle : une par question, oui / non.
-  const questions = role?.questions ?? [];
-  const reponses: ReponseCasting[] = [];
-  for (const question of questions) {
-    const r = (payload.reponses ?? []).find((x) => x.question === question);
-    if (!r || (r.reponse !== "oui" && r.reponse !== "non")) return { error: "Réponds à toutes les questions." };
-    reponses.push({ question, reponse: r.reponse, precision: r.precision?.trim().slice(0, 200) || null });
-  }
-
   const patch: {
     video_storage_paths: string[];
     submitted_at: string;

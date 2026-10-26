@@ -4,8 +4,8 @@
   "branch": "tests/integration-main-elea-2026-10-22",
   "codeCommit": "f4961bb",
   "documentationCommit": "e9d2b13",
-  "total": 12,
-  "newlyChecked": 9,
+  "total": 13,
+  "newlyChecked": 10,
   "records": [
     {
       "key": "BUG-04",
@@ -137,6 +137,17 @@
       "wasAlreadyComplete": false,
       "commentId": "ari:cloud:trello::action/6adf924d23606c5220ea4b84",
       "commentText": "[RECETTE 2026-10-26 — BUG-10]\nOK — redirections internes vérifiées.\n\nFait : helper safeInternalPath central et validation des retours candidat ; refus des URL externes, protocol-relative et formes ambiguës. Auth staff et confirmation après échange de code utilisent le retour validé.\n\nTests réellement exécutés : /projets accepté ; //evil.example et https://evil.example refusés ; valeur vide retombe sur la route locale ; variantes avec antislash et redirect_to externe refusées même après un échange de code réussi. Les tests de redirection et frontières auth passent dans la suite complète 184/184.\n\nPreuves : tests/auth-boundaries.test.mjs et docs/preuves-2026-10-26/delete-profile-tests.log. Aucun accès au domaine de test externe n’a été nécessaire : les URL sont des valeurs de test.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb ; bilan e9d2b13. Cette carte ne valide pas tous les autres aspects de l’authentification.",
+      "verified": true
+    },
+    {
+      "key": "BUG-07",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c996d835d4a65e142874",
+      "title": "[BUG-07] Corriger la RLS du casting présentiel",
+      "url": "https://trello.com/c/39TaW5mR/74-bug-07-corriger-la-rls-du-casting-pr%C3%A9sentiel",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf936458e6a71933413607",
+      "commentText": "[RECETTE 2026-10-26 — BUG-07]\nOK — isolation du casting présentiel vérifiée.\n\nTests SQL et API authentifiée réellement exécutés avec deux cheffes non propriétaires globales, chacune sur son projet. Dans les deux sens : SELECT étranger vide ; INSERT étranger refusé ; UPDATE/DELETE étrangers zéro ligne ; transfert vers jour/projet étranger refusé. SELECT/INSERT/UPDATE/DELETE locaux réussissent sur créneaux et entrées. Données étrangères conservées ; ancienne policy authenticated full access absente.\n\nNon-régression : jour/créneau/rôle étrangers refusés même sous service_role dans le test d’intégrité casting/essayages. Fixtures SQL annulées ; comptes et données temporaires de l’API nettoyés, sans email réel.\n\nPreuves : tests/casting-presentiel-rls-local.sql, scripts/check-casting-rls-local.mjs, docs/recette-casting-rls-2026-10-26.md et logs associés. Commit de preuves ef849d0, branche tests/integration-main-elea-2026-10-22. Code applicatif inchangé depuis f4961bb (184 tests Node, types/lint/build réussis).\n\nCette coche concerne BUG-07 ; elle ne ferme pas tout MET-07 ni l’audit des Server Actions service_role de BUG-02/SEC-03. Le propriétaire global conserve son accès global prévu. Aucun push ni déploiement.",
       "verified": true
     }
   ]
