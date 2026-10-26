@@ -97,7 +97,7 @@ export default async function ProjetsPage({
           </button>
           <Link
             href="/projets"
-            className="flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text sm:col-span-2 md:col-span-1"
+            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
           >
             Réinitialiser
           </Link>

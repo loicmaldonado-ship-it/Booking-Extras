@@ -1,10 +1,16 @@
 "use server";
 
+import { aAccesComplet } from "@/lib/auth/owner";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { aCreeSonCompte, definirMotDePasse, motDePasseCorrect } from "@/lib/candidats/mot-de-passe";
+import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
+import { getSiteOrigin } from "@/lib/partage/data";
+import { sendEmail } from "@/lib/email/send";
+import { getProjetEmailCredentials } from "@/lib/projets/email";
+import { getEmailTemplate, applyEmailTemplate } from "@/lib/projets/email-templates";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
@@ -17,7 +23,7 @@ import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/
 export async function requestMagicLink(
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; sentTo?: string }> {
+): Promise<{ error?: string; sentTo?: string; invitationEnvoyee?: boolean }> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return { error: "Merci de renseigner votre email." };
 
@@ -33,9 +39,15 @@ export async function requestMagicLink(
     .eq("est_comedien", false)
     .maybeSingle();
 
-  if (!lookupError && figurant?.email && figurant.acces_compte) {
-    const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
-    if (result.error) console.error("Échec de l'envoi du lien de connexion candidat.");
+  if (!lookupError && figurant?.email) {
+    if (figurant.acces_compte) {
+      const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
+      if (result.error) console.error("Échec de l'envoi du lien de connexion candidat.");
+    } else {
+      // Invitation possible, sans révéler au demandeur si cette fiche existe.
+      try { await invitationPourFicheSansCompte(figurant.id, null, retourAutorise(formData.get("retour"))); }
+      catch { console.error("Échec de l'invitation au compte candidat."); }
+    }
   }
   return { sentTo: email };
 }
@@ -205,6 +217,12 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     revalidatePath(`/figurants/${figurantId}`);
     return { success: true as const };
   }
+  // Compte créé par la personne elle-même : pas de lien « espace prêt »,
+  // réservé aux profils ajoutés à la main.
+  if (await aCreeSonCompte(figurantId)) {
+    revalidatePath(`/figurants/${figurantId}`);
+    return { success: true as const };
+  }
 
   if (projetId) {
     const { data: dejaEnvoye } = await supabase
@@ -238,6 +256,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     figurant_id: figurantId,
     projet_id: projetId ?? null,
     sender: "staff",
+    envoye_par: (await getCurrentProfile())?.id ?? null,
     corps: "Lien d'accès à l'espace personnel envoyé.",
     categorie: "espace_perso",
   });
@@ -262,6 +281,8 @@ export async function toggleAccesCompte(figurantId: string, value: boolean, proj
     return { error: "Réservé au·à la chef·fe." };
   }
   if (value) return activerAccesCompte(figurantId, projetId);
+  // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
+  if (!aAccesComplet(await getCurrentProfile())) return { error: "Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès." };
 
   const supabase = createAdminClient();
   const { error: updateError } = await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);

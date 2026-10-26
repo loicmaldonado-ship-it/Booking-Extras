@@ -14,6 +14,8 @@ export type Annonce = {
   ouverte_mineurs: boolean;
   bande_demo_obligatoire: boolean;
   limite_candidatures: number | null;
+  // Candidat·es cochant leurs indispos sur un calendrier (période de tournage).
+  dispos_par_calendrier: boolean;
   types_cachet: Cachet[];
   // Style de l'affiche, null = style d'origine (voir affiche.ts)
   affiche_couleur: string | null;

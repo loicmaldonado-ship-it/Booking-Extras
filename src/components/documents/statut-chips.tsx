@@ -29,7 +29,7 @@ export function StatutChips({
           href={hrefFor(s.key)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            current === s.key ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            current === s.key ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           {s.label}

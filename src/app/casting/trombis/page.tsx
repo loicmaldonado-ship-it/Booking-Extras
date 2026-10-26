@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +9,8 @@ import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
 import { computeAge } from "@/lib/documents/fields";
 import { paginateGroupedItems } from "@/lib/documents/trombi";
 import { GENRES } from "@/lib/figurants/types";
@@ -94,7 +96,7 @@ export default async function CastingTrombisPage({
     entriesByRole.set(e.role_id, list);
   }
   for (const list of entriesByRole.values()) {
-    list.sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""));
+    list.sort((a, b) => comparerNoms(a.figurants, b.figurants));
   }
 
   const items: TrombiItem[] = roles.flatMap((role) =>
@@ -164,7 +166,7 @@ export default async function CastingTrombisPage({
         <button type="submit" className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-2">
           Filtrer
         </button>
-        <Link href="/casting/trombis" className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1">
+        <Link href="/casting/trombis" className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1">
           Réinitialiser
         </Link>
       </form>
@@ -189,7 +191,7 @@ export default async function CastingTrombisPage({
             <div className="flex flex-wrap gap-x-3 gap-y-2">
               {page.map((item, index) => {
                 const showHeader = index === 0 || item.headerLabel !== page[index - 1].headerLabel;
-                const portraitUrl = pickPortrait(portraitByFigurant.get(item.entry.figurant_id), projetId)?.url ?? null;
+                const portraitUrl = vignetteCasting(item.entry, portraitByFigurant.get(item.entry.figurant_id), projetId);
                 return (
                   <Fragment key={item.entry.id}>
                     {showHeader && (
@@ -207,7 +209,7 @@ export default async function CastingTrombisPage({
                         )}
                       </div>
                       <span className="block w-28 truncate text-[10px] font-medium leading-tight text-gray-900">
-                        {item.entry.figurants?.prenom} {item.entry.figurants?.nom}
+                        {nomComplet(item.entry.figurants)}
                       </span>
                       <span className="block w-28 truncate text-[8px] leading-tight text-gray-500">
                         {agentLine(item.entry)}

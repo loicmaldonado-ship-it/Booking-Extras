@@ -6,6 +6,7 @@ import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
 import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
+import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
@@ -87,7 +88,7 @@ export async function postulerAnnonce(
   publicToken: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean }> {
+): Promise<{ error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean; invitationEnvoyee?: boolean }> {
   // Compte obligatoire pour postuler : soit la personne est connectée, soit
   // elle crée son compte (mot de passe) en validant sa candidature.
   const session = await getCurrentFigurant();
@@ -193,7 +194,7 @@ export async function postulerAnnonce(
 
   const { data: annonce, error: annonceError } = await supabase
     .from("annonces")
-    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet")
+    .select("id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet, dispos_par_calendrier")
     .eq("public_token", publicToken)
     .single();
 
@@ -235,7 +236,18 @@ export async function postulerAnnonce(
   }
   const questions = questionsResult.data;
   const annonceDates = datesResult.data;
-  const choix = validateCandidatureChoices(formData, questions, annonceDates);
+  // Le nouveau calendrier encode les jours d'indisponibilité.
+  // Conserver le validateur elea après normalisation des réponses.
+  const validatedForm = new FormData();
+  for (const [key, value] of formData.entries()) validatedForm.append(key, value);
+  if (annonce.dispos_par_calendrier) {
+    const allowedIds = new Set(annonceDates.map((d) => d.id));
+    const indispos = (str(formData, "indispos") ?? "").split(",").filter(Boolean);
+    if (indispos.some((id) => !allowedIds.has(id))) return { error: "Date de disponibilité invalide." };
+    const indisponibles = new Set(indispos);
+    for (const date of annonceDates) validatedForm.set(`date_${date.id}`, indisponibles.has(date.id) ? "non" : "oui");
+  }
+  const choix = validateCandidatureChoices(validatedForm, questions, annonceDates);
   if (!choix.ok) return { error: choix.error };
 
   const champsProfil = {
@@ -281,6 +293,8 @@ export async function postulerAnnonce(
       .eq("est_comedien", false)
       .maybeSingle();
     if (memeEmail) {
+      const invitation = await invitationPourFicheSansCompte(memeEmail.id, annonce.projet_id, `/postuler/${publicToken}`);
+      if (invitation) return invitation;
       return {
         compteExistant: true,
         error:
@@ -290,11 +304,15 @@ export async function postulerAnnonce(
     const telephoneNormalise = telephone.replace(/\s+/g, "");
     const { data: memeNom } = await supabase
       .from("figurants")
-      .select("email, telephone")
+      .select("id, email, telephone")
       .ilike("nom", nom)
       .eq("est_comedien", false);
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
     if (doublon) {
+      const invitation = doublon.email
+        ? await invitationPourFicheSansCompte(doublon.id, annonce.projet_id, `/postuler/${publicToken}`)
+        : null;
+      if (invitation) return invitation;
       return {
         compteExistant: true,
         error: doublon.email
@@ -574,7 +592,7 @@ async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: stri
 }
 
 // Créé sur l'annonce en cours, jamais en commun : les onglets communs sont
-// ceux posés par la migration (Retenu, Peut-être, Ok dispo, OUT).
+// ceux posés par la migration (Retenu, Peut-être, OUT).
 export async function createCandidatureOnglet(nom: string, annonceId: string) {
   const trimmed = nom.trim();
   if (!trimmed) return { error: "Nom d'onglet requis." };
@@ -605,7 +623,7 @@ export async function createCandidatureOnglet(nom: string, annonceId: string) {
   const { data: onglet, error } = await supabase
     .from("candidature_onglets")
     .insert({ nom: trimmed, couleur: "default", fixe: false, ordre: (maxOrdre?.ordre ?? 0) + 1, annonce_id: annonceId })
-    .select("id, nom, couleur, fixe, ordre, annonce_id")
+    .select("id, nom, couleur, fixe, ordre, annonce_id, annonce_date_id")
     .single();
 
   if (error) return { error: error.message };
@@ -681,7 +699,9 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
     supabase.from("figurant_liens").select("url").eq("figurant_id", f.id).eq("label", LIEN_BANDE_DEMO).maybeSingle(),
     getTournagesConfirmesCount([f.id]),
     supabase.from("annonce_dates").select("id, date").eq("annonce_id", c.annonce_id).order("date"),
-    supabase.from("candidature_jours").select("annonce_date_id").eq("candidature_id", id),
+    c.onglet_id
+      ? supabase.from("candidature_onglets").select("annonce_date_id").eq("id", c.onglet_id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const { data: bookingsJours } =
     c.annonces && (annonceDates ?? []).length > 0
@@ -693,7 +713,8 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
           .in("date", (annonceDates ?? []).map((d) => d.date))
       : { data: [] as { date: string }[] };
   const dispoByDate = new Map((dispos ?? []).map((d) => [d.annonce_date_id, d.disponible]));
-  const prevus = new Set((joursPrevus ?? []).map((j) => j.annonce_date_id));
+  // « Prévu » = rangé dans l'onglet de cette journée.
+  const prevus = new Set(joursPrevus?.annonce_date_id ? [joursPrevus.annonce_date_id] : []);
   const bookesLe = new Set((bookingsJours ?? []).map((b) => b.date));
 
   const rank = (type: string) => {

@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import Link from "next/link";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import Image from "next/image";
@@ -51,7 +52,7 @@ export default async function SilhouettesPage({
     }
   }
   const rows = Array.from(byFigurant.values()).sort((a, b) =>
-    `${a.figurant.prenom} ${a.figurant.nom}`.localeCompare(`${b.figurant.prenom} ${b.figurant.nom}`)
+    comparerNoms(a.figurant, b.figurant)
   );
 
   const photosByFigurant = await getPhotosDocumentsProjet(projet_id, rows.map((r) => r.figurant.id));
@@ -60,7 +61,7 @@ export default async function SilhouettesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href={backHref} className="print-hide text-sm text-text-muted hover:text-coral">
+      <Link href={backHref} className="print-hide text-sm text-text hover:text-coral">
         ← Retour
       </Link>
 
@@ -109,7 +110,7 @@ export default async function SilhouettesPage({
                       </div>
                     </td>
                     <td className="py-1.5 pr-3 font-medium">
-                      {f.prenom} {f.nom}
+                      {nomComplet(f)}
                     </td>
                     <td className="py-1.5 pr-3">{cachet ?? "—"}</td>
                     <td className="py-1.5 pr-3">{f.ville ?? "—"}</td>

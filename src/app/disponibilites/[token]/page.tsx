@@ -1,3 +1,4 @@
+import { formatPrenom } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
@@ -29,7 +30,7 @@ export default async function DisponibilitesPage({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Bonjour {figurant.prenom},</h1>
+        <h1 className="text-2xl font-semibold">Bonjour {formatPrenom(figurant.prenom)},</h1>
         <p className="mt-1 text-text-muted">
           Clique les jours où tu n&apos;es pas disponible. C&apos;est enregistré automatiquement, tu peux
           revenir modifier à tout moment avec ce même lien.

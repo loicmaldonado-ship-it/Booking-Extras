@@ -146,7 +146,7 @@ export default function AidePage() {
           <a
             key={n.id}
             href={`#${n.id}`}
-            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+            className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
           >
             {n.label}
           </a>
@@ -240,7 +240,22 @@ export default function AidePage() {
         <Steps
           items={[
             <>
-              <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce. Identité,
+              <strong className="text-text">Trouver un profil</strong> : cherche-le par son nom, prénom, email ou
+              téléphone (3 lettres minimum), ou par critères (voir ci-dessous). Les résultats sont limités à 60 :
+              précise ta recherche s&apos;il y en a davantage.
+            </>,
+            <>
+              <strong className="text-text">Chercher par critères</strong> : dans{" "}
+              <UI>🔎 Chercher dans la base</UI>, choisis le <UI>Genre</UI> et donne des fourchettes{" "}
+              <UI>Âge</UI>, <UI>Taille</UI>, <UI>Poids</UI> (ex. Homme, 90 à 100 kg), puis{" "}
+              <UI>🔎 Rechercher</UI> : tous les profils de la base qui correspondent s&apos;affichent, avec leur taille
+              et leur poids sur la carte. <UI>Plus de critères</UI> ajoute pointure, tours de poitrine/taille/hanches,
+              veste, pantalon, code postal… Un profil sans la mensuration demandée n&apos;apparaît pas. Le genre seul ne suffit pas : ajoute-lui un autre critère (âge, taille, poids, ville…).
+            </>,
+            <>
+              <UI>+ Nouveau profil</UI>, ou laisse-le·la candidater directement via une annonce : dès
+              qu&apos;une personne a créé son compte, elle apparaît dans la Base Profils (avec son âge, calculé
+              d&apos;après sa date de naissance, sous son nom). Identité,
               contact, genre et pronom, adresse complète (rue, code postal, ville), commune de naissance et
               une photo portrait sont obligatoires — le reste (mensurations, véhicule) peut attendre. Coche{" "}
               <UI>Comédien·ne</UI> pour créer un profil minimal (juste le nom) et faire apparaître sa{" "}
@@ -299,7 +314,13 @@ export default function AidePage() {
       >
         <Steps
           items={[
-            "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es.",
+            "Crée l'annonce depuis un projet : titre, description, dates recherchées, questions éventuelles aux candidat·es (un clic sur une question proposée l'ajoute : celles de ton équipe, puis des questions courantes prêtes à l'emploi).",
+            <>
+              Pour un tournage sur plusieurs semaines, ajoute une <strong className="text-text">période</strong>{" "}
+              (du … au …) dans les dates de l&apos;annonce : un jour est créé par date (retire ceux sans tournage
+              avec ×), et les candidat·es cochent seulement leurs <strong className="text-text">indispos</strong>{" "}
+              sur un calendrier au lieu de répondre date par date.
+            </>,
             <>
               Coche le·s <strong className="text-text">type·s de profil recherché</strong> (Figurant, Silhouette,
               Doublure...) — affiché sur l&apos;annonce publique pour que les candidat·es sachent d&apos;emblée ce
@@ -333,7 +354,9 @@ export default function AidePage() {
           présente Booking Extras et liste les annonces ouvertes ; on peut y créer son compte sans annonce (profil
           complet et photos). Sans compte, la personne remplit l&apos;annonce puis crée son mot de passe pour valider
           sa candidature ; si son email est déjà connu, elle doit d&apos;abord se connecter (mot de passe ou lien
-          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Les candidat·es se
+          reçu par email) et revient sur l&apos;annonce avec ses infos déjà remplies. Si sa fiche a été ajoutée par
+          l&apos;équipe sans compte (ajout rapide), pas de doublon : elle reçoit à cette adresse un lien{" "}
+          <UI>Crée ton compte</UI> (valable 30 jours), choisit son mot de passe et revient sur l&apos;annonce. Les candidat·es se
           connectent sur <UI>Espace candidat·es</UI> (/compte/connexion) ; questions générales :
           bookingextras.support@gmail.com. Photos : chaque candidature garde les siennes (envoyées pour
           l&apos;annonce, ou reprises parmi celles du compte avec <UI>Mes photos</UI>).
@@ -356,40 +379,73 @@ export default function AidePage() {
         <Steps
           items={[
             <>
-              Le plus rapide : <UI>⚡ Tri rapide</UI>. Chaque personne s&apos;affiche en grand (photos, âge, ville,
-              dispos, réponses, message) et tu la ranges d&apos;un clic ou d&apos;une touche (<UI>1</UI> Retenu,{" "}
-              <UI>2</UI> Peut-être… <UI>0</UI> la remet à trier), puis la suivante arrive toute seule.{" "}
-              <UI>←</UI> <UI>→</UI> pour naviguer, <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour
-              fermer. Le tri porte sur la liste affichée : ouvre-le depuis l&apos;onglet <UI>À trier</UI> pour ne
-              voir que les nouvelles. Un clic sur le nom ou la photo d&apos;une personne ouvre cette même vue
-              directement sur elle (Cmd/Ctrl-clic ouvre sa page détaillée dans un nouvel onglet).
+              <strong className="text-text">Un onglet par étape du tri</strong> : <UI>📥 À trier</UI> (ouvert par
+              défaut), <UI>✅ Retenu</UI>, <UI>🤔 Peut-être</UI>, tes onglets perso, <UI>👥 Tous</UI> et{" "}
+              <UI>🚫 OUT</UI>. Chaque onglet affiche son nombre de profils avec les filtres en cours.{" "}
+              <UI>＋ Onglet</UI> en crée un sur cette annonce seulement (les autres cheffes et tes autres annonces ne le
+              voient pas).
             </>,
             <>
-              Sur chaque carte, l&apos;âge, la ville et une pastille par date recherchée (verte = dispo, rouge
-              barrée = pas dispo) sont visibles directement. Le badge <UI>Habitué·e</UI> indique sur combien de
-              tournages la personne a déjà été confirmée.
+              <strong className="text-text">Une seule barre de filtres</strong> : recherche par prénom, nom ou email,
+              genre, âge, dispo par date, réponse à une question, et <UI>＋ Plus de filtres</UI> (Myrole, véhicule, code
+              postal, mensurations). Les filtres actifs s&apos;affichent en dessous, chacun se retire d&apos;un clic sur{" "}
+              <UI>×</UI>. La recherche signale aussi les personnes trouvées dans un autre onglet ou déjà envoyées dans une
+              journée. Les boutons <UI>Trier :</UI> rangent par arrivée, nom, âge ou habitué·es, et s&apos;appliquent tout de suite ; les actions sur la sélection (étiqueter, réserve, casting, booking) s&apos;ouvrent dans une fenêtre qui affiche le résultat et se ferme avec <UI>Fermer</UI> ; <UI>🖼️ Trombi</UI> /{" "}
+              <UI>☰ Liste</UI> change l&apos;affichage.
             </>,
             <>
-              <strong className="text-text">Jours de tournage.</strong> Si l&apos;annonce a des dates, chaque carte
-              montre une pastille par date : un clic prévoit la personne ce jour-là (plusieurs jours possibles),
-              contour vert = elle s&apos;est dite dispo. Dans le tri rapide, les touches <UI>A</UI> <UI>Z</UI>{" "}
-              <UI>E</UI>… font pareil. La barre <UI>Jours de tournage</UI> compte les personnes prévues par jour (face
-              au besoin saisi dans Bookings) ; clique un jour puis <UI>Envoyer … dans la journée</UI> pour créer
-              d&apos;un coup les bookings de ce jour, sans rien envoyer aux figurant·es. Une pastille ✓ = déjà dans la
-              journée. Les personnes envoyées quittent la liste, mais le jour garde leur trace : la pastille compte les{" "}
-              <UI>envoyé·es</UI>, et en ouvrant le jour tu vois leur trombi (photo, nom, statut du booking) avec des
-              liens vers le trombi et les fiches mensuration de la journée.
+              Sur chaque carte : âge, ville, badge <UI>Habitué·e</UI> et dates. Passe la souris sur la photo, ou touche{" "}
+              <UI>💬 Lire le message</UI> (iPad, téléphone) : elle se retourne et montre le{" "}
+              <strong className="text-text">message de candidature</strong> en entier (il défile s&apos;il est long) et
+              les réponses aux questions. <UI>↩ Revoir la photo</UI> la remet à l&apos;endroit. En vue <UI>☰ Liste</UI>, le message a sa colonne. Sous la photo, <UI>✅</UI> <UI>🤔</UI> <UI>🚫</UI> rangent la personne d&apos;un clic
+              (re-cliquer la remet à trier). Coche plusieurs cartes pour les ranger d&apos;un coup dans n&apos;importe
+              quel onglet, les ajouter au casting ou les envoyer dans une autre journée.
             </>,
             <>
-              <strong className="text-text">Trombi et fiches d&apos;une sélection.</strong> Coche des personnes, puis{" "}
-              <UI>🖼️ Trombi</UI> ou <UI>📏 Fiches mensuration</UI> : les documents s&apos;ouvrent dans un nouvel
-              onglet, à imprimer ou télécharger en PDF (avant tout booking, par exemple pour les montrer à la
-              réalisation). La fiche indique les jours où la personne s&apos;est dite disponible.
+              <UI>⚡ Trier un par un</UI> : chaque personne s&apos;affiche en grand (photos, message en entier, dispos,
+              réponses) et tu la ranges d&apos;un clic ou d&apos;une touche (<UI>1</UI> Retenu, <UI>2</UI> Peut-être…{" "}
+              <UI>0</UI> la remet à trier), puis la suivante arrive toute seule. <UI>←</UI> <UI>→</UI> pour naviguer,{" "}
+              <UI>↑</UI> <UI>↓</UI> pour les photos, <UI>Échap</UI> pour fermer. Un clic sur le nom ou la photo
+              d&apos;une carte ouvre cette même vue sur elle (Cmd/Ctrl-clic ouvre sa page détaillée).
             </>,
             <>
-              Les onglets <strong className="text-text">Retenu, Peut-être, Ok dispo et OUT</strong> sont communs
-              à toutes les annonces. Ceux que tu crées avec <UI>+ Nouveau</UI> restent sur l&apos;annonce où tu les
-              as créés : ils n&apos;apparaissent pas chez les autres cheffes ni sur tes autres annonces.
+              <strong className="text-text">Une place par profil, comme dans un classeur.</strong> Chaque date de
+              l&apos;annonce a son <strong className="text-text">onglet de journée</strong> (📅 Jeu 22/10), créé tout
+              seul avec la date, à côté de Retenu, Peut-être et de tes onglets : ranger un profil dans une journée, c&apos;est
+              le mettre dans cet onglet (il n&apos;a qu&apos;une place à la fois, rien n&apos;est créé dans Bookings). Pour
+              changer un profil de place : <UI>📍</UI> sur sa carte (un tap, tous les onglets proposés), les boutons
+              ✅ 🤔 🚫, les pastilles de date (touches <UI>A</UI> <UI>Z</UI> <UI>E</UI>… dans le tri un par un), ou coche
+              plusieurs profils puis <UI>Ranger dans :</UI>. Dans un onglet de journée, un rappel indique le nombre en
+              booking face au besoin et mène à la journée dans Bookings.
+            </>,
+            <>
+              <strong className="text-text">Étiquettes.</strong> Pour ce qui ne change pas la place : Marc est dans
+              « Jeu 22/10 » <em>et</em> a un vélo → <UI>＋ Étiquette</UI> sur sa carte (ou coche des profils puis{" "}
+              <UI>🏷️ Étiqueter</UI> : <UI>＋ Poser</UI> / <UI>− Retirer</UI>, ou <UI>Créer et poser</UI> une nouvelle).
+              Les étiquettes sont communes aux annonces d&apos;un même projet, et le menu{" "}
+              <UI>🏷️ Étiquette</UI> de la barre de filtres retrouve tous les profils qui la portent, dans n&apos;importe
+              quel onglet.
+            </>,
+            <>
+              <strong className="text-text">Envoyer en booking.</strong> Coche des profils puis{" "}
+              <UI>📋 Envoyer en booking</UI> : choisis la date, le booking est créé (en PER, rien n&apos;est envoyé aux
+              figurant·es) et la personne quitte Candidatures. Le <strong className="text-text">cachet est obligatoire</strong>,
+              la fonction peut attendre. <UI>Tout cocher</UI> dans un onglet de journée envoie toute la journée d&apos;un
+              coup. <UI>📋 Envoyer en booking sur une autre date</UI> sert pour une date hors annonce. Pas décidé·es ?{" "}
+              <UI>🗄️ Mettre en réserve</UI> les met de côté, à retrouver avec leurs dispos dans le bouton 🗄️ Réserve de Bookings.
+            </>,
+            <>
+              <strong className="text-text">Écrire aux candidat·es</strong> : <UI>💬</UI> à côté d&apos;un nom, ou
+              coche des profils puis <UI>💬 Message</UI> : message libre seulement (pas de modèles ici). Mail (depuis la
+              boîte du projet, confirmation avant un envoi groupé) ou <UI>📱 En textos</UI>. Les trombis, eux, se font
+              dans la journée de Bookings.
+            </>,
+            <>
+              <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
+              les autres onglets) et n&apos;en reste la trace que dans l&apos;onglet <UI>OUT</UI>. La personne reçoit
+              dans son espace : « Désolé, vous n&apos;avez pas été retenu·e pour l&apos;annonce … Un grand merci pour
+              votre candidature, et à tout bientôt ! L&apos;équipe Booking Extras ». Sortie de OUT par erreur, le
+              message est retiré.
             </>,
             <>
               <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
@@ -444,6 +500,14 @@ export default function AidePage() {
                 l&apos;envoi côté candidat une fois passée.
               </>,
               "Personnalise, si besoin, le corps du mail d'invitation — sinon un message par défaut est généré avec le lien.",
+              <>
+                Ajoute des <strong className="text-text">questions</strong> (une par ligne, ex. « Parlez-vous anglais
+                ? ») : la personne répond oui / non (avec une précision si elle veut) en envoyant ses photos et
+                vidéos. Les réponses s&apos;affichent sur sa carte, et sur le lien réal avec son âge, ses
+                mensurations et les photos de son profil. Pour les rôles <strong className="text-text">silhouette</strong>{" "}
+                et <strong className="text-text">doublure</strong>, le lien réal propose aussi d&apos;office les{" "}
+                <UI>📏 Fiches de mensuration</UI> du rôle (sans téléphone ni email).
+              </>,
             ]}
           />
         </div>
@@ -456,6 +520,12 @@ export default function AidePage() {
                 <UI>Ajouter au casting</UI> — choisis le rôle existant dans le menu déroulant.
               </>,
               <>
+                Quelqu&apos;un qui n&apos;est pas dans la base ? Dans le rôle, <UI>⚡ Ajout rapide</UI> : une photo,
+                prénom, nom, email et téléphone suffisent (enchaîne plusieurs personnes à la suite). La fiche va dans
+                ta <UI>📇 Base casting</UI> ; envoie ensuite l&apos;invitation avec le lien : en envoyant ses photos
+                et vidéos, la personne complète elle-même sa fiche (date de naissance, ville, mensurations).
+              </>,
+              <>
                 Sélectionne les profils ajoutés, clique <UI>Invitation (avec le lien)</UI> puis{" "}
                 <UI>Envoyer</UI> — l&apos;envoi est toujours manuel.
               </>,
@@ -464,16 +534,27 @@ export default function AidePage() {
           />
         </div>
         <Callout>
-          <strong className="text-text">Compression automatique.</strong> Les photos et vidéos envoyées par les
-          candidat·es sont réduites automatiquement dans leur navigateur avant l&apos;envoi (résolution et débit
-          plus raisonnables, sans perte visible à l&apos;écran) — ça évite les échecs d&apos;envoi liés à la
-          taille et allège le stockage. Rien à faire de ton côté ; si un fichier est déjà petit ou dans un format
-          non pris en charge par le navigateur du candidat, il part tel quel.
+          <strong className="text-text">Envoi des vidéos : direct, sans compression.</strong> Le·la candidat·e
+          choisit sa vidéo (ou glisse-la) et elle <strong className="text-text">part tout de suite</strong>, telle
+          quelle, pendant qu&apos;il·elle remplit sa fiche : barre de progression avec le temps restant, reprise
+          automatique si le réseau coupe, <UI>Annuler</UI> / <UI>Réessayer</UI> à tout moment. Le bouton{" "}
+          <UI>Envoyer</UI> s&apos;active dès que la vidéo est arrivée. Côté équipe, sur la carte d&apos;un profil,{" "}
+          <UI>＋ Ajouter des vidéos</UI> (ou glisse plusieurs fichiers) : elles partent l&apos;une après
+          l&apos;autre dans l&apos;ordre choisi et s&apos;ajoutent toutes seules au profil, avec le nom du
+          fichier (à changer ensuite sur la vidéo). Taille maximale : 2 Go par vidéo. Une fois la vidéo ajoutée au profil, le
+          site l&apos;<strong className="text-text">allège tout seul en arrière-plan</strong> (720p, quelques minutes
+          au plus) et remplace le fichier : rien à faire, et l&apos;original reste en place si l&apos;allègement échoue
+          ou si la vidéo est trop lourde (plus de 300 Mo) ou trop longue (plus de 4 min). Les photos, elles, sont
+          réduites avant l&apos;envoi.
         </Callout>
         <Callout>
           <strong className="text-text">Partage réal.</strong> Le lien{" "}
           <UI>Partage réal — Casting</UI> montre au réalisateur·ice les rôles et profils que tu as
-          explicitement marqués visibles — classés par rôle, jamais les infos de contact. Chaque profil affiche{" "}
+          explicitement marqués visibles, jamais les infos de contact. Les profils <UI>Validé·e</UI> montent en haut,
+          dans <UI>Profils validés</UI>, avec leur rôle et sa date sur chaque carte ; en dessous, <UI>Profils à valider</UI>
+          reste en mode casting : un bloc par rôle (son nom et sa date) avec ses profils dessous, tant que tu ne les
+          as pas mis en invisible (un rôle sans profil est simplement cité en bas). Sur téléphone, la page passe en deux
+          colonnes de grandes cartes, avec des boutons plus gros. Chaque profil affiche{" "}
           <UI>Validé·e</UI> ou <UI>À valider</UI> selon son statut. Les boutons{" "}
           <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> à côté de la catégorie du rôle (Rôle/Silhouette/Doublure)
           montrent ou cachent le rôle entier d&apos;un clic, sans passer par <UI>Calibrer</UI> — utile pour une
@@ -481,8 +562,36 @@ export default function AidePage() {
           sur le lien réal) — change-le pour déplacer le rôle à cette place, les autres se décalent tout seuls.
         </Callout>
         <Callout>
+          <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
+          Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de rôles et de profils) : chaque
+          onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
+          Tout en bas, deux liens <UI>Partage réal</UI> : un <strong className="text-text">lien séparé</strong> pour la
+          catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}
+          <UI>Tout le casting</UI> qui range les profils par catégorie (Rôles, Silhouettes, Doublures) dans{" "}
+          <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
+          liens séparés — chaque lien a ses propres réglages, son titre et son suivi, et les avis reçus restent sur le
+          profil dans l&apos;espace casting.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Réglages du lien réal.</strong> Sous <UI>Partage réal</UI> (bas de la page
+          Casting), tu choisis ce que le·la réal voit : <UI>Âge</UI>, <UI>Ville</UI>, <UI>Taille</UI>,{" "}
+          <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
+          sont toujours montrés ; une info décochée n&apos;est même pas envoyée à la page), et ce qu&apos;il·elle peut
+          faire : <UI>Avis Oui / Peut-être / Non</UI> sur chaque profil et <UI>Commentaires par profil</UI>. Un
+          profil ouvre une <strong className="text-text">salle de visionnage</strong> : rien ne démarre à
+          l&apos;ouverture ; <UI>Lancer la vidéo</UI> la lit <strong className="text-text">en plein écran</strong> (sans
+          aperçu de photo avant), puis les vidéos <strong className="text-text">s&apos;enchaînent</strong>{" "}
+          (essai suivant, puis profil suivant du rôle ; case <UI>Enchaîner les vidéos</UI> pour couper), avec ses
+          essais en onglets, les photos, la fiche, puis son avis et ses commentaires ; flèches ‹ › pour passer au
+          profil suivant du rôle. La barre du lecteur se masque toute seule pendant la lecture (elle revient au mouvement ou en pause). L&apos;avis et les commentaires par profil sont activés par défaut ; l&apos;avis Oui / Peut-être / Non disparaît sur un profil déjà validé. Les profils
+          s&apos;affichent en cartes de taille raisonnable, même quand il n&apos;y en a qu&apos;un. Le prénom du·de la réal n&apos;est demandé qu&apos;au premier avis ou commentaire.
+          De ton côté, la carte du profil montre les avis (<UI>✓ Martine</UI>) et le nombre de commentaires, et
+          chaque avis ou commentaire t&apos;envoie une alerte ; les commentaires par profil apparaissent aussi dans
+          le fil <UI>💬</UI> du lien, avec le nom du profil.
+        </Callout>
+        <Callout>
           <strong className="text-text">Filtrer les profils.</strong> Au-dessus des rôles, filtre tous les
-          profils du casting par <UI>Mode</UI> (Selftape / Présentiel) et/ou par <UI>Statut</UI> — pratique pour
+          profils du casting avec les boutons <UI>Mode</UI> (Selftape / Présentiel) et/ou <UI>Statut</UI> (appliqués dès le clic) — pratique pour
           repérer d&apos;un coup d&apos;œil, par exemple, tout ce qui reste <UI>Incomplet</UI> quel que soit le
           rôle.
         </Callout>
@@ -510,6 +619,13 @@ export default function AidePage() {
           et le rôle reste caché du réal, quels que soient les profils marqués visibles dedans.{" "}
           <UI>👁️ Tous visibles</UI> / <UI>🙈 Tous invisibles</UI>, au-dessus de la liste des profils, bascule
           d&apos;un coup tous les profils de ce rôle (pas les autres rôles du casting).
+        </Callout>
+        <Callout>
+          <strong className="text-text">🖼️ Photo de la vignette.</strong> Sur la carte d&apos;un profil, le bouton{" "}
+          <UI>🖼️</UI> choisit la photo affichée en vignette, parmi les photos de sa fiche et celles envoyées pour
+          ce rôle. Elle s&apos;applique dans Casting, sur le lien réal, les trombis et les documents du casting
+          (liste artistique, fiches rôles, distribution). <UI>Revenir à l&apos;automatique</UI> reprend la photo
+          d&apos;essayage du projet, sinon le portrait.
         </Callout>
         <Callout>
           <strong className="text-text">🎥 Selftape / 📅 Présentiel par profil.</strong> Chaque profil hérite du
@@ -584,28 +700,94 @@ export default function AidePage() {
         <Steps
           items={[
             <>
+              <strong className="text-text">🔗 Lien de validation MES</strong> (page Bookings du projet, sous les
+              journées) — la validation MES ne se fait que depuis Bookings : <UI>📅 Créer le lien de toutes les
+              journées</UI> montre à la mise en scène chaque journée à venir (et les journées passées qui ont encore des
+              profils à valider) avec les profils au statut{" "}
+              <UI>Proposé MES</UI> (photos, âge, mensurations, fonction, jamais les coordonnées). Un profil qui change de
+              statut quitte le lien. Elle répond{" "}
+              <UI>✅ Oui</UI> ou <UI>🚫 Non</UI> et peut commenter ; le lien se met à jour tout seul. Dans la journée, le
+              badge <UI>🎬 Validé MES</UI> s&apos;affiche à côté du nom.
+            </>,
+            <>
               Choisis le projet puis la <strong className="text-text">journée</strong> — elle se crée
               automatiquement dès le premier profil ajouté. Une journée vide (aucun booking) peut être
               supprimée depuis sa carte, via le <UI>×</UI> qui apparaît en haut à droite.
             </>,
             <>
+              Quelqu&apos;un qui n&apos;est pas dans la base ? Dans la journée, <UI>⚡ Ajout rapide</UI> : choisis une
+              fois la <strong className="text-text">fonction</strong> et le{" "}
+              <strong className="text-text">cachet</strong> (obligatoires, gardés pour toute la série), puis une
+              photo, prénom, nom, email et/ou téléphone, et enchaîne les personnes. La fiche va dans la Base Profils{" "}
+              <strong className="text-text">sans compte</strong>, et un mail (depuis la boîte du projet) lui propose de
+              créer son compte en choisissant un mot de passe. Une fiche déjà connue (même email, ou même nom + même
+              téléphone) est reprise, jamais dupliquée. Si quelqu&apos;un <strong className="text-text">ressemble</strong>{" "}
+              (même nom aux accents ou tirets près, nom à une lettre près, même téléphone écrit autrement), un encadré{" "}
+              <UI>⚠️ Cette personne est peut-être déjà dans la base</UI> montre sa photo, son âge et sa ville : rien
+              n&apos;est créé tant que tu n&apos;as pas choisi <UI>✅ C&apos;est elle / lui</UI> (sa fiche est reprise,
+              email ou téléphone manquants complétés) ou <UI>➕ Non, créer une nouvelle fiche</UI>. Sans email, aucun
+              mail ne part.
+            </>,
+            <>
+              <strong className="text-text">🗄️ Réserve</strong> (bouton en haut de la page Bookings du projet : une page à part, en trombinoscope) : les
+              profils qu&apos;on met de côté parce qu&apos;on ne sait pas encore quoi en faire, mais qu&apos;on
+              recontactera peut-être. On y envoie depuis Candidatures (coche, puis <UI>🗄️ Mettre en réserve</UI> : ils
+              quittent la liste) ou depuis une journée (coche, puis <UI>🗄️ Mettre en réserve</UI> : le booking est retiré
+              de la journée, sans message). Chaque profil rappelle <strong className="text-text">où il a postulé</strong> et
+              quand, et les <strong className="text-text">dates qu&apos;il a données dispo (✅) ou pas (🚫)</strong>, avec un
+              lien vers sa candidature. Ils sont <strong className="text-text">classés par dispo</strong> (le plus de
+              jours dispo d&apos;abord) et une ligne de dates <UI>✅ 22/10</UI>… ne garde que ceux dispo ce jour-là. Coche-les pour <UI>📋 Envoyer en booking</UI> (fonction et cachet obligatoires,
+              ils quittent la réserve) ou <UI>↩ Retirer de la réserve</UI> (une candidature retirée revient dans
+              Candidatures).
+            </>,
+            <>
               Renseigne <strong className="text-text">fonction</strong>,{" "}
               <strong className="text-text">cachet</strong> et <strong className="text-text">statut</strong>{" "}
-              pour chaque profil.
+              pour chaque profil (dont <UI>Proposé MES</UI>, <UI>Attente réponse booking</UI> en orange foncé,{" "}
+              <UI>À rappeler</UI> en bleu foncé et <UI>À annuler</UI> en rouge pâle). Un profil venu d&apos;une annonce
+              du projet a un lien <UI>📄 Candidature</UI> (et <UI>📄 Voir sa candidature</UI> sur sa fiche booking) pour
+              revoir ce qu&apos;il avait envoyé : message, photos, réponses aux questions. Dans <strong className="text-text">Besoins de la journée</strong>, ajoute les
+              fonctions attendues avec leur quantité ; le <UI>✎</UI> d&apos;une fonction permet d&apos;en changer le
+              nom ou la quantité (les profils qui l&apos;ont sont renommés avec). Toute fonction saisie (booking,
+              besoins, candidature) est <strong className="text-text">enregistrée pour le projet</strong> et
+              proposée ensuite dans les déroulants, par ordre alphabétique. Sur chaque profil, le déroulant{" "}
+              <UI>Fonction</UI> propose d&apos;abord les <strong className="text-text">besoins de la journée</strong>, puis
+              les autres fonctions du projet, ou <UI>➕ Nouvelle fonction…</UI> — une même fonction tapée autrement
+              (« passant », « PASSANT ») reprend l&apos;orthographe enregistrée. <UI>⚙️ Fonctions du projet</UI>{" "}
+              permet de retirer une faute de frappe de la liste. Chaque carte a aussi une case{" "}
+              <strong className="text-text">Notes</strong> (spécificités, retours…), enregistrée en quittant le champ.
             </>,
-            "Envoie les convocations (individuellement ou en masse) et suis les réponses reçues.",
+            <>
+              Sur chaque carte, coche <UI>Répondu booking</UI> quand la personne accepte la proposition : elle
+              passe en <strong className="text-text">CONFIRMÉ</strong>. Envoie ensuite les convocations
+              (individuellement ou en masse) ; <UI>Répondu convocation</UI> se coche quand elle répond BIEN REÇU.{" "}
+              <UI>Vérifier les réponses</UI> liste les réponses mail des seules personnes bookées dans la journée
+              affichée ; <UI>Effacer la liste</UI> n&apos;efface que celles-là.
+            </>,
             <>
               Pour <strong className="text-text">changer de date</strong>, coche le ou les profils puis{" "}
               <UI>🔀 Changer de date</UI> : choisis une autre journée du projet ou une nouvelle date. La convocation
               et le « bien reçu » repartent à zéro, et par défaut le statut repasse en PER pour que la personne
               reconfirme. <UI>📅 Ajouter des dates</UI>, lui, garde la date actuelle et en ajoute d&apos;autres.
             </>,
+            <>
+              Pour <strong className="text-text">enlever quelqu&apos;un de la journée</strong>, coche-le·la puis{" "}
+              <UI>🗑 Retirer de la journée</UI> (après confirmation, sans message envoyé). Pour garder une trace,
+              passe plutôt son statut en <strong className="text-text">Annulé</strong> : il·elle sort de la liste
+              et des documents, mais reste consultable via <UI>Afficher</UI> (« indisponibles/annulés masqués »).
+            </>,
             "Depuis la journée, tu accèdes aussi au covoiturage, aux essayages liés et aux documents à générer.",
           ]}
         />
         <Callout>
+          <strong className="text-text">Une journée qui ressemble à une autre ?</strong>{" "}
+          <UI>📋 Dupliquer la journée</UI> la recopie à une autre date : lieu, message de convocation, besoins, et au
+          choix les profils calés (passés en PER pour reconfirmer, ou avec leur statut actuel). Les annulé·es ne sont
+          pas repris et personne n&apos;est doublé.
+        </Callout>
+        <Callout>
           <strong className="text-text">Le plan de travail change ?</strong> Sur la journée concernée,{" "}
-          <UI>🔀 Modifier le PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
+          <UI>🔀 Nouvelle journée PDT</UI> puis choisis la nouvelle date : un aperçu montre combien de profils vont
           basculer, qui a déclaré une indispo ce jour-là, et qui y est déjà calé·e (non touché·e). Tout le monde
           réapparaît sur la nouvelle journée en <strong className="text-text">À REBOOKER</strong> — les autres
           journées ne bougent pas. Coche <UI>Prévenir les profils</UI> pour leur envoyer le message (modifiable,
@@ -624,6 +806,24 @@ export default function AidePage() {
           joindre directement qui que ce soit. <UI>Appliquer à un autre jour</UI> recopie toute
           l&apos;organisation vers une autre journée du même projet, pour les profils raccord (booké·es les
           deux jours).
+        </Callout>
+        <Callout>
+          <strong className="text-text">Onglet Messages.</strong> À gauche, tous les profils de la journée en{" "}
+          <UI>🖼️ Trombi</UI> ou <UI>☰ Liste</UI> : statut modifiable directement, pastilles (Proposition,
+          Convoc, chaque message d&apos;info), filtres (proposition sans réponse, convocation sans BIEN REÇU,
+          sans nouvelles, ont répondu). Un tap sur une carte la coche. À droite, le panneau{" "}
+          <strong className="text-text">Envois de la journée</strong> avec deux sections séparées{" "}
+          <UI>✉️ Mail</UI> et <UI>📱 Texto</UI> : on écrit un message nommé (Parking, Horaire avancé…) pour les
+          profils cochés, on confirme dans le panneau, puis on suit qui l&apos;a bien reçu (lien{" "}
+          <UI>👍 Bien reçu</UI> en un clic), qui a répondu (réponse citée sous son nom) et qui est sans
+          nouvelles, avec <UI>🔁 Relancer</UI> et <UI>Marquer reçu</UI>. Les réponses par mail sont relevées
+          toutes seules dans la boîte d&apos;envoi du projet (sans les marquer lues dans Gmail) ; une fois
+          traitée, <UI>✓ Marquer comme lu dans Gmail</UI> la passe en lu dans la boîte. Les réponses par texto
+          remontent aussi toutes seules si le relais Mac est installé et autorisé à lire Messages (Mon compte →
+          Textos) ; sinon, à marquer à la main. <UI>Ouvrir ses messages</UI> / <UI>💬 Lire sa réponse</UI> ouvre la fiche du profil : statut,{" "}
+          <UI>Répondu booking</UI> (passe en CONFIRMÉ), <UI>Répondu convocation</UI> (carte en jaune), chaque
+          message d&apos;info, et toute la conversation, avec une réponse rapide par mail ou par texto. Sur iPad
+          debout et téléphone, le bouton <UI>✉️ Envois</UI> en bas à droite ouvre le panneau.
         </Callout>
       </GuideChapter>
 
@@ -703,7 +903,15 @@ export default function AidePage() {
             </>,
             <>
               Une fois le lien créé, <UI>Aperçu</UI> l&apos;ouvre tel quel dans un nouvel onglet — pour
-              vérifier exactement ce que costume, HMC ou régie verront avant de leur envoyer.
+              vérifier exactement ce que costume, HMC ou régie verront avant de leur envoyer (sans compter de visite).
+            </>,
+            <>
+              <strong className="text-text">Qui a vu, qui est en ligne, commentaires</strong> : à l&apos;ouverture
+              d&apos;un lien (réal du casting, documents, essayages, journée, validation MES), la personne donne son prénom
+              et son rôle, une seule fois sur son appareil (sur le lien réal du casting, seulement au moment
+              d&apos;écrire un commentaire). Tout est traduit avec le bouton FR/EN, lien de validation MES compris. Sous chaque lien, tu vois qui l&apos;a ouvert, qui est en
+              ligne (point vert), et le fil de commentaires laissés avec le bouton <UI>💬 Commentaires</UI>, auquel tu peux
+              répondre. Chaque commentaire arrive aussi dans la cloche (filtre « Liens partagés »).
             </>,
           ]}
         />
@@ -761,6 +969,50 @@ export default function AidePage() {
                 Toujours dans Équipe, section <UI>Ta boîte d&apos;envoi Gmail</UI>.
               </>,
               "Crée un mot de passe d'application sur ton compte Google (guide affiché juste en dessous), puis colle-le avec ton adresse.",
+              <>
+                Clique <UI>Tester la boîte d&apos;envoi</UI> : si Gmail refuse (mot de passe faux ou révoqué, par
+                exemple après un changement du mot de passe Google), le message l&apos;indique — recrée alors un mot
+                de passe d&apos;application. Le même bouton existe dans les réglages d&apos;un projet qui a sa propre
+                boîte.
+              </>,
+            ]}
+          />
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-semibold">Textos en masse (depuis ton numéro)</p>
+          <Steps
+            items={[
+              <>
+                Dans <UI>Mon compte</UI> (chaque membre, assistant·es compris), section <UI>📱 Textos en masse</UI> : installe le{" "}
+                <strong className="text-text">raccourci iPhone</strong> (un fichier à ajouter dans l&apos;app
+                Raccourcis) et/ou le <strong className="text-text">relais Mac</strong> (une commande à coller dans le
+                Terminal du Mac). Le bouton « Texto d&apos;essai à mon numéro » vérifie que tout marche.
+              </>,
+              <>
+                Ensuite, dans un message de journée (convocation, message libre) ou de casting :{" "}
+                <UI>📱 En textos</UI> → <UI>Depuis mon iPhone</UI> (site ouvert sur l&apos;iPhone) ou{" "}
+                <UI>Depuis mon Mac</UI> (le Mac allumé les envoie un par un, toutes les 8 à 15 secondes, avec Messages).
+                Avec l&apos;<UI>Accès complet au disque</UI> (voir ci-dessous), chaque texto part d&apos;abord en{" "}
+                <strong className="text-text">iMessage</strong> (directement du Mac, instantané pour les iPhone), puis
+                en <strong className="text-text">SMS</strong> par ton iPhone si la personne n&apos;a pas iMessage. Le relais
+                s&apos;en souvient (historique de Messages) : un numéro sans iMessage reçoit directement un SMS les fois
+                suivantes, une seule bulle « Non distribué » de ton côté la première fois (la personne, elle, ne reçoit
+                que le SMS). Un SMS{" "}
+                « Non distribué » est renvoyé une fois tout seul. Un échec, ou un SMS bloqué « en cours » plus de 3 min
+                (Transfert de SMS de l&apos;iPhone à vérifier), compte dans les échecs de Mon compte → Textos.
+                Chaque texto est personnalisé ; les réponses arrivent dans ta messagerie habituelle. La fenêtre
+                reprend toujours ton <strong className="text-text">dernier message envoyé</strong> (journée, rôle de
+                casting, candidatures), sur tous tes appareils : plus besoin de le retaper.
+              </>,
+              <>
+                <strong className="text-text">Réponses texto sur le site.</strong> Le relais Mac peut aussi remonter
+                les réponses reçues dans Messages (onglet Messages de la journée, fiche du profil). Une seule fois :
+                Réglages Système → Confidentialité et sécurité → <UI>Accès complet au disque</UI> → + → Cmd+Maj+G →{" "}
+                <code>/bin/bash</code>, et l&apos;activer. Seules les réponses à un texto envoyé depuis l&apos;appli
+                (ces 30 derniers jours) sont remontées, et seulement celles reçues après cet envoi : un échange perso avec
+                quelqu&apos;un de booké, ou avec un membre de l&apos;équipe, ne remonte jamais. L&apos;état s&apos;affiche
+                dans Mon compte → Textos.
+              </>,
             ]}
           />
         </div>
@@ -786,7 +1038,7 @@ export default function AidePage() {
       >
         <MiniGrid
           items={[
-            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message." },
+            { title: "Modèles", body: "Enregistre des messages type (convocation, relance...) réutilisables partout où tu envoies un message. Ils restent propres à ton équipe : les autres cheffes ne les voient pas. Les modèles ⭐ prêts à l'emploi (proposition, convocation, relance, casting…) sont communs à tout le monde : copie-les dans tes modèles pour les personnaliser." },
             { title: "Barème", body: "Référence des cachets et majorations ACFDA appliqués automatiquement selon la convention du projet." },
             { title: "RGPD", body: "Outils d'anonymisation pour les profils qui demandent la suppression de leurs données." },
           ]}

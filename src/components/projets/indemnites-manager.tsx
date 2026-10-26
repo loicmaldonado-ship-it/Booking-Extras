@@ -55,7 +55,7 @@ export function IndemnitesManager({ projetId, indemnites }: { projetId: string; 
                 type="button"
                 onClick={() => remove(ind.id)}
                 disabled={pending}
-                className="text-text-muted hover:text-coral disabled:opacity-60"
+                className="text-text hover:text-coral disabled:opacity-60"
                 title="Supprimer cette indemnité"
               >
                 ×

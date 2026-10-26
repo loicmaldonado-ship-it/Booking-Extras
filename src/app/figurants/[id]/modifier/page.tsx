@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FigurantForm } from "@/components/figurants/figurant-form";
@@ -33,7 +34,7 @@ export default async function ModifierFigurantPage({
 
       <div>
         <h1 className="text-3xl font-semibold">
-          Modifier {figurant.prenom} {figurant.nom}
+          Modifier {nomComplet(figurant)}
         </h1>
       </div>
       <FigurantForm

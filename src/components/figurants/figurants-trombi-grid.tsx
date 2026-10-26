@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
@@ -18,6 +20,9 @@ type FigurantCard = {
   prenom: string;
   nom: string;
   ville: string | null;
+  age: number | null;
+  tailleCm?: number | null;
+  poidsKg?: number | null;
   telephone?: string | null;
   email?: string | null;
   portraitUrl: string | null;
@@ -34,6 +39,8 @@ export function FigurantsTrombiGrid({
   canSelectAll?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Fenêtre d'action ouverte, avec les profils cochés à ce moment-là (elle garde le résultat affiché après l'envoi).
+  const [outil, setOutil] = useState<{ type: "booking" | "casting"; ids: string[] } | null>(null);
   const allSelected = figurants.length > 0 && selected.size === figurants.length;
 
   function toggle(id: string) {
@@ -58,28 +65,35 @@ export function FigurantsTrombiGrid({
           </Button>
         )}
         {selected.size > 0 && (
-          <Link
-            href={`/figurants/fiches?ids=${Array.from(selected).join(",")}`}
-            className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:border-coral/60 hover:text-coral"
-          >
-            Fiches de renseignements ({selected.size})
-          </Link>
+          <>
+            <Link
+              href={`/figurants/fiches?ids=${Array.from(selected).join(",")}`}
+              className="rounded-full border border-border-strong px-4 py-2 text-sm font-medium hover:border-coral/60 hover:text-coral"
+            >
+              Fiches de renseignements ({selected.size})
+            </Link>
+            <Button type="button" variant="secondary" onClick={() => setOutil({ type: "booking", ids: Array.from(selected) })}>
+              📋 Envoyer en booking ({selected.size})
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setOutil({ type: "casting", ids: Array.from(selected) })}>
+              🎬 Ajouter au casting ({selected.size})
+            </Button>
+          </>
         )}
       </div>
 
-      {selected.size > 0 && (
-        <AddToJourneeBar
-          figurantIds={Array.from(selected)}
-          projets={projets}
-          onDone={() => setSelected(new Set())}
-        />
-      )}
-      {selected.size > 0 && (
-        <AddToCastingBar
-          figurantIds={Array.from(selected)}
-          projets={projets}
-          onDone={() => setSelected(new Set())}
-        />
+      {outil && (
+        <Modale
+          titre={outil.type === "booking" ? "📋 Envoyer en booking" : "🎬 Ajouter au casting"}
+          sousTitre={`${outil.ids.length} profil${outil.ids.length > 1 ? "s" : ""}`}
+          onClose={() => setOutil(null)}
+        >
+          {outil.type === "booking" ? (
+            <AddToJourneeBar figurantIds={outil.ids} projets={projets} onDone={() => setSelected(new Set())} />
+          ) : (
+            <AddToCastingBar figurantIds={outil.ids} projets={projets} onDone={() => setSelected(new Set())} />
+          )}
+        </Modale>
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -90,7 +104,7 @@ export function FigurantsTrombiGrid({
               "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
               selected.has(f.id)
                 ? "border-coral bg-coral/10"
-                : "glass-subtle hover:border-coral/60"
+                : "border-border bg-ink-raised hover:border-coral/60"
             )}
           >
             <input
@@ -116,9 +130,9 @@ export function FigurantsTrombiGrid({
                 })()}
               </div>
               <div className="text-sm font-medium">
-                {f.prenom} {f.nom}
+                {nomComplet(f)}
               </div>
-              <div className="text-xs text-text-muted">{f.ville ?? "—"}</div>
+              <div className="text-xs text-text-muted">{[f.age != null ? `${f.age} ans` : null, f.tailleCm ? `${f.tailleCm} cm` : null, f.poidsKg ? `${f.poidsKg} kg` : null, f.ville].filter(Boolean).join(" · ") || "—"}</div>
             </Link>
             <ContactIcons telephone={f.telephone} email={f.email} />
             <PreviewButton

@@ -24,7 +24,7 @@ export function LoginForm({ next }: { next: string }) {
         <Button type="submit" disabled={pending} className="mt-2">
           {pending ? "Connexion..." : "Se connecter"}
         </Button>
-        <Link href="/auth/forgot-password" className="text-center text-sm text-text-muted hover:underline">
+        <Link href="/auth/forgot-password" className="text-center text-sm text-text hover:underline">
           Mot de passe oublié ?
         </Link>
       </form>

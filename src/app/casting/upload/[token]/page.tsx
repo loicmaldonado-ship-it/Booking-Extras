@@ -1,7 +1,10 @@
+import { formatPrenom } from "@/lib/noms";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingUploadForm } from "@/components/casting/casting-upload-form";
+import type { FicheCasting } from "@/lib/casting/fiche";
 import { formatDateLong } from "@/lib/format-date";
 
 // Marge de sécurité pour les Server Actions de cette page (génération d'URL
@@ -21,19 +24,20 @@ export default async function CastingUploadPage({
   const { data: entry } = await supabase
     .from("casting_entries")
     .select(
-      "id, submitted_at, figurants(prenom), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi)"
+      "id, submitted_at, figurants(prenom, cree_via_casting, date_naissance, genre, code_postal, ville, taille_cm, poids_kg, pointure, veste, pantalon), casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi, questions)"
     )
     .eq("request_token", token)
     .maybeSingle<{
       id: string;
       submitted_at: string | null;
-      figurants: { prenom: string } | null;
+      figurants: ({ prenom: string; cree_via_casting: boolean } & FicheCasting) | null;
       casting_roles: {
         nom: string;
         nb_videos: number;
         photo_labels: string[];
         demande_bande_demo: boolean;
         date_limite_envoi: string | null;
+        questions: string[];
       } | null;
     }>();
 
@@ -47,13 +51,16 @@ export default async function CastingUploadPage({
   }
 
   const dateLimite = entry.casting_roles?.date_limite_envoi ?? null;
+  // Venu·e par le lien casting sans compte : on propose (sans obliger) d'en
+  // créer un, indispensable pour postuler aux annonces.
+  const proposerCompte = !!entry.figurants?.cree_via_casting;
   const deadlinePassed = !!dateLimite && dateLimite < new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <Logo iconSize={26} textClassName="text-lg" />
-        <h1 className="mt-4 text-2xl font-semibold">Bonjour {entry.figurants?.prenom}</h1>
+        <h1 className="mt-4 text-2xl font-semibold">Bonjour {formatPrenom(entry.figurants?.prenom)}</h1>
         <p className="mt-1 text-text-muted">
           {entry.casting_roles
             ? `Pour le rôle « ${entry.casting_roles.nom} », envoie-nous ce qui est demandé ci-dessous.`
@@ -70,6 +77,7 @@ export default async function CastingUploadPage({
           <p className="text-sm text-text-muted">
             Tout a bien été reçu. L&apos;équipe de casting te recontacte si besoin.
           </p>
+          {proposerCompte && <InviteCompte />}
         </Card>
       ) : deadlinePassed ? (
         <Card className="flex flex-col gap-2">
@@ -85,8 +93,35 @@ export default async function CastingUploadPage({
           nbVideos={entry.casting_roles?.nb_videos ?? 1}
           photoLabels={entry.casting_roles?.photo_labels ?? []}
           demandeBandeDemo={entry.casting_roles?.demande_bande_demo ?? false}
+          apresEnvoi={proposerCompte ? <InviteCompte /> : null}
+          questions={entry.casting_roles?.questions ?? []}
+          fiche={{
+            date_naissance: entry.figurants?.date_naissance ?? null,
+            genre: entry.figurants?.genre ?? null,
+            code_postal: entry.figurants?.code_postal ?? null,
+            ville: entry.figurants?.ville ?? null,
+            taille_cm: entry.figurants?.taille_cm ?? null,
+            poids_kg: entry.figurants?.poids_kg ?? null,
+            pointure: entry.figurants?.pointure !== null && entry.figurants?.pointure !== undefined ? Number(entry.figurants.pointure) : null,
+            veste: entry.figurants?.veste ?? null,
+            pantalon: entry.figurants?.pantalon ?? null,
+          }}
         />
       )}
+    </div>
+  );
+}
+
+function InviteCompte() {
+  return (
+    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-border bg-ink px-4 py-3 text-sm">
+      <p>
+        Envie de recevoir d&apos;autres propositions ? Crée ton compte Booking Extras (gratuit) : il te permet de
+        postuler aux annonces de figuration en quelques clics.
+      </p>
+      <Link href="/compte/inscription" className="self-start font-semibold text-coral hover:underline">
+        Créer mon compte →
+      </Link>
     </div>
   );
 }

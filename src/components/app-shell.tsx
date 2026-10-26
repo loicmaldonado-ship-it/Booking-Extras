@@ -58,10 +58,13 @@ const PUBLIC_PREFIXES = [
   "/login",
   "/auth/invite",
   "/disponibilites",
+  "/partage/validation",
   "/partage/documents",
   "/partage/essayages",
   "/partage/casting",
   "/casting/upload",
+  "/casting/rejoindre",
+  "/recu/",
   "/compte",
 ];
 
@@ -82,9 +85,13 @@ export function AppShell({
   const isPublic = isAccueilPublic || PUBLIC_PREFIXES.some((prefix) => pathname?.startsWith(prefix));
   // The documents/essayages share pages render full-width landscape PDF
   // sheets (up to 1123px) — they need a much wider container than the
-  // narrow candidate-facing forms (postuler, disponibilites, login).
+  // narrow candidate-facing forms (postuler, disponibilites, login). Le lien
+  // réal (/partage/casting) aussi : grandes vignettes de profils.
   const isWidePublic =
-    pathname?.startsWith("/partage/documents") || pathname?.startsWith("/partage/essayages");
+    pathname?.startsWith("/partage/documents") ||
+    pathname?.startsWith("/partage/essayages") ||
+    pathname?.startsWith("/partage/casting") ||
+    pathname?.startsWith("/partage/validation");
 
   // Fiche membre obligatoire pour les cheffes (photo, nom, prénom,
   // téléphone) — tant qu'elle n'est pas complète, on bloque le reste de
@@ -94,6 +101,26 @@ export function AppShell({
   useEffect(() => {
     if (needsProfileCompletion) router.replace("/mon-compte");
   }, [needsProfileCompletion, router]);
+
+  // Filet de sécurité photos : une page restée ouverte longtemps peut garder
+  // des URL signées expirées (« ? » à la place de la photo). Dès qu'une
+  // photo du stockage ne charge pas, on recharge les données de la page une
+  // fois (au plus toutes les 10 min, pour ne pas boucler sur une photo
+  // vraiment absente), comme un rafraîchissement manuel.
+  useEffect(() => {
+    let dernier = 0;
+    function surErreur(e: Event) {
+      const img = e.target;
+      if (!(img instanceof HTMLImageElement)) return;
+      const src = img.currentSrc || img.src;
+      if (!src.includes("/storage/v1/object/") && !src.includes("/_next/image")) return;
+      if (Date.now() - dernier < 10 * 60 * 1000) return;
+      dernier = Date.now();
+      router.refresh();
+    }
+    window.addEventListener("error", surErreur, true);
+    return () => window.removeEventListener("error", surErreur, true);
+  }, [router]);
 
   if (isPublic) {
     return (
@@ -135,7 +162,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex items-center gap-1 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+              className="flex items-center gap-1 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
             >
               ← <span className="hidden sm:inline">Retour</span>
             </button>
@@ -202,7 +229,7 @@ export function AppShell({
             <form action={signOut} className="hidden sm:block">
               <button
                 type="submit"
-                className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+                className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
               >
                 Se déconnecter
               </button>

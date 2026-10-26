@@ -1,9 +1,11 @@
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { deleteBooking } from "@/lib/bookings/actions";
+import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
 import { ExportMyroleButtons } from "@/components/bookings/export-myrole-buttons";
 import { BackLink } from "@/components/ui/back-link";
 import { statutLabel, statutTone, covoiturageRoleLabel } from "@/lib/bookings/types";
@@ -37,6 +39,10 @@ export default async function BookingDetailPage({
     : new Map<string, string | null>();
   const indispoMotif = booking.figurants?.id ? indispoMap.get(`${booking.figurants.id}|${booking.date}`) : undefined;
   const enConflit = indispoMotif !== undefined;
+  // Candidature d'origine sur une annonce de ce projet, pour la revoir.
+  const candidatureId = booking.figurants?.id
+    ? ((await getCandidatureParFigurant(booking.projet_id, [booking.figurants.id])).get(booking.figurants.id) ?? null)
+    : null;
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -48,14 +54,19 @@ export default async function BookingDetailPage({
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold">
-            {booking.figurants?.prenom} {booking.figurants?.nom}
+            {nomComplet(booking.figurants)}
           </h1>
           <p className="mt-1 text-text-muted">
             {booking.projets?.nom} · {formatDateShort(booking.date)}
             {booking.heure_convocation ? ` · ${booking.heure_convocation}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          {candidatureId && (
+            <ButtonLink href={`/candidatures/${candidatureId}`} variant="secondary">
+              📄 Voir sa candidature
+            </ButtonLink>
+          )}
           <ButtonLink href={`/figurants/${booking.figurants?.id}/modifier`} variant="secondary">
             Modifier la fiche
           </ButtonLink>
@@ -72,7 +83,7 @@ export default async function BookingDetailPage({
 
       {enConflit && (
         <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">
-          ⚠ {booking.figurants?.prenom} a déclaré être indisponible le {formatDateShort(booking.date)}
+          ⚠ {formatPrenom(booking.figurants?.prenom)} a déclaré être indisponible le {formatDateShort(booking.date)}
           {indispoMotif ? ` (${indispoMotif})` : ""}.
         </div>
       )}
@@ -103,7 +114,7 @@ export default async function BookingDetailPage({
               <div><span className="text-text-muted">Places disponibles : </span>{booking.covoiturage_places_disponibles ?? "—"}</div>
             )}
             {booking.covoiturage_role === "passager" && booking.covoiturage && (
-              <div><span className="text-text-muted">Conducteur : </span>{booking.covoiturage.prenom} {booking.covoiturage.nom}</div>
+              <div><span className="text-text-muted">Conducteur : </span>{nomComplet(booking.covoiturage)}</div>
             )}
           </div>
         </Card>

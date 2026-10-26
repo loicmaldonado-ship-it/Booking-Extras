@@ -1,3 +1,4 @@
+import { comparerNoms } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolvePartageToken } from "@/lib/partage/data";
@@ -95,8 +96,8 @@ export default async function PartageEssayagesFichesPage({
   // sinon (vue tous jours confondus) l'ordre alphabétique reste plus lisible.
   const figurants = (figurantsRaw ?? []).sort((a, b) =>
     date
-      ? effectiveHeure(a.id).localeCompare(effectiveHeure(b.id)) || `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
-      : `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
+      ? effectiveHeure(a.id).localeCompare(effectiveHeure(b.id)) || comparerNoms(a, b)
+      : comparerNoms(a, b)
   );
 
   const [photosByFigurant, cachetFonctionByFigurant, bookingDatesByFigurant] = await Promise.all([
@@ -109,7 +110,7 @@ export default async function PartageEssayagesFichesPage({
     <div className="flex flex-col gap-4">
       <Link
         href={`/partage/essayages/${token}?lang=${lang}`}
-        className="print-hide text-sm text-text-muted hover:text-coral"
+        className="print-hide text-sm text-text hover:text-coral"
       >
         {t(lang, "retour_planning")}
       </Link>

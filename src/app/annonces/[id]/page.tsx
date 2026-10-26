@@ -51,7 +51,7 @@ export default async function AnnonceDetailPage({
 
   const [questions, templates, dates, moodboardPhotos, qrCodeDataUrl] = await Promise.all([
     getAnnonceQuestions(id),
-    getQuestionTemplates(),
+    getQuestionTemplates(id),
     getAnnonceDates(id),
     getAnnoncePhotos(supabase, id),
     generateQrCodeDataUrl(publicUrl),
@@ -111,7 +111,7 @@ export default async function AnnonceDetailPage({
             <a
               href={qrCodeDataUrl}
               download={`qr-${id}.png`}
-              className="rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
             >
               Télécharger le QR code
             </a>
@@ -156,13 +156,13 @@ export default async function AnnonceDetailPage({
         <div>
           <h2 className="text-lg font-semibold">Dates de disponibilité à demander</h2>
           <p className="text-sm text-text-muted">
-            Chaque candidat·e indiquera s&apos;il·elle est disponible ou non pour chacune de ces dates.
+            Ajoute des jours un par un, ou toute une période de tournage (du … au …).
           </p>
         </div>
-        <DatesManager annonceId={id} dates={dates} />
+        <DatesManager annonceId={id} dates={dates} disposParCalendrier={annonce.dispos_par_calendrier} />
       </Card>
 
-      <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text-muted hover:text-coral">
+      <Link href={`/projets/${annonce.projet_id}`} className="text-sm text-text hover:text-coral">
         Voir le projet →
       </Link>
     </div>

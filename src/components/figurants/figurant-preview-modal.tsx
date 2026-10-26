@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
@@ -76,7 +77,7 @@ function PreviewBody({ item }: { item: PreviewItem }) {
                   >
                     <div className="flex items-center justify-between text-xs text-text-muted">
                       <span>
-                        {m.sender === "staff" ? "Vous" : item.prenom}
+                        {m.sender === "staff" ? "Vous" : formatPrenom(item.prenom)}
                         {m.projetLabel ? ` · ${m.projetLabel}` : ""}
                       </span>
                       <span>{formatDateTime(m.created_at)}</span>
@@ -164,7 +165,7 @@ function PreviewModal({
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="glass-liquid flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl p-5"
+        className="flex max-h-[85vh] w-full max-w-lg flex-col gap-4 overflow-y-auto rounded-2xl border border-border bg-ink-raised p-5"
       >
         <div className="flex items-center gap-3">
           <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">
@@ -172,7 +173,7 @@ function PreviewModal({
           </div>
           <div className="flex flex-1 flex-col gap-0.5">
             <span className="font-semibold">
-              {item.prenom} {item.nom}
+              {nomComplet(item)}
             </span>
             <span className="text-xs text-text-muted">{item.ville ?? "—"}</span>
           </div>
@@ -218,7 +219,7 @@ function PreviewModal({
 export function PreviewButton({
   items,
   index,
-  className = "flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text",
+  className = "flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text",
 }: {
   items: PreviewItem[];
   index: number;

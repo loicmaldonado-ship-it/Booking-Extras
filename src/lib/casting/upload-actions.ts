@@ -1,5 +1,9 @@
 "use server";
 
+import { nomComplet } from "@/lib/noms";
+import type { FicheCasting } from "./fiche";
+import type { ReponseCasting } from "./types";
+import { GENRES } from "@/lib/figurants/types";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
@@ -20,6 +24,7 @@ type EntryWithRole = {
     photo_labels: string[];
     demande_bande_demo: boolean;
     date_limite_envoi: string | null;
+    questions: string[];
   } | null;
   figurants: { prenom: string; nom: string } | null;
 };
@@ -29,7 +34,7 @@ async function loadEntry(requestToken: string): Promise<EntryWithRole | null> {
   const { data } = await supabase
     .from("casting_entries")
     .select(
-      "id, projet_id, figurant_id, statut, submitted_at, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi), figurants(prenom, nom)"
+      "id, projet_id, figurant_id, statut, submitted_at, casting_roles(nom, nb_videos, photo_labels, demande_bande_demo, date_limite_envoi, questions), figurants(prenom, nom)"
     )
     .eq("request_token", requestToken)
     .maybeSingle<EntryWithRole>();
@@ -160,7 +165,13 @@ export async function createCastingUploadSlot(
 // fichier — payload minuscule, aucun risque de timeout ici.
 export async function finalizeCastingUpload(
   requestToken: string,
-  payload: { videoPaths: string[]; photos: { label: string; path: string }[]; bandeDemo?: string }
+  payload: {
+    videoPaths: string[];
+    photos: { label: string; path: string }[];
+    bandeDemo?: string;
+    fiche?: FicheCasting;
+    reponses?: ReponseCasting[];
+  }
 ): Promise<{ error?: string; success?: boolean }> {
   const entry = await loadEntry(requestToken);
   if (!entry) return { error: "Ce lien n'est plus valide." };
@@ -213,6 +224,38 @@ export async function finalizeCastingUpload(
     if (error) return { error: error.message };
   }
 
+  // Fiche complétée par la personne (naissance, mensurations…) : seules les
+  // valeurs plausibles sont gardées, les champs vides ne touchent à rien.
+  if (payload.fiche) {
+    const f = payload.fiche;
+    const nombre = (v: number | null, min: number, max: number) =>
+      typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : undefined;
+    const texte = (v: string | null, max = 60) => (v && v.trim() ? v.trim().slice(0, max) : undefined);
+    const maj: Record<string, string | number> = {};
+    if (f.date_naissance && /^\d{4}-\d{2}-\d{2}$/.test(f.date_naissance) && f.date_naissance < new Date().toISOString().slice(0, 10)) {
+      maj.date_naissance = f.date_naissance;
+    }
+    if (f.genre && GENRES.includes(f.genre as (typeof GENRES)[number])) maj.genre = f.genre;
+    const cp = texte(f.code_postal, 10);
+    if (cp) maj.code_postal = cp;
+    const ville = texte(f.ville, 80);
+    if (ville) maj.ville = ville;
+    const taille = nombre(f.taille_cm, 50, 250);
+    if (taille !== undefined) maj.taille_cm = Math.round(taille);
+    const poids = nombre(f.poids_kg, 10, 300);
+    if (poids !== undefined) maj.poids_kg = Math.round(poids);
+    const pointure = nombre(f.pointure, 15, 60);
+    if (pointure !== undefined) maj.pointure = pointure;
+    const veste = texte(f.veste, 20);
+    if (veste) maj.veste = veste;
+    const pantalon = texte(f.pantalon, 20);
+    if (pantalon) maj.pantalon = pantalon;
+    if (Object.keys(maj).length > 0) {
+      const { error: errFiche } = await supabase.from("figurants").update(maj).eq("id", entry.figurant_id);
+      if (errFiche) return { error: `Ta fiche n'a pas pu être enregistrée : ${errFiche.message}` };
+    }
+  }
+
   if (role?.demande_bande_demo && payload.bandeDemo?.trim()) {
     await upsertFigurantLienByLabel(supabase, entry.figurant_id, LIEN_BANDE_DEMO, payload.bandeDemo.trim());
   }
@@ -221,10 +264,25 @@ export async function finalizeCastingUpload(
   // "Complet" directement, ça reste un choix du staff une fois relu. Ne
   // fait jamais régresser un statut déjà avancé à la main (ex. si le staff
   // a déjà relancé ou validé avant un renvoi via ce même lien).
-  const patch: { video_storage_paths: string[]; submitted_at: string; statut?: "envoyé" } = {
+  // Réponses aux questions du rôle : une par question, oui / non.
+  const questions = role?.questions ?? [];
+  const reponses: ReponseCasting[] = [];
+  for (const question of questions) {
+    const r = (payload.reponses ?? []).find((x) => x.question === question);
+    if (!r || (r.reponse !== "oui" && r.reponse !== "non")) return { error: "Réponds à toutes les questions." };
+    reponses.push({ question, reponse: r.reponse, precision: r.precision?.trim().slice(0, 200) || null });
+  }
+
+  const patch: {
+    video_storage_paths: string[];
+    submitted_at: string;
+    statut?: "envoyé";
+    reponses?: ReponseCasting[];
+  } = {
     video_storage_paths: payload.videoPaths,
     submitted_at: new Date().toISOString(),
   };
+  if (questions.length > 0) patch.reponses = reponses;
   if (entry.statut === "proposé") patch.statut = "envoyé";
 
   const { data: finalized, error } = await supabase.from("casting_entries")
@@ -239,7 +297,7 @@ export async function finalizeCastingUpload(
   if (entry.figurants) {
     await createNotification(
       "casting",
-      `${entry.figurants.prenom} ${entry.figurants.nom} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
+      `${nomComplet(entry.figurants)} a envoyé sa vidéo/photos pour « ${role?.nom ?? "casting"} »`,
       { figurantId: entry.figurant_id, projetId: entry.projet_id, lien: "/casting" }
     );
   }

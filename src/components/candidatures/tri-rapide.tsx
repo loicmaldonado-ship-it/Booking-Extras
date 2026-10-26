@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,7 +13,6 @@ import { formatDateShort } from "@/lib/format-date";
 import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChipsView, JOUR_KEYS } from "@/components/candidatures/jour-chips";
-import { setCandidatureJour } from "@/lib/candidatures/jours";
 
 type Option = { id: string | null; nom: string; couleur: CandidatureOnglet["couleur"]; key: string };
 
@@ -44,14 +44,16 @@ export function TriRapide({
   const [rangesIds, setRangesIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
-  // Jours prévus modifiés pendant ce tri, par candidature puis par date.
-  const [jourOverride, setJourOverride] = useState<Record<string, Record<string, boolean>>>({});
   const requested = useRef(new Set<string>());
 
   // 0 = "À trier", puis 1..9 dans l'ordre des onglets (OUT toujours dernier).
+  // Les journées ont leurs propres touches (a, z, e…), voir plus bas.
   const options: Option[] = [
     { id: null, nom: "À trier", couleur: "default", key: "0" },
-    ...onglets.slice(0, 9).map((o, i) => ({ id: o.id, nom: o.nom, couleur: o.couleur, key: String(i + 1) })),
+    ...onglets
+      .filter((o) => !o.annonce_date_id)
+      .slice(0, 9)
+      .map((o, i) => ({ id: o.id, nom: o.nom, couleur: o.couleur, key: String(i + 1) })),
   ];
 
   const load = useCallback((id: string | undefined) => {
@@ -78,30 +80,6 @@ export function TriRapide({
   const currentId = ids[index];
   const current = currentId ? cache[currentId] : undefined;
   const data = current && !("error" in current) ? current : null;
-  const jours = useMemo(
-    () => (data ? data.jours.map((j) => ({ ...j, prevu: jourOverride[data.id]?.[j.id] ?? j.prevu })) : []),
-    [data, jourOverride]
-  );
-
-  const toggleJour = useCallback(
-    (jourId: string) => {
-      if (!data) return;
-      const j = jours.find((x) => x.id === jourId);
-      if (!j || j.dansLaJournee) return;
-      const id = data.id;
-      const prevu = !j.prevu;
-      setError(null);
-      setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: prevu } }));
-      setCandidatureJour(id, jourId, prevu).then((res) => {
-        if (res.error) {
-          setJourOverride((prev) => ({ ...prev, [id]: { ...prev[id], [jourId]: !prevu } }));
-          setError(`${data.figurant.prenom} ${data.figurant.nom} : ${res.error}`);
-        }
-      });
-    },
-    [data, jours]
-  );
-
   const ongletActuel = currentId
     ? currentId in ongletOverride
       ? ongletOverride[currentId]
@@ -128,12 +106,36 @@ export function TriRapide({
             next.delete(id);
             return next;
           });
-          setError(`${data.figurant.prenom} ${data.figurant.nom} n'a pas été rangé·e : ${res.error}`);
+          setError(`${nomComplet(data.figurant)} n'a pas été rangé·e : ${res.error}`);
           goTo(at);
         }
       });
     },
     [currentId, data, index, ongletActuel, goTo]
+  );
+
+  // Une journée = un onglet : la pastille d'une date range la personne dans
+  // cette journée (ou la remet dans « À trier » si elle y est déjà), puis on
+  // passe à la suivante, comme pour les autres onglets.
+  const ongletDuJour = useCallback(
+    (annonceDateId: string) => onglets.find((o) => o.annonce_date_id === annonceDateId)?.id ?? null,
+    [onglets]
+  );
+  const jours = useMemo(
+    () =>
+      data
+        ? data.jours.map((j) => ({ ...j, prevu: !!ongletActuel && ongletActuel === ongletDuJour(j.id) }))
+        : [],
+    [data, ongletActuel, ongletDuJour]
+  );
+  const toggleJour = useCallback(
+    (jourId: string) => {
+      const j = jours.find((x) => x.id === jourId);
+      const cible = ongletDuJour(jourId);
+      if (!j || j.dansLaJournee || !cible) return;
+      assign(j.prevu ? null : cible);
+    },
+    [jours, ongletDuJour, assign]
   );
 
   useEffect(() => {
@@ -223,7 +225,7 @@ export function TriRapide({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-text-muted hover:bg-ink-raised-2 hover:text-text"
+            className="rounded-full p-1.5 text-text hover:bg-ink-raised-2 hover:text-text"
             aria-label="Fermer le tri rapide"
           >
             <X size={20} />
@@ -310,7 +312,7 @@ export function TriRapide({
                   <div className="flex flex-col gap-4">
                     <div>
                       <h2 className="text-3xl font-semibold">
-                        {data!.figurant.prenom} {data!.figurant.nom}
+                        {nomComplet(data!.figurant)}
                       </h2>
                       <p className="mt-1 text-text-muted">
                         {[
@@ -339,14 +341,21 @@ export function TriRapide({
                       </div>
                     </div>
 
+                    {data!.message?.trim() && (
+                      <div className="rounded-xl border border-border bg-ink-raised px-3 py-2.5">
+                        <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-text-muted">💬 Message</h3>
+                        <p className="whitespace-pre-wrap text-sm">{data!.message.trim()}</p>
+                      </div>
+                    )}
+
                     {jours.length > 0 && (
                       <div>
                         <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
-                          Jours de tournage
+                          Ranger dans une journée
                         </h3>
                         <JourChipsView jours={jours} onToggle={(j) => toggleJour(j.id)} size="lg" showKeys />
                         <p className="mt-1.5 text-[11px] text-text-muted">
-                          Contour vert = dispo, plein = prévu·e ce jour, ✓ = déjà dans la journée.
+                          Contour vert = dispo, plein = rangé·e dans cette journée, ✓ = déjà en booking.
                         </p>
                       </div>
                     )}
@@ -380,20 +389,13 @@ export function TriRapide({
                       </div>
                     )}
 
-                    {data!.message && (
-                      <div>
-                        <h3 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">Message</h3>
-                        <p className="whitespace-pre-wrap text-sm">{data!.message}</p>
-                      </div>
-                    )}
-
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                       {data!.lienBandeDemo && (
                         <a href={data!.lienBandeDemo} target="_blank" rel="noreferrer" className="text-coral hover:underline">
                           Bande démo ↗
                         </a>
                       )}
-                      <a href={`/candidatures/${data!.id}`} target="_blank" rel="noreferrer" className="text-text-muted hover:text-coral">
+                      <a href={`/candidatures/${data!.id}`} target="_blank" rel="noreferrer" className="text-text hover:text-coral">
                         Fiche complète ↗
                       </a>
                       <span className="text-text-muted">Reçue le {formatDateShort(data!.created_at)}</span>
@@ -433,19 +435,19 @@ export function TriRapide({
                     type="button"
                     onClick={() => goTo(index - 1)}
                     disabled={index === 0}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text-muted hover:text-text disabled:opacity-40"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text hover:text-text disabled:opacity-40"
                   >
                     <ChevronLeft size={16} /> Précédent
                   </button>
                   <span className="hidden text-xs text-text-muted md:inline">
                     Touches : 0–{options.length - 1} ranger
-                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} jours`} · ← →
+                    {jours.length > 0 && ` · ${JOUR_KEYS.slice(0, jours.length).join(" ").toUpperCase()} ranger dans une journée`} · ← →
                     naviguer · ↑ ↓ photos · Échap fermer
                   </span>
                   <button
                     type="button"
                     onClick={() => goTo(index + 1)}
-                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text-muted hover:text-text"
+                    className="flex items-center gap-1 rounded-full px-3 py-1.5 text-text hover:text-text"
                   >
                     Passer <ChevronRight size={16} />
                   </button>

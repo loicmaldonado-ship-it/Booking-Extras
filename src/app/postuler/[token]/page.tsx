@@ -198,6 +198,7 @@ export default async function PostulerPage({
           publicToken={annonce.public_token}
           questions={await getAnnonceQuestions(annonce.id)}
           dates={annonceDates}
+          disposParCalendrier={annonce.dispos_par_calendrier}
           prefill={prefill}
           connecte={!!session}
           mesPhotos={mesPhotos}

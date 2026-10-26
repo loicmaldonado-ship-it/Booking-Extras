@@ -2,7 +2,27 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptSecret } from "@/lib/crypto/secrets";
 
+// Google affiche le mot de passe d'application par groupes de 4
+// (« abcd efgh ijkl mnop ») : copié tel quel, il contient des espaces que
+// Gmail n'accepte pas forcément. Le vrai mot de passe n'en a jamais.
+export function motDePasseApp(saisi: string) {
+  return saisi.replace(/\s+/g, "");
+}
+
 export type EmailCredentialsResult = { credentials: { user: string; pass: string } | null; error?: string };
+
+// Mot de passe enregistré illisible (clé de chiffrement changée, valeur
+// abîmée) : erreur claire plutôt qu'un plantage de l'envoi.
+function dechiffrer(user: string, chiffre: string): EmailCredentialsResult {
+  try {
+    return { credentials: { user, pass: motDePasseApp(decryptSecret(chiffre)) } };
+  } catch {
+    return {
+      credentials: null,
+      error: `Le mot de passe d'application enregistré pour ${user} est illisible : ressaisis-le dans les réglages d'envoi.`,
+    };
+  }
+}
 
 // Résout la boîte Gmail à utiliser pour un envoi lié à ce projet : d'abord
 // la config propre au projet (si renseignée), sinon la boîte par défaut de
@@ -26,7 +46,7 @@ export async function getProjetEmailCredentials(
   if (!projet) return { credentials: null };
 
   if (projet.gmail_smtp_user && projet.gmail_smtp_app_password) {
-    return { credentials: { user: projet.gmail_smtp_user, pass: decryptSecret(projet.gmail_smtp_app_password) } };
+    return dechiffrer(projet.gmail_smtp_user, projet.gmail_smtp_app_password);
   }
 
   return getOwnerEmailCredentials(supabase, projet.owner_id);
@@ -46,7 +66,7 @@ export async function getOwnerEmailCredentials(
   if (!owner) return { credentials: null };
 
   if (owner.gmail_smtp_user && owner.gmail_smtp_app_password) {
-    return { credentials: { user: owner.gmail_smtp_user, pass: decryptSecret(owner.gmail_smtp_app_password) } };
+    return dechiffrer(owner.gmail_smtp_user, owner.gmail_smtp_app_password);
   }
 
   if (owner.is_owner) return { credentials: null };

@@ -1,3 +1,4 @@
+import { trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export default async function EssayageJourneePage({
   }
 
   const profile = await getCurrentProfile();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
@@ -68,7 +69,7 @@ export default async function EssayageJourneePage({
   const figurantIds = (essayagesRaw ?? []).map((e) => e.figurant_id);
   const photosByFigurant = await getPhotosByFigurantId(figurantIds);
   const autresJournees = (await getEssayageJournees(projet_id)).filter((j) => j.id !== journee.id);
-  const rows: EssayageRow[] = (essayagesRaw ?? []).map((e) => ({
+  const rows: EssayageRow[] = trierParNom(essayagesRaw ?? [], (e) => e.figurants).map((e) => ({
     ...e,
     portraitUrl: pickPortrait(photosByFigurant.get(e.figurant_id), projet_id)?.url ?? null,
     photos: photosByFigurant.get(e.figurant_id) ?? [],

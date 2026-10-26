@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -101,7 +102,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ vue: "trombi" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isListe ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Trombi (photos)
@@ -110,7 +111,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ vue: "liste" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isListe ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isListe ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Liste (texte)
@@ -120,7 +121,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ sansCovoiturage: "afficher" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Afficher
@@ -129,7 +130,7 @@ export default async function CovoiturageDocPage({
           href={docHref({ sansCovoiturage: "masquer" })}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            hideSansCovoiturage ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Masquer
@@ -280,7 +281,7 @@ function ListeCovoiturage({
           const isConducteur = b.items[0]?.badge === "🚗";
           const autres = isConducteur ? b.items.slice(1) : b.items;
           const nomEt = (i: TrombiItem) =>
-            `${i.booking.figurant.prenom} ${i.booking.figurant.nom}${i.booking.figurant.telephone ? ` (${i.booking.figurant.telephone})` : ""}`;
+            `${nomComplet(i.booking.figurant)}${i.booking.figurant.telephone ? ` (${i.booking.figurant.telephone})` : ""}`;
 
           return (
             <div key={b.headerLabel} className={isConducteur ? "rounded border border-gray-400 p-3" : ""}>

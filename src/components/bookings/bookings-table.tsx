@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet, formatPrenom, comparerNoms } from "@/lib/noms";
 import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -10,6 +11,9 @@ import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { Modale } from "@/components/ui/modale";
+import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
+import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
 import { cn } from "@/lib/cn";
 import {
   bulkUpdateBookings,
@@ -17,6 +21,7 @@ import {
   sendBulkConvocations,
   sendEspacePersoLinkBulk,
   resetConvocationEnvoyee,
+  retirerBookings,
 } from "@/lib/bookings/actions";
 import { applyIndemniteToBookings } from "@/lib/indemnites/actions";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
@@ -24,6 +29,7 @@ import { applyMajorationToBookings } from "@/lib/bareme/actions";
 import { formatMajorationValeur, type BaremeMajoration, type MajorationValeurType } from "@/lib/bareme/types";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { ChangeDateBar } from "@/components/bookings/change-date-bar";
+import { mettreBookingsEnReserve } from "@/lib/reserve/actions";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
 import { checkEmailReplies, clearUnreviewedReplies } from "@/lib/bookings/inbox-actions";
 import { sendFigurantsToEssayage } from "@/lib/essayages/actions";
@@ -37,10 +43,10 @@ import { projetNomPublic } from "@/lib/projets/types";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FIGURANT_MESSAGE_CATEGORIES, type FigurantMessageCategorie } from "@/lib/candidats/types";
-import { formatDateTime as formatMessageDateTime, formatDelai } from "@/lib/format-date";
+import { formatDateTime as formatMessageDateTime, formatDelai, formatDateLong } from "@/lib/format-date";
 import type { Genre, PhotoType } from "@/lib/figurants/types";
 import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
-import type { MessageTemplate } from "@/lib/templates/types";
+import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 
 export type MessageRow = {
   id: string;
@@ -50,6 +56,11 @@ export type MessageRow = {
   corps: string;
   created_at: string;
   repondu: boolean;
+  // Réponse importée d'une boîte Gmail (relève automatique).
+  mail_message_id?: string | null;
+  lu_gmail_le?: string | null;
+  // Membre de l'équipe qui l'a envoyé.
+  auteur?: string | null;
 };
 
 // Mail (Mac) n'a pas d'URL publique pour ouvrir une recherche pré-remplie
@@ -75,8 +86,44 @@ async function copyTextToClipboard(text: string) {
   }
 }
 
+// Rouvrir la candidature d'origine (message, photos, réponses) dans un
+// nouvel onglet, sans quitter la journée.
+function LienCandidature({ id }: { id: string }) {
+  return (
+    <a
+      href={`/candidatures/${id}`}
+      target="_blank"
+      rel="noopener"
+      className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium text-text hover:border-coral/60"
+      title="Voir sa candidature (message, photos, réponses)"
+    >
+      📄 Candidature
+    </a>
+  );
+}
+
+// Avis de la MES (🎬) sur un profil de la journée.
+function BadgeMesBooking({ mes }: { mes: Row["mes"] }) {
+  if (!mes?.vote) return null;
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        mes.vote === "oui" ? "bg-turquoise text-white" : mes.vote === "non" ? "bg-danger/15 text-danger" : "bg-yellow/25 text-yellow"
+      )}
+      title={mes.note ? `${mes.qui} : « ${mes.note} »` : mes.qui}
+    >
+      🎬 {mes.vote === "oui" ? "Validé MES" : mes.vote === "non" ? "Écarté MES" : "Peut-être MES"}
+    </span>
+  );
+}
+
 export type Row = {
   id: string;
+  // Candidature d'origine (annonce de ce projet), pour la rouvrir.
+  candidatureId?: string | null;
+  // Dernier avis de la MES sur le lien de validation du projet.
+  mes?: { vote: "oui" | "peut" | "non" | null; qui: string; note: string } | null;
   figurant_id?: string;
   date: string;
   heure_convocation: string | null;
@@ -87,6 +134,8 @@ export type Row = {
   convocation_envoyee_le?: string | null;
   reponse_recue: boolean;
   reponse_recue_le?: string | null;
+  // Accepté la proposition de booking (case « Répondu booking » → CONFIRMÉ).
+  reponse_booking?: boolean;
   notes: string | null;
   covoiturage_role?: CovoiturageRole | null;
   covoiturage_lieu_depart?: string | null;
@@ -170,21 +219,26 @@ function covoiturageReminderLine(r: Row, rows: Row[]): string | null {
     const chauffeur = rows.find((c) => c.figurant_id === r.covoiturage_conducteur_id);
     if (!chauffeur?.figurants) return null;
     const tel = chauffeur.figurants.telephone ? ` (${chauffeur.figurants.telephone})` : "";
-    return `Rappel covoiturage : vous êtes avec ${chauffeur.figurants.prenom} ${chauffeur.figurants.nom}${tel}. Départ : ${chauffeur.covoiturage_lieu_depart ?? "à confirmer"}.`;
+    return `Rappel covoiturage : vous êtes avec ${nomComplet(chauffeur.figurants)}${tel}. Départ : ${chauffeur.covoiturage_lieu_depart ?? "à confirmer"}.`;
   }
   return null;
 }
 
-function rowTokens(r: Row, journeeLieu?: string | null) {
-  // Raccord : la personne a d'autres dates sur ce même projet — le token
-  // {date} les liste toutes plutôt que juste celle de cette journée.
-  const autresDates = (r.autresDates ?? []).filter((d) => d.statut !== "annulé").map((d) => d.date);
+export function rowTokens(r: Row, journeeLieu?: string | null) {
+  // Raccord : le token {date} liste toutes ses dates sur ce projet plutôt
+  // que juste celle de cette journée — pour un profil CONFIRMÉ, seulement
+  // ses dates confirmées (pas une journée où il est indispo) ; sinon toutes
+  // celles encore en cours (ni annulées, ni indispo, ni à rebooker).
+  const EXCLUS = new Set(["annulé", "indisponible", "a_rebooker"]);
+  const autresDates = (r.autresDates ?? [])
+    .filter((d) => (r.statut === "confirmé" ? d.statut === "confirmé" : !EXCLUS.has(d.statut)))
+    .map((d) => d.date);
   const allDates = Array.from(new Set([r.date, ...autresDates])).sort();
 
   return {
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     projet: projetNomPublic(r.projets, "notre tournage"),
-    date: allDates.join(", "),
+    date: allDates.map((d) => formatDateLong(d)).join(", "),
     lieu: journeeLieu || r.projets?.lieu || "",
     cachet: r.cachet ?? "",
     fonction: r.fonction ?? "",
@@ -213,6 +267,7 @@ type RowChanges = Partial<{
   cachet: string | null;
   heure_convocation: string | null;
   reponse_recue: boolean;
+  reponse_booking: boolean;
   notes: string | null;
 }>;
 type Dimension = "fonction" | "cachet" | "statut" | "sexe" | "age" | "heure" | "repondu" | "vehicule" | "myrole";
@@ -224,7 +279,7 @@ const GROUP_DIMENSIONS: { key: Dimension; label: string }[] = [
   { key: "sexe", label: "Genre" },
   { key: "age", label: "Âge" },
   { key: "heure", label: "Heure" },
-  { key: "repondu", label: "Répondu" },
+  { key: "repondu", label: "Répondu convocation" },
   { key: "vehicule", label: "Véhicule" },
   { key: "myrole", label: "Myrole" },
 ];
@@ -242,8 +297,13 @@ const STATUT_ROW_CLASSES: Record<string, { rowBorderL: string; rowBg: string; ca
   default: { rowBorderL: "border-l-border", rowBg: "", cardBorder: "border-border", cardBg: "bg-ink-raised" },
   coral: { rowBorderL: "border-l-coral", rowBg: "bg-coral/5", cardBorder: "border-coral/40", cardBg: "bg-coral/10" },
   turquoise: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/5", cardBorder: "border-turquoise/40", cardBg: "bg-turquoise/10" },
+  confirme: { rowBorderL: "border-l-turquoise", rowBg: "bg-turquoise/20", cardBorder: "border-turquoise", cardBg: "bg-turquoise/25" },
   yellow: { rowBorderL: "border-l-yellow", rowBg: "bg-yellow/5", cardBorder: "border-yellow/40", cardBg: "bg-yellow/10" },
   danger: { rowBorderL: "border-l-danger", rowBg: "bg-danger/5", cardBorder: "border-danger/40", cardBg: "bg-danger/10" },
+  indispo: { rowBorderL: "border-l-danger", rowBg: "bg-danger/20", cardBorder: "border-danger", cardBg: "bg-danger/25" },
+  orange: { rowBorderL: "border-l-[#c2410c]", rowBg: "bg-[#c2410c]/10", cardBorder: "border-[#c2410c]", cardBg: "bg-[#c2410c]/15" },
+  bleu: { rowBorderL: "border-l-[#1e3a8a]", rowBg: "bg-[#1e3a8a]/10", cardBorder: "border-[#1e3a8a]", cardBg: "bg-[#1e3a8a]/15" },
+  rougePale: { rowBorderL: "border-l-[#f4a3a3]", rowBg: "bg-[#fbd5d5]/40", cardBorder: "border-[#f4a3a3]", cardBg: "bg-[#fbd5d5]/50" },
 };
 
 function statutRowClasses(statut: BookingStatut) {
@@ -259,7 +319,7 @@ function dimensionLabel(r: Row, dimension: Dimension) {
   if (dimension === "cachet") return r.cachet ?? "Sans cachet";
   if (dimension === "sexe") return r.figurants?.genre ?? "Non renseigné";
   if (dimension === "heure") return r.heure_convocation ? r.heure_convocation.slice(0, 5) : "Sans heure";
-  if (dimension === "repondu") return r.reponse_recue ? "Répondu" : "Pas répondu";
+  if (dimension === "repondu") return r.reponse_recue ? "Répondu convocation" : "Pas répondu convocation";
   if (dimension === "myrole") return r.figurants?.compte_myrole ? "Avec compte Myrole" : "Sans compte Myrole";
   if (dimension === "vehicule") {
     const f = r.figurants;
@@ -318,9 +378,117 @@ const fieldClass =
 
 const STATUTS_ARCHIVES = new Set<BookingStatut>(["indisponible", "annulé"]);
 
+// « 34 ans · Montreuil » sous le nom, pour voir l'âge d'un coup d'œil.
+const NOUVELLE_FONCTION = "__nouvelle__";
+
+// Fonction d'un profil : déroulant qui propose d'abord les besoins de la
+// journée (ajoutés au-dessus), puis les autres fonctions du projet, ou une
+// nouvelle fonction tapée à la main.
+function FonctionSelect({
+  value,
+  besoins,
+  autres,
+  onChange,
+  disabled,
+  className,
+  videLabel = "Fonction…",
+}: {
+  value: string | null;
+  besoins: string[];
+  autres: string[];
+  onChange: (fonction: string | null) => void;
+  disabled?: boolean;
+  className?: string;
+  videLabel?: string;
+}) {
+  const [saisie, setSaisie] = useState(false);
+  // Option correspondante, même si la casse diffère (anciennes saisies).
+  const option = value ? [...besoins, ...autres].find((f) => f.toLowerCase() === value.trim().toLowerCase()) : undefined;
+  const connue = !value || !!option;
+
+  if (saisie) {
+    return (
+      <input
+        autoFocus
+        placeholder="Nouvelle fonction…"
+        disabled={disabled}
+        className={className}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+          if (e.key === "Escape") setSaisie(false);
+        }}
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          setSaisie(false);
+          if (v && v !== value) onChange(v);
+        }}
+      />
+    );
+  }
+
+  return (
+    <select
+      value={option ?? value ?? ""}
+      disabled={disabled}
+      className={className}
+      onChange={(e) => {
+        if (e.target.value === NOUVELLE_FONCTION) setSaisie(true);
+        else onChange(e.target.value || null);
+      }}
+    >
+      <option value="">{videLabel}</option>
+      {!connue && value && <option value={value}>{value}</option>}
+      {besoins.length > 0 && (
+        <optgroup label="Besoins de la journée">
+          {besoins.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {autres.length > 0 && (
+        <optgroup label={besoins.length > 0 ? "Autres fonctions du projet" : "Fonctions du projet"}>
+          {autres.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      <option value={NOUVELLE_FONCTION}>➕ Nouvelle fonction…</option>
+    </select>
+  );
+}
+
+// Notes du profil sur ce booking (spécificités, retours…), comme sur les
+// cartes de casting : enregistrées en quittant le champ.
+function NotesBooking({ r, disabled, onSave }: { r: Row; disabled: boolean; onSave: (notes: string | null) => void }) {
+  return (
+    <textarea
+      defaultValue={r.notes ?? ""}
+      placeholder="Notes (spécificités...)"
+      rows={2}
+      disabled={disabled}
+      className="w-full resize-none rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-60"
+      onBlur={(e) => {
+        const value = e.target.value.trim() || null;
+        if (value !== r.notes) onSave(value);
+      }}
+    />
+  );
+}
+
+function ageEtVille(r: Row) {
+  const age = computeAge(r.figurants?.date_naissance ?? null);
+  return [age != null ? `${age} ans` : null, r.figurants?.ville].filter(Boolean).join(" · ");
+}
+
 export function BookingsTable({
   rows,
   projetId,
+  fonctionsProjet = [],
+  besoinsFonctions = [],
   date,
   templates = [],
   journeeLieu = null,
@@ -333,6 +501,10 @@ export function BookingsTable({
 }: {
   rows: Row[];
   projetId?: string;
+  // Fonctions enregistrées du projet, proposées dans les champs Fonction.
+  fonctionsProjet?: string[];
+  // Fonctions des besoins de la journée, proposées en premier.
+  besoinsFonctions?: string[];
   date?: string;
   templates?: MessageTemplate[];
   journeeLieu?: string | null;
@@ -366,6 +538,9 @@ export function BookingsTable({
   const [changeDateOpen, setChangeDateOpen] = useState(false);
   const [changeDateMessage, setChangeDateMessage] = useState<string | null>(null);
   const [espacePersoOpen, setEspacePersoOpen] = useState(false);
+  // Personnes cochées à l'ouverture d'une fenêtre d'action : elle les garde
+  // même quand l'envoi vide la sélection, pour montrer le résultat.
+  const [figee, setFigee] = useState<{ bookingIds: string[]; figurantIds: string[] }>({ bookingIds: [], figurantIds: [] });
   const [espacePersoResult, setEspacePersoResult] = useState<{ sent: number; failed: number; dejaCompte?: number } | null>(null);
   const [essayageDate, setEssayageDate] = useState("");
   const [essayageLieu, setEssayageLieu] = useState("");
@@ -412,10 +587,30 @@ export function BookingsTable({
 
   const now = nowIso();
 
-  const fonctions = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.fonction).filter((f): f is string => !!f))).sort(),
-    [rows]
+  const fonctions = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...fonctionsProjet, ...rows.map((r) => r.fonction)]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [fonctionsProjet, rows]);
+  const fonctionsBesoins = useMemo(
+    () => [...besoinsFonctions].sort(new Intl.Collator("fr", { sensitivity: "base" }).compare),
+    [besoinsFonctions]
   );
+  // Filtre : seulement les fonctions de cette journée (profils + besoins),
+  // pas toutes celles du projet.
+  const fonctionsJournee = useMemo(() => {
+    const parCle = new Map<string, string>();
+    for (const f of [...rows.map((r) => r.fonction), ...besoinsFonctions]) {
+      if (f && !parCle.has(f.trim().toLowerCase())) parCle.set(f.trim().toLowerCase(), f.trim());
+    }
+    return Array.from(parCle.values()).sort(new Intl.Collator("fr", { sensitivity: "base" }).compare);
+  }, [rows, besoinsFonctions]);
+  const autresFonctions = useMemo(() => {
+    const deja = new Set(besoinsFonctions.map((f) => f.trim().toLowerCase()));
+    return fonctions.filter((f) => !deja.has(f.toLowerCase()));
+  }, [fonctions, besoinsFonctions]);
 
   const cachetCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -433,7 +628,7 @@ export function BookingsTable({
 
   const filteredRows = rows.filter(
     (r) =>
-      (!activeFonction || r.fonction === activeFonction) &&
+      (!activeFonction || r.fonction?.trim().toLowerCase() === activeFonction.toLowerCase()) &&
       (!activeCachet || r.cachet === activeCachet) &&
       !hiddenIds.has(r.id) &&
       (showArchived || !STATUTS_ARCHIVES.has(r.statut)) &&
@@ -452,7 +647,7 @@ export function BookingsTable({
     .filter((r) => !!r.figurant_id)
     .map((r) => ({
       id: r.figurant_id!,
-      prenom: r.figurants?.prenom ?? "",
+      prenom: formatPrenom(r.figurants?.prenom),
       nom: r.figurants?.nom ?? "",
       ville: r.figurants?.ville ?? null,
       portraitUrl: r.portraitUrl,
@@ -545,6 +740,48 @@ export function BookingsTable({
     });
   }
 
+  function retirerSelection() {
+    const cibles = rows.filter((r) => selected.has(r.id));
+    if (cibles.length === 0) return;
+    const noms = cibles
+      .slice(0, 10)
+      .map((r) => nomComplet(r.figurants).trim())
+      .join(", ");
+    const suite = cibles.length > 10 ? ` et ${cibles.length - 10} autre${cibles.length - 10 > 1 ? "s" : ""}` : "";
+    if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
+    startTransition(async () => {
+      const res = await retirerBookings(cibles.map((r) => r.id));
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
+  // Met la sélection de côté : retirés de la journée, ils rejoignent la
+  // Réserve du projet (page Bookings), avec leur candidature d'origine.
+  function mettreEnReserve() {
+    const cibles = rows.filter((r) => selected.has(r.id));
+    if (cibles.length === 0) return;
+    const noms = cibles
+      .slice(0, 10)
+      .map((r) => nomComplet(r.figurants).trim())
+      .join(", ");
+    const suite = cibles.length > 10 ? ` et ${cibles.length - 10} autre${cibles.length - 10 > 1 ? "s" : ""}` : "";
+    if (!confirm(`Mettre en réserve : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont retirés de la journée" : "Son booking est retiré de la journée"} (aucun message n'est envoyé) et ${cibles.length > 1 ? "ils rejoignent" : "il rejoint"} la Réserve du projet.`)) return;
+    startTransition(async () => {
+      const res = await mettreBookingsEnReserve(cibles.map((r) => r.id));
+      if (res.error) {
+        alert(res.error);
+        return;
+      }
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
+
   function hideSelection() {
     setHiddenIds((prev) => new Set([...prev, ...selected]));
     setSelected(new Set());
@@ -593,7 +830,7 @@ export function BookingsTable({
     setRepliesPending(true);
     setRepliesError(null);
     startTransition(async () => {
-      const result = await checkEmailReplies(projetId);
+      const result = await checkEmailReplies(projetId, date);
       setRepliesPending(false);
       if (result.error) {
         setRepliesError(result.error);
@@ -612,14 +849,27 @@ export function BookingsTable({
   }
 
   function clearReplies() {
+    const ids = replies.map((r) => r.messageId);
     setReplies([]);
     setLastCheckInfo(null);
     startTransition(async () => {
-      await clearUnreviewedReplies();
+      await clearUnreviewedReplies(ids);
     });
   }
 
   const selectedRows = rows.filter((r) => selected.has(r.id));
+  function ouvrirOutil(outil: "essayage" | "casting" | "changeDate" | "addDates") {
+    setFigee({
+      bookingIds: selectedRows.map((r) => r.id),
+      figurantIds: selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id),
+    });
+    setEssayageOpen(outil === "essayage");
+    setCastingOpen(outil === "casting");
+    setChangeDateOpen(outil === "changeDate");
+    setAddDatesOpen(outil === "addDates");
+    if (outil === "essayage") setEssayageResult(null);
+  }
+
   const selectedWithEmail = selectedRows.filter((r) => r.figurants?.email && r.figurant_id);
   const selectedWithoutEmail = selectedRows.length - selectedWithEmail.length;
   // La convocation ne repart pas toute seule à quelqu'un qui l'a déjà
@@ -657,6 +907,12 @@ export function BookingsTable({
     setLibreSubject(`Message – ${date ?? ""}`);
     setLibreMessage(DEFAULT_LIBRE_BODY);
     setMessageMode("libre-compose");
+    // Reprend le dernier message libre envoyé (sur tous les appareils).
+    lireDernierMessage("journee-libre").then((dernier) => {
+      if (!dernier) return;
+      if (dernier.sujet) setLibreSubject(dernier.sujet);
+      setLibreMessage(dernier.corps);
+    });
   }
 
   function applyLibreTemplate(template?: MessageTemplate) {
@@ -716,6 +972,7 @@ export function BookingsTable({
       }
       setSendPending(false);
       setSendResult({ sent, failed });
+      if (sent > 0) enregistrerDernierMessage("journee-libre", libreSubject, libreMessage);
       if (failed === 0) {
         setSelected(new Set());
         setMessageMode("none");
@@ -800,6 +1057,7 @@ export function BookingsTable({
                     </span>
                     {" · "}
                     {formatMessageDateTime(m.created_at)}
+                    {m.auteur && <> · par {m.auteur}</>}
                     {m.sujet && <> — « {m.sujet} »</>}
                   </span>
                 </label>
@@ -850,12 +1108,13 @@ export function BookingsTable({
         <td className="px-6 py-4 align-middle">
           <Link href={`/bookings/${r.id}`} className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium hover:text-coral">
             <span className="min-w-0 max-w-full truncate">
-              {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+              {r.figurants ? nomComplet(r.figurants) : "—"}
             </span>
+            <BadgeMesBooking mes={r.mes} />
             {r.raccord && <RaccordBadge expanded={expandedRaccord.has(r.id)} onToggle={() => toggleRaccordExpanded(r.id)} />}
             {r.reponse_recue && (
               <Badge tone="yellow" title="A répondu à la convocation (BIEN REÇU)">
-                ✓ Répondu
+                ✓ Répondu convocation
               </Badge>
             )}
             {r.essaiOk && <Badge tone="turquoise">Essai OK</Badge>}
@@ -876,7 +1135,12 @@ export function BookingsTable({
               </Badge>
             ))}
           </Link>
-          <div className="truncate text-xs text-text-muted">{r.figurants?.ville}</div>
+          {r.candidatureId && (
+            <div className="mt-1">
+              <LienCandidature id={r.candidatureId} />
+            </div>
+          )}
+          <div className="truncate text-xs text-text-muted">{ageEtVille(r)}</div>
           {rowDelai && (
             <div className={cn("text-[10px]", rowDelai.muted ? "text-yellow" : "text-turquoise")}>{rowDelai.text}</div>
           )}
@@ -889,7 +1153,7 @@ export function BookingsTable({
               <PhotosTrombiPicker
                 projetId={projetId}
                 figurantId={r.figurant_id}
-                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                nom={r.figurants ? nomComplet(r.figurants) : ""}
                 compact
               />
             )}
@@ -909,16 +1173,13 @@ export function BookingsTable({
           />
         </td>
         <td className="px-6 py-4 align-middle">
-          <input
-            list="fonctions-suggestions"
-            defaultValue={r.fonction ?? ""}
+          <FonctionSelect
+            value={r.fonction}
+            besoins={fonctionsBesoins}
+            autres={autresFonctions}
             disabled={pending}
-            placeholder="Passant..."
             className={fieldClass}
-            onBlur={(e) => {
-              const value = e.target.value.trim() || null;
-              if (value !== r.fonction) updateRow(r.id, { fonction: value });
-            }}
+            onChange={(fonction) => updateRow(r.id, { fonction })}
           />
         </td>
         <td className="px-6 py-4 align-middle">
@@ -956,7 +1217,7 @@ export function BookingsTable({
             <label
               className={cn(
                 "flex w-fit items-center gap-1.5 text-xs font-medium",
-                r.reponse_recue ? "text-yellow" : "text-text-muted"
+                r.reponse_recue ? "text-yellow" : "text-text"
               )}
             >
               <input
@@ -966,23 +1227,30 @@ export function BookingsTable({
                 onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
                 className="h-4 w-4 rounded border-border accent-yellow"
               />
-              Répondu
+              Répondu convocation
             </label>
-            <input
-              defaultValue={r.notes ?? ""}
-              placeholder="Note..."
-              disabled={pending}
-              className={fieldClass}
-              onBlur={(e) => {
-                const value = e.target.value.trim() || null;
-                if (value !== r.notes) updateRow(r.id, { notes: value });
-              }}
-            />
+            <label
+              title="A accepté la proposition de booking : passe en CONFIRMÉ"
+              className={cn(
+                "flex w-fit items-center gap-1.5 text-xs font-medium",
+                r.reponse_booking ? "text-turquoise" : "text-text"
+              )}
+            >
+              <input
+                type="checkbox"
+                checked={!!r.reponse_booking}
+                disabled={pending}
+                onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+                className="h-4 w-4 rounded border-border accent-turquoise"
+              />
+              Répondu booking
+            </label>
+            <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
             {r.figurants && (
               <button
                 type="button"
                 onClick={() => copyConvocationText(r)}
-                className="w-fit rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                className="w-fit rounded-full border border-border-strong px-2 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
               >
                 {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
               </button>
@@ -1040,8 +1308,10 @@ export function BookingsTable({
             )}
           </div>
           <div className="text-sm font-medium">
-            {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+            {r.figurants ? nomComplet(r.figurants) : "—"}
           </div>
+          <BadgeMesBooking mes={r.mes} />
+          {ageEtVille(r) && <div className="-mt-1 text-xs text-text-muted">{ageEtVille(r)}</div>}
           {projetId && r.figurant_id && (
             // La carte entière est un lien : le choix des photos ne doit pas
             // ouvrir le booking.
@@ -1054,7 +1324,7 @@ export function BookingsTable({
               <PhotosTrombiPicker
                 projetId={projetId}
                 figurantId={r.figurant_id}
-                nom={r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : ""}
+                nom={r.figurants ? nomComplet(r.figurants) : ""}
                 compact
               />
             </span>
@@ -1067,7 +1337,7 @@ export function BookingsTable({
             title="A répondu à la convocation (BIEN REÇU)"
             className={cn(
               "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-              r.reponse_recue ? "bg-yellow/15 text-yellow" : "bg-ink-raised-2 text-text-muted"
+              r.reponse_recue ? "bg-yellow font-semibold text-white" : "border border-border-strong bg-ink text-text"
             )}
           >
             <input
@@ -1077,7 +1347,27 @@ export function BookingsTable({
               onChange={(e) => updateRow(r.id, { reponse_recue: e.target.checked })}
               className="h-3 w-3 rounded border-border accent-yellow"
             />
-            {r.reponse_recue ? "✓ Répondu" : "Répondu"}
+            {r.reponse_recue ? "✓ Répondu convocation" : "Répondu convocation"}
+          </label>
+          <label
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            title="A accepté la proposition de booking : passe en CONFIRMÉ"
+            className={cn(
+              "flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              r.reponse_booking ? "bg-turquoise font-semibold text-white" : "border border-border-strong bg-ink text-text"
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={!!r.reponse_booking}
+              disabled={pending}
+              onChange={(e) => updateRow(r.id, { reponse_booking: e.target.checked })}
+              className="h-3 w-3 rounded border-border accent-turquoise"
+            />
+            {r.reponse_booking ? "✓ Répondu booking" : "Répondu booking"}
           </label>
           {cardDelai && (
             <div className={cn("text-[10px]", cardDelai.muted ? "text-yellow" : "text-turquoise")}>{cardDelai.text}</div>
@@ -1099,18 +1389,16 @@ export function BookingsTable({
             </Badge>
           ))}
         </Link>
+        {r.candidatureId && <LienCandidature id={r.candidatureId} />}
         {expandedRaccord.has(r.id) && <RaccordDatesList dates={r.autresDates ?? []} />}
         <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
-        <input
-          list="fonctions-suggestions"
-          defaultValue={r.fonction ?? ""}
+        <FonctionSelect
+          value={r.fonction}
+          besoins={fonctionsBesoins}
+          autres={autresFonctions}
           disabled={pending}
-          placeholder="Fonction..."
           className={cn(fieldClass, "text-center")}
-          onBlur={(e) => {
-            const value = e.target.value.trim() || null;
-            if (value !== r.fonction) updateRow(r.id, { fonction: value });
-          }}
+          onChange={(fonction) => updateRow(r.id, { fonction })}
         />
         <select
           value={r.cachet ?? ""}
@@ -1148,11 +1436,12 @@ export function BookingsTable({
             </option>
           ))}
         </StatusSelect>
+        <NotesBooking r={r} disabled={pending} onSave={(notes) => updateRow(r.id, { notes })} />
         {r.figurants && (
           <button
             type="button"
             onClick={() => copyConvocationText(r)}
-            className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="w-full truncate rounded-full border border-border-strong px-1.5 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
           >
             {copiedId === r.id ? "Copié !" : "Copier (SMS)"}
           </button>
@@ -1190,7 +1479,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                 onlyNonRepondus
                   ? "border-danger bg-danger/15 text-danger"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {onlyNonRepondus ? "Voir tout le monde" : `Voir les ${nonRepondusCount} non-répondu${nonRepondusCount > 1 ? "s" : ""}`}
@@ -1215,7 +1504,7 @@ export function BookingsTable({
               )}
             </span>
             {replies.length > 0 && (
-              <button type="button" onClick={clearReplies} className="text-xs text-text-muted hover:text-coral">
+              <button type="button" onClick={clearReplies} className="text-xs text-text hover:text-coral">
                 Effacer la liste
               </button>
             )}
@@ -1228,7 +1517,7 @@ export function BookingsTable({
                   href={`/figurants/${r.figurantId}`}
                   className="flex flex-wrap items-start gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-ink-raised-2"
                 >
-                  <span className="shrink-0 font-medium">{r.prenom} {r.nom}</span>
+                  <span className="shrink-0 font-medium">{nomComplet(r)}</span>
                   {r.sentiment === "positif" && <Badge tone="turquoise">Semble positif</Badge>}
                   {r.sentiment === "negatif" && <Badge tone="danger">Semble négatif</Badge>}
                   {r.sujet && <span className="shrink-0 font-medium text-text-muted">« {r.sujet} »</span>}
@@ -1254,7 +1543,7 @@ export function BookingsTable({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               viewMode === v.value
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {v.label}
@@ -1267,13 +1556,13 @@ export function BookingsTable({
             </span>
             <Link
               href={documentHref("trombis")}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
             >
               🖼️ Trombis
             </Link>
             <Link
               href={documentHref("fiches")}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
             >
               📏 Fiches mensuration
             </Link>
@@ -1284,7 +1573,7 @@ export function BookingsTable({
             type="button"
             onClick={toggleAll}
             className={cn(
-              "rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text",
+              "rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text",
               !(projetId && date) && "ml-auto"
             )}
           >
@@ -1309,7 +1598,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                 active
                   ? "border-yellow bg-yellow/15 text-yellow"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {active ? `${idx + 1}. ` : ""}
@@ -1321,7 +1610,7 @@ export function BookingsTable({
           <button
             type="button"
             onClick={() => setGroupDims([])}
-            className="text-xs text-text-muted hover:text-text hover:underline"
+            className="text-xs text-text hover:text-text hover:underline"
           >
             Réinitialiser
           </button>
@@ -1335,12 +1624,12 @@ export function BookingsTable({
           onClick={() => setActiveFonction(null)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !activeFonction ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !activeFonction ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Toutes
         </button>
-        {fonctions.map((f) => (
+        {fonctionsJournee.map((f) => (
           <button
             key={f}
             type="button"
@@ -1349,7 +1638,7 @@ export function BookingsTable({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               activeFonction === f
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {f}
@@ -1364,7 +1653,7 @@ export function BookingsTable({
           onClick={() => setActiveCachet(null)}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !activeCachet ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+            !activeCachet ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
           )}
         >
           Tous
@@ -1381,7 +1670,7 @@ export function BookingsTable({
                 "rounded-full border px-3 py-1 text-xs font-medium transition-colors disabled:opacity-30",
                 activeCachet === c
                   ? "border-turquoise bg-turquoise/15 text-turquoise"
-                  : "border-border text-text-muted hover:text-text"
+                  : "border-border-strong text-text hover:text-text"
               )}
             >
               {c} ({count})
@@ -1413,12 +1702,75 @@ export function BookingsTable({
       )}
 
       {changeDateMessage && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-2 text-sm text-turquoise">
-          {changeDateMessage}
-          <button type="button" onClick={() => setChangeDateMessage(null)} className="text-xs text-text-muted hover:text-text">
-            Fermer
-          </button>
-        </div>
+        <Modale titre="🔀 Changement de date" onClose={() => setChangeDateMessage(null)}>
+          <p className="text-sm font-medium text-turquoise">{changeDateMessage}</p>
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setChangeDateMessage(null)}>
+              Fermer
+            </Button>
+          </div>
+        </Modale>
+      )}
+
+      {changeDateOpen && projetId && (
+        <Modale titre="🔀 Changer de date" onClose={() => setChangeDateOpen(false)} bloquee={pending}>
+          <ChangeDateBar
+            bookingIds={figee.bookingIds}
+            currentDate={date}
+            autresJournees={autresJournees}
+            onDone={(message) => {
+              setChangeDateOpen(false);
+              setSelected(new Set());
+              setChangeDateMessage(message);
+            }}
+            onPartial={(restantIds) => setSelected(new Set(restantIds))}
+          />
+        </Modale>
+      )}
+
+      {addDatesOpen && projetId && (
+        <Modale titre="📅 Ajouter des dates" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setAddDatesOpen(false)} bloquee={pending}>
+          <AddToJourneeBar
+            figurantIds={figee.figurantIds}
+            projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+            onDone={() => setSelected(new Set())}
+          />
+        </Modale>
+      )}
+
+      {castingOpen && projetId && (
+        <Modale titre="🎬 Envoyer au casting" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setCastingOpen(false)} bloquee={pending}>
+          <AddToCastingBar
+            figurantIds={figee.figurantIds}
+            projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
+            onDone={() => setSelected(new Set())}
+          />
+        </Modale>
+      )}
+
+      {essayageOpen && projetId && (
+        <Modale titre="👗 Envoyer à un essayage" sousTitre={`${figee.figurantIds.length} personne${figee.figurantIds.length > 1 ? "s" : ""}`} onClose={() => setEssayageOpen(false)} bloquee={pending}>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="date"
+              value={essayageDate}
+              onChange={(e) => setEssayageDate(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <input
+              value={essayageLieu}
+              onChange={(e) => setEssayageLieu(e.target.value)}
+              placeholder="Lieu (optionnel)"
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="turquoise" disabled={pending || !essayageDate || selected.size === 0} onClick={sendToEssayage}>
+              {pending ? "Envoi..." : "Envoyer"}
+            </Button>
+          </div>
+          {essayageResult && <p className="text-sm font-medium">{essayageResult}</p>}
+        </Modale>
       )}
 
       {selected.size > 0 && (
@@ -1439,13 +1791,14 @@ export function BookingsTable({
                 </option>
               ))}
             </select>
-            <input
-              list="fonctions-suggestions"
-              value={bulkFonction}
-              onChange={(e) => setBulkFonction(e.target.value)}
-              placeholder="Fonction (inchangée)"
+            <FonctionSelect
+              value={bulkFonction || null}
+              besoins={fonctionsBesoins}
+              autres={autresFonctions}
+              videLabel="Fonction (inchangée)"
               disabled={pending}
               className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+              onChange={(fonction) => setBulkFonction(fonction ?? "")}
             />
             <select
               value={bulkCachet}
@@ -1519,12 +1872,12 @@ export function BookingsTable({
             💬 Message libre
           </Button>
           {projetId && (
-            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setEssayageOpen((v) => !v)}>
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => ouvrirOutil("essayage")}>
               👗 Envoyer à un essayage
             </Button>
           )}
           {projetId && (
-            <Button type="button" variant="turquoise" disabled={pending} onClick={() => setCastingOpen((v) => !v)}>
+            <Button type="button" variant="turquoise" disabled={pending} onClick={() => ouvrirOutil("casting")}>
               🎬 Envoyer au casting
             </Button>
           )}
@@ -1533,10 +1886,7 @@ export function BookingsTable({
               type="button"
               variant="secondary"
               disabled={pending}
-              onClick={() => {
-                setChangeDateOpen((v) => !v);
-                setAddDatesOpen(false);
-              }}
+              onClick={() => ouvrirOutil("changeDate")}
             >
               🔀 Changer de date
             </Button>
@@ -1546,10 +1896,7 @@ export function BookingsTable({
               type="button"
               variant="secondary"
               disabled={pending}
-              onClick={() => {
-                setAddDatesOpen((v) => !v);
-                setChangeDateOpen(false);
-              }}
+              onClick={() => ouvrirOutil("addDates")}
             >
               📅 Ajouter des dates
             </Button>
@@ -1570,70 +1917,15 @@ export function BookingsTable({
           <Button type="button" variant="ghost" disabled={pending} onClick={hideSelection}>
             ✖️ Masquer la sélection
           </Button>
-          {changeDateOpen && projetId && (
-            <div className="w-full border-t border-coral/40 pt-3">
-              <ChangeDateBar
-                bookingIds={selectedRows.map((r) => r.id)}
-                currentDate={date}
-                autresJournees={autresJournees}
-                onDone={(message) => {
-                  setChangeDateOpen(false);
-                  setSelected(new Set());
-                  setChangeDateMessage(message);
-                }}
-                onPartial={(restantIds) => setSelected(new Set(restantIds))}
-              />
-            </div>
-          )}
-          {addDatesOpen && projetId && (
-            <div className="w-full border-t border-turquoise/40 pt-3">
-              <AddToJourneeBar
-                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
-                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
-                onDone={() => {
-                  setAddDatesOpen(false);
-                  setSelected(new Set());
-                }}
-              />
-            </div>
-          )}
-          {essayageOpen && projetId && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
-              <input
-                type="date"
-                value={essayageDate}
-                onChange={(e) => setEssayageDate(e.target.value)}
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <input
-                value={essayageLieu}
-                onChange={(e) => setEssayageLieu(e.target.value)}
-                placeholder="Lieu (optionnel)"
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <Button type="button" variant="turquoise" disabled={pending || !essayageDate} onClick={sendToEssayage}>
-                {pending ? "Envoi..." : "Envoyer"}
-              </Button>
-              {essayageResult && <span className="text-xs text-text-muted">{essayageResult}</span>}
-            </div>
-          )}
-          {castingOpen && projetId && (
-            <div className="w-full border-t border-turquoise/40 pt-3">
-              <AddToCastingBar
-                figurantIds={selectedRows.map((r) => r.figurant_id).filter((id): id is string => !!id)}
-                projets={[{ id: projetId, nom: rows[0]?.projets?.nom ?? "Ce projet" }]}
-                onDone={() => {
-                  setCastingOpen(false);
-                  setSelected(new Set());
-                }}
-              />
-            </div>
-          )}
-
+          <Button type="button" variant="secondary" disabled={pending} onClick={mettreEnReserve}>
+            🗄️ Mettre en réserve
+          </Button>
+          <Button type="button" variant="danger" disabled={pending} onClick={retirerSelection}>
+            🗑 Retirer de la journée
+          </Button>
           {espacePersoOpen && projetId && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-turquoise/40 pt-3">
+            <Modale titre="🔗 Lien espace perso" onClose={() => setEspacePersoOpen(false)} bloquee={pending}>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm">
                 Envoyer le lien d&apos;espace perso à {selectedWithEmail.length} personne
                 {selectedWithEmail.length > 1 ? "s" : ""}
@@ -1662,10 +1954,12 @@ export function BookingsTable({
                 </span>
               )}
             </div>
+            </Modale>
           )}
 
           {messageMode === "convocation-confirm" && (
-            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+            <Modale titre="📨 Envoyer la convocation" onClose={cancelMessageComposer} bloquee={sendPending}>
+            <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Envoyer la convocation par email à {convocationAEnvoyer.length} personne
@@ -1680,7 +1974,7 @@ export function BookingsTable({
               <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
                 {convocationAEnvoyer.map((r) => (
                   <div key={r.id} className="flex items-center justify-between gap-2 py-0.5">
-                    <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                    <span>{nomComplet(r.figurants)}</span>
                     <span className="text-text-muted">
                       {r.heure_convocation ? r.heure_convocation.slice(0, 5) : "heure à confirmer"}
                     </span>
@@ -1709,7 +2003,7 @@ export function BookingsTable({
                   </div>
                   {convocationDejaEnvoyee.map((r) => (
                     <div key={r.id} className="flex items-center justify-between gap-2 text-text-muted">
-                      <span>{r.figurants?.prenom} {r.figurants?.nom}</span>
+                      <span>{nomComplet(r.figurants)}</span>
                       <button
                         type="button"
                         disabled={pending}
@@ -1728,10 +2022,22 @@ export function BookingsTable({
                   {sendResult.failed > 0 ? `, ${sendResult.failed} échec(s)` : ""}.
                 </p>
               )}
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="ghost" disabled={sendPending} onClick={cancelMessageComposer}>
                   Annuler
                 </Button>
+                <EnvoyerTextos
+                  libelle={`📱 En textos (${selectedRows.length})`}
+                  destinataires={selectedRows
+                    .filter((r) => r.figurants)
+                    .map((r) => ({
+                      nom: nomComplet(r.figurants),
+                      telephone: r.figurants!.telephone,
+                      texte: convocationFor(r).body,
+                      figurantId: r.figurant_id ?? null,
+                      projetId: projetId ?? null,
+                    }))}
+                />
                 <Button
                   type="button"
                   disabled={sendPending || convocationAEnvoyer.length === 0}
@@ -1741,10 +2047,12 @@ export function BookingsTable({
                 </Button>
               </div>
             </div>
+            </Modale>
           )}
 
           {(messageMode === "libre-compose" || messageMode === "libre-confirm") && (
-            <div className="flex w-full flex-col gap-3 border-t border-coral/40 pt-3">
+            <Modale titre="💬 Message libre" onClose={cancelMessageComposer} bloquee={sendPending}>
+            <div className="flex flex-col gap-3">
               <span className="text-sm font-medium">
                 Message libre pour {selectedWithEmail.length} personne{selectedWithEmail.length > 1 ? "s" : ""}
                 {selectedWithoutEmail > 0 && (
@@ -1762,7 +2070,7 @@ export function BookingsTable({
                       <button
                         type="button"
                         onClick={() => applyLibreTemplate()}
-                        className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                        className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
                       >
                         Vierge
                       </button>
@@ -1771,9 +2079,9 @@ export function BookingsTable({
                           key={t.id}
                           type="button"
                           onClick={() => applyLibreTemplate(t)}
-                          className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                          className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
                         >
-                          {t.nom}
+                          {nomModele(t)}
                         </button>
                       ))}
                     </div>
@@ -1783,13 +2091,27 @@ export function BookingsTable({
                     value={libreMessage}
                     onChange={(e) => setLibreMessage(e.target.value)}
                     placeholder="Votre message"
-                    rows={4}
+                    rows={8}
                     className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
                   />
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button type="button" variant="ghost" onClick={cancelMessageComposer}>
                       Annuler
                     </Button>
+                    <EnvoyerTextos
+                      libelle={`📱 En textos (${selectedRows.length})`}
+                      disabled={!libreMessage.trim()}
+                      onEnvoye={() => enregistrerDernierMessage("journee-libre", libreSubject, libreMessage)}
+                      destinataires={selectedRows
+                        .filter((r) => r.figurants)
+                        .map((r) => ({
+                          nom: nomComplet(r.figurants),
+                          telephone: r.figurants!.telephone,
+                          texte: substituteTokens(libreMessage, rowTokens(r, journeeLieu)),
+                          figurantId: r.figurant_id ?? null,
+                          projetId: projetId ?? null,
+                        }))}
+                    />
                     <Button
                       type="button"
                       disabled={!libreMessage.trim() || selectedWithEmail.length === 0}
@@ -1806,7 +2128,7 @@ export function BookingsTable({
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-ink p-2 text-xs">
                     {selectedWithEmail.map((r) => (
                       <div key={r.id} className="py-0.5">
-                        {r.figurants?.prenom} {r.figurants?.nom}
+                        {nomComplet(r.figurants)}
                       </div>
                     ))}
                   </div>
@@ -1832,6 +2154,7 @@ export function BookingsTable({
                 </>
               )}
             </div>
+            </Modale>
           )}
         </div>
       )}
@@ -1916,7 +2239,7 @@ export function BookingsTable({
               )}
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {[...group.rows]
-                  .sort((a, b) => (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? ""))
+                  .sort((a, b) => comparerNoms(a.figurants, b.figurants))
                   .map(renderTrombiCard)}
               </div>
             </div>

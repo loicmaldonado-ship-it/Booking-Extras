@@ -1,3 +1,4 @@
+import { comparerNoms } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
@@ -27,9 +28,7 @@ export default async function FigurantsFichesPage({
     .in("id", Array.from(selectedIds))
     .returns<Figurant[]>();
 
-  const figurants = (figurantsRaw ?? []).sort((a, b) =>
-    `${a.prenom} ${a.nom}`.localeCompare(`${b.prenom} ${b.nom}`)
-  );
+  const figurants = (figurantsRaw ?? []).sort(comparerNoms);
   const figurantIds = figurants.map((f) => f.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
@@ -39,7 +38,7 @@ export default async function FigurantsFichesPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/figurants" className="print-hide text-sm text-text-muted hover:text-coral">
+      <Link href="/figurants" className="print-hide text-sm text-text hover:text-coral">
         ← Retour à Base Profils
       </Link>
 

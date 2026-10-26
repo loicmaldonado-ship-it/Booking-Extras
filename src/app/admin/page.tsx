@@ -205,7 +205,7 @@ export default async function AdminPage() {
                       <form action={entrerModeSupport.bind(null, c.id, p.id)}>
                         <button
                           type="submit"
-                          className="rounded-full bg-ink-raised-2 px-2 py-0.5 text-[10px] font-medium text-text-muted hover:text-coral"
+                          className="rounded-full bg-ink-raised-2 px-2 py-0.5 text-[10px] font-medium text-text hover:text-coral"
                           title="Ouvrir ce projet en mode support"
                         >
                           Ouvrir en support →

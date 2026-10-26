@@ -11,6 +11,10 @@ import { JourneeDeleteButton } from "@/components/bookings/journee-delete-button
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { BookOpen } from "lucide-react";
+import { getLiens } from "@/lib/validation/data";
+import { getSiteOrigin } from "@/lib/partage/data";
+import { LiensValidation } from "@/components/validation/liens-validation";
+import { compterReserve } from "@/lib/reserve/data";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +62,12 @@ export default async function BookingsPage({
     return <ProjetPicker projets={await accessibleProjets()} />;
   }
 
-  const journees = await getJournees(currentProjetId);
+  const [journees, liensMes, origin, nbReserve] = await Promise.all([
+    getJournees(currentProjetId),
+    getLiens({ projetId: currentProjetId }),
+    getSiteOrigin(),
+    compterReserve(currentProjetId),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,10 +90,10 @@ export default async function BookingsPage({
         </div>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/bookings/resume?projet_id=${currentProjetId}`} variant="secondary">
-            Résumé projet
+            Vue globale du projet
           </ButtonLink>
-          <ButtonLink href="/bookings/planning" variant="secondary">
-            Planning
+          <ButtonLink href={`/bookings/reserve?projet_id=${currentProjetId}`} variant="secondary">
+            🗄️ Réserve ({nbReserve})
           </ButtonLink>
           <ButtonLink href="/candidatures" variant="secondary">
             📄 Candidatures
@@ -154,6 +163,15 @@ export default async function BookingsPage({
           <p className="text-sm text-text-muted">Aucune journée pour l&apos;instant sur ce projet.</p>
         )}
       </Card>
+
+      <div id="liens-mes">
+        <LiensValidation
+          cible={{ projetId: currentProjetId }}
+          nomParDefaut={`${projet.nom} — validation`}
+          liens={liensMes.liens}
+          origin={origin}
+        />
+      </div>
     </div>
   );
 }

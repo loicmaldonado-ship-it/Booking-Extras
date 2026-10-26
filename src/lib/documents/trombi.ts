@@ -1,3 +1,4 @@
+import { nomComplet, comparerNoms } from "@/lib/noms";
 import { formatHeureConvocation } from "./fields";
 import type { ConfirmedBooking, CovoiturageInfo } from "./data";
 import { ageBracket, type Dimension, type DocSort } from "./sort";
@@ -19,18 +20,19 @@ function cachetOrder(cachet: string | null) {
 }
 
 function nomOf(b: ConfirmedBooking) {
-  return `${b.figurant.prenom} ${b.figurant.nom}`;
+  return nomComplet(b.figurant);
 }
 
+// Règle du site : ordre alphabétique du nom, puis du prénom.
 function nomSort(a: ConfirmedBooking, b: ConfirmedBooking) {
-  return nomOf(a).localeCompare(nomOf(b));
+  return comparerNoms(a.figurant, b.figurant);
 }
 
 // Nom de famille seul (pas prénom+nom comme nomSort) — utilisé par le
 // trombi covoiturage, où l'objectif est justement de trier par nom de
 // famille pour repérer les gens du même coin d'un coup d'œil.
 function nomFamilleSort(a: ConfirmedBooking, b: ConfirmedBooking) {
-  return a.figurant.nom.localeCompare(b.figurant.nom) || nomOf(a).localeCompare(nomOf(b));
+  return comparerNoms(a.figurant, b.figurant);
 }
 
 function dimensionLabel(b: ConfirmedBooking, dim: Dimension): string {

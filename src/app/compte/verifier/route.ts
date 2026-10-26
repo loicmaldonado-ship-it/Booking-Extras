@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     .from("figurant_auth_tokens")
     .select("id, figurant_id, expires_at, used_at")
     .eq("token", token)
+    // Un lien « Crée ton compte » ne connecte jamais directement.
+    .eq("objet", "connexion")
     .maybeSingle();
 
   if (!authToken || authToken.used_at || new Date(authToken.expires_at) < new Date()) {

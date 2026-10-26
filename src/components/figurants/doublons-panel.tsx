@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { nomComplet } from "@/lib/noms";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";
@@ -37,7 +39,7 @@ export function DoublonsPanel({ groupes, canDelete }: { groupes: DoublonGroupe[]
                 {g.profils.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
                     <Link href={`/figurants/${p.id}`} className="hover:text-coral">
-                      {p.prenom} {g.nom} — {p.email ?? "sans email"}
+                      {nomComplet({ prenom: p.prenom, nom: g.nom })} — {p.email ?? "sans email"}
                     </Link>
                     {canDelete && <DeleteFigurantConfirm id={p.id} label={`${p.prenom} ${g.nom}`} />}
                   </div>

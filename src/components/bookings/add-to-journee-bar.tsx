@@ -1,5 +1,6 @@
 "use client";
 
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
 import { useState, useTransition, useRef, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -13,12 +14,15 @@ export function AddToJourneeBar({
   candidatureIdByFigurant,
   candidatureProjectByFigurant,
   onDone,
+  fonctionFacultative = false,
 }: {
   figurantIds: string[];
   projets: { id: string; nom: string }[];
   candidatureIdByFigurant?: Record<string, string>;
   candidatureProjectByFigurant?: Record<string, string>;
   onDone?: () => void;
+  // Depuis Candidatures : la fonction peut être choisie plus tard.
+  fonctionFacultative?: boolean;
 }) {
   const router = useRouter();
   const [projetId, setProjetId] = useState(projets[0]?.id ?? "");
@@ -51,7 +55,7 @@ export function AddToJourneeBar({
   }
 
   function submit() {
-    if (pending || !projetId || dates.length === 0 || figurantIds.length === 0) return;
+    if (pending || !projetId || dates.length === 0 || figurantIds.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())) return;
     setResult(null);
     startTransition(async () => {
       try {
@@ -83,10 +87,7 @@ export function AddToJourneeBar({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3">
-      <span className="text-sm font-medium">
-        {figurantIds.length} sélectionné·e{figurantIds.length > 1 ? "s" : ""}
-      </span>
+    <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
         <label htmlFor={`${fieldId}-projet`} className="text-xs text-text-muted">Projet</label>
         <select
@@ -137,7 +138,7 @@ export function AddToJourneeBar({
                   type="button"
                   disabled={pending}
                   onClick={() => removeDate(d)}
-                  className="text-text-muted hover:text-danger"
+                  className="text-text hover:text-danger"
                   title="Retirer cette date"
                 >
                   ×
@@ -148,10 +149,12 @@ export function AddToJourneeBar({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${fieldId}-fonction`} className="text-xs text-text-muted">Fonction (optionnel)</label>
+<label htmlFor={`${fieldId}-fonction`} className="text-xs text-text-muted">Fonction {fonctionFacultative ? "(facultatif)" : <span className="text-danger">*</span>}</label>
+          <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
         <input
           id={`${fieldId}-fonction`}
           type="text"
+          list="fonctions-ajout-journee"
           value={fonction}
           onChange={(e) => setFonction(e.target.value)}
           placeholder="Passant, Silhouette videur..."
@@ -160,7 +163,7 @@ export function AddToJourneeBar({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor={`${fieldId}-cachet`} className="text-xs text-text-muted">Cachet (optionnel)</label>
+<label htmlFor={`${fieldId}-cachet`} className="text-xs text-text-muted">Cachet <span className="text-danger">*</span></label>
         <select
           id={`${fieldId}-cachet`}
           value={cachet}
@@ -168,7 +171,9 @@ export function AddToJourneeBar({
           disabled={pending}
           className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         >
-          <option value="">—</option>
+          <option value="" disabled>
+            Choisir…
+          </option>
           {CACHETS.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -176,13 +181,21 @@ export function AddToJourneeBar({
           ))}
         </select>
       </div>
-      <Button type="button" disabled={pending || !projetId || dates.length === 0} onClick={submit}>
+      <Button
+        type="button"
+        disabled={pending || !projetId || dates.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())}
+        onClick={submit}
+        title={!cachet || (!fonctionFacultative && !fonction.trim()) ? "Choisis la fonction et le cachet" : undefined}
+      >
         {pending
-          ? "Ajout..."
+          ? "Envoi..."
           : dates.length > 1
-            ? `Ajouter aux ${dates.length} dates`
-            : "Ajouter à la journée"}
+            ? `Envoyer dans les ${dates.length} journées de booking`
+            : "Envoyer dans la journée de booking"}
       </Button>
+{(!cachet || (!fonctionFacultative && !fonction.trim())) && (
+          <span className="text-xs text-text-muted">{fonctionFacultative ? "Cachet obligatoire." : "Fonction et cachet obligatoires."}</span>
+        )}
       {result && (
         <span role={result.error ? "alert" : "status"}
           className={`text-xs ${result.error ? "text-danger" : "text-text-muted"}`}>

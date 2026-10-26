@@ -3,8 +3,9 @@ import { PrintButton } from "@/components/documents/print-button";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FicheRoleValideSheet } from "@/components/casting/fiche-role-valide-sheet";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
-import { resolvePartageToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { vignetteCasting } from "@/lib/casting/vignette";
+import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function PartageFichesRolesPage({ params }: { params: Promi
     );
   }
 
-  const [roles, entries] = await Promise.all([getCastingRoles(projet.id), getCastingEntries(projet.id)]);
+  const [roles, entries] = await Promise.all([getCastingRoles(projet.id, await getCategorieLienCasting(token)), getCastingEntries(projet.id)]);
   const entriesByRole = new Map<string, typeof entries>();
   for (const e of entries) {
     const list = entriesByRole.get(e.role_id) ?? [];
@@ -66,7 +67,7 @@ export default async function PartageFichesRolesPage({ params }: { params: Promi
           <FicheRoleValideSheet
             role={role}
             entry={entry}
-            portraitUrl={pickPortrait(portraitByFigurant.get(entry.figurant_id), projet.id)?.url ?? null}
+            portraitUrl={vignetteCasting(entry, portraitByFigurant.get(entry.figurant_id), projet.id)}
             hideContact={visibility.fichesRolesMasquerContact}
           />
         </PrintSheet>

@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BackLink } from "@/components/ui/back-link";
@@ -114,7 +115,7 @@ export default async function ResumeProjetPage({
       <BackLink href="/bookings" label="Retour" />
 
       <div>
-        <h1 className="text-2xl font-semibold">Résumé — {projet?.nom}</h1>
+        <h1 className="text-2xl font-semibold">Vue globale du projet — {projet?.nom}</h1>
         <p className="mt-1 text-text-muted">
           Toutes les journées d&apos;un coup d&apos;œil, rangées par cachet — fonction affichée sur chaque profil.
         </p>
@@ -181,7 +182,7 @@ export default async function ResumeProjetPage({
                           return (
                             <div
                               key={b.id}
-                              title={b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : ""}
+                              title={b.figurants ? nomComplet(b.figurants) : ""}
                               className="flex w-9 shrink-0 flex-col items-center gap-0.5"
                             >
                               <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-ink-raised-2">

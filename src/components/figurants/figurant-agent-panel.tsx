@@ -99,7 +99,7 @@ export function FigurantAgentPanel({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-fit rounded-full border border-dashed border-border px-3 py-1.5 text-sm text-text-muted hover:border-coral/60 hover:text-text"
+        className="w-fit rounded-full border border-dashed border-border-strong px-3 py-1.5 text-sm text-text hover:border-coral/60 hover:text-text"
       >
         + Ajouter un agent
       </button>

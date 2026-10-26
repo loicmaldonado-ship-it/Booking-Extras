@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto/secrets";
+import { motDePasseApp } from "@/lib/projets/email";
 import { getCurrentProfile } from "@/lib/auth/session";
 
 function str(fd: FormData, key: string): string | null {
@@ -30,7 +31,7 @@ export async function updateMyGmailSmtp(_prevState: unknown, formData: FormData)
   if (!gmailUser) {
     gmailAppPasswordEncrypted = null;
   } else if (gmailAppPasswordInput) {
-    gmailAppPasswordEncrypted = encryptSecret(gmailAppPasswordInput);
+    gmailAppPasswordEncrypted = encryptSecret(motDePasseApp(gmailAppPasswordInput));
   } else {
     const { data: existing } = await supabase
       .from("profiles")

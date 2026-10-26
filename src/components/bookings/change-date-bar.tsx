@@ -68,7 +68,7 @@ export function ChangeDateBar({
             }}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium tabular-nums transition-colors",
-              date === d ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+              date === d ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
             )}
           >
             {formatDateShort(d)}

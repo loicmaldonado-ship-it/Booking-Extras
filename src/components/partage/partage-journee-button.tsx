@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
 import { createJourneePartageLien, revokeJourneePartageLien } from "@/lib/partage/actions";
+import { SuiviPartageLien } from "@/components/partage/suivi-partage";
 
 export function PartageJourneeButton({
   projetId,
@@ -54,7 +55,7 @@ export function PartageJourneeButton({
     <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Partager cette journée</h3>
-        <button type="button" onClick={() => setOpen(false)} className="text-xs text-text-muted hover:text-text">
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-text hover:text-text">
           Fermer
         </button>
       </div>
@@ -75,14 +76,15 @@ export function PartageJourneeButton({
               Révoquer
             </Button>
             <a
-              href={`${publicBaseUrl}/${token}`}
+              href={`${publicBaseUrl}/${token}?apercu=1`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
+              className="flex items-center rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text"
             >
               👁️ Aperçu — ce que les autres postes verront
             </a>
           </div>
+          <SuiviPartageLien projetId={projetId} type="journee" date={date} />
         </div>
       ) : (
         <div className="flex flex-col gap-2">

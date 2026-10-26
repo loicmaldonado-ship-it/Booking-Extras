@@ -3,19 +3,22 @@
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Input, Textarea, Select } from "@/components/ui/field";
 import { createCastingRole, updateCastingRoleCalibration } from "@/lib/casting/actions";
-import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, CASTING_MODE_LABELS, type CastingRole, type CategorieCachet } from "@/lib/casting/types";
 
 const DEFAULT_LABELS = ["Portrait", "Pied", "Autre"];
 
 export function CastingRoleForm({
   projetId,
   role,
+  categorieParDefaut = "role",
   onDone,
 }: {
   projetId: string;
   role?: CastingRole;
+  // Catégorie proposée pour un nouveau casting (celle de l'onglet ouvert).
+  categorieParDefaut?: CategorieCachet;
   onDone?: () => void;
 }) {
   const action = role ? updateCastingRoleCalibration.bind(null, role.id) : createCastingRole.bind(null, projetId);
@@ -118,7 +121,7 @@ export function CastingRoleForm({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Field label="Catégorie de cachet" required>
-          <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? "role"}>
+          <Select name="categorie_cachet" required defaultValue={role?.categorie_cachet ?? categorieParDefaut}>
             {Object.entries(CATEGORIE_CACHET_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -146,6 +149,19 @@ export function CastingRoleForm({
         <Input type="number" name="nb_videos" min={0} defaultValue={role?.nb_videos ?? 1} className="w-24" />
       </Field>
 
+      <Field label="Questions (oui / non) — une par ligne">
+        <Textarea
+          name="questions"
+          rows={3}
+          placeholder={"Parlez-vous anglais ?\nAvez-vous le permis de conduire ?"}
+          defaultValue={(role?.questions ?? []).join("\n")}
+        />
+      </Field>
+      <p className="-mt-2 text-xs text-text-muted">
+        Posées sur la page d&apos;envoi des photos / vidéos (réponse oui / non, précision facultative). Les réponses
+        sont visibles dans le rôle et sur le lien réal.
+      </p>
+
       <Field label="Photos demandées (nom du matériau)">
         <div className="flex flex-col gap-2">
           {labels.map((l) => (
@@ -155,7 +171,7 @@ export function CastingRoleForm({
               <button
                 type="button"
                 onClick={() => removeLabel(l)}
-                className="text-xs text-text-muted hover:text-danger"
+                className="text-xs text-text hover:text-danger"
               >
                 Retirer
               </button>

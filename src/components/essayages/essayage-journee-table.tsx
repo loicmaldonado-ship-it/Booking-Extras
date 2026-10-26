@@ -1,11 +1,13 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { ZoomButton } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
@@ -77,7 +79,7 @@ export function EssayageJourneeTable({
   // journée d'essayage, dans l'ordre affiché.
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
-    prenom: r.figurants?.prenom ?? "",
+    prenom: formatPrenom(r.figurants?.prenom),
     nom: r.figurants?.nom ?? "",
     ville: null,
     portraitUrl: r.portraitUrl,
@@ -187,7 +189,7 @@ export function EssayageJourneeTable({
     setSendError(null);
     startTransition(async () => {
       const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
   }
 
@@ -208,7 +210,7 @@ export function EssayageJourneeTable({
     setSendError(null);
     startTransition(async () => {
       const result = await recordEssayageMessage(r.figurant_id, body, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
     });
   }
 
@@ -219,7 +221,14 @@ export function EssayageJourneeTable({
   return (
     <div className="flex flex-col gap-4">
       {sendError && (
-        <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
+        <Modale titre="Action impossible" onClose={() => setSendError(null)}>
+          <p className="text-sm text-danger">{sendError}</p>
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setSendError(null)}>
+              Fermer
+            </Button>
+          </div>
+        </Modale>
       )}
       {selected.size > 0 && projetId && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
@@ -237,37 +246,39 @@ export function EssayageJourneeTable({
           <Button type="button" variant="ghost" onClick={() => setSelected(new Set())}>
             Désélectionner
           </Button>
-          {moveOpen && (
-            <div className="flex w-full flex-wrap items-center gap-2 border-t border-coral/40 pt-3">
-              <datalist id="autres-journees-essayage">
-                {autresJournees.map((j) => (
-                  <option key={j.id} value={j.date}>
-                    {formatDateShort(j.date)} — {j.total} profil{j.total > 1 ? "s" : ""}
-                  </option>
-                ))}
-              </datalist>
-              <input
-                type="date"
-                list="autres-journees-essayage"
-                value={moveDate}
-                onChange={(e) => setMoveDate(e.target.value)}
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <input
-                value={moveLieu}
-                onChange={(e) => setMoveLieu(e.target.value)}
-                placeholder="Lieu (optionnel, si nouvelle date)"
-                disabled={pending}
-                className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
-              />
-              <Button type="button" variant="turquoise" disabled={pending || !moveDate} onClick={moveSelected}>
-                {pending ? "Déplacement..." : "Déplacer"}
-              </Button>
-              {moveResult && <span className="text-xs text-text-muted">{moveResult}</span>}
-            </div>
-          )}
         </div>
+      )}
+      {moveOpen && (
+        <Modale titre="Déplacer vers une autre date" sousTitre={selected.size > 0 ? `${selected.size} profil${selected.size > 1 ? "s" : ""}` : undefined} onClose={() => setMoveOpen(false)} bloquee={pending}>
+          <div className="flex flex-wrap items-center gap-2">
+            <datalist id="autres-journees-essayage">
+              {autresJournees.map((j) => (
+                <option key={j.id} value={j.date}>
+                  {formatDateShort(j.date)} — {j.total} profil{j.total > 1 ? "s" : ""}
+                </option>
+              ))}
+            </datalist>
+            <input
+              type="date"
+              list="autres-journees-essayage"
+              value={moveDate}
+              onChange={(e) => setMoveDate(e.target.value)}
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <input
+              value={moveLieu}
+              onChange={(e) => setMoveLieu(e.target.value)}
+              placeholder="Lieu (optionnel, si nouvelle date)"
+              disabled={pending}
+              className="rounded-full border border-border bg-ink px-4 py-1.5 text-sm outline-none disabled:opacity-60"
+            />
+            <Button type="button" variant="turquoise" disabled={pending || !moveDate || selected.size === 0} onClick={moveSelected}>
+              {pending ? "Déplacement..." : "Déplacer"}
+            </Button>
+          </div>
+          {moveResult && <p className="text-sm font-medium">{moveResult}</p>}
+        </Modale>
       )}
       <div className="flex flex-col gap-1">
         <label className="text-xs font-medium text-text-muted">
@@ -297,7 +308,7 @@ export function EssayageJourneeTable({
               type="button"
               onClick={() => remove(r.id)}
               disabled={pending}
-              className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text-muted hover:bg-danger hover:text-ink"
+              className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text hover:bg-danger hover:text-ink"
               title="Retirer de cette journée"
             >
               ×
@@ -311,7 +322,7 @@ export function EssayageJourneeTable({
                 })()}
               </div>
               <div className="text-sm font-medium">
-                {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                {r.figurants ? nomComplet(r.figurants) : "—"}
               </div>
               <div className="flex items-center gap-1 text-xs text-text-muted">
                 {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}
@@ -325,7 +336,7 @@ export function EssayageJourneeTable({
             <button
               type="button"
               onClick={() => (lieuEditingId === r.id ? setLieuEditingId(null) : openLieuEditor(r))}
-              className="w-full truncate text-[10px] text-text-muted hover:text-coral hover:underline"
+              className="w-full truncate text-[10px] text-text hover:text-coral hover:underline"
               title="Changer le lieu pour cette personne uniquement"
             >
               📍 {r.lieu ?? journeeLieu ?? "Lieu à définir"}
@@ -357,7 +368,7 @@ export function EssayageJourneeTable({
               </div>
             )}
             {projetId && (
-              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-1.5 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text">
+              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text">
                 📷 Photo en tenue
                 <input
                   type="file"

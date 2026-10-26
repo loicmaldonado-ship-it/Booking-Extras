@@ -25,6 +25,9 @@ export function DownloadPdfButton({
 
       const sheets = Array.from(document.querySelectorAll<HTMLElement>("[data-print-sheet]"));
       if (sheets.length === 0) return;
+      // Feuilles réduites à l'écran (FeuilleAjustee) : vraie taille pour la capture.
+      document.documentElement.classList.add("capture-pdf");
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
       const pdf = new jsPDF({ orientation, unit: "mm", format: "a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
@@ -44,6 +47,7 @@ export function DownloadPdfButton({
 
       pdf.save(filename);
     } finally {
+      document.documentElement.classList.remove("capture-pdf");
       setLoading(false);
     }
   }

@@ -58,6 +58,8 @@ export type Figurant = {
   created_at: string;
   updated_at: string;
   est_comedien: boolean;
+  // Venu·e par un lien de casting sans compte (base privée de la cheffe).
+  cree_via_casting: boolean;
   agent_nom: string | null;
   agent_email: string | null;
   agent_telephone: string | null;
@@ -74,6 +76,9 @@ export type FigurantPhoto = {
   projet_id: string | null;
   created_at: string;
   url?: string;
+  // Photos envoyées pour un casting : rattachées à l'entrée du rôle.
+  casting_entry_id?: string | null;
+  label?: string | null;
 };
 
 export type FigurantLien = {

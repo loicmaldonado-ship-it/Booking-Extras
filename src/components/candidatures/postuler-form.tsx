@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendrierIndispos } from "@/components/candidatures/calendrier-indispos";
 import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -133,7 +134,7 @@ function ChoixMesPhotos({
               key={p.id}
               type="button"
               onClick={() => onChoisir(p)}
-              className="flex flex-col gap-1 rounded-xl border border-border p-1 text-xs text-text-muted hover:border-coral"
+              className="flex flex-col gap-1 rounded-xl border border-border-strong p-1 text-xs text-text hover:border-coral"
             >
               <span className="relative block aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
                 <Image src={p.url} alt="" fill sizes="120px" className="object-cover" unoptimized />
@@ -319,6 +320,8 @@ export function PostulerForm({
   mesPhotos = [],
   questions,
   dates,
+  disposParCalendrier = false,
+  retour,
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
@@ -329,6 +332,9 @@ export function PostulerForm({
   mesPhotos?: PhotoDuCompte[];
   questions: AnnonceQuestion[];
   dates: AnnonceDate[];
+  disposParCalendrier?: boolean;
+  // Inscription : page où revenir une fois le compte créé (lien de casting).
+  retour?: string | null;
   prefill?: {
     prenom: string;
     nom: string;
@@ -361,7 +367,7 @@ export function PostulerForm({
   const creationCompte = inscription || !connecte;
   const lienConnexion = inscription ? "/compte/connexion" : `/compte/connexion?retour=/postuler/${publicToken}`;
   const [state, formAction, pending] = useActionState<
-    { error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean } | undefined,
+    { error?: string; success?: boolean; compteExistant?: boolean; compteCree?: boolean; invitationEnvoyee?: boolean } | undefined,
     FormData
   >(inscription ? inscrireCandidat : postulerAnnonce.bind(null, publicToken), undefined);
   const [aVehicule, setAVehicule] = useState<boolean | null>(null);
@@ -497,8 +503,16 @@ export function PostulerForm({
   return (
     <PhotosContext.Provider value={photosContexte}>
     <form noValidate onSubmit={envoyer} className="flex flex-col gap-4">
+      {retour && <input type="hidden" name="retour" value={retour} />}
       {state?.error && (
-        <div ref={erreurServeurRef} role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div
+          ref={erreurServeurRef} role={state.invitationEnvoyee ? "status" : "alert"}
+          className={
+            state.invitationEnvoyee
+              ? "rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm"
+              : "rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger"
+          }
+        >
           {state.error}
           {state.compteExistant && (
             <Link href={lienConnexion} className="mt-2 block font-medium underline">
@@ -765,7 +779,14 @@ export function PostulerForm({
         </Card>
       )}
 
-      {dates.length > 0 && (
+      {dates.length > 0 && disposParCalendrier && (
+        <Card className="flex flex-col gap-4">
+          <h2 className="text-sm font-semibold text-text-muted">Disponibilités</h2>
+          <CalendrierIndispos dates={dates} />
+        </Card>
+      )}
+
+      {dates.length > 0 && !disposParCalendrier && (
         <Card className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-text-muted">Disponibilités</h2>
           {dates.map((d) => (

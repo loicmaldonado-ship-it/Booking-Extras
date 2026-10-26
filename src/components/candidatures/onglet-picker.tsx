@@ -10,7 +10,7 @@ import {
 import type { CandidatureOnglet } from "@/lib/candidatures/types";
 
 export const TONE_CLASSES: Record<CandidatureOnglet["couleur"], string> = {
-  default: "border-border text-text-muted hover:text-text",
+  default: "border-border-strong text-text hover:text-text",
   coral: "border-coral bg-coral/15 text-coral",
   turquoise: "border-turquoise bg-turquoise/15 text-turquoise",
   yellow: "border-yellow bg-yellow/15 text-yellow",
@@ -70,7 +70,7 @@ export function OngletPicker({
           onClick={() => assign(null)}
           className={cn(
             "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-            ongletId === null ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            ongletId === null ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           À trier
@@ -83,7 +83,7 @@ export function OngletPicker({
             onClick={() => assign(o.id)}
             className={cn(
               "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-              ongletId === o.id ? TONE_CLASSES[o.couleur] : "border-border text-text-muted hover:text-text"
+              ongletId === o.id ? TONE_CLASSES[o.couleur] : "border-border-strong text-text hover:text-text"
             )}
           >
             {o.nom}
@@ -93,7 +93,7 @@ export function OngletPicker({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="rounded-full border border-dashed border-border-strong px-2.5 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
           >
             + Nouveau
           </button>
@@ -111,13 +111,13 @@ export function OngletPicker({
                 creer();
               }
             }}
-            placeholder="Ex. Ok dispo le 26/06"
+            placeholder="Ex. Gueules"
             className="w-44 rounded-lg border border-border bg-ink px-2 py-1 text-xs outline-none focus:border-coral"
           />
           <button type="button" onClick={creer} disabled={pending || !nouveauNom.trim()} className="text-xs text-coral hover:underline">
             Créer
           </button>
-          <button type="button" onClick={() => { setCreating(false); setNouveauNom(""); }} className="text-xs text-text-muted hover:text-text">
+          <button type="button" onClick={() => { setCreating(false); setNouveauNom(""); }} className="text-xs text-text hover:text-text">
             Annuler
           </button>
         </div>

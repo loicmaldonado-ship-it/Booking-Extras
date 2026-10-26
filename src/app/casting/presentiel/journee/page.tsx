@@ -1,3 +1,4 @@
+import { comparerNoms, trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -89,14 +90,14 @@ export default async function CastingPresentielJourneePage({
     ).values()
   )
     .map((f) => ({ ...f, roleIds: roleIdsByFigurant.get(f.id) ?? [] }))
-    .sort((a, b) => a.nom.localeCompare(b.nom));
+    .sort(comparerNoms);
 
   const figurantIds = (entriesRaw ?? []).map((e) => e.figurant_id);
   const [photosByFigurant, signature] = await Promise.all([
     getPhotosByFigurantId(figurantIds),
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
-  const rows: PresentielEntry[] = (entriesRaw ?? []).map((e) => ({
+  const rows: PresentielEntry[] = trierParNom(entriesRaw ?? [], (e) => e.figurants).map((e) => ({
     ...e,
     portraitUrl: pickPortrait(photosByFigurant.get(e.figurant_id), projet_id)?.url ?? null,
     photos: photosByFigurant.get(e.figurant_id) ?? [],

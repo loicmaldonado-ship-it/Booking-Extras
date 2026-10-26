@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { CopyLink } from "@/components/annonces/copy-link";
-import { createPartageLien, revokePartageLien, updatePartageTitre, type PartageType } from "@/lib/partage/actions";
+import { createPartageLien, revokePartageLien, updatePartageTitre, type PartageType, type CategorieLien } from "@/lib/partage/actions";
+import { SuiviPartageLien } from "@/components/partage/suivi-partage";
 
 export function PartageCard({
   projetId,
@@ -16,6 +17,7 @@ export function PartageCard({
   publicBaseUrl,
   titre,
   titrePlaceholder,
+  categorie = null,
   children,
 }: {
   projetId: string;
@@ -28,6 +30,8 @@ export function PartageCard({
   // personnalisable (ex. Casting) — absent ailleurs (documents, essayages).
   titre?: string | null;
   titrePlaceholder?: string;
+  // Lien casting limité à une catégorie (rôles, silhouettes, doublures) ; null = tout le casting.
+  categorie?: CategorieLien;
   // Options propres à un type de lien précis (ex. visibilité des documents
   // casting) — rendu seulement une fois le lien créé, comme le titre.
   children?: React.ReactNode;
@@ -39,14 +43,14 @@ export function PartageCard({
 
   function create() {
     startTransition(async () => {
-      await createPartageLien(projetId, type);
+      await createPartageLien(projetId, type, categorie);
       router.refresh();
     });
   }
 
   function revoke() {
     startTransition(async () => {
-      await revokePartageLien(projetId, type);
+      await revokePartageLien(projetId, type, categorie);
       router.refresh();
     });
   }
@@ -54,7 +58,7 @@ export function PartageCard({
   function saveTitre() {
     setTitreSaved(false);
     startTransition(async () => {
-      await updatePartageTitre(projetId, type, titreValue.trim() || null);
+      await updatePartageTitre(projetId, type, titreValue.trim() || null, categorie);
       setTitreSaved(true);
       router.refresh();
     });
@@ -93,6 +97,7 @@ export function PartageCard({
               Révoquer
             </Button>
           </div>
+          <SuiviPartageLien projetId={projetId} type={type} categorie={categorie} />
           {children}
         </div>
       ) : (

@@ -1,3 +1,4 @@
+import { comparerNoms } from "@/lib/noms";
 export type PartageEssayageRow = {
   id: string;
   numero: number;
@@ -37,7 +38,9 @@ export type SlotItem = { row: PartageEssayageRow; slotLabel: string; showSlotHea
 // logique utilisée par le planning en ligne et sa version imprimable.
 export function buildSlotItems(rows: PartageEssayageRow[], creneauById: Map<string, Creneau>): SlotItem[] {
   const sorted = [...rows].sort(
-    (a, b) => (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "")
+    (a, b) =>
+      (effectiveHeure(a, creneauById) ?? "").localeCompare(effectiveHeure(b, creneauById) ?? "") ||
+      comparerNoms(a.figurants, b.figurants)
   );
   let slotNumber = 0;
   let lastLabel: string | null = null;

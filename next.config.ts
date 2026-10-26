@@ -1,10 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // ffmpeg (allègement des vidéos du casting après l'envoi) : binaire du
+  // paquet npm, laissé tel quel et embarqué dans les fonctions concernées.
+  serverExternalPackages: ["@ffmpeg-installer/ffmpeg"],
   // Les polices de l'affiche sont lues avec readFile au moment du rendu :
   // à embarquer explicitement dans la fonction serveur.
   outputFileTracingIncludes: {
     "/annonces/*/poster": ["./src/app/fonts/*.ttf"],
+    "/api/videos/alleger": ["./node_modules/@ffmpeg-installer/**/*"],
+    "/api/cron/alleger-videos": ["./node_modules/@ffmpeg-installer/**/*"],
   },
   experimental: {
     // Server Actions default to a 1MB request body — too small for photo

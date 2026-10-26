@@ -87,7 +87,7 @@ export default function ConfidentialitePage() {
         </p>
       </Card>
 
-      <Link href="/" className="text-sm text-text-muted hover:text-coral">
+      <Link href="/" className="text-sm text-text hover:text-coral">
         ← Retour à l&apos;accueil
       </Link>
     </div>

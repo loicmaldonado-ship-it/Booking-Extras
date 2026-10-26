@@ -74,7 +74,7 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
 
   const { error } = await supabase
     .from("figurant_messages")
-    .insert({ figurant_id: figurantId, sender: "staff", corps, categorie, projet_id: projetId });
+    .insert({ figurant_id: figurantId, sender: "staff", corps, categorie, projet_id: projetId, envoye_par: (await getCurrentProfile())?.id ?? null });
 
   if (error) return { error: error.message };
 

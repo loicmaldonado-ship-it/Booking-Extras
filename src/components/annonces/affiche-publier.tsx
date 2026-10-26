@@ -22,7 +22,7 @@ function peutCopierImage() {
 }
 
 const bouton =
-  "rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-50";
+  "rounded-full border border-border-strong px-4 py-2 text-sm font-medium text-text hover:border-coral/60 hover:text-text disabled:opacity-50";
 
 // Publier l'affiche : sur téléphone, « Partager » ouvre la feuille de
 // partage du système (Instagram, WhatsApp, Messages…) avec l'image prête ;
@@ -103,7 +103,7 @@ export function AffichePublier({ annonceId, titre, texte }: { annonceId: string;
             }}
             className={cn(
               "h-7 rounded-full border px-3 text-xs font-medium",
-              format === f.key ? "border-coral bg-coral/10 text-coral" : "border-border text-text-muted hover:text-text"
+              format === f.key ? "border-coral bg-coral/10 text-coral" : "border-border-strong text-text hover:text-text"
             )}
           >
             {f.label}

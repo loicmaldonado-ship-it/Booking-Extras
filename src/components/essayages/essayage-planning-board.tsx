@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -52,7 +53,7 @@ export function EssayagePlanningBoard({
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
         </div>
         <span className="truncate text-xs font-medium">
-          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
       </div>
     );

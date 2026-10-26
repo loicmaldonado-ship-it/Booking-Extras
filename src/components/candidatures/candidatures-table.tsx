@@ -1,30 +1,31 @@
 "use client";
 
-import { Fragment, useState, useTransition } from "react";
+import { nomComplet } from "@/lib/noms";
+import { useState, useTransition, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Card, Badge } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
-import { substituteTokens } from "@/lib/bookings/convocation";
-import { CandidatureRow } from "@/components/candidatures/candidature-row";
-import { OngletPicker, TONE_CLASSES } from "@/components/candidatures/onglet-picker";
+import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
+import { TONE_CLASSES } from "@/components/candidatures/onglet-picker";
 import { HabitueBadge } from "@/components/candidatures/habitue-badge";
 import { JourChips, type JourCandidature } from "@/components/candidatures/jour-chips";
 import { TriRapide } from "@/components/candidatures/tri-rapide";
+import { JoursPanneau, type JourPanneau } from "@/components/candidatures/jours-panneau";
+import { MessageCandidatures } from "@/components/candidatures/message-candidatures";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";
-import { ZoomButton } from "@/components/ui/zoomable-image";
+import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import type { PhotoType } from "@/lib/figurants/types";
-import { toGalleryPhotos, galleryIndexOfUrl } from "@/lib/figurants/photo-labels";
-import { recordCandidatureMessage, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
+import { setCandidatureOnglet, setCandidaturesOngletBulk } from "@/lib/candidatures/actions";
+import { RangementCarte } from "@/components/candidatures/rangement-carte";
+import { creerEtiquette, setEtiquettesBulk, type Etiquette } from "@/lib/candidatures/etiquettes";
+import { mettreCandidaturesEnReserve } from "@/lib/reserve/actions";
+import { emojiOnglet, ongletsRapides, sansAccent } from "@/lib/candidatures/onglets-affichage";
 import type { Cachet, CandidatureOnglet } from "@/lib/candidatures/types";
-import { projetNomPublic } from "@/lib/projets/types";
-import type { MessageTemplate } from "@/lib/templates/types";
 
 export type Row = {
   id: string;
@@ -49,59 +50,110 @@ export type CandidatureSummary = {
   jours: JourCandidature[];
 };
 
-const DEFAULT_BODY = "Bonjour {prenom},\n\n";
+// Met en évidence le texte cherché (sans tenir compte des accents).
+function Surligne({ texte, q }: { texte: string; q: string }) {
+  if (!q) return <>{texte}</>;
+  const i = sansAccent(texte).indexOf(sansAccent(q));
+  if (i < 0) return <>{texte}</>;
+  return (
+    <>
+      {texte.slice(0, i)}
+      <mark className="rounded bg-yellow/30 px-0.5 text-text">{texte.slice(i, i + q.length)}</mark>
+      {texte.slice(i + q.length)}
+    </>
+  );
+}
 
-function rowTokens(r: Row) {
-  const projet = r.annonces?.projets;
-  return {
-    prenom: r.figurants?.prenom ?? "",
-    projet: projetNomPublic(projet, "notre projet"),
-    lieu: projet?.lieu ?? "",
-    cachet: r.cachet_assigne ?? "",
-    fonction: r.fonction_assignee ?? "",
-    signature: projet?.signature ?? "",
-  };
+// Message de candidature : 3 lignes, « Lire tout » pour le reste.
+function MessageCandidature({ message, ouvert, onToggle }: { message: string | null; ouvert: boolean; onToggle: () => void }) {
+  if (!message?.trim()) return <p className="text-xs italic text-text-muted">Pas de message</p>;
+  const long = message.length > 110 || message.split("\n").length > 3;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={!long}
+      aria-expanded={long ? ouvert : undefined}
+      className="w-full rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-left text-sm leading-snug text-text enabled:hover:border-coral/60"
+    >
+      <span className={cn("whitespace-pre-line", !ouvert && "line-clamp-3")}>💬 {message.trim()}</span>
+      {long && <span className="mt-0.5 block font-medium text-coral">{ouvert ? "Réduire" : "Lire tout"}</span>}
+    </button>
+  );
+}
+
+function Reponses({ questions }: { questions: CandidatureSummary["questions"] }) {
+  if (questions.length === 0) return null;
+  return (
+    <p className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-text-muted">
+      {questions.map((q, i) => (
+        <span key={i}>
+          {q.label} <b className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "oui" : "non"}</b>
+        </span>
+      ))}
+    </p>
+  );
 }
 
 export function CandidaturesTable({
   rows,
-  templates,
-  projets,
   summaries = {},
   onglets,
-  annonceId,
+  projetId,
+  projets,
   triIds,
+  vue,
+  recherche,
+  jours,
+  annonceId,
+  etiquettes,
+  etiquettesParCandidature,
+  pagination,
 }: {
   rows: Row[];
-  templates: MessageTemplate[];
-  projets: { id: string; nom: string }[];
   summaries?: Record<string, CandidatureSummary>;
   onglets: CandidatureOnglet[];
-  annonceId: string;
+  projetId: string | null;
+  projets: { id: string; nom: string }[];
   // Toute la liste filtrée/triée (toutes pages), pour le tri rapide.
   triIds: string[];
+  vue: "trombi" | "liste";
+  recherche: string;
+  jours: JourPanneau[];
+  annonceId: string;
+  etiquettes: Etiquette[];
+  // Étiquettes posées, par candidature.
+  etiquettesParCandidature: Record<string, string[]>;
+  pagination?: ReactNode;
 }) {
   const router = useRouter();
-  const [, startStatutTransition] = useTransition();
-  const [bulkOngletPending, startBulkOngletTransition] = useTransition();
-  const [bulkOngletError, setBulkOngletError] = useState<string | null>(null);
-  const [isTrombi, setIsTrombi] = useState(true);
+  const [bulkPending, startBulk] = useTransition();
+  const [, startRanger] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [showPreview, setShowPreview] = useState(false);
-  const [openRowId, setOpenRowId] = useState<string | null>(null);
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
-  const [bulkSubject, setBulkSubject] = useState("");
-  const [bulkMessage, setBulkMessage] = useState(DEFAULT_BODY);
-  const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [enCours, setEnCours] = useState<Set<string>>(new Set());
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [messagesOuverts, setMessagesOuverts] = useState<Set<string>>(new Set());
+  const [outil, setOutil] = useState<"envoi" | "casting" | "journee" | "etiquettes" | "reserve" | null>(null);
+  // Profils cochés au moment d'ouvrir une fenêtre d'action : elle les garde
+  // même une fois la sélection vidée par l'envoi, pour afficher le résultat.
+  const [figee, setFigee] = useState<Row[]>([]);
+  const [reserveInfo, setReserveInfo] = useState<{ ok: boolean; texte: string } | null>(null);
+  const [nouvelleEtiquette, setNouvelleEtiquette] = useState("");
+  const [etiquetteInfo, setEtiquetteInfo] = useState<{ ok: boolean; texte: string } | null>(null);
   const [triOpen, setTriOpen] = useState(false);
   const [triStart, setTriStart] = useState<string | null>(null);
+  const [ecrireA, setEcrireA] = useState<Row[] | null>(null);
+  // Cartes retournées au clic (message visible sans survol : iPad, téléphone).
+  const [retournes, setRetournes] = useState<Set<string>>(new Set());
 
-  // Un clic sur le nom ou la photo ouvre la candidature complète en plein
-  // écran (même vue que le tri rapide, démarrée sur cette personne) au lieu
-  // de changer de page. Cmd/Ctrl-clic ou clic molette ouvrent toujours la
-  // page détaillée dans un nouvel onglet.
+  const rapides = ongletsRapides(onglets);
+  const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
+  const tousCoches = selectableIds.length > 0 && selectableIds.every((id) => selected.has(id));
+  const selection = rows.filter((r) => selected.has(r.id) && r.figurants?.id);
+
+  // Un clic sur le nom ou la photo ouvre la candidature complète en
+  // fenêtre (même vue que le tri rapide, démarrée sur cette personne).
+  // Cmd/Ctrl-clic ou clic molette ouvrent la page détaillée à part.
   function openFiche(e: React.MouseEvent, id: string) {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
@@ -109,588 +161,721 @@ export function CandidaturesTable({
     setTriOpen(true);
   }
 
-  const selectableIds = rows.filter((r) => r.figurants?.id).map((r) => r.id);
-
-  // Items pour l'aperçu popup (bookings + échanges) — un par figurant·e
-  // avec fiche, dans l'ordre déjà filtré/trié de cette page. Un index par
-  // id de candidature plutôt que par position dans `rows`, puisque les
-  // lignes sans figurant (fiche supprimée) n'ont pas d'entrée.
   const previewItems: PreviewItem[] = rows
     .filter((r): r is Row & { figurants: NonNullable<Row["figurants"]> } => !!r.figurants)
     .map((r) => ({ id: r.figurants.id, prenom: r.figurants.prenom, nom: r.figurants.nom, ville: r.figurants.ville, portraitUrl: r.portraitUrl }));
-  const previewIndexByCandidatureId = new Map(
-    rows.filter((r) => r.figurants?.id).map((r, i) => [r.id, i])
-  );
+  const previewIndex = new Map(rows.filter((r) => r.figurants?.id).map((r, i) => [r.id, i]));
 
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  function bascule<T>(set: Set<T>, v: T) {
+    const next = new Set(set);
+    if (next.has(v)) next.delete(v);
+    else next.add(v);
+    return next;
   }
 
-  function toggleAll() {
-    setSelected((prev) =>
-      prev.size === selectableIds.length ? new Set() : new Set(selectableIds)
-    );
+  // Un profil : re-cliquer sur son rangement actuel le renvoie dans « À trier ».
+  function ouvrir(o: NonNullable<typeof outil>) {
+    setFigee(selection);
+    setEtiquetteInfo(null);
+    setReserveInfo(null);
+    setOutil(o);
   }
 
-  function openComposer(r: Row, template?: MessageTemplate) {
-    setOpenRowId(r.id);
-    const tokens = rowTokens(r);
-    setSubject(template ? substituteTokens(template.sujet, tokens) : "Concernant votre candidature");
-    setMessage(template ? substituteTokens(template.corps, tokens) : `Bonjour ${tokens.prenom},\n\n`);
-  }
-
-  function sendFree(r: Row) {
-    if (!r.figurants?.email || !message.trim() || !r.figurants.id) return;
-    setSendError(null);
-    startStatutTransition(async () => {
-      const result = await recordCandidatureMessage(
-        r.figurants!.id,
-        message,
-        r.figurants!.email,
-        subject,
-        r.annonces?.projet_id
-      );
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
-    });
-    setOpenRowId(null);
-    setMessage("");
-  }
-
-  function applyBulkTemplate(template?: MessageTemplate) {
-    setBulkSubject(template ? template.sujet : "Concernant votre candidature");
-    setBulkMessage(template ? template.corps : DEFAULT_BODY);
-  }
-
-  function sendBulkTo(r: Row) {
-    if (!r.figurants?.email || !bulkMessage.trim() || !r.figurants.id) return;
-    const tokens = rowTokens(r);
-    const body = substituteTokens(bulkMessage, tokens);
-    const subj = substituteTokens(bulkSubject, tokens);
-    setSendError(null);
-    startStatutTransition(async () => {
-      const result = await recordCandidatureMessage(
-        r.figurants!.id,
-        body,
-        r.figurants!.email,
-        subj,
-        r.annonces?.projet_id
-      );
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
-    });
-    setSentBulk((prev) => new Set([...prev, r.id]));
-  }
-
-  function sendBulkToAll() {
-    const targets = rows.filter((r) => selected.has(r.id) && r.figurants?.email && r.figurants.id && !sentBulk.has(r.id));
-    for (const r of targets) sendBulkTo(r);
-  }
-
-  function bulkSetOnglet(ongletId: string | null) {
-    if (bulkOngletPending || selected.size === 0) return;
-    setBulkOngletError(null);
-    const ids = Array.from(selected);
-    startBulkOngletTransition(async () => {
+  function rangerUn(r: Row, ongletId: string) {
+    if (enCours.has(r.id)) return;
+    const cible = r.onglet_id === ongletId ? null : ongletId;
+    setErreur(null);
+    setEnCours((prev) => new Set(prev).add(r.id));
+    startRanger(async () => {
       try {
-        const result = await setCandidaturesOngletBulk(ids, ongletId);
-        if (result.error) {
-          setBulkOngletError(result.error);
+        const res = await setCandidatureOnglet(r.id, cible);
+        if (res?.error) {
+          setErreur(`${nomComplet(r.figurants)} : ${res.error}`);
+          return;
+        }
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(r.id);
+          return next;
+        });
+        router.refresh();
+      } catch {
+        setErreur("Rangement impossible pour le moment. Réessaie.");
+      } finally {
+        setEnCours((prev) => {
+          const next = new Set(prev);
+          next.delete(r.id);
+          return next;
+        });
+      }
+    });
+  }
+
+  function rangerSelection(ongletId: string | null) {
+    if (bulkPending || selected.size === 0) return;
+    const ids = Array.from(selected);
+    setErreur(null);
+    startBulk(async () => {
+      try {
+        const res = await setCandidaturesOngletBulk(ids, ongletId);
+        if (res && "error" in res && res.error) {
+          setErreur(res.error);
           return;
         }
         setSelected(new Set());
         router.refresh();
       } catch {
-        setBulkOngletError("Rangement impossible pour le moment. Réessaie.");
+        setErreur("Rangement impossible pour le moment. Réessaie.");
       }
     });
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      {sendError && (
-        <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3 text-sm text-danger">{sendError}</div>
-      )}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-text-muted">Vue :</span>
-        <button
-          type="button"
-          onClick={() => setIsTrombi(false)}
-          className={cn(
-            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
-          )}
-        >
-          Liste
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsTrombi(true)}
-          className={cn(
-            "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
-          )}
-        >
-          Trombinoscope
-        </button>
-        {triIds.length > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              setTriStart(null);
-              setTriOpen(true);
-            }}
-            className="rounded-full bg-coral px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-coral-hover"
-          >
-            ⚡ Tri rapide ({triIds.length})
-          </button>
-        )}
-        {selectableIds.length > 0 && (
-          <button
-            type="button"
-            onClick={toggleAll}
-            className="ml-auto rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
-          >
-            {selected.size === selectableIds.length ? "Tout désélectionner" : "Tout sélectionner"}
-          </button>
-        )}
-      </div>
+  // Pose ou retire une étiquette sur toute la sélection, sans la déplacer.
+  // Met la sélection de côté (réserve du projet, sur la page Bookings).
+  function mettreEnReserve() {
+    const ids = figee.map((r) => r.id);
+    setReserveInfo(null);
+    startBulk(async () => {
+      const res = await mettreCandidaturesEnReserve(ids);
+      if (res.error) {
+        setReserveInfo({ ok: false, texte: res.error });
+        return;
+      }
+      setReserveInfo({ ok: true, texte: `✓ ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""} en réserve.` });
+      setSelected(new Set());
+      router.refresh();
+    });
+  }
 
-      {selected.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
-          {bulkOngletError && <p role="alert" className="w-full text-sm text-danger">{bulkOngletError}</p>}
-          <span className="text-sm font-medium">
-            Changer le statut de {selected.size} profil{selected.size > 1 ? "s" : ""} :
-          </span>
-          <button
-            type="button"
-            disabled={bulkOngletPending}
-            onClick={() => bulkSetOnglet(null)}
-            className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-text-muted transition-colors hover:text-text"
-          >
-            À trier
-          </button>
-          {onglets.map((o) => (
+  function etiqueter(e: Etiquette, pose: boolean) {
+    const ids = figee.map((r) => r.id);
+    setEtiquetteInfo(null);
+    startBulk(async () => {
+      const res = await setEtiquettesBulk(ids, e.id, pose);
+      if (res.error) setEtiquetteInfo({ ok: false, texte: res.error });
+      else {
+        setEtiquetteInfo({
+          ok: true,
+          texte: `✓ « ${e.nom} » ${pose ? "posée sur" : "retirée de"} ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""}.`,
+        });
+        router.refresh();
+      }
+    });
+  }
+
+  function etiquetterNouvelle() {
+    const nom = nouvelleEtiquette.trim();
+    if (!nom) return;
+    setEtiquetteInfo(null);
+    startBulk(async () => {
+      const cree = await creerEtiquette(annonceId, nom);
+      if (cree.error || !cree.etiquette) {
+        setEtiquetteInfo({ ok: false, texte: cree.error ?? "Création impossible." });
+        return;
+      }
+      const res = await setEtiquettesBulk(figee.map((r) => r.id), cree.etiquette.id, true);
+      if (res.error) setEtiquetteInfo({ ok: false, texte: res.error });
+      else {
+        setNouvelleEtiquette("");
+        setEtiquetteInfo({
+          ok: true,
+          texte: `✓ « ${cree.etiquette.nom} » posée sur ${res.n} profil${(res.n ?? 0) > 1 ? "s" : ""}.`,
+        });
+        router.refresh();
+      }
+    });
+  }
+
+  function apresEnvoi() {
+    // La fenêtre reste ouverte : la confirmation reste lisible, on la ferme à la main.
+    setSelected(new Set());
+    router.refresh();
+  }
+
+  function boutonsRanger(r: Row, large = false) {
+    const boutons = [
+      { onglet: rapides.retenu, emoji: "✅", titre: "Retenir", on: "border-turquoise bg-turquoise/20" },
+      { onglet: rapides.peutEtre, emoji: "🤔", titre: "Peut-être", on: "border-yellow bg-yellow/20" },
+      { onglet: rapides.out, emoji: "🚫", titre: "OUT (la personne est prévenue dans son espace)", on: "border-danger bg-danger/20" },
+    ].filter((b) => b.onglet);
+    return (
+      <div className={cn("grid gap-1.5", large ? "grid-cols-3" : "w-32 grid-cols-3")}>
+        {boutons.map((b) => {
+          const actif = r.onglet_id === b.onglet!.id;
+          return (
             <button
-              key={o.id}
+              key={b.onglet!.id}
               type="button"
-              disabled={bulkOngletPending}
-              onClick={() => bulkSetOnglet(o.id)}
-              className={cn("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", TONE_CLASSES[o.couleur])}
+              disabled={enCours.has(r.id)}
+              onClick={() => rangerUn(r, b.onglet!.id)}
+              title={actif ? `${b.titre} — re-cliquer pour remettre dans « À trier »` : b.titre}
+              aria-label={b.titre}
+              aria-pressed={actif}
+              className={cn(
+                "rounded-lg border-2 py-1 text-base transition-colors disabled:opacity-40",
+                actif ? b.on : "border-border-strong bg-ink hover:border-coral/60"
+              )}
             >
-              {o.nom}
+              {b.emoji}
             </button>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
+    );
+  }
 
-      {selected.size > 0 && (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => setShowPreview((v) => !v)}>
-              {showPreview ? "Masquer l'aperçu trombis" : "Prévisualiser en trombis"}
-            </Button>
-            {/* Documents imprimables / PDF de la sélection, avant tout booking. */}
-            <a
-              href={`/candidatures/documents/trombis?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
-            >
-              🖼️ Trombi ({selected.size})
-            </a>
-            <a
-              href={`/candidatures/documents/fiches?annonce_id=${annonceId}&ids=${Array.from(selected).join(",")}`}
-              target="_blank"
-              rel="noopener"
-              className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm font-medium text-text-muted hover:border-coral/60 hover:text-text"
-            >
-              📏 Fiches mensuration ({selected.size})
-            </a>
-          </div>
+  const meta = (r: Row) =>
+    [summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville].filter(Boolean).join(" · ") || "—";
 
-          {showPreview && (() => {
-            const previewRows = rows.filter((r) => selected.has(r.id));
+  const panneau = jours.length > 0 && projetId && (
+    <JoursPanneau
+      jours={jours}
+      projetId={projetId}
+      selection={figee.map((r) => ({ id: r.id, nom: nomComplet(r.figurants), jours: summaries[r.id]?.jours ?? [] }))}
+      onEnvoye={apresEnvoi}
+    />
+  );
 
-            return (
-              <Card className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold text-text-muted">
-                  Aperçu — {selected.size} profil{selected.size > 1 ? "s" : ""} avant ajout à la journée
-                </h3>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                  {previewRows.map((r) => (
-                    <div
-                      key={r.id}
-                      className="flex flex-col items-center gap-2 rounded-xl border border-border bg-ink-raised p-3 text-center"
-                    >
-                      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                        {r.portraitUrl && (() => {
-                          const gallery = toGalleryPhotos(r.photos);
-                          return (
-                            <>
-                              <Image src={r.portraitUrl!} alt="" fill className="object-cover" />
-                              <ZoomButton
-                                src={r.portraitUrl!}
-                                gallery={gallery}
-                                index={galleryIndexOfUrl(gallery, r.portraitUrl)}
-                              />
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <div className="text-sm font-medium">
-                        {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            );
-          })()}
-
-          <AddToJourneeBar
-            figurantIds={Array.from(new Set(rows
-              .filter((r) => selected.has(r.id) && r.figurants?.id)
-              .map((r) => r.figurants!.id)))}
-            candidatureIdByFigurant={Object.fromEntries(
-              rows.filter((r) => selected.has(r.id) && r.figurants?.id).map((r) => [r.figurants!.id, r.id])
-            )}
-            candidatureProjectByFigurant={Object.fromEntries(
-              rows.filter((r) => selected.has(r.id) && r.figurants?.id)
-                .map((r) => [r.figurants!.id, r.annonces?.projet_id ?? ""])
-            )}
-            projets={projets}
-            onDone={() => setSelected(new Set())}
-          />
-          <AddToCastingBar
-            figurantIds={rows
-              .filter((r) => selected.has(r.id) && r.figurants?.id)
-              .map((r) => r.figurants!.id)}
-            projets={projets}
-            onDone={() => setSelected(new Set())}
-          />
-        </div>
-      )}
-
-      {selected.size > 0 && (
-        <div className="flex flex-col gap-3 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
-            </span>
-            <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendBulkToAll}>
-              Envoyer à tous
-            </Button>
-          </div>
-          {templates.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-text-muted">Modèle :</span>
+  return (
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+      {projetId && <FonctionsDatalist id={`fonctions-projet-${projetId}`} projetId={projetId} />}
+      <div className="flex min-w-0 flex-1 flex-col gap-3">
+        {/* Barre de sélection : ranger plusieurs profils d'un coup. */}
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {selectableIds.length > 0 && (
               <button
                 type="button"
-                onClick={() => applyBulkTemplate()}
-                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+                onClick={() => setSelected(tousCoches ? new Set() : new Set(selectableIds))}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
               >
-                Vierge
+                {tousCoches ? "Tout décocher" : "Tout cocher"} ({selectableIds.length})
               </button>
-              {templates.map((t) => (
+            )}
+            {selected.size > 0 ? (
+              <>
+                <b className="text-sm">
+                  {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
+                </b>
+                <span className="text-xs text-text-muted">Ranger dans :</span>
                 <button
-                  key={t.id}
                   type="button"
-                  onClick={() => applyBulkTemplate(t)}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                  disabled={bulkPending}
+                  onClick={() => rangerSelection(null)}
+                  className="rounded-full border border-border-strong px-2.5 py-1 text-xs font-medium hover:border-coral/60"
                 >
-                  {t.nom}
+                  📥 À trier
+                </button>
+                {onglets.map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    disabled={bulkPending}
+                    onClick={() => rangerSelection(o.id)}
+                    className={cn("rounded-full border px-2.5 py-1 text-xs font-medium transition-colors", TONE_CLASSES[o.couleur])}
+                  >
+                    {emojiOnglet(o)} {o.nom}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <span className="text-xs text-text-muted">
+                Coche des profils pour les ranger, les étiqueter ou les envoyer en booking, ou change la place d&apos;un
+                profil depuis sa carte (📍).
+              </span>
+            )}
+            <span className="flex-1" />
+            {triIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTriStart(null);
+                  setTriOpen(true);
+                }}
+                className="rounded-full bg-coral px-3 py-1.5 text-xs font-semibold text-ink hover:bg-coral-hover"
+              >
+                ⚡ Trier un par un ({triIds.length})
+              </button>
+            )}
+          </div>
+          {selected.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <a
+                href={`/candidatures/documents/trombis?annonce_id=${encodeURIComponent(annonceId)}&ids=${selection.map((r) => r.id).join(",")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                🖼️ Trombi ({selection.length})
+              </a>
+              <a
+                href={`/candidatures/documents/fiches?annonce_id=${encodeURIComponent(annonceId)}&ids=${selection.map((r) => r.id).join(",")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                📏 Fiches mensuration ({selection.length})
+              </a>
+              {jours.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => ouvrir("envoi")}
+                  className="rounded-full border-2 border-turquoise px-3 py-1.5 text-xs font-semibold text-turquoise hover:bg-turquoise/10"
+                >
+                  📋 Envoyer en booking ({selection.length})
+                </button>
+              )}
+              {(
+                [
+                  ["etiquettes", `🏷️ Étiqueter (${selection.length})`],
+                  ["reserve", `🗄️ Mettre en réserve (${selection.length})`],
+                ] as const
+              ).map(([o, label]) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => ouvrir(o)}
+                  className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+                >
+                  {label}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setEcrireA(selection)}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                💬 Message ({selection.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => ouvrir("casting")}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                🎭 Ajouter au casting
+              </button>
+              <button
+                type="button"
+                onClick={() => ouvrir("journee")}
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                📋 Envoyer en booking sur une autre date
+              </button>
             </div>
           )}
-          <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
-          <textarea
-            value={bulkMessage}
-            onChange={(e) => setBulkMessage(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-          />
-          <div className="flex flex-col gap-2">
-            {rows
-              .filter((r) => selected.has(r.id))
-              .map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span>
-                    {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                    {!r.figurants?.email && <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>}
-                  </span>
-                  <Button
-                    type="button"
-                    variant={sentBulk.has(r.id) ? "ghost" : "secondary"}
-                    disabled={!r.figurants?.email || !bulkMessage.trim()}
-                    onClick={() => sendBulkTo(r)}
-                  >
-                    {sentBulk.has(r.id) ? "Envoyé" : `Envoyer à ${r.figurants?.prenom ?? ""}`}
+        </div>
+
+        {outil === "reserve" && (
+          <Modale titre="🗄️ Mettre en réserve" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)} bloquee={bulkPending}>
+            {reserveInfo?.ok ? (
+              <>
+                <p className="text-sm font-medium text-turquoise">{reserveInfo.texte}</p>
+                <div className="flex justify-end">
+                  <Button type="button" onClick={() => setOutil(null)}>
+                    Fermer
                   </Button>
                 </div>
-              ))}
-          </div>
-        </div>
-      )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-text-muted">
+                  Ils quittent cette liste et rejoignent la <b>Réserve</b> du projet (bouton <b>🗄️ Réserve</b> de la page
+                  Bookings), avec l&apos;annonce où ils ont postulé et leurs dispos, pour les recontacter plus tard.
+                </p>
+                {reserveInfo && <p className="text-sm text-danger">{reserveInfo.texte}</p>}
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setOutil(null)}>
+                    Annuler
+                  </Button>
+                  <Button type="button" disabled={bulkPending} onClick={mettreEnReserve}>
+                    {bulkPending ? "…" : "Confirmer la mise en réserve"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Modale>
+        )}
 
-      {isTrombi ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-          {rows.map((r) => (
-            <div
-              key={r.id}
-              className={cn(
-                "relative flex flex-col items-center gap-2 rounded-xl border p-3 text-center transition-colors",
-                selected.has(r.id) ? "border-coral bg-coral/10" : "border-border bg-ink-raised"
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={selected.has(r.id)}
-                disabled={!r.figurants?.id}
-                onChange={() => toggle(r.id)}
-                className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
-              />
-              <div className="group relative aspect-square w-full [perspective:1000px]">
-                <div className="relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
-                  <Link
-                    href={`/candidatures/${r.id}`}
-                    onClick={(e) => openFiche(e, r.id)}
-                    className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
-                  >
-                    {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
-                  </Link>
-                  <div className="absolute inset-0 flex flex-col gap-1 overflow-hidden rounded-lg bg-ink-raised-2 p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                    {(() => {
-                      const summary = summaries[r.id];
-                      // Les dates sont déjà sur la face avant (pastilles jour) :
-                      // le dos sert à lire le message de la personne.
-                      if (!summary || (summary.questions.length === 0 && !summary.message)) {
-                        return <p className="text-xs text-text-muted">Pas de message.</p>;
-                      }
-                      return (
-                        <div className="flex flex-1 flex-col gap-2 overflow-hidden">
-                          {summary.message ? (
-                            <p className="flex-1 overflow-hidden whitespace-pre-line text-sm leading-snug text-text [mask-image:linear-gradient(to_bottom,black_80%,transparent)]">
-                              {summary.message}
-                            </p>
-                          ) : (
-                            <p className="flex-1 text-xs text-text-muted">Pas de message.</p>
-                          )}
-                          {summary.questions.map((q, i) => (
-                            <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
-                              <span className="truncate text-text-muted">{q.label}</span>
-                              <span className={q.reponse ? "text-turquoise" : "text-danger"}>
-                                {q.reponse ? "Oui" : "Non"}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                    <Link
-                      href={`/candidatures/${r.id}`}
-                      onClick={(e) => openFiche(e, r.id)}
-                      className="mt-auto text-xs font-medium text-coral hover:underline"
+        {outil === "etiquettes" && (
+          <Modale titre="🏷️ Étiqueter" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}` + " (sans les déplacer)"} onClose={() => setOutil(null)} bloquee={bulkPending}>
+            {etiquettes.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {etiquettes.map((e) => (
+                  <span key={e.id} className="flex items-center overflow-hidden rounded-full border border-border-strong text-sm font-medium">
+                    <span className="px-3 py-1.5">{e.nom}</span>
+                    <button
+                      type="button"
+                      disabled={bulkPending}
+                      onClick={() => etiqueter(e, true)}
+                      className="border-l border-border-strong px-2.5 py-1.5 text-turquoise hover:bg-turquoise/10 disabled:opacity-50"
+                      title={`Poser « ${e.nom} » sur la sélection`}
                     >
-                      Vue complète →
-                    </Link>
-                  </div>
-                </div>
+                      ＋ Poser
+                    </button>
+                    <button
+                      type="button"
+                      disabled={bulkPending}
+                      onClick={() => etiqueter(e, false)}
+                      className="border-l border-border-strong px-2.5 py-1.5 text-danger hover:bg-danger/10 disabled:opacity-50"
+                      title={`Retirer « ${e.nom} » de la sélection`}
+                    >
+                      − Retirer
+                    </button>
+                  </span>
+                ))}
               </div>
-              <Link
-                href={`/candidatures/${r.id}`}
-                onClick={(e) => openFiche(e, r.id)}
-                className="flex w-full flex-col items-center gap-1"
-              >
-                <div className="text-sm font-medium">
-                  {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                </div>
-                <div className="text-xs text-text-muted">
-                  {[summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </div>
-              </Link>
-              <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} />
-              <JourChips candidatureId={r.id} jours={summaries[r.id]?.jours ?? []} center />
-              {r.portraitUrl && (() => {
-                const gallery = toGalleryPhotos(r.photos);
-                return (
-                  <ZoomButton
-                    src={r.portraitUrl!}
-                    gallery={gallery}
-                    index={galleryIndexOfUrl(gallery, r.portraitUrl)}
-                    className="static flex items-center gap-1 rounded-full border border-border bg-transparent px-2 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
-                  />
-                );
-              })()}
-              <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
-              {previewIndexByCandidatureId.has(r.id) && (
-                <PreviewButton
-                  items={previewItems}
-                  index={previewIndexByCandidatureId.get(r.id)!}
-                  className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
-                />
-              )}
-              <OngletPicker candidatureId={r.id} annonceId={annonceId} ongletId={r.onglet_id} onglets={onglets} />
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                value={nouvelleEtiquette}
+                onChange={(e) => setNouvelleEtiquette(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    etiquetterNouvelle();
+                  }
+                }}
+                placeholder="Nouvelle étiquette (ex. Vélo)"
+                maxLength={40}
+                className="min-w-0 flex-1 rounded-lg border border-border-strong bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              <Button type="button" variant="secondary" disabled={bulkPending || !nouvelleEtiquette.trim()} onClick={etiquetterNouvelle}>
+                Créer et poser
+              </Button>
             </div>
-          ))}
-          {rows.length === 0 && (
-            <p className="col-span-full py-10 text-center text-text-muted">Aucune candidature pour l&apos;instant.</p>
-          )}
-        </div>
-      ) : (
-        <Card className="flex flex-col gap-3 overflow-x-auto p-0">
-          <p className="px-4 pt-3 text-xs text-text-muted md:hidden">Tableau défilant : glisse horizontalement pour consulter les autres colonnes.</p>
-          <table className="w-full min-w-[940px] text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-text-muted">
-                <th className="w-10 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selectableIds.length > 0 && selected.size === selectableIds.length}
-                    onChange={toggleAll}
-                    className="h-4 w-4 rounded border-border accent-coral"
-                  />
-                </th>
-                <th className="px-6 py-3 font-medium">Figurant</th>
-                <th className="px-6 py-3 font-medium">Âge · Ville</th>
-                <th className="px-6 py-3 font-medium">Myrole</th>
-                <th className="px-6 py-3 font-medium">Jours</th>
-                <th className="px-6 py-3 font-medium">Onglet & fonction</th>
-                <th className="px-6 py-3 font-medium">Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <Fragment key={r.id}>
-                  <tr className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={selected.has(r.id)}
-                        disabled={!r.figurants?.id}
-                        onChange={() => toggle(r.id)}
-                        className="h-4 w-4 rounded border-border accent-coral"
-                      />
-                    </td>
-                    <td className="px-6 py-3 font-medium">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/candidatures/${r.id}`}
-                          onClick={(e) => openFiche(e, r.id)}
-                          className="hover:text-coral"
-                        >
-                          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
-                        </Link>
-                        <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
-                        {previewIndexByCandidatureId.has(r.id) && (
-                          <PreviewButton items={previewItems} index={previewIndexByCandidatureId.get(r.id)!} />
-                        )}
-                      </div>
-                      <HabitueBadge tournages={summaries[r.id]?.tournages ?? 0} className="mt-1 inline-block" />
-                    </td>
-                    <td className="px-6 py-3 text-text-muted">
-                      {[summaries[r.id]?.age != null && `${summaries[r.id].age} ans`, r.figurants?.ville]
-                        .filter(Boolean)
-                        .join(" · ") || "—"}
-                    </td>
-                    <td className="px-6 py-3">
-                      {r.figurants?.compte_myrole ? <Badge tone="turquoise">Oui</Badge> : <Badge>Non</Badge>}
-                    </td>
-                    <td className="px-6 py-3">
-                      {(summaries[r.id]?.jours.length ?? 0) > 0 ? (
-                        <JourChips candidatureId={r.id} jours={summaries[r.id].jours} />
-                      ) : (
-                        <span className="text-text-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-3">
-                      <CandidatureRow
-                        id={r.id}
-                        annonceId={annonceId}
-                        ongletId={r.onglet_id}
-                        onglets={onglets}
-                        fonctionAssignee={r.fonction_assignee}
-                        cachetAssigne={r.cachet_assigne}
-                      />
-                    </td>
-                    <td className="px-6 py-3">
-                      {r.figurants?.email ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => (openRowId === r.id ? setOpenRowId(null) : openComposer(r))}
-                        >
-                          Message
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-text-muted">Pas d&apos;email</span>
-                      )}
-                    </td>
-                  </tr>
-                  {openRowId === r.id && (
-                    <tr className="border-b border-border last:border-0 bg-ink-raised-2/40">
-                      <td colSpan={7} className="px-6 py-4">
-                        <div className="flex flex-col gap-2">
-                          {templates.length > 0 && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs text-text-muted">Modèle :</span>
-                              <button
-                                type="button"
-                                onClick={() => openComposer(r)}
-                                className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
+            {etiquetteInfo && (
+              <p className={cn("text-sm", etiquetteInfo.ok ? "font-medium text-turquoise" : "text-danger")}>{etiquetteInfo.texte}</p>
+            )}
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setOutil(null)}>
+                Terminé
+              </Button>
+            </div>
+          </Modale>
+        )}
+
+        {outil === "envoi" && panneau && (
+          <Modale titre="📋 Envoyer en booking" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)} large>
+            <div className="grid gap-3 md:grid-cols-2 [&>div]:contents [&>div>p]:col-span-full">{panneau}</div>
+          </Modale>
+        )}
+
+        {outil === "casting" && (
+          <Modale titre="🎭 Ajouter au casting" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
+            <AddToCastingBar figurantIds={Array.from(new Set(figee.map((r) => r.figurants!.id)))} projets={projets} onDone={apresEnvoi} />
+          </Modale>
+        )}
+
+        {outil === "journee" && (
+          <Modale titre="📋 Envoyer en booking sur une autre date" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
+            <AddToJourneeBar
+              fonctionFacultative
+              figurantIds={Array.from(new Set(figee.map((r) => r.figurants!.id)))}
+              candidatureIdByFigurant={Object.fromEntries(figee.map((r) => [r.figurants!.id, r.id]))}
+              candidatureProjectByFigurant={Object.fromEntries(
+                figee.map((r) => [r.figurants!.id, r.annonces?.projet_id ?? ""])
+              )}
+              projets={projets}
+              onDone={apresEnvoi}
+            />
+          </Modale>
+        )}
+
+        {erreur && (
+          <Modale titre="Action impossible" onClose={() => setErreur(null)}>
+            <p className="text-sm text-danger">{erreur}</p>
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => setErreur(null)}>
+                Fermer
+              </Button>
+            </div>
+          </Modale>
+        )}
+
+        {vue === "trombi" ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))]">
+            {rows.map((r) => {
+              const s = summaries[r.id];
+              const coche = selected.has(r.id);
+              return (
+                <div
+                  key={r.id}
+                  className={cn(
+                    "relative flex flex-col gap-2 rounded-xl border-2 p-2.5 transition-colors",
+                    coche ? "border-coral bg-coral/10" : "border-border bg-ink-raised",
+                    enCours.has(r.id) && "opacity-50"
+                  )}
+                >
+                  <button
+                    type="button"
+                    disabled={!r.figurants?.id}
+                    onClick={() => setSelected((prev) => bascule(prev, r.id))}
+                    aria-pressed={coche}
+                    aria-label={`Sélectionner ${nomComplet(r.figurants)}`}
+                    className={cn(
+                      "absolute left-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-md border-2 text-sm font-bold shadow",
+                      coche ? "border-coral bg-coral text-ink" : "border-white/80 bg-ink/70 text-transparent hover:text-white/70"
+                    )}
+                  >
+                    ✓
+                  </button>
+                  {previewIndex.has(r.id) && (
+                    <PreviewButton
+                      items={previewItems}
+                      index={previewIndex.get(r.id)!}
+                      className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-xs hover:bg-ink"
+                    />
+                  )}
+                  {/* La photo se retourne (survol à la souris, ou bouton
+                      « 💬 Lire le message » sur iPad / téléphone) : au dos,
+                      le message en entier et les réponses aux questions. */}
+                  {(() => {
+                    const retourne = retournes.has(r.id);
+                    const message = s?.message?.trim() ?? "";
+                    const aLire = !!message || (s?.questions.length ?? 0) > 0;
+                    return (
+                      <>
+                        <div className="group relative aspect-[4/5] w-full [perspective:1000px]">
+                          <div
+                            className={cn(
+                              "relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]",
+                              retourne ? "[transform:rotateY(180deg)]" : "[@media(hover:hover)]:group-hover:[transform:rotateY(180deg)]"
+                            )}
+                          >
+                            <Link
+                              href={`/candidatures/${r.id}`}
+                              onClick={(e) => openFiche(e, r.id)}
+                              className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
+                            >
+                              {r.portraitUrl && (
+                                <Image src={r.portraitUrl} alt="" fill sizes="(max-width: 640px) 50vw, 240px" className="object-cover" />
+                              )}
+                              {message && (
+                                <span className="absolute bottom-2 right-2 rounded-full bg-ink/85 px-2 py-1 text-xs font-medium text-text shadow" aria-hidden>
+                                  💬 Message
+                                </span>
+                              )}
+                            </Link>
+                            <div
+                              className={cn(
+                                "absolute inset-0 flex flex-col gap-2 overflow-hidden rounded-lg border border-border-strong bg-ink p-3 text-left [backface-visibility:hidden] [transform:rotateY(180deg)]",
+                                retourne ? "pointer-events-auto" : "pointer-events-none [@media(hover:hover)]:group-hover:pointer-events-auto"
+                              )}
+                            >
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">💬 Message</p>
+                              {message ? (
+                                <p className="min-h-0 flex-1 overflow-y-auto whitespace-pre-line pr-1 text-[15px] leading-relaxed text-text">
+                                  {message}
+                                </p>
+                              ) : (
+                                <p className="flex-1 text-sm italic text-text-muted">Pas de message.</p>
+                              )}
+                              {(s?.questions ?? []).length > 0 && (
+                                <div className="flex flex-col gap-0.5 border-t border-border pt-1.5">
+                                  {(s?.questions ?? []).map((q, i) => (
+                                    <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                                      <span className="truncate text-text-muted">{q.label}</span>
+                                      <b className={q.reponse ? "text-turquoise" : "text-danger"}>{q.reponse ? "Oui" : "Non"}</b>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <Link
+                                href={`/candidatures/${r.id}`}
+                                onClick={(e) => openFiche(e, r.id)}
+                                className="text-xs font-medium text-coral hover:underline"
                               >
-                                Vierge
-                              </button>
-                              {templates.map((t) => (
-                                <button
-                                  key={t.id}
-                                  type="button"
-                                  onClick={() => openComposer(r, t)}
-                                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
-                                >
-                                  {t.nom}
-                                </button>
-                              ))}
+                                Vue complète →
+                              </Link>
                             </div>
-                          )}
-                          <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Sujet" />
-                          <textarea
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            rows={5}
-                            autoFocus
-                            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="ghost" onClick={() => setOpenRowId(null)}>
-                              Annuler
-                            </Button>
-                            <Button type="button" disabled={!message.trim()} onClick={() => sendFree(r)}>
-                              Envoyer
-                            </Button>
                           </div>
                         </div>
+                        {aLire && (
+                          <button
+                            type="button"
+                            onClick={() => setRetournes((prev) => bascule(prev, r.id))}
+                            aria-pressed={retourne}
+                            className={cn(
+                              "rounded-lg border px-2 py-1.5 text-xs font-medium",
+                              retourne ? "border-coral bg-coral/15 text-coral" : "border-border-strong hover:border-coral/60"
+                            )}
+                          >
+                            {retourne ? "↩ Revoir la photo" : message ? "💬 Lire le message" : "Voir les réponses"}
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/candidatures/${r.id}`}
+                        onClick={(e) => openFiche(e, r.id)}
+                        className="text-sm font-semibold leading-tight hover:text-coral"
+                      >
+                        <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
+                      </Link>
+                      {r.figurants && (
+                        <button
+                          type="button"
+                          onClick={() => setEcrireA([r])}
+                          title={`Écrire à ${nomComplet(r.figurants)}`}
+                          aria-label={`Écrire à ${nomComplet(r.figurants)}`}
+                          className="shrink-0 rounded-full border border-border-strong px-2 py-0.5 text-xs hover:border-coral/60"
+                        >
+                          💬
+                        </button>
+                      )}
+                    </div>
+                    <span className="text-xs text-text-muted">{meta(r)}</span>
+                    {recherche && r.figurants?.email && (
+                      <span className="truncate text-xs text-text-muted">
+                        <Surligne texte={r.figurants.email} q={recherche} />
+                      </span>
+                    )}
+                    <HabitueBadge tournages={s?.tournages ?? 0} className="mt-0.5 self-start" />
+                  </div>
+                  <RangementCarte
+                    candidatureId={r.id}
+                    annonceId={annonceId}
+                    ongletId={r.onglet_id}
+                    onglets={onglets}
+                    etiquettes={etiquettes}
+                    poses={etiquettesParCandidature[r.id] ?? []}
+                  />
+                  <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
+                  <div className="mt-auto">
+                    {boutonsRanger(r, true)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-border bg-ink-raised">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-xs text-text-muted">
+                  <th className="w-10 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={tousCoches}
+                      onChange={() => setSelected(tousCoches ? new Set() : new Set(selectableIds))}
+                      aria-label="Tout cocher"
+                      className="h-4 w-4 accent-coral"
+                    />
+                  </th>
+                  <th className="px-3 py-2.5 font-medium">Nom</th>
+                  <th className="px-3 py-2.5 font-medium">Âge · ville</th>
+                  <th className="px-3 py-2.5 font-medium">Message</th>
+                  <th className="px-3 py-2.5 font-medium">Place · étiquettes · jours</th>
+                  <th className="px-3 py-2.5 font-medium">Réponses</th>
+                  <th className="px-3 py-2.5 font-medium">Ranger</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const s = summaries[r.id];
+                  return (
+                    <tr
+                      key={r.id}
+                      className={cn(
+                        "border-b border-border align-top last:border-0",
+                        selected.has(r.id) && "bg-coral/10",
+                        enCours.has(r.id) && "opacity-50"
+                      )}
+                    >
+                      <td className="px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(r.id)}
+                          disabled={!r.figurants?.id}
+                          onChange={() => setSelected((prev) => bascule(prev, r.id))}
+                          aria-label={`Sélectionner ${nomComplet(r.figurants)}`}
+                          className="h-4 w-4 accent-coral"
+                        />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-start gap-2">
+                          <Link
+                            href={`/candidatures/${r.id}`}
+                            onClick={(e) => openFiche(e, r.id)}
+                            className="relative h-12 w-10 shrink-0 overflow-hidden rounded-md bg-ink-raised-2"
+                          >
+                            {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="40px" className="object-cover" />}
+                          </Link>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <Link
+                                href={`/candidatures/${r.id}`}
+                                onClick={(e) => openFiche(e, r.id)}
+                                className="font-semibold hover:text-coral"
+                              >
+                                <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
+                              </Link>
+                              <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
+                              {r.figurants && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEcrireA([r])}
+                                  title={`Écrire à ${nomComplet(r.figurants)}`}
+                                  aria-label={`Écrire à ${nomComplet(r.figurants)}`}
+                                  className="rounded-full border border-border-strong px-2 py-0.5 text-xs hover:border-coral/60"
+                                >
+                                  💬
+                                </button>
+                              )}
+                              {previewIndex.has(r.id) && <PreviewButton items={previewItems} index={previewIndex.get(r.id)!} />}
+                            </div>
+                            {r.figurants?.email && (
+                              <div className="truncate text-xs text-text-muted">
+                                <Surligne texte={r.figurants.email} q={recherche} />
+                              </div>
+                            )}
+                            <HabitueBadge tournages={s?.tournages ?? 0} className="mt-1 inline-block" />
+                                  </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-text-muted">{meta(r)}</td>
+                      <td className="min-w-[14rem] max-w-[22rem] px-3 py-2.5">
+                        <MessageCandidature
+                          message={s?.message ?? null}
+                          ouvert={messagesOuverts.has(r.id)}
+                          onToggle={() => setMessagesOuverts((prev) => bascule(prev, r.id))}
+                        />
+                      </td>
+                      <td className="min-w-[11rem] px-3 py-2.5">
+                        <div className="flex flex-col gap-1.5">
+                          <RangementCarte
+                            candidatureId={r.id}
+                            annonceId={annonceId}
+                            ongletId={r.onglet_id}
+                            onglets={onglets}
+                            etiquettes={etiquettes}
+                            poses={etiquettesParCandidature[r.id] ?? []}
+                          />
+                          <JourChips candidatureId={r.id} jours={s?.jours ?? []} />
+                        </div>
+                      </td>
+                      <td className="min-w-[8rem] px-3 py-2.5">
+                        <Reponses questions={s?.questions ?? []} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {boutonsRanger(r)}
                       </td>
                     </tr>
-                  )}
-                </Fragment>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-text-muted">
-                    Aucune candidature pour l&apos;instant.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </Card>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {pagination}
+      </div>
+
+      {ecrireA && ecrireA.length > 0 && (
+        <MessageCandidatures destinataires={ecrireA} onClose={() => setEcrireA(null)} />
       )}
 
       {triOpen && (

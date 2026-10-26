@@ -25,6 +25,8 @@ function groupTitre(type: NotificationType, count: number, nonLu: boolean, conte
     return (nonLu ? plural(count, "nouvelle candidature", "nouvelles candidatures") : plural(count, "candidature", "candidatures")) + suffixe;
   }
   if (type === "casting") return plural(count, "envoi de casting", "envois de casting") + suffixe;
+  if (type === "partage") return plural(count, "commentaire sur un lien partagé", "commentaires sur des liens partagés") + suffixe;
+  if (type === "validation") return plural(count, "retour de la MES", "retours de la MES") + suffixe;
   if (type === "compte_cree") return plural(count, "compte candidat créé", "comptes candidat créés") + suffixe;
   return plural(count, "réponse", "réponses") + suffixe;
 }

@@ -7,12 +7,23 @@ export type DocStatut = "confirmes" | "proposes" | "per" | "tous";
 
 export const DOC_STATUTS: { key: DocStatut; label: string; statuts: BookingStatut[] }[] = [
   { key: "confirmes", label: "Confirmé·es", statuts: ["confirmé"] },
-  { key: "proposes", label: "Proposé·es", statuts: ["proposé"] },
+  { key: "proposes", label: "Proposé·es MES", statuts: ["proposé"] },
   { key: "per", label: "PER", statuts: ["envoyé"] },
   {
     key: "tous",
     label: "Tout le monde",
-    statuts: ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide", "confirmé"],
+    statuts: [
+      "proposé",
+      "envoyé",
+      "attente_reponse_booking",
+      "a_relancer",
+      "doit_rappeler",
+      "a_rappeler",
+      "attente_validation",
+      "valide",
+      "confirmé",
+      "a_annuler",
+    ],
   },
 ];
 

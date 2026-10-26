@@ -91,7 +91,7 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={openPalette}
-        className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+        className="flex items-center gap-2 rounded-xl border border-border-strong px-3 py-2 text-sm text-text transition-colors hover:border-coral/60 hover:text-text"
       >
         <Search size={16} strokeWidth={1.75} />
         <span className="hidden sm:inline">Rechercher</span>
@@ -134,7 +134,7 @@ export function CommandPalette() {
                       onMouseEnter={() => setActiveIndex(i)}
                       className={cn(
                         "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors",
-                        i === activeIndex ? "bg-ink-raised-2 text-text" : "text-text-muted hover:bg-ink-raised-2/60"
+                        i === activeIndex ? "bg-ink-raised-2 text-text" : "text-text hover:bg-ink-raised-2/60"
                       )}
                     >
                       <Icon size={16} strokeWidth={1.75} className="shrink-0" />

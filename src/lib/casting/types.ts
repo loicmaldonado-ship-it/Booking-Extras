@@ -79,7 +79,14 @@ export type CastingRole = {
   pdf_storage_path: string | null;
   pdf_filename: string | null;
   created_at: string;
+  // Lien rapide (public) : /casting/rejoindre/<public_token>.
+  public_token: string;
+  lien_public_actif: boolean;
+  // Questions oui / non posées sur la page d'envoi.
+  questions: string[];
 };
+
+export type ReponseCasting = { question: string; reponse: "oui" | "non"; precision?: string | null };
 
 export type CastingEntry = {
   id: string;
@@ -97,6 +104,8 @@ export type CastingEntry = {
   mode: CastingMode;
   notes: string | null;
   visible_partage: boolean;
+  reponses: ReponseCasting[];
+  photo_vignette_id: string | null;
   figurants: {
     prenom: string;
     nom: string;
@@ -118,5 +127,10 @@ export type CastingEntry = {
     agent_email: string | null;
     agent_telephone: string | null;
     agent_agence: string | null;
+    taille_cm: number | null;
+    poids_kg: number | null;
+    pointure: number | null;
+    veste: string | null;
+    pantalon: string | null;
   } | null;
 };

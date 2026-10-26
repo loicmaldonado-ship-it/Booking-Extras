@@ -8,28 +8,37 @@ import type { Cachet } from "@/lib/candidatures/types";
 export type BookingStatut =
   | "proposé"
   | "envoyé"
+  | "attente_reponse_booking"
   | "a_relancer"
   | "doit_rappeler"
+  | "a_rappeler"
   | "attente_validation"
   | "valide"
   | "confirmé"
   | "indisponible"
+  | "a_annuler"
   | "annulé"
   | "a_rebooker";
 
 export const STATUTS: {
   value: BookingStatut;
   label: string;
-  tone: "default" | "coral" | "turquoise" | "yellow" | "danger";
+  // "confirme" : vert plein, plus marqué que "turquoise" (Validé).
+  // "indispo" : rouge plein, plus franc que "danger".
+  // "orange" foncé, "bleu" foncé, "rougePale" : statuts ajoutés le 19/10.
+  tone: "default" | "coral" | "turquoise" | "confirme" | "yellow" | "danger" | "indispo" | "orange" | "bleu" | "rougePale";
 }[] = [
-  { value: "proposé", label: "Proposé", tone: "yellow" },
+  { value: "proposé", label: "Proposé MES", tone: "yellow" },
   { value: "envoyé", label: "PER (pas encore de réponse)", tone: "default" },
+  { value: "attente_reponse_booking", label: "Attente réponse booking", tone: "orange" },
   { value: "a_relancer", label: "À relancer", tone: "yellow" },
   { value: "doit_rappeler", label: "Doit rappeler", tone: "yellow" },
+  { value: "a_rappeler", label: "À rappeler", tone: "bleu" },
   { value: "attente_validation", label: "Attente validation", tone: "coral" },
   { value: "valide", label: "Validé", tone: "turquoise" },
-  { value: "confirmé", label: "CONFIRMÉ", tone: "turquoise" },
-  { value: "indisponible", label: "Indisponible", tone: "danger" },
+  { value: "confirmé", label: "CONFIRMÉ", tone: "confirme" },
+  { value: "indisponible", label: "Indisponible", tone: "indispo" },
+  { value: "a_annuler", label: "À annuler", tone: "rougePale" },
   { value: "annulé", label: "Annulé", tone: "default" },
   { value: "a_rebooker", label: "À REBOOKER", tone: "danger" },
 ];

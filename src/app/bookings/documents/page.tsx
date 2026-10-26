@@ -1,4 +1,11 @@
+import { nomComplet } from "@/lib/noms";
+import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
+import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
+import { getEnvoisJournee } from "@/lib/messages/envois";
+import { listerFonctionsProjet } from "@/lib/projets/fonctions";
+import { trierParNom } from "@/lib/noms";
 import Link from "next/link";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
@@ -9,8 +16,10 @@ import { type EssayageRow, type BookedFigurant } from "@/components/bookings/ess
 import { type CovoiturageRow } from "@/components/bookings/covoiturage-board";
 import { JourneeTabs } from "@/components/bookings/journee-tabs";
 import { QuickAddFigurant } from "@/components/bookings/quick-add-figurant";
+import { AjoutRapideBooking } from "@/components/bookings/ajout-rapide-booking";
 import { ModifierPdt, BandeauJourneeBasculee } from "@/components/bookings/modifier-pdt";
 import { MODELE_PDT_DEFAUT } from "@/lib/bookings/pdt";
+import { DupliquerJournee } from "@/components/bookings/dupliquer-journee";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { getJournees } from "@/lib/bookings/journees";
 import { getBesoinsByJournee } from "@/lib/bookings/besoins";
@@ -18,7 +27,6 @@ import { getJourneePartageLien } from "@/lib/partage/actions";
 import { getSiteOrigin } from "@/lib/partage/data";
 import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
@@ -41,9 +49,9 @@ type BookingRow = Omit<Row, "portraitUrl"> & {
 export default async function JourneeDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ projet_id?: string; date?: string }>;
+  searchParams: Promise<{ projet_id?: string; date?: string; onglet?: string }>;
 }) {
-  const { projet_id, date } = await searchParams;
+  const { projet_id, date, onglet } = await searchParams;
 
   if (!projet_id || !date) {
     return (
@@ -61,7 +69,7 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
@@ -74,13 +82,13 @@ export default async function JourneeDashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, code_postal, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter), projets(nom, confidentiel, nom_code, lieu, signature)"
+        "id, date, heure_convocation, fonction, cachet, statut, convocation_envoyee, convocation_envoyee_le, reponse_recue, reponse_recue_le, reponse_booking, notes, figurant_id, covoiturage_role, covoiturage_lieu_depart, covoiturage_places_disponibles, covoiturage_conducteur_id, figurants!bookings_figurant_id_fkey(prenom, nom, ville, code_postal, email, telephone, genre, date_naissance, compte_myrole, a_vehicule, vehicule_voiture, vehicule_velo, vehicule_moto, vehicule_scooter), projets(nom, confidentiel, nom_code, lieu, signature)"
       )
       .eq("projet_id", projet_id)
       .eq("date", date)
       .order("heure_convocation")
       .returns<BookingRow[]>(),
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    getModelesEquipe().then((data) => ({ data })),
     figurantsQuery,
     supabase
       .from("projet_indemnites")
@@ -91,7 +99,15 @@ export default async function JourneeDashboardPage({
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
 
-  const journees = await getJournees(projet_id);
+  const [journees, fonctionsProjet, envois, liensMes, candidatureParFigurant] = await Promise.all([
+    getJournees(projet_id),
+    listerFonctionsProjet(projet_id),
+    getEnvoisJournee(projet_id, date),
+    getLiens({ projetId: projet_id }),
+    getCandidatureParFigurant(projet_id, (bookingsRaw ?? []).map((b) => b.figurant_id)),
+  ]);
+  // Dernier avis de la MES (lien de validation Bookings) par figurant·e.
+  const avisMes = dernierVoteParProfil(liensMes.votes);
   const currentIndex = journees.findIndex((j) => j.date === date);
   const currentJournee = currentIndex >= 0 ? journees[currentIndex] : null;
   const prevJournee = currentIndex > 0 ? journees[currentIndex - 1] : null;
@@ -99,7 +115,8 @@ export default async function JourneeDashboardPage({
     currentIndex >= 0 && currentIndex < journees.length - 1 ? journees[currentIndex + 1] : null;
   const besoins = currentJournee ? await getBesoinsByJournee(currentJournee.id) : [];
 
-  const rawBookings = bookingsRaw ?? [];
+  // Règle du site : ordre alphabétique (nom, puis prénom).
+  const rawBookings = trierParNom(bookingsRaw ?? [], (b) => b.figurants);
   const figurantIds = rawBookings.map((b) => b.figurant_id);
   // Photothèque complète (galerie) + photo principale choisie pour les
   // trombis de ce projet (Booking → 📷 Photos).
@@ -112,16 +129,16 @@ export default async function JourneeDashboardPage({
     figurantIds.length > 0
       ? await supabase
           .from("figurant_messages")
-          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu")
+          .select("id, figurant_id, sender, categorie, sujet, corps, created_at, repondu, mail_message_id, lu_gmail_le, auteur:profiles!figurant_messages_envoye_par_fkey(prenom, nom)")
           .in("figurant_id", figurantIds)
           .neq("categorie", "espace_perso")
           .or(`projet_id.is.null,projet_id.eq.${projet_id}`)
           .order("created_at", { ascending: false })
-          .returns<(MessageRow & { figurant_id: string })[]>()
-      : { data: [] as (MessageRow & { figurant_id: string })[] };
+          .returns<(Omit<MessageRow, "auteur"> & { figurant_id: string; auteur: { prenom: string | null; nom: string | null } | null })[]>()
+      : { data: [] as (Omit<MessageRow, "auteur"> & { figurant_id: string; auteur: { prenom: string | null; nom: string | null } | null })[] };
   const messagesByFigurant: Record<string, MessageRow[]> = {};
   for (const m of messagesRaw ?? []) {
-    (messagesByFigurant[m.figurant_id] ??= []).push(m);
+    (messagesByFigurant[m.figurant_id] ??= []).push({ ...m, auteur: m.auteur ? nomComplet(m.auteur) : null });
   }
 
   const { data: essayagesRaw } =
@@ -149,8 +166,10 @@ export default async function JourneeDashboardPage({
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
   const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
 
-  // Raccord = cette personne a d'autres journées sur ce même projet — on le
-  // signale (badge R) et on peut dérouler toutes ses dates avec leur statut.
+  // Raccord = personne CONFIRMÉE ce jour-là et confirmée sur au moins une
+  // autre journée du même projet (badge R, dates déroulables), même si elle
+  // est indispo ou annulée sur d'autres jours. Sur une journée où elle
+  // n'est pas confirmée, pas de R.
   const { data: allProjetBookingsRaw } =
     figurantIds.length > 0
       ? await supabase
@@ -167,7 +186,7 @@ export default async function JourneeDashboardPage({
     const list = otherDatesByFigurant.get(b.figurant_id) ?? [];
     list.push({ date: b.date, statut: b.statut });
     otherDatesByFigurant.set(b.figurant_id, list);
-    if (b.date < date) raccordFigurantIds.add(b.figurant_id);
+    if (b.statut === "confirmé") raccordFigurantIds.add(b.figurant_id);
   }
 
   const bookingIds = rawBookings.map((b) => b.id);
@@ -226,10 +245,15 @@ export default async function JourneeDashboardPage({
     essaiOk: essaiOkFigurantIds.has(b.figurant_id),
     numeroCostume: numeroCostumeByFigurant.get(b.figurant_id) ?? null,
     indispoMotif: indispoMap.get(`${b.figurant_id}|${b.date}`),
-    raccord: raccordFigurantIds.has(b.figurant_id),
+    raccord: b.statut === "confirmé" && raccordFigurantIds.has(b.figurant_id),
     autresDates: otherDatesByFigurant.get(b.figurant_id) ?? [],
     indemnites: indemnitesByBooking.get(b.id) ?? [],
     majorations: majorationsByBooking.get(b.id) ?? [],
+    candidatureId: candidatureParFigurant.get(b.figurant_id) ?? null,
+    mes: (() => {
+      const a = avisMes.get(b.figurant_id);
+      return a ? { vote: a.vote, qui: a.visiteur_role ? `${a.visiteur_nom} (${a.visiteur_role})` : a.visiteur_nom, note: a.note } : null;
+    })(),
   }));
   const covoiturageRows: CovoiturageRow[] = rawBookings.map((b) => ({
     ...b,
@@ -244,7 +268,7 @@ export default async function JourneeDashboardPage({
 
   const confirmes = bookings.filter((b) => b.statut === "confirmé").length;
   const enAttente = bookings.filter((b) =>
-    ["proposé", "envoyé", "a_relancer", "doit_rappeler", "attente_validation", "valide"].includes(b.statut)
+    ["proposé", "envoyé", "attente_reponse_booking", "a_relancer", "doit_rappeler", "a_rappeler", "attente_validation", "valide"].includes(b.statut)
   ).length;
 
   // Ancienne journée d'une modification du PDT : combien attendent encore
@@ -263,7 +287,8 @@ export default async function JourneeDashboardPage({
   const [journeePartage, publicOrigin, initialReplies] = await Promise.all([
     getJourneePartageLien(projet_id, date),
     getSiteOrigin(),
-    getUnreviewedReplies(projet_id),
+    // Réponses des seules personnes bookées dans cette journée.
+    getUnreviewedReplies(projet_id, figurantIds),
   ]);
 
   return (
@@ -282,7 +307,7 @@ export default async function JourneeDashboardPage({
             {prevJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${prevJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 ← J{prevJournee.numero} ({formatDateShort(prevJournee.date)})
               </Link>
@@ -295,7 +320,7 @@ export default async function JourneeDashboardPage({
             {nextJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${nextJournee.date}`}
-                className="text-sm text-text-muted hover:text-coral"
+                className="text-sm text-text hover:text-coral"
               >
                 J{nextJournee.numero} ({formatDateShort(nextJournee.date)}) →
               </Link>
@@ -322,7 +347,15 @@ export default async function JourneeDashboardPage({
             figurants={allFigurants ?? []}
             alreadyBookedIds={figurantIds}
           />
+          <AjoutRapideBooking projetId={projet_id} date={date} />
           <ModifierPdt projetId={projet_id} date={date} modeleInitial={projet?.modele_message_pdt || MODELE_PDT_DEFAUT} />
+          {currentJournee && (
+            <DupliquerJournee
+              projetId={projet_id}
+              date={date}
+              nbProfils={bookings.filter((b) => !["annulé", "indisponible", "a_rebooker"].includes(b.statut)).length}
+            />
+          )}
         </div>
       </div>
 
@@ -345,7 +378,7 @@ export default async function JourneeDashboardPage({
               "flex shrink-0 flex-col items-center rounded-xl border px-3 py-1.5 text-center transition-colors",
               j.date === date
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:border-coral/60 hover:text-text"
+                : "border-border-strong text-text hover:border-coral/60 hover:text-text"
             )}
           >
             <span className="text-[10px] font-medium uppercase tracking-wide">J{j.numero}</span>
@@ -355,6 +388,7 @@ export default async function JourneeDashboardPage({
       </div>
 
       <JourneeTabs
+        ongletInitial={onglet === "messages" ? "messages" : undefined}
         bookings={bookings}
         canExport={isOwner(profile)}
         templates={templates ?? []}
@@ -364,6 +398,8 @@ export default async function JourneeDashboardPage({
         projetId={projet_id}
         date={date}
         besoins={besoins}
+        fonctionsProjet={fonctionsProjet}
+        envois={envois}
         journeeId={currentJournee?.id ?? null}
         totalRequis={currentJournee?.total_requis ?? null}
         journeeLieu={currentJournee?.lieu ?? null}

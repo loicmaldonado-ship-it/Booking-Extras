@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -12,8 +13,9 @@ import { EntryNotesField } from "@/components/casting/entry-notes-field";
 import { PreviewButton, type PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { FigurantEditModal } from "@/components/figurants/figurant-edit-modal";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
-import { compressAndUploadVideo } from "@/lib/media/compress-and-upload-video";
+import { envoyerVideo, declencherAllegement, formatTaille, formatRestant, type Progression } from "@/lib/media/upload-video";
 import { cn } from "@/lib/cn";
+import { AVIS_LIBELLES, type AvisReel } from "@/lib/casting/avis";
 import {
   deleteCastingEntry,
   deleteCastingPhoto,
@@ -27,7 +29,10 @@ import {
   updateCastingEntryMode,
   updateCastingEntryNotes,
   updateCastingEntryVisiblePartage,
+  choisirVignetteCasting,
 } from "@/lib/casting/actions";
+import { Modale } from "@/components/ui/modale";
+import type { PhotoVignette } from "@/lib/casting/vignette";
 import { updateFigurantAgent } from "@/lib/figurants/actions";
 import { StatusSelect } from "@/components/ui/status-select";
 import { statutTone, type BookingStatut } from "@/lib/bookings/types";
@@ -198,7 +203,7 @@ function VideoWithRemove({
             if (e.key === "Enter") e.currentTarget.blur();
           }}
           placeholder="Nom de la vidéo"
-          className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text-muted outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
+          className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
         />
       </div>
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
@@ -211,130 +216,123 @@ function VideoWithRemove({
   );
 }
 
+type EnvoiVideo = {
+  id: string;
+  file: File;
+  label: string;
+  statut: "attente" | "envoi" | "ok" | "erreur";
+  progression: Progression | null;
+  erreur: string | null;
+};
+
+// Choisir ou glisser une ou plusieurs vidéos : elles partent tout de suite,
+// telles quelles, l'une après l'autre (dans l'ordre choisi, toute la
+// connexion pour la vidéo en cours), avec sa barre de progression, et
+// s'ajoutent au profil toutes seules en arrivant. Le nom, c'est celui du
+// fichier : il se change ensuite sur la vidéo.
+const ENVOIS_SIMULTANES = 1;
+
 function AddVideoButton({ entryId }: { entryId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  // File d'attente traitée séquentiellement (une compression à la fois —
-  // plus sûr en mémoire, et de toute façon pas plus lent que l'attente
-  // active qu'on cherche justement à éviter) : on peut sélectionner ou
-  // glisser plusieurs vidéos d'un coup et les laisser s'envoyer les unes
-  // après les autres sans avoir à revenir cliquer entre chacune.
-  const queueRef = useRef<{ file: File; label: string }[]>([]);
-  const processingRef = useRef(false);
-  const [label, setLabel] = useState("");
-  const [pending, setPending] = useState(false);
-  const [currentLabel, setCurrentLabel] = useState<string | null>(null);
-  const [queueCount, setQueueCount] = useState(0);
-  const [step, setStep] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [envois, setEnvois] = useState<EnvoiVideo[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  // Envois en cours (pour les annuler) et file d'attente, lus en direct : le
+  // state React arrive trop tard pour décider qui part.
+  const controllers = useRef(new Map<string, AbortController>());
+  const file = useRef<EnvoiVideo[]>([]);
 
-  function defaultLabelFor(file: File): string {
-    return file.name.replace(/\.\w+$/, "");
+  function maj(id: string, patch: Partial<EnvoiVideo>) {
+    setEnvois((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }
 
-  function enqueue(files: File[]) {
-    const videoFiles = files.filter((f) => f.type.startsWith("video/"));
-    if (videoFiles.length === 0) return;
-    // Le nom saisi ne s'applique que pour un envoi à la fois — pour
-    // plusieurs fichiers d'un coup, chacun prend son propre nom de fichier
-    // (modifiable ensuite comme n'importe quelle vidéo déjà envoyée).
-    const items = videoFiles.map((file) => ({
-      file,
-      label: videoFiles.length === 1 && label.trim() ? label.trim() : defaultLabelFor(file),
-    }));
-    queueRef.current.push(...items);
-    setQueueCount(queueRef.current.length);
-    setLabel("");
-    if (!processingRef.current) processNext();
-  }
-
-  async function processNext() {
-    const next = queueRef.current.shift();
-    setQueueCount(queueRef.current.length);
-    if (!next) {
-      processingRef.current = false;
-      setPending(false);
-      setCurrentLabel(null);
-      return;
-    }
-    processingRef.current = true;
-    setPending(true);
-    setCurrentLabel(next.label);
-    setError(null);
+  async function lancer(item: EnvoiVideo) {
     const controller = new AbortController();
-    abortRef.current = controller;
+    controllers.current.set(item.id, controller);
+    maj(item.id, { statut: "envoi", erreur: null, progression: { pct: 0, restant: null, essai: 1 } });
     try {
-      const path = await compressAndUploadVideo({
-        file: next.file,
+      const path = await envoyerVideo({
+        file: item.file,
         signal: controller.signal,
-        onProgress: setStep,
+        onProgress: (progression) => maj(item.id, { progression }),
         createSlot: () => createStaffCastingVideoSlot(entryId),
         logContext: { source: "equipe", entryId },
       });
-      // Envoi déjà terminé côté réseau à ce stade — l'annulation ne peut
-      // plus empêcher le fichier d'atterrir dans le stockage, mais on
-      // évite au moins de le rattacher au profil si on a demandé d'arrêter.
-      if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
-      const result = await addCastingVideo(entryId, path, next.label);
-      if (result?.error) throw new Error(result.error);
+      const res = await addCastingVideo(entryId, path, item.label);
+      if (res?.error) throw new Error(res.error);
+      declencherAllegement(path);
+      maj(item.id, { statut: "ok", progression: { pct: 100, restant: 0, essai: 1 } });
       router.refresh();
+      setTimeout(() => setEnvois((l) => l.filter((e) => e.id !== item.id)), 2500);
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {
-        // Annuler arrête tout le lot en cours, pas juste la vidéo active.
-        queueRef.current = [];
+        setEnvois((l) => l.filter((x) => x.id !== item.id));
       } else {
-        setError(`« ${next.label} » : ${e instanceof Error ? e.message : "Échec de l'envoi."}`);
+        maj(item.id, { statut: "erreur", erreur: e instanceof Error ? e.message : "Échec de l'envoi." });
       }
     } finally {
-      abortRef.current = null;
-      setStep(null);
-      await processNext();
+      controllers.current.delete(item.id);
+      demarrerSuivants();
     }
   }
 
+  // Lance les envois en attente tant qu'il reste de la place.
+  function demarrerSuivants() {
+    while (controllers.current.size < ENVOIS_SIMULTANES && file.current.length > 0) {
+      lancer(file.current.shift()!);
+    }
+  }
+
+  function ajouter(files: File[]) {
+    const videos = files.filter((f) => f.type.startsWith("video/") || /\.(mov|mp4|m4v|webm|avi|mkv)$/i.test(f.name));
+    if (videos.length === 0) return;
+    const nouveaux: EnvoiVideo[] = videos.map((fichier) => ({
+      id: crypto.randomUUID(),
+      file: fichier,
+      label: fichier.name.replace(/\.\w+$/, ""),
+      statut: "attente",
+      progression: null,
+      erreur: null,
+    }));
+    setEnvois((l) => [...l, ...nouveaux]);
+    file.current.push(...nouveaux);
+    demarrerSuivants();
+  }
+
+  function annuler(id: string) {
+    const controller = controllers.current.get(id);
+    if (controller) controller.abort();
+    else {
+      file.current = file.current.filter((e) => e.id !== id);
+      setEnvois((l) => l.filter((e) => e.id !== id));
+    }
+  }
+
+  function reessayer(item: EnvoiVideo) {
+    maj(item.id, { statut: "attente", erreur: null, progression: null });
+    file.current.push({ ...item, statut: "attente" });
+    demarrerSuivants();
+  }
+
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragOver(true);
-      }}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragOver(false);
-        enqueue(Array.from(e.dataTransfer.files ?? []));
-      }}
-      className={cn(
-        "flex flex-col gap-1 rounded-lg border-2 border-dashed p-1.5 transition-colors",
-        dragOver ? "border-coral bg-coral/10" : "border-transparent"
-      )}
-    >
-      <input
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        disabled={pending}
-        placeholder="Nom de la vidéo (ex: Essai 1)"
-        className="w-full rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs outline-none focus:border-coral disabled:opacity-50"
-      />
-      <div className="flex gap-1.5">
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={pending}
-          onClick={() => inputRef.current?.click()}
-          className="flex-1"
-        >
-          {pending
-            ? `${currentLabel ? `« ${currentLabel} » — ` : ""}${step ?? "Envoi..."}${queueCount > 0 ? ` (+${queueCount} en attente)` : ""}`
-            : "+ Ajouter ou glisser des vidéos"}
+    <div className="flex flex-col gap-1.5">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          ajouter(Array.from(e.dataTransfer.files ?? []));
+        }}
+        className={cn("rounded-xl border-2 border-dashed p-1.5 transition-colors", dragOver ? "border-coral bg-coral/10" : "border-border-strong")}
+      >
+        <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()} className="w-full">
+          ＋ Ajouter des vidéos
         </Button>
-        {pending && (
-          <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
-            Annuler
-          </Button>
-        )}
+        <p className="mt-1 text-center text-[11px] text-text-muted">ou glisse-les ici · elles partent tout de suite</p>
       </div>
       <input
         ref={inputRef}
@@ -343,12 +341,143 @@ function AddVideoButton({ entryId }: { entryId: string }) {
         multiple
         className="hidden"
         onChange={(e) => {
-          enqueue(Array.from(e.target.files ?? []));
+          ajouter(Array.from(e.target.files ?? []));
           e.target.value = "";
         }}
       />
-      {error && <span className="text-xs text-danger">{error}</span>}
+      {envois.map((e) => (
+        <div key={e.id} className="flex flex-col gap-1 rounded-lg border border-border bg-ink-raised-2 px-2 py-1.5 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate font-medium" title={e.file.name}>
+              {e.label}
+            </span>
+            {e.statut !== "ok" && (
+              <button
+                type="button"
+                onClick={() => annuler(e.id)}
+                className="shrink-0 rounded-full border border-border-strong px-2 py-0.5 font-medium hover:border-text"
+              >
+                {e.statut === "erreur" ? "Retirer" : "Annuler"}
+              </button>
+            )}
+          </div>
+          {e.statut === "ok" ? (
+            <span className="font-medium text-turquoise">✓ Ajoutée</span>
+          ) : e.statut === "erreur" ? (
+            <>
+              <span className="text-danger">{e.erreur}</span>
+              <button
+                type="button"
+                onClick={() => reessayer(e)}
+                className="self-start rounded-full border border-text px-2.5 py-0.5 font-semibold text-coral"
+              >
+                Réessayer
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-ink-raised">
+                <div
+                  className="h-full rounded-full bg-turquoise transition-[width]"
+                  style={{ width: `${e.statut === "envoi" ? (e.progression?.pct ?? 0) : 0}%` }}
+                />
+              </div>
+              <span className="tabular-nums text-text-muted">
+                {e.statut === "attente"
+                  ? `En attente · ${formatTaille(e.file.size)}`
+                  : `${e.progression?.pct ?? 0} %${
+                      e.progression?.restant != null && e.progression.restant > 1 ? ` · ${formatRestant(e.progression.restant)}` : ""
+                    } · ${formatTaille(e.file.size)}${(e.progression?.essai ?? 1) > 1 ? ` · nouvel essai ${e.progression?.essai}` : ""}`}
+              </span>
+            </>
+          )}
+        </div>
+      ))}
     </div>
+  );
+}
+
+// Choix de la photo montrée sur la vignette (Casting, lien réal, trombis et
+// documents du casting) parmi les photos du profil et celles envoyées pour
+// ce rôle.
+function ChoixVignette({
+  entryId,
+  photos,
+  choisieId,
+  onClose,
+}: {
+  entryId: string;
+  photos: PhotoVignette[];
+  choisieId: string | null;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const choisie = photos.some((p) => p.id === choisieId) ? choisieId : null;
+
+  function choisir(photoId: string | null) {
+    setError(null);
+    startTransition(async () => {
+      const res = await choisirVignetteCasting(entryId, photoId);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <Modale
+      titre="🖼️ Photo de la vignette"
+      sousTitre="Celle qui apparaît dans Casting, sur le lien réal, les trombis et les documents du casting."
+      onClose={onClose}
+      bloquee={pending}
+    >
+      {photos.length === 0 ? (
+        <p className="text-sm text-text-muted">Aucune photo sur ce profil pour l&apos;instant.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          {photos.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={pending}
+              onClick={() => choisir(p.id)}
+              className="flex flex-col gap-1 text-left disabled:opacity-60"
+            >
+              <div
+                className={cn(
+                  "relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-ink-raised-2",
+                  choisie === p.id ? "border-coral" : "border-transparent hover:border-coral/50"
+                )}
+              >
+                <Image src={p.url} alt={p.label} fill sizes="150px" className="object-cover" />
+                {choisie === p.id && (
+                  <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-coral text-xs text-ink">
+                    ✓
+                  </span>
+                )}
+              </div>
+              <span className="text-center text-[11px] text-text-muted">{p.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-text-muted">
+          {choisie ? "Photo choisie à la main." : "Automatique : essayage du projet, sinon portrait."}
+        </span>
+        {choisie && (
+          <Button type="button" variant="ghost" disabled={pending} onClick={() => choisir(null)}>
+            Revenir à l&apos;automatique
+          </Button>
+        )}
+      </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
+    </Modale>
   );
 }
 
@@ -432,7 +561,7 @@ function AgentSection({
         />
         {error && <span className="text-xs text-danger">{error}</span>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text-muted hover:text-text">
+          <button type="button" onClick={() => setEditing(false)} className="text-xs text-text hover:text-text">
             Annuler
           </button>
           <Button type="button" disabled={pending} onClick={save}>
@@ -448,7 +577,7 @@ function AgentSection({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="w-fit rounded-full border border-dashed border-border px-2.5 py-1 text-xs text-text-muted hover:border-coral/60 hover:text-text"
+        className="w-fit rounded-full border border-dashed border-border-strong px-2.5 py-1 text-xs text-text hover:border-coral/60 hover:text-text"
       >
         + Ajouter un agent
       </button>
@@ -474,6 +603,7 @@ function AgentSection({
 export function CastingEntryManageCard({
   entry,
   portraitUrl,
+  photosVignette = [],
   videoUrls,
   photoLabels,
   photos,
@@ -483,9 +613,12 @@ export function CastingEntryManageCard({
   previewIndex,
   showAgent,
   dateLimiteEnvoi,
+  avisReel = [],
+  commentairesReel = 0,
 }: {
   entry: CastingEntry;
   portraitUrl: string | null;
+  photosVignette?: PhotoVignette[];
   videoUrls: { url: string; path: string; label: string }[];
   photoLabels: string[];
   photos: CastingEntryPhoto[];
@@ -495,10 +628,14 @@ export function CastingEntryManageCard({
   previewIndex?: number;
   showAgent?: boolean;
   dateLimiteEnvoi?: string | null;
+  // Ce que les réal ont répondu sur le lien réal.
+  avisReel?: AvisReel[];
+  commentairesReel?: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [vignetteOpen, setVignetteOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [statutPending, startStatutTransition] = useTransition();
   const [modePending, startModeTransition] = useTransition();
@@ -540,7 +677,7 @@ export function CastingEntryManageCard({
   const extraPhotos = photos.filter((p) => !photoLabels.includes(p.label));
 
   return (
-    <div className="glass-subtle relative flex w-full max-w-xs flex-col gap-2 rounded-xl p-3">
+    <div className="relative flex w-full max-w-xs flex-col gap-2 rounded-xl border border-border bg-ink-raised p-3">
       {onToggleSelect && (
         <input
           type="checkbox"
@@ -567,11 +704,32 @@ export function CastingEntryManageCard({
         </div>
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-sm font-medium">
-            {entry.figurants?.prenom} {entry.figurants?.nom}
+            {nomComplet(entry.figurants)}
           </span>
         </div>
         <span className="text-text-muted">{open ? "▾" : "▸"}</span>
       </button>
+      {(avisReel.length > 0 || commentairesReel > 0) && (
+        <div className="flex flex-wrap gap-1.5" aria-label="Retour du·de la réal">
+          {avisReel.map((a) => (
+            <span
+              key={`${a.nom}-${a.role}`}
+              title={`${a.nom}${a.role ? ` (${a.role})` : ""} : ${AVIS_LIBELLES[a.avis]}`}
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[11px] font-semibold text-white",
+                a.avis === "oui" ? "bg-turquoise" : a.avis === "non" ? "bg-danger" : "bg-yellow"
+              )}
+            >
+              {a.avis === "oui" ? "✓" : a.avis === "non" ? "✕" : "?"} {a.nom}
+            </span>
+          ))}
+          {commentairesReel > 0 && (
+            <span className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium" title="Voir dans le fil du lien réal (💬)">
+              💬 {commentairesReel}
+            </span>
+          )}
+        </div>
+      )}
       {dateLimiteEnvoi && !entry.submitted_at && (
         <p className={cn("text-xs", dateLimiteEnvoi < todayIso ? "font-medium text-danger" : "text-text-muted")}>
           {dateLimiteEnvoi < todayIso ? "Envoi clos depuis le " : "Envoi avant le "}
@@ -591,7 +749,7 @@ export function CastingEntryManageCard({
                 ? m === "presentiel"
                   ? "border-coral bg-coral/15 text-coral"
                   : "border-turquoise bg-turquoise/15 text-turquoise"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {m === "presentiel" ? "📅 " : "🎥 "}
@@ -607,7 +765,7 @@ export function CastingEntryManageCard({
           title="Visible sur le lien de partage réal"
           className={cn(
             "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
-            entry.visible_partage ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border text-text-muted hover:text-text"
+            entry.visible_partage ? "border-turquoise bg-turquoise/15 text-turquoise" : "border-border-strong text-text hover:text-text"
           )}
         >
           👁️ Visible
@@ -619,7 +777,7 @@ export function CastingEntryManageCard({
           title="Masqué du lien de partage réal"
           className={cn(
             "flex-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-60",
-            !entry.visible_partage ? "border-danger bg-danger/15 text-danger" : "border-border text-text-muted hover:text-text"
+            !entry.visible_partage ? "border-danger bg-danger/15 text-danger" : "border-border-strong text-text hover:text-text"
           )}
         >
           🙈 Invisible
@@ -644,11 +802,27 @@ export function CastingEntryManageCard({
           type="button"
           onClick={() => setEditOpen(true)}
           title="Modifier la fiche du profil"
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-ink text-xs text-text-muted hover:border-coral/60 hover:text-text"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text"
         >
           ✏️
         </button>
+        <button
+          type="button"
+          onClick={() => setVignetteOpen(true)}
+          title="Choisir la photo de la vignette"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border-strong bg-ink text-xs text-text hover:border-coral/60 hover:text-text"
+        >
+          🖼️
+        </button>
         {editOpen && <FigurantEditModal figurantId={entry.figurant_id} onClose={() => setEditOpen(false)} />}
+        {vignetteOpen && (
+          <ChoixVignette
+            entryId={entry.id}
+            photos={photosVignette}
+            choisieId={entry.photo_vignette_id}
+            onClose={() => setVignetteOpen(false)}
+          />
+        )}
       </div>
       {showAgent && (
         <AgentSection
@@ -702,6 +876,20 @@ export function CastingEntryManageCard({
         >
           → Voir le booking
         </Link>
+      )}
+
+      {(entry.reponses ?? []).length > 0 && (
+        <div className="flex flex-col gap-0.5 rounded-lg border border-border bg-ink px-2 py-1.5 text-xs">
+          {entry.reponses.map((r) => (
+            <p key={r.question}>
+              {r.question}{" "}
+              <strong className={r.reponse === "oui" ? "text-turquoise" : "text-danger"}>
+                {r.reponse === "oui" ? "Oui" : "Non"}
+              </strong>
+              {r.precision ? <span className="text-text-muted"> — {r.precision}</span> : null}
+            </p>
+          ))}
+        </div>
       )}
 
       <EntryNotesField initialValue={entry.notes} onSave={(notes) => updateCastingEntryNotes(entry.id, notes)} />

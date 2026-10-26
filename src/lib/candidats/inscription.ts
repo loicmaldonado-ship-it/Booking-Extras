@@ -1,9 +1,11 @@
 "use server";
 
+import { retourAutorise } from "@/lib/candidats/retour";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
 import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
+import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { lireProfil, emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
@@ -19,7 +21,7 @@ import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types"
 export async function inscrireCandidat(
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; compteExistant?: boolean }> {
+): Promise<{ error?: string; compteExistant?: boolean; invitationEnvoyee?: boolean }> {
   const lu = lireProfil(formData);
   if ("error" in lu) return { error: lu.error };
   const { profil, age } = lu;
@@ -55,7 +57,11 @@ export async function inscrireCandidat(
     .ilike("email", profil.email)
     .eq("est_comedien", false)
     .maybeSingle();
+  const retour = retourAutorise(formData.get("retour"));
   if (memeEmail) {
+    // Fiche ajoutée par l'équipe, sans compte : lien « Crée ton compte ».
+    const invitation = await invitationPourFicheSansCompte(memeEmail.id, null, retour);
+    if (invitation) return invitation;
     return {
       compteExistant: true,
       error:
@@ -65,11 +71,13 @@ export async function inscrireCandidat(
   const telephoneNormalise = profil.telephone.replace(/\s+/g, "");
   const { data: memeNom } = await supabase
     .from("figurants")
-    .select("email, telephone")
+    .select("id, email, telephone")
     .ilike("nom", profil.nom)
     .eq("est_comedien", false);
   const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
   if (doublon) {
+    const invitation = doublon.email ? await invitationPourFicheSansCompte(doublon.id, null, retour) : null;
+    if (invitation) return invitation;
     return {
       compteExistant: true,
       error: doublon.email
@@ -113,5 +121,6 @@ export async function inscrireCandidat(
   }
 
   await createFigurantSession(figurant.id);
-  redirect("/compte?bienvenue=1");
+  // Compte créé depuis un lien rapide de casting : on y retourne directement.
+  redirect(retour ?? "/compte?bienvenue=1");
 }

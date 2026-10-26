@@ -1,8 +1,12 @@
 "use client";
 
+import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
+import { EnvoyerTextos } from "@/components/textos/envoyer-textos";
+import { enregistrerDernierMessage, lireDernierMessage } from "@/lib/messages/derniers-actions";
+import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Select } from "@/components/ui/field";
@@ -21,9 +25,11 @@ import { sendFigurantsToPresentiel } from "@/lib/casting-presentiel/actions";
 import { defaultCastingInviteMessage, defaultCastingPresentielMessage } from "@/lib/casting/message-template";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { CastingEntryManageCard } from "@/components/casting/casting-entry-manage-card";
+import type { AvisReel } from "@/lib/casting/avis";
 import type { PreviewItem } from "@/components/figurants/figurant-preview-modal";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
 import { QuickAddFigurantCasting } from "@/components/casting/quick-add-figurant-casting";
+import { AjoutRapideCasting } from "@/components/casting/ajout-rapide-casting";
 import {
   CATEGORIE_CACHET_LABELS,
   CASTING_MODE_LABELS,
@@ -35,7 +41,8 @@ import {
 } from "@/lib/casting/types";
 import type { BookingStatut } from "@/lib/bookings/types";
 import type { CastingEntryPhoto } from "@/lib/casting/data";
-import type { MessageTemplate } from "@/lib/templates/types";
+import type { PhotoVignette } from "@/lib/casting/vignette";
+import { nomModele, type MessageTemplate } from "@/lib/templates/types";
 import type { PresentielJourneeAvecCreneaux, PresentielAssignment } from "@/lib/casting-presentiel/journees";
 
 const DEFAULT_BODY = "Bonjour {prenom},\n\n";
@@ -47,13 +54,16 @@ export function CastingRoleSection({
   signature,
   role,
   entries,
-  portraitByFigurant,
+  vignetteByEntry,
+  photosVignetteByEntry,
   videoUrlsByEntry,
   entryPhotosByEntry,
   allFigurants,
   templates,
   presentielJournees,
   presentielAssignments,
+  avisReelByEntry,
+  commentairesReelByEntry,
   position,
 }: {
   projetId: string;
@@ -62,13 +72,17 @@ export function CastingRoleSection({
   signature: string;
   role: CastingRole;
   entries: CastingEntry[];
-  portraitByFigurant: Map<string, string | null>;
+  vignetteByEntry: Map<string, string | null>;
+  photosVignetteByEntry: Map<string, PhotoVignette[]>;
   videoUrlsByEntry: Map<string, { path: string; url: string; label: string }[]>;
   entryPhotosByEntry: Map<string, CastingEntryPhoto[]>;
   allFigurants: { id: string; prenom: string; nom: string }[];
   templates: MessageTemplate[];
   presentielJournees: PresentielJourneeAvecCreneaux[];
   presentielAssignments: Map<string, PresentielAssignment>;
+  // Retour du·de la réal (lien réal) par profil.
+  avisReelByEntry: Record<string, AvisReel[]>;
+  commentairesReelByEntry: Record<string, number>;
   // Position 1-indexée dans l'ordre d'affichage actuel du projet — pas
   // juste role.ordre brut (qui peut être décalé/non contigu) : ce que le
   // champ numéro doit montrer et permettre de changer directement.
@@ -79,6 +93,7 @@ export function CastingRoleSection({
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [messageOuvert, setMessageOuvert] = useState(false);
   const [bulkSubject, setBulkSubject] = useState(`Booking Extras — casting « ${role.nom} »`);
   const [bulkMessage, setBulkMessage] = useState(() => defaultCastingInviteMessage(role));
   const [sentBulk, setSentBulk] = useState<Set<string>>(new Set());
@@ -98,7 +113,7 @@ export function CastingRoleSection({
     prenom: e.figurants?.prenom ?? "",
     nom: e.figurants?.nom ?? "",
     ville: null,
-    portraitUrl: portraitByFigurant.get(e.figurant_id) ?? null,
+    portraitUrl: vignetteByEntry.get(e.id) ?? null,
   }));
 
   function toggleSelect(id: string) {
@@ -119,7 +134,7 @@ export function CastingRoleSection({
   function tokens(entry: CastingEntry) {
     const assignment = presentielAssignments.get(entry.figurant_id);
     return {
-      prenom: entry.figurants?.prenom ?? "",
+      prenom: formatPrenom(entry.figurants?.prenom),
       projet: projetNom,
       role: role.nom,
       date: formatTournageClause(role.date_tournage, role.date_tournage_fin),
@@ -160,9 +175,19 @@ export function CastingRoleSection({
         rolePdfFilename: role.pdf_filename,
         html,
       });
-      if (result?.error) setSendError(`Échec de l'envoi à ${entry.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(entry.figurants!.prenom)} : ${result.error}`);
     });
     setSentBulk((prev) => new Set([...prev, entry.id]));
+  }
+
+  // Reprend le dernier message envoyé pour ce rôle (sur tous les appareils).
+  function ouvrirMessage() {
+    setMessageOuvert(true);
+    lireDernierMessage(`casting:${role.id}`).then((dernier) => {
+      if (!dernier) return;
+      if (dernier.sujet) setBulkSubject(dernier.sujet);
+      setBulkMessage(dernier.corps);
+    });
   }
 
   function sendToAll() {
@@ -192,6 +217,7 @@ export function CastingRoleSection({
       if (errors.length > 0) {
         setSendError(`Échec de l'envoi pour ${errors.length} profil${errors.length > 1 ? "s" : ""}.`);
       }
+      if (errors.length < results.length) enregistrerDernierMessage(`casting:${role.id}`, bulkSubject, bulkMessage);
     });
     setSentBulk((prev) => new Set([...prev, ...targets.map((e) => e.id)]));
   }
@@ -278,7 +304,7 @@ export function CastingRoleSection({
   const deadlinePassed = !!role.date_limite_envoi && role.date_limite_envoi < new Date().toISOString().slice(0, 10);
 
   return (
-    <Card className="glass-subtle flex flex-col gap-4">
+    <Card className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -322,7 +348,7 @@ export function CastingRoleSection({
                   "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
                   role.visible_partage
                     ? "border-turquoise bg-turquoise/15 text-turquoise"
-                    : "border-border text-text-muted hover:text-text"
+                    : "border-border-strong text-text hover:text-text"
                 )}
               >
                 👁️ Visible
@@ -336,7 +362,7 @@ export function CastingRoleSection({
                   "rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-60",
                   !role.visible_partage
                     ? "border-danger bg-danger/15 text-danger"
-                    : "border-border text-text-muted hover:text-text"
+                    : "border-border-strong text-text hover:text-text"
                 )}
               >
                 🙈 Invisible
@@ -369,11 +395,14 @@ export function CastingRoleSection({
         </div>
       )}
 
-      <QuickAddFigurantCasting
-        roleId={role.id}
-        figurants={allFigurants}
-        alreadyAddedIds={entries.map((e) => e.figurant_id)}
-      />
+      <div className="flex flex-wrap items-start gap-2">
+        <QuickAddFigurantCasting
+          roleId={role.id}
+          figurants={allFigurants}
+          alreadyAddedIds={entries.map((e) => e.figurant_id)}
+        />
+        <AjoutRapideCasting roleId={role.id} />
+      </div>
 
       {entries.length > 0 && (
         <div className="flex items-center gap-1.5">
@@ -402,7 +431,7 @@ export function CastingRoleSection({
             type="button"
             disabled={pending}
             onClick={() => changeAllEntriesVisible(false)}
-            className="rounded-full border border-border px-2 py-0.5 text-[11px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-60"
+            className="rounded-full border border-border-strong px-2 py-0.5 text-[11px] font-medium text-text transition-colors hover:text-text disabled:opacity-60"
           >
             🙈 Tous invisibles
           </button>
@@ -414,7 +443,8 @@ export function CastingRoleSection({
           <CastingEntryManageCard
             key={entry.id}
             entry={entry}
-            portraitUrl={portraitByFigurant.get(entry.figurant_id) ?? null}
+            portraitUrl={vignetteByEntry.get(entry.id) ?? null}
+            photosVignette={photosVignetteByEntry.get(entry.id) ?? []}
             videoUrls={videoUrlsByEntry.get(entry.id) ?? []}
             photoLabels={role.photo_labels}
             photos={entryPhotosByEntry.get(entry.id) ?? []}
@@ -424,6 +454,8 @@ export function CastingRoleSection({
             previewIndex={i}
             showAgent={role.categorie_cachet === "role"}
             dateLimiteEnvoi={role.date_limite_envoi}
+            avisReel={avisReelByEntry[entry.id] ?? []}
+            commentairesReel={commentairesReelByEntry[entry.id] ?? 0}
           />
         ))}
         {entries.length === 0 && <p className="text-sm text-text-muted">Aucun profil dans ce rôle pour l&apos;instant.</p>}
@@ -489,95 +521,125 @@ export function CastingRoleSection({
               {presentielError && <span className="text-xs text-danger">{presentielError}</span>}
             </div>
           )}
-          {sendError && <p className="text-sm text-danger">{sendError}</p>}
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm font-medium">
-              Message pour {selected.size} sélectionné·e{selected.size > 1 ? "s" : ""}
-            </span>
-            <Button type="button" variant="secondary" disabled={!bulkMessage.trim()} onClick={sendToAll}>
-              Envoyer à tous
+          <div>
+            <Button type="button" variant="secondary" onClick={ouvrirMessage}>
+              💬 Message ({selected.size})
             </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-text-muted">Modèle :</span>
-            <button
-              type="button"
-              onClick={applyInviteTemplate}
-              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+          {messageOuvert && (
+            <Modale
+              titre="💬 Message"
+              sousTitre={`Pour ${selected.size} sélectionné·e${selected.size > 1 ? "s" : ""}`}
+              onClose={() => setMessageOuvert(false)}
+              large
             >
-              Invitation (avec le lien)
-            </button>
-            <button
-              type="button"
-              onClick={applyPresentielTemplate}
-              className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
-            >
-              Convocation présentiel
-            </button>
-            <button
-              type="button"
-              onClick={() => applyTemplate()}
-              className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:text-text"
-            >
-              Vierge
-            </button>
-            {templates.length > 0 &&
-              templates.map((t) => (
+            <div className="flex flex-col gap-3">
+              {sendError && <p className="text-sm text-danger">{sendError}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-text-muted">Modèle :</span>
                 <button
-                  key={t.id}
                   type="button"
-                  onClick={() => applyTemplate(t)}
-                  className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text"
+                  onClick={applyInviteTemplate}
+                  className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
                 >
-                  {t.nom}
+                  Invitation (avec le lien)
                 </button>
-              ))}
-          </div>
-          <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
-          <textarea
-            value={bulkMessage}
-            onChange={(e) => setBulkMessage(e.target.value)}
-            rows={4}
-            className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
-          />
-          {role.pdf_filename && (
-            <p className="text-xs text-text-muted">📎 {role.pdf_filename} sera joint automatiquement.</p>
+                <button
+                  type="button"
+                  onClick={applyPresentielTemplate}
+                  className="rounded-full border border-coral/60 bg-coral/10 px-3 py-1 text-xs font-medium text-coral hover:bg-coral/20"
+                >
+                  Convocation présentiel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyTemplate()}
+                  className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:text-text"
+                >
+                  Vierge
+                </button>
+                {templates.length > 0 &&
+                  templates.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => applyTemplate(t)}
+                      className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text"
+                    >
+                      {nomModele(t)}
+                    </button>
+                  ))}
+              </div>
+              <Input value={bulkSubject} onChange={(e) => setBulkSubject(e.target.value)} placeholder="Sujet" />
+              <textarea
+                value={bulkMessage}
+                onChange={(e) => setBulkMessage(e.target.value)}
+                rows={8}
+                className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+              />
+              {role.pdf_filename && (
+                <p className="text-xs text-text-muted">📎 {role.pdf_filename} sera joint automatiquement.</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {entries
+                  .filter((e) => selected.has(e.id))
+                  .map((e) => (
+                    <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
+                      <span>
+                        {nomComplet(e.figurants)}
+                        {!e.figurants?.email && !e.figurants?.agent_email && (
+                          <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
+                        )}
+                        {e.figurants?.agent_email && (
+                          <span className="ml-2 text-xs text-text-muted">
+                            {e.figurants?.email ? "— agent en copie" : "— envoyé à l'agent (pas de contact direct)"}
+                          </span>
+                        )}
+                        {presentielAssignments.get(e.figurant_id) && (
+                          <span className="ml-2 text-xs text-text-muted">
+                            — {presentielAssignments.get(e.figurant_id)!.dateLabel}
+                            {presentielAssignments.get(e.figurant_id)!.heureLabel
+                              ? ` ${presentielAssignments.get(e.figurant_id)!.heureLabel}`
+                              : ""}
+                          </span>
+                        )}
+                      </span>
+                      <Button
+                        type="button"
+                        variant={sentBulk.has(e.id) ? "ghost" : "secondary"}
+                        disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
+                        onClick={() => sendTo(e)}
+                      >
+                        {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${formatPrenom(e.figurants?.prenom)}`}
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-3">
+                <Button type="button" variant="ghost" onClick={() => setMessageOuvert(false)}>
+                  Fermer
+                </Button>
+                <EnvoyerTextos
+                  libelle={`📱 En textos (${selected.size})`}
+                  disabled={!bulkMessage.trim()}
+                  onEnvoye={() => enregistrerDernierMessage(`casting:${role.id}`, bulkSubject, bulkMessage)}
+                  destinataires={entries
+                    .filter((e) => selected.has(e.id) && e.figurants)
+                    .map((e) => ({
+                      nom: nomComplet(e.figurants),
+                      telephone: e.figurants!.telephone,
+                      texte: substituteTokens(bulkMessage, tokens(e)),
+                      figurantId: e.figurant_id,
+                      projetId,
+                    }))}
+                />
+                <Button type="button" disabled={!bulkMessage.trim()} onClick={sendToAll}>
+                  Envoyer à tous
+                </Button>
+              </div>
+            </div>
+            </Modale>
           )}
-          <div className="flex flex-col gap-2">
-            {entries
-              .filter((e) => selected.has(e.id))
-              .map((e) => (
-                <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
-                  <span>
-                    {e.figurants?.prenom} {e.figurants?.nom}
-                    {!e.figurants?.email && !e.figurants?.agent_email && (
-                      <span className="ml-2 text-xs text-text-muted">Pas d&apos;email</span>
-                    )}
-                    {e.figurants?.agent_email && (
-                      <span className="ml-2 text-xs text-text-muted">
-                        {e.figurants?.email ? "— agent en copie" : "— envoyé à l'agent (pas de contact direct)"}
-                      </span>
-                    )}
-                    {presentielAssignments.get(e.figurant_id) && (
-                      <span className="ml-2 text-xs text-text-muted">
-                        — {presentielAssignments.get(e.figurant_id)!.dateLabel}
-                        {presentielAssignments.get(e.figurant_id)!.heureLabel
-                          ? ` ${presentielAssignments.get(e.figurant_id)!.heureLabel}`
-                          : ""}
-                      </span>
-                    )}
-                  </span>
-                  <Button
-                    type="button"
-                    variant={sentBulk.has(e.id) ? "ghost" : "secondary"}
-                    disabled={(!e.figurants?.email && !e.figurants?.agent_email) || !bulkMessage.trim()}
-                    onClick={() => sendTo(e)}
-                  >
-                    {sentBulk.has(e.id) ? "Envoyé" : `Envoyer à ${e.figurants?.prenom ?? ""}`}
-                  </Button>
-                </div>
-              ))}
-          </div>
         </div>
       )}
         </>

@@ -1,7 +1,8 @@
+import { nomComplet } from "@/lib/noms";
 import { NextResponse } from "next/server";
 import { buildXlsxResponse, sanitizeFilenamePart, type ExportColumn } from "@/lib/export/xlsx";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
-import { resolvePartageToken, getCastingDocsVisibilityByToken } from "@/lib/partage/data";
+import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
 const COLUMNS: ExportColumn[] = [
@@ -26,13 +27,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Document indisponible." }, { status: 404 });
   }
 
-  const items = await getListeArtistiqueItems(projet.id);
+  const items = await getListeArtistiqueItems(projet.id, await getCategorieLienCasting(token));
   const rows = items.map(({ numero, role, entry }) => {
     const f = entry.figurants;
     return {
       numero,
       role: role.nom,
-      comedien: f ? `${f.prenom} ${f.nom}` : "",
+      comedien: f ? nomComplet(f) : "",
       telephone: f?.telephone ?? "",
       email: f?.email ?? "",
       agent: f?.agent_nom ?? "",

@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Image from "next/image";
 import type { ListeArtistiqueItem } from "@/lib/casting/liste-artistique";
 import type { CastingEntry } from "@/lib/casting/types";
@@ -5,7 +6,7 @@ import type { CastingEntry } from "@/lib/casting/types";
 export function comedienLines(entry: CastingEntry): string[] {
   const f = entry.figurants;
   if (!f) return ["—"];
-  const lines = [`${f.prenom} ${f.nom}`];
+  const lines = [nomComplet(f)];
   const contact = [f.telephone, f.email].filter(Boolean).join(" · ");
   if (contact) lines.push(contact);
   return lines;

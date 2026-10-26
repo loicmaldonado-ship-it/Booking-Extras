@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
@@ -8,13 +9,15 @@ import { GENRES, type Figurant } from "@/lib/figurants/types";
 import { buildFigurantsQuery, type FigurantFilters } from "@/lib/figurants/query";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { hasActiveMensurationFilters } from "@/lib/figurants/mensuration-filters";
 import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
-import { isOwner } from "@/lib/auth/owner";
+import { isOwner, aAccesComplet } from "@/lib/auth/owner";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { Users } from "lucide-react";
 
@@ -23,6 +26,11 @@ export const dynamic = "force-dynamic";
 type SearchParams = FigurantFilters & { vue?: string; page?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
+// Sans accès complet : pas de liste en libre service. Un profil se trouve en
+// le cherchant par nom (3 lettres minimum) ou par critères (ville, âge,
+// taille, poids…), résultats plafonnés. Le genre seul ne suffit pas.
+const RECHERCHE_MIN = 3;
+const RESULTATS_MAX = 60;
 
 export default async function FigurantsPage({
   searchParams,
@@ -45,11 +53,20 @@ export default async function FigurantsPage({
   // surtout jamais générer les URL signées des photos) d'un coup. Le
   // compte total vient du même aller-retour que la page (Content-Range),
   // pas d'une requête séparée.
-  const pageParamNum = Math.max(1, Number(pageParam) || 1);
-  const { data: figurants, error, count: totalCount } = await buildFigurantsQuery(supabase, filters, { withCount: true, profile })
-    .range((pageParamNum - 1) * FIGURANTS_PAR_PAGE, pageParamNum * FIGURANTS_PAR_PAGE - 1)
-    .returns<Figurant[]>();
-  const totalPages = Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE));
+  const libreService = aAccesComplet(profile);
+  const recherche = (filters.q ?? "").trim();
+  const parCriteres =
+    !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
+    hasActiveMensurationFilters(filters);
+  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
+  const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
+  const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
+  const { data: figurants, error, count: totalCount } = peutChercher
+    ? await buildFigurantsQuery(supabase, filters, { withCount: true, profile })
+        .range((pageParamNum - 1) * parPage, pageParamNum * parPage - 1)
+        .returns<Figurant[]>()
+    : { data: [] as Figurant[], error: null, count: 0 };
+  const totalPages = libreService ? Math.max(1, Math.ceil((totalCount ?? 0) / FIGURANTS_PAR_PAGE)) : 1;
   const page = Math.min(totalPages, pageParamNum);
 
   const portraitByFigurant = isTrombi
@@ -89,7 +106,9 @@ export default async function FigurantsPage({
     .order("created_at", { ascending: true });
   const doublonsComedienClause = comedienPoolClause(profile);
   if (doublonsComedienClause) doublonsQuery = doublonsQuery.or(doublonsComedienClause);
-  const { data: tousLesFigurants } = await doublonsQuery.returns<
+  const { data: tousLesFigurants } = !libreService
+    ? { data: [] }
+    : await doublonsQuery.returns<
     { id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string; est_comedien: boolean }[]
   >();
 
@@ -114,8 +133,9 @@ export default async function FigurantsPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Users size={28} strokeWidth={1.75} />Base Profils</h1>
           <p className="mt-1 text-text-muted">
-            {totalCount ?? 0} {isComediens ? "comédien·ne" : "figurant·e"}
-            {(totalCount ?? 0) > 1 ? "s" : ""}
+            {libreService
+              ? `${totalCount ?? 0} ${isComediens ? "comédien·ne" : "figurant·e"}${(totalCount ?? 0) > 1 ? "s" : ""}`
+              : "Cherche un profil par son nom, ou par critères (âge, taille, poids…)."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -130,7 +150,7 @@ export default async function FigurantsPage({
         </div>
       </div>
 
-      <DoublonsPanel groupes={doublons} canDelete={isOwner(profile)} />
+        {libreService && <DoublonsPanel groupes={doublons} canDelete={isOwner(profile)} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Profil :</span>
@@ -138,7 +158,7 @@ export default async function FigurantsPage({
           href={profilHref("figurants")}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isComediens ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Figurant·es
@@ -147,10 +167,10 @@ export default async function FigurantsPage({
           href={profilHref("comediens")}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isComediens ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isComediens ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
-          Comédien·nes
+          Comédien·nes &amp; casting
         </Link>
       </div>
 
@@ -160,7 +180,7 @@ export default async function FigurantsPage({
           href={`/figurants?${query ? `${query}&` : ""}vue=liste`}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            !isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Liste
@@ -169,7 +189,7 @@ export default async function FigurantsPage({
           href={`/figurants${query ? `?${query}` : ""}`}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border text-text-muted hover:text-text"
+            isTrombi ? "border-coral bg-coral/15 text-coral" : "border-border-strong text-text hover:text-text"
           )}
         >
           Trombinoscope
@@ -177,7 +197,7 @@ export default async function FigurantsPage({
       </div>
 
       <Card>
-        <form className="grid grid-cols-2 gap-3 md:grid-cols-4" method="get">
+        <form className="flex flex-col gap-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
           <Input name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
@@ -208,19 +228,6 @@ export default async function FigurantsPage({
             <Input type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
             <Input type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
           </div>
-          <MensurationsFilterPanel defaultValues={filters} />
-          <button
-            type="submit"
-            className="col-span-2 rounded-full bg-ink-raised-2 px-5 py-2.5 text-sm font-medium hover:border hover:border-coral/60 md:col-span-1"
-          >
-            Filtrer
-          </button>
-          <Link
-            href="/figurants"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text-muted hover:text-text md:col-span-1"
-          >
-            Réinitialiser
-          </Link>
         </form>
       </Card>
 
@@ -230,13 +237,28 @@ export default async function FigurantsPage({
         </div>
       )}
 
-      {isTrombi ? (
+      {!libreService && !peutChercher && (
+        <Card className="py-10 text-center text-sm text-text-muted">
+          🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
+          téléphone), ou par critères : âge, taille, poids, ville… (le genre seul ne suffit pas, ajoute une fourchette).
+        </Card>
+      )}
+      {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (
+        <p className="text-sm text-text-muted">
+          {totalCount} profils correspondent : seuls les {RESULTATS_MAX} premiers s&apos;affichent, précise ta recherche.
+        </p>
+      )}
+
+      {!peutChercher ? null : isTrombi ? (
         <FigurantsTrombiGrid
           figurants={(figurants ?? []).map((f) => ({
             id: f.id,
             prenom: f.prenom,
             nom: f.nom,
             ville: f.ville,
+            age: computeAge(f.date_naissance),
+            tailleCm: f.taille_cm,
+            poidsKg: f.poids_kg,
             telephone: f.telephone,
             email: f.email,
             portraitUrl: pickPortrait(portraitByFigurant.get(f.id))?.url ?? null,
@@ -253,6 +275,9 @@ export default async function FigurantsPage({
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium"></th>
               <th className="px-6 py-3 font-medium">Nom</th>
+              <th className="px-6 py-3 font-medium">Âge</th>
+              <th className="px-6 py-3 font-medium">Taille</th>
+              <th className="px-6 py-3 font-medium">Poids</th>
               <th className="px-6 py-3 font-medium">Ville</th>
               <th className="px-6 py-3 font-medium">Contact</th>
               <th className="px-6 py-3 font-medium">Myrole</th>
@@ -279,9 +304,19 @@ export default async function FigurantsPage({
                 </td>
                 <td className="px-6 py-3">
                   <Link href={`/figurants/${f.id}`} className="font-medium hover:text-coral">
-                    {f.prenom} {f.nom}
+                    {nomComplet(f)}
                   </Link>
+                  {f.cree_via_casting && (
+                    <span className="ml-2" title="Venu·e par un lien de casting, sans compte">
+                      <Badge tone="coral">Lien casting</Badge>
+                    </span>
+                  )}
                 </td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">
+                  {computeAge(f.date_naissance) != null ? `${computeAge(f.date_naissance)} ans` : "—"}
+                </td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">{f.taille_cm ? `${f.taille_cm} cm` : "—"}</td>
+                <td className="px-6 py-3 text-text-muted tabular-nums">{f.poids_kg ? `${f.poids_kg} kg` : "—"}</td>
                 <td className="px-6 py-3 text-text-muted">{f.ville ?? "—"}</td>
                 <td className="px-6 py-3 text-text-muted">
                   <div className="flex items-center gap-2">
@@ -309,7 +344,7 @@ export default async function FigurantsPage({
             ))}
             {(figurants ?? []).length === 0 && !error && (
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-text-muted">
+                <td colSpan={9} className="px-6 py-10 text-center text-text-muted">
                   Aucun·e figurant·e pour l&apos;instant.
                 </td>
               </tr>

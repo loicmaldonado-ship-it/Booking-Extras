@@ -30,7 +30,7 @@ export function JourneeDeleteButton({
       onClick={remove}
       disabled={pending}
       title="Supprimer cette journée vide"
-      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-ink-raised-2 text-xs text-text-muted hover:bg-danger hover:text-ink"
+      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-ink-raised-2 text-xs text-text hover:bg-danger hover:text-ink"
     >
       ×
     </button>

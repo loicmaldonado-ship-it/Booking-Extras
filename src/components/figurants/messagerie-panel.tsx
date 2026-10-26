@@ -21,7 +21,7 @@ function MessageBubble({ m, figurantPrenom }: { m: EnrichedMessage; figurantPren
       }
     >
       <div className="flex items-center justify-between text-xs text-text-muted">
-        <span>{m.sender === "staff" ? "Vous" : figurantPrenom}</span>
+        <span>{m.sender === "staff" ? (m.auteur ? `Envoyé par ${m.auteur}` : "Équipe") : figurantPrenom}</span>
         <span>
           {formatDateTime(m.created_at)}
           {m.sender === "staff" && (m.bien_recu ? " · Reçu" : " · En attente")}

@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,7 @@ export function QuickAddFigurantCasting({
                 onClick={() => add(f.id)}
                 className="block w-full px-4 py-2 text-left text-sm hover:bg-ink-raised disabled:opacity-60"
               >
-                {f.prenom} {f.nom}
+                {nomComplet(f)}
               </button>
             ))
           )}

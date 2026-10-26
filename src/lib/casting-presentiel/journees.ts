@@ -1,3 +1,4 @@
+import { nomComplet, trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateLong } from "@/lib/format-date";
 
@@ -80,10 +81,10 @@ export async function getPresentielJourneesWithCreneaux(projetId: string): Promi
   ]);
 
   const occupantsByCreneau = new Map<string, string[]>();
-  for (const e of entries ?? []) {
+  for (const e of trierParNom(entries ?? [], (x) => x.figurants)) {
     if (!e.creneau_id || !e.figurants) continue;
     const list = occupantsByCreneau.get(e.creneau_id) ?? [];
-    list.push(`${e.figurants.prenom} ${e.figurants.nom}`);
+    list.push(nomComplet(e.figurants));
     occupantsByCreneau.set(e.creneau_id, list);
   }
 

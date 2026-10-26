@@ -1,5 +1,6 @@
 "use client";
 
+import { nomComplet } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
@@ -52,7 +53,7 @@ export function DuplicateWarning({
           <p className="text-sm">
             <Badge tone="yellow">Doublon possible</Badge>{" "}
             Ressemble à <strong>
-              {d.figurant.prenom} {d.figurant.nom}
+              {nomComplet(d.figurant)}
             </strong>{" "}
             ({REASON_LABEL[d.reason]})
             {d.figurant.ville ? ` · ${d.figurant.ville}` : ""}
@@ -62,7 +63,7 @@ export function DuplicateWarning({
               type="button"
               variant="secondary"
               disabled={pending}
-              onClick={() => merge(figurantId, d.figurant.id, `${d.figurant.prenom} ${d.figurant.nom}`)}
+              onClick={() => merge(figurantId, d.figurant.id, nomComplet(d.figurant))}
             >
               Garder « {figurantNom} »
             </Button>
@@ -72,12 +73,12 @@ export function DuplicateWarning({
               disabled={pending}
               onClick={() => merge(d.figurant.id, figurantId, figurantNom)}
             >
-              Garder « {d.figurant.prenom} {d.figurant.nom} »
+              Garder « {nomComplet(d.figurant)} »
             </Button>
             <button
               type="button"
               onClick={() => setDismissed((prev) => new Set([...prev, d.figurant.id]))}
-              className="text-xs text-text-muted hover:text-text"
+              className="text-xs text-text hover:text-text"
             >
               Ce n&apos;est pas la même personne
             </button>

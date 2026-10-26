@@ -1,12 +1,13 @@
 "use server";
 
+import { nomComplet } from "@/lib/noms";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/email";
 import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
-import { checkProjetAccess } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
 import { validateBookingDropSelection, isValidBookingDate } from "./drop-guard";
@@ -209,13 +210,18 @@ export async function createBookingsFromDropBulk(
   dates: string[],
   candidatureIdByFigurant: Record<string, string> | undefined,
   fonction: string,
-  cachet: Cachet | ""
+  cachet: Cachet | "",
+  // Depuis Candidatures, la fonction peut attendre (cachet obligatoire).
+  fonctionFacultative = false
 ): Promise<{ ok: number; deja: number; error?: string }> {
   const selection = validateBookingDropSelection(figurantIds, dates, candidatureIdByFigurant);
   if (!selection.ok) return { ok: 0, deja: 0, error: selection.error };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { ok: 0, deja: 0, error: accessError };
   if (figurantIds.length === 0 || dates.length === 0) return { ok: 0, deja: 0 };
+  // Envoi dans une journée de booking : fonction et cachet obligatoires.
+  if (!cachet) return { ok: 0, deja: 0, error: "Choisis un cachet." };
+  if (!fonctionFacultative && !fonction.trim()) return { ok: 0, deja: 0, error: "Choisis une fonction." };
 
   const supabase = createAdminClient();
   const candidatureError = await checkDropCandidatureReferences(
@@ -368,16 +374,38 @@ export async function updateConvocationSettings(journeeId: string, _prevState: u
   return { success: true as const };
 }
 
-export async function removeBooking(id: string) {
+// Retire des profils d'une journée (suppression des bookings sélectionnés).
+// Les passager·ères d'un·e conducteur·rice retiré·e perdent leur covoiturage.
+export async function retirerBookings(ids: string[]): Promise<{ retires: number; error?: string }> {
+  if (ids.length === 0) return { retires: 0 };
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) return { error: accessError };
+  const { data: bookings, error: lectureError } = await supabase
+    .from("bookings")
+    .select("id, projet_id, date, figurant_id")
+    .in("id", ids);
+  if (lectureError) return { retires: 0, error: lectureError.message };
+  const list = bookings ?? [];
+  const projetIds = Array.from(new Set(list.map((b) => b.projet_id)));
+  if (projetIds.length !== 1) return { retires: 0, error: "Sélection sur plusieurs projets." };
+  const accessError = await checkProjetAccess(projetIds[0]);
+  if (accessError) return { retires: 0, error: accessError };
+
+  const { error } = await supabase.from("bookings").delete().in("id", list.map((b) => b.id));
+  if (error) return { retires: 0, error: error.message };
+
+  for (const date of Array.from(new Set(list.map((b) => b.date)))) {
+    await supabase
+      .from("bookings")
+      .update({ covoiturage_conducteur_id: null })
+      .eq("projet_id", projetIds[0])
+      .eq("date", date)
+      .in("covoiturage_conducteur_id", list.filter((b) => b.date === date).map((b) => b.figurant_id));
   }
-  await supabase.from("bookings").delete().eq("id", id);
-  revalidatePath("/bookings/planning");
+
   revalidatePath("/bookings");
+  revalidatePath("/bookings/documents");
+  revalidatePath("/bookings/planning");
+  return { retires: list.length };
 }
 
 export async function bulkUpdateBookings(
@@ -392,6 +420,7 @@ export async function bulkUpdateBookings(
     covoiturage_places_disponibles: number | null;
     covoiturage_conducteur_id: string | null;
     reponse_recue: boolean;
+    reponse_booking: boolean;
     notes: string | null;
   }>
 ) {
@@ -414,9 +443,17 @@ export async function bulkUpdateBookings(
     if (accessError) return { error: accessError };
   }
 
-  const payload: typeof changes & { reponse_recue_le?: string | null } = { ...update.changes };
+  const payload: typeof changes & { reponse_recue_le?: string | null; reponse_booking_le?: string | null; statut?: string } = {
+    ...changes,
+  };
   if (changes.reponse_recue !== undefined) {
     payload.reponse_recue_le = changes.reponse_recue ? new Date().toISOString() : null;
+  }
+  // « Répondu booking » coché : la personne a accepté, elle passe en
+  // CONFIRMÉ. Décoché : seule la case est retirée, le statut ne bouge pas.
+  if (changes.reponse_booking !== undefined) {
+    payload.reponse_booking_le = changes.reponse_booking ? new Date().toISOString() : null;
+    if (changes.reponse_booking) payload.statut = "confirmé";
   }
 
   const { data: updated, error } = await supabase.from("bookings")
@@ -474,7 +511,7 @@ export async function moveBookingsToDate(
   const dejaLaIds = new Set(dejaLa.map((b) => b.figurant_id));
   const conflits = aDeplacer
     .filter((b) => dejaLaIds.has(b.figurant_id))
-    .map((b) => (b.figurants ? `${b.figurants.prenom} ${b.figurants.nom}` : "?"));
+    .map((b) => (b.figurants ? nomComplet(b.figurants) : "?"));
   const moves = aDeplacer.filter((b) => !dejaLaIds.has(b.figurant_id));
   const restantIds = list.filter((b) => !moves.includes(b)).map((b) => b.id);
   if (moves.length === 0) return { moved: 0, conflits, restantIds };
@@ -747,6 +784,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       figurant_id: figurantId,
       projet_id: projetId,
       sender: "staff",
+      envoye_par: (await getCurrentProfile())?.id ?? null,
       corps: "Lien d'accès à l'espace personnel envoyé.",
       categorie: "espace_perso",
     });

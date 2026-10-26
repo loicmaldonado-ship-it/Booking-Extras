@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, ChevronDown, FileText, MessageCircle, UserPlus, Video, type LucideIcon } from "lucide-react";
+import { Bell, CheckCheck, ChevronDown, Clapperboard, Share2, FileText, MessageCircle, UserPlus, Video, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDelai } from "@/lib/format-date";
 import {
@@ -19,6 +19,8 @@ const TYPE_META: Record<NotificationType, { label: string; icon: LucideIcon; ton
   reponse: { label: "Réponses", icon: MessageCircle, tone: "text-turquoise" },
   compte_cree: { label: "Comptes", icon: UserPlus, tone: "text-text" },
   casting: { label: "Casting", icon: Video, tone: "text-yellow" },
+  validation: { label: "Validation MES", icon: Clapperboard, tone: "text-turquoise" },
+  partage: { label: "Liens partagés", icon: Share2, tone: "text-coral" },
 };
 
 const FILTERS: { key: NotificationType | "tous"; label: string }[] = [
@@ -27,6 +29,8 @@ const FILTERS: { key: NotificationType | "tous"; label: string }[] = [
   { key: "reponse", label: "Réponses" },
   { key: "compte_cree", label: "Comptes" },
   { key: "casting", label: "Casting" },
+  { key: "validation", label: "Validation MES" },
+  { key: "partage", label: "Liens partagés" },
 ];
 
 function timeAgo(iso: string) {
@@ -112,7 +116,7 @@ export function NotificationsBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border text-text-muted transition-colors hover:border-coral/60 hover:text-text"
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border-strong text-text transition-colors hover:border-coral/60 hover:text-text"
         aria-label="Notifications"
       >
         <Bell size={16} strokeWidth={1.75} />
@@ -164,7 +168,7 @@ export function NotificationsBell() {
                 onClick={() => setFilter(f.key)}
                 className={cn(
                   "shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
-                  filter === f.key ? "bg-coral text-ink" : "text-text-muted hover:bg-ink-raised hover:text-text"
+                  filter === f.key ? "bg-coral text-ink" : "text-text hover:bg-ink-raised hover:text-text"
                 )}
               >
                 {f.label}
@@ -223,7 +227,7 @@ export function NotificationsBell() {
                           onClick={() => setExpanded(isOpen ? null : g.key)}
                           aria-label={isOpen ? "Masquer le détail" : "Voir le détail"}
                           aria-expanded={isOpen}
-                          className="-mr-1 flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] text-text-muted hover:bg-ink-raised-2 hover:text-text"
+                          className="-mr-1 flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] text-text hover:bg-ink-raised-2 hover:text-text"
                         >
                           {g.items.length}
                           <ChevronDown size={12} className={cn("transition-transform", isOpen && "rotate-180")} />
@@ -241,7 +245,7 @@ export function NotificationsBell() {
                                   markRead([n]);
                                   setOpen(false);
                                 }}
-                                className="flex items-baseline justify-between gap-2 rounded px-1.5 py-1 text-[11px] text-text-muted hover:bg-ink-raised hover:text-text"
+                                className="flex items-baseline justify-between gap-2 rounded px-1.5 py-1 text-[11px] text-text hover:bg-ink-raised hover:text-text"
                               >
                                 <span className="truncate">{n.titre}</span>
                                 <span className="shrink-0 text-[10px]">{timeAgo(n.created_at)}</span>

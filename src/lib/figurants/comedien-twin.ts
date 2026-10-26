@@ -19,7 +19,7 @@ type FigurantSource = {
 // gardée telle quelle, self-service pour la personne.
 export async function findOrCreateComedienTwin(
   source: FigurantSource,
-  profile: CurrentProfile | null
+  profile: Pick<CurrentProfile, "id" | "comedienPoolId"> | null
 ): Promise<string | null> {
   const supabase = createAdminClient();
   const poolId = comedienPoolIdFor(profile);

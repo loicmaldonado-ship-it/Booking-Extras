@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -26,7 +27,7 @@ export async function getProjetSignatureOrOwnerName(
     .eq("id", projet.owner_id)
     .maybeSingle();
   if (!owner) return "";
-  return owner.prenom && owner.nom ? `${owner.prenom} ${owner.nom}` : owner.nom ?? "";
+  return owner.prenom && owner.nom ? nomComplet(owner) : owner.nom ?? "";
 }
 
 // Même résolution que getProjetSignatureOrOwnerName, mais pour une page qui
@@ -49,7 +50,7 @@ export async function getProjetSignaturesOrOwnerNames(
       ? await supabase.from("profiles").select("id, prenom, nom").in("id", ownerIds)
       : { data: [] as { id: string; prenom: string | null; nom: string | null }[] };
   const ownerNameById = new Map(
-    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? `${o.prenom} ${o.nom}` : o.nom ?? ""])
+    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? nomComplet(o) : o.nom ?? ""])
   );
 
   for (const p of projets ?? []) {
@@ -76,7 +77,7 @@ export async function getProjetOwnerNames(
       ? await supabase.from("profiles").select("id, prenom, nom, email").in("id", ownerIds)
       : { data: [] as { id: string; prenom: string | null; nom: string | null; email: string | null }[] };
   const ownerNameById = new Map(
-    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? `${o.prenom} ${o.nom}` : o.nom || o.email || ""])
+    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? nomComplet(o) : o.nom || o.email || ""])
   );
 
   for (const p of projets ?? []) {

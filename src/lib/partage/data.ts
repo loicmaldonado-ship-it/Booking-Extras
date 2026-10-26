@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { PartageType } from "@/lib/partage/actions";
+import type { PartageType, CategorieLien } from "@/lib/partage/actions";
 
 export async function getSiteOrigin() {
   const requestHeaders = await headers();
@@ -29,6 +29,12 @@ export async function resolvePartageToken(token: string, type: PartageType) {
   return projet;
 }
 
+// Catégorie couverte par un lien casting : null = tout le casting.
+export async function getCategorieLienCasting(token: string): Promise<CategorieLien> {
+  const { data } = await createAdminClient().from("partage_liens").select("categorie").eq("token", token).eq("type", "casting").maybeSingle();
+  return (data?.categorie ?? null) as CategorieLien;
+}
+
 export async function getPartageTitreByToken(token: string, type: PartageType) {
   const supabase = createAdminClient();
   const { data } = await supabase.from("partage_liens").select("titre").eq("token", token).eq("type", type).maybeSingle();
@@ -42,14 +48,14 @@ export type CastingDocsVisibility = {
   fichesRolesMasquerContact: boolean;
 };
 
-export async function getCastingDocsVisibility(projetId: string): Promise<CastingDocsVisibility> {
+export async function getCastingDocsVisibility(projetId: string, categorie: CategorieLien = null): Promise<CastingDocsVisibility> {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const base = supabase
     .from("partage_liens")
     .select("liste_artistique_visible, fiches_roles_visible, distribution_visible, fiches_roles_masquer_contact")
     .eq("projet_id", projetId)
-    .eq("type", "casting")
-    .maybeSingle();
+    .eq("type", "casting");
+  const { data } = await (categorie ? base.eq("categorie", categorie) : base.is("categorie", null)).maybeSingle();
   return {
     listeArtistique: data?.liste_artistique_visible ?? false,
     fichesRoles: data?.fiches_roles_visible ?? false,
@@ -72,6 +78,55 @@ export async function getCastingDocsVisibilityByToken(token: string): Promise<Ca
     distribution: data?.distribution_visible ?? false,
     fichesRolesMasquerContact: data?.fiches_roles_masquer_contact ?? false,
   };
+}
+
+// Ce que le·la réal voit et peut faire sur le lien casting (réglé côté
+// équipe, par lien).
+export type OptionsReel = {
+  age: boolean;
+  ville: boolean;
+  taille: boolean;
+  mensurations: boolean;
+  reponses: boolean;
+  avis: boolean;
+  commentairesProfil: boolean;
+};
+
+export const OPTIONS_REEL_PAR_DEFAUT: OptionsReel = {
+  age: true,
+  ville: false,
+  taille: true,
+  mensurations: true,
+  reponses: true,
+  avis: true,
+  commentairesProfil: true,
+};
+
+export const COLONNES_OPTIONS_REEL: Record<keyof OptionsReel, string> = {
+  age: "reel_afficher_age",
+  ville: "reel_afficher_ville",
+  taille: "reel_afficher_taille",
+  mensurations: "reel_afficher_mensurations",
+  reponses: "reel_afficher_reponses",
+  avis: "reel_avis",
+  commentairesProfil: "reel_commentaires_profil",
+};
+
+export async function getReelOptions(filtre: { token: string } | { projetId: string; categorie?: CategorieLien }): Promise<OptionsReel> {
+  let q = createAdminClient()
+    .from("partage_liens")
+    .select(Object.values(COLONNES_OPTIONS_REEL).join(", "))
+    .eq("type", "casting");
+  if ("token" in filtre) q = q.eq("token", filtre.token);
+  else {
+    q = q.eq("projet_id", filtre.projetId);
+    q = filtre.categorie ? q.eq("categorie", filtre.categorie) : q.is("categorie", null);
+  }
+  const { data } = await q.maybeSingle<Record<string, boolean>>();
+  if (!data) return OPTIONS_REEL_PAR_DEFAUT;
+  return Object.fromEntries(
+    (Object.keys(COLONNES_OPTIONS_REEL) as (keyof OptionsReel)[]).map((k) => [k, data[COLONNES_OPTIONS_REEL[k]] ?? OPTIONS_REEL_PAR_DEFAUT[k]])
+  ) as OptionsReel;
 }
 
 type ProjetPublic = {

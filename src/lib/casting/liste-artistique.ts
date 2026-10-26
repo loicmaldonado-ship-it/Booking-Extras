@@ -12,8 +12,8 @@ export type ListeArtistiqueItem = {
 // Numérotés 1..N sur les rôles effectivement affichés (pas sur l'ensemble
 // du casting), pour rester contigu même quand des rôles ne sont pas
 // encore validés.
-export async function getListeArtistiqueItems(projetId: string): Promise<ListeArtistiqueItem[]> {
-  const [roles, entries] = await Promise.all([getCastingRoles(projetId), getCastingEntries(projetId)]);
+export async function getListeArtistiqueItems(projetId: string, categorie: string | null = null): Promise<ListeArtistiqueItem[]> {
+  const [roles, entries] = await Promise.all([getCastingRoles(projetId, categorie), getCastingEntries(projetId)]);
 
   const entriesByRole = new Map<string, CastingEntry[]>();
   for (const e of entries) {

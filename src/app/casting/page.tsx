@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
@@ -6,6 +7,9 @@ import { PartageCard } from "@/components/partage/partage-card";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin, getCastingDocsVisibility } from "@/lib/partage/data";
 import { CastingDocsVisibilityToggle } from "@/components/casting/casting-docs-visibility-toggle";
+import { CastingReelOptions } from "@/components/casting/casting-reel-options";
+import { getReelOptions } from "@/lib/partage/data";
+import { getRetourReel } from "@/lib/casting/reel-data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -13,7 +17,8 @@ import {
   getCastingEntryPhotos,
 } from "@/lib/casting/data";
 import { getPresentielJourneesWithCreneaux, getPresentielAssignmentsByRole } from "@/lib/casting-presentiel/journees";
-import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
+import { getPhotosByFigurantId } from "@/lib/documents/data";
+import { photosPourVignette, vignetteCasting } from "@/lib/casting/vignette";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
@@ -21,18 +26,17 @@ import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
-import { CASTING_MODE_LABELS, CASTING_STATUTS } from "@/lib/casting/types";
-import { Select } from "@/components/ui/field";
+import { CASTING_MODE_LABELS, CASTING_STATUTS, CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import Link from "next/link";
-import type { MessageTemplate } from "@/lib/templates/types";
 import { Video } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 export const dynamic = "force-dynamic";
 
 export default async function CastingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ switch?: string; mode?: string; statut?: string }>;
+  searchParams: Promise<{ switch?: string; mode?: string; statut?: string; cat?: string }>;
 }) {
   const params = await searchParams;
   const supabase = createAdminClient();
@@ -59,44 +63,69 @@ export default async function CastingPage({
     return <ProjetPicker projets={await accessibleProjets()} redirectTo="/casting" sectionLabel="Casting" />;
   }
 
-  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom");
+  // Onglet ouvert : une catégorie à la fois (rôles, silhouettes, doublures).
+  const CATEGORIES = Object.keys(CATEGORIE_CACHET_LABELS) as CategorieCachet[];
+
+  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
 
   const [
     roles,
     entries,
-    partageToken,
-    partageTitre,
-    docsVisibility,
     origin,
     { data: allFigurants },
     { data: templates },
     signature,
     presentielJournees,
     presentielAssignments,
+    retourReel,
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
     getCastingEntries(currentProjetId),
-    getPartageToken(currentProjetId, "casting"),
-    getPartageTitre(currentProjetId, "casting"),
-    getCastingDocsVisibility(currentProjetId),
     getSiteOrigin(),
     allFigurantsQuery,
-    supabase.from("message_templates").select("*").order("nom").returns<MessageTemplate[]>(),
+    getModelesEquipe().then((data) => ({ data })),
     getProjetSignatureOrOwnerName(supabase, currentProjetId),
     getPresentielJourneesWithCreneaux(currentProjetId),
     getPresentielAssignmentsByRole(currentProjetId),
+    getRetourReel(currentProjetId),
   ]);
+
+  const roleIdsParCategorie = new Map<CategorieCachet, Set<string>>(CATEGORIES.map((c) => [c, new Set<string>()]));
+  for (const role of roles) roleIdsParCategorie.get(role.categorie_cachet)?.add(role.id);
+  const categorie: CategorieCachet =
+    CATEGORIES.find((c) => c === params.cat) ?? CATEGORIES.find((c) => roleIdsParCategorie.get(c)!.size > 0) ?? "role";
+  const rolesCategorie = roles.filter((role) => role.categorie_cachet === categorie);
+  const comptes = Object.fromEntries(
+    CATEGORIES.map((c) => [
+      c,
+      { roles: roleIdsParCategorie.get(c)!.size, profils: entries.filter((e) => roleIdsParCategorie.get(c)!.has(e.role_id)).length },
+    ])
+  ) as Record<CategorieCachet, { roles: number; profils: number }>;
+
+  // Un lien pour la catégorie ouverte, un autre pour tout le casting.
+  const [liensCategorie, lienTout] = await Promise.all(
+    [categorie, null].map(async (cat) => {
+      const [token, titre, docs, options] = await Promise.all([
+        getPartageToken(currentProjetId, "casting", cat),
+        getPartageTitre(currentProjetId, "casting", cat),
+        getCastingDocsVisibility(currentProjetId, cat),
+        getReelOptions({ projetId: currentProjetId, categorie: cat }),
+      ]);
+      return { cat, token, titre, docs, options };
+    })
+  );
 
   // Filtre appliqué avant même de récupérer photos/vidéos des entrées
   // écartées — pas la peine de les signer si elles ne s'affichent pas.
-  let filteredEntries = entries;
+  let filteredEntries = entries.filter((e) => roleIdsParCategorie.get(categorie)!.has(e.role_id));
   if (params.mode === "selftape" || params.mode === "presentiel") {
     filteredEntries = filteredEntries.filter((e) => e.mode === params.mode);
   }
   if (params.statut) filteredEntries = filteredEntries.filter((e) => e.statut === params.statut);
   const entriesFiltered = params.mode || params.statut;
+  const totalCategorie = comptes[categorie].profils;
 
   const figurantIds = filteredEntries.map((e) => e.figurant_id);
   const entryIds = filteredEntries.map((e) => e.id);
@@ -107,8 +136,11 @@ export default async function CastingPage({
     ),
     getCastingEntryPhotos(entryIds),
   ]);
-  const portraitByFigurant = new Map(
-    figurantIds.map((id) => [id, pickPortrait(photosByFigurant.get(id), currentProjetId)?.url ?? null])
+  const vignetteByEntry = new Map(
+    filteredEntries.map((e) => [e.id, vignetteCasting(e, photosByFigurant.get(e.figurant_id), currentProjetId)])
+  );
+  const photosVignetteByEntry = new Map(
+    filteredEntries.map((e) => [e.id, photosPourVignette(e, photosByFigurant.get(e.figurant_id), currentProjetId)])
   );
   const videoUrlsByEntry = new Map(filteredEntries.map((e) => [e.id, videoPairsByEntry.get(e.id) ?? []]));
 
@@ -134,10 +166,39 @@ export default async function CastingPage({
             {projet.nom}
           </h1>
           <p className="mt-1 text-text-muted">
-            {roles.length} rôle{roles.length > 1 ? "s" : ""} · {filteredEntries.length} profil
+            {rolesCategorie.length} casting{rolesCategorie.length > 1 ? "s" : ""} · {filteredEntries.length} profil
             {filteredEntries.length > 1 ? "s" : ""}
-            {entriesFiltered ? ` sur ${entries.length}` : ""}
+            {entriesFiltered ? ` sur ${totalCategorie}` : ""}
           </p>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <ButtonLink
+            href="/figurants?profil=comediens&vue=liste"
+            variant="secondary"
+            title="Ta base privée : comédien·nes et personnes venues par un lien de casting sans compte"
+          >
+            📇 Base casting
+          </ButtonLink>
+          <ButtonLink href="/casting/trombis" variant="secondary">
+            🖼️ Trombis
+          </ButtonLink>
+          <ButtonLink href="/casting/presentiel" variant="secondary">
+            📅 Présentiel
+          </ButtonLink>
+          <ButtonLink href="/casting/liste-artistique" variant="secondary">
+            📋 Liste artistique
+          </ButtonLink>
+          <ButtonLink href="/casting/fiches-roles" variant="secondary">
+            🪪 Fiches rôles validés
+          </ButtonLink>
+          <ButtonLink href="/casting/distribution" variant="secondary">
+            🎬 Distribution
+          </ButtonLink>
+          <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+            <Button type="submit" variant="secondary">
+              📋 Bookings
+            </Button>
+          </form>
         </div>
       </div>
       {roles.length > 0 && (
@@ -169,36 +230,76 @@ export default async function CastingPage({
         </details>
       )}
 
-      {entries.length > 0 && <form className="flex flex-wrap items-center gap-2" method="get">
-        <Select name="mode" defaultValue={params.mode ?? ""} className="w-44">
-          <option value="">Mode (tous)</option>
-          <option value="selftape">{CASTING_MODE_LABELS.selftape}</option>
-          <option value="presentiel">{CASTING_MODE_LABELS.presentiel}</option>
-        </Select>
-        <Select name="statut" defaultValue={params.statut ?? ""} className="w-44">
-          <option value="">Statut (tous)</option>
-          {CASTING_STATUTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </Select>
-        <button
-          type="submit"
-          className="rounded-full bg-ink-raised-2 px-4 py-2 text-sm font-medium hover:border hover:border-coral/60"
-        >
-          Filtrer
-        </button>
-        {entriesFiltered && (
-          <Link href="/casting" className="text-sm font-medium text-text-muted hover:text-text">
-            Réinitialiser
-          </Link>
-        )}
-      </form>}
+      <nav className="flex flex-wrap gap-2" aria-label="Catégories de casting">
+        {CATEGORIES.map((c) => {
+          const actif = c === categorie;
+          return (
+            <Link
+              key={c}
+              href={`/casting?cat=${c}`}
+              aria-current={actif ? "page" : undefined}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm font-semibold",
+                actif ? "border-coral bg-coral text-ink" : "border-border-strong text-text hover:border-coral"
+              )}
+            >
+              {CATEGORIE_CACHET_LABELS[c]}s · {comptes[c].roles}
+              <span className={cn("ml-1.5 text-xs font-medium", actif ? "text-ink/80" : "text-text-muted")}>
+                ({comptes[c].profils} profil{comptes[c].profils > 1 ? "s" : ""})
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
 
-      {roles.length > 0 && <NewCastingRoleCard projetId={currentProjetId} />}
+      {/* Filtres en boutons : un clic et c'est appliqué. */}
+      {[
+        {
+          cle: "mode" as const,
+          titre: "Mode",
+          options: [
+            { value: "selftape", label: CASTING_MODE_LABELS.selftape },
+            { value: "presentiel", label: CASTING_MODE_LABELS.presentiel },
+          ],
+        },
+        { cle: "statut" as const, titre: "Statut", options: CASTING_STATUTS.map((s) => ({ value: s.value as string, label: s.label })) },
+      ].map((groupe) => {
+        const actuel = params[groupe.cle] ?? "";
+        const lien = (valeur: string) => {
+          const sp = new URLSearchParams({ cat: categorie });
+          const autre = groupe.cle === "mode" ? "statut" : "mode";
+          if (params[autre]) sp.set(autre, params[autre]!);
+          if (valeur) sp.set(groupe.cle, valeur);
+          return `/casting?${sp.toString()}`;
+        };
+        return (
+          <div key={groupe.cle} className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium">{groupe.titre} :</span>
+            {[{ value: "", label: "Tous" }, ...groupe.options].map((o) => (
+              <Link
+                key={o.value || "tous"}
+                href={lien(o.value)}
+                aria-pressed={actuel === o.value}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-semibold",
+                  actuel === o.value ? "border-coral bg-coral text-ink" : "border-border-strong text-text hover:border-coral"
+                )}
+              >
+                {o.label}
+              </Link>
+            ))}
+          </div>
+        );
+      })}
+      {entriesFiltered && (
+        <Link href={`/casting?cat=${categorie}`} className="text-sm font-medium text-text hover:text-coral">
+          Réinitialiser les filtres
+        </Link>
+      )}
 
-      {roles.map((role, i) => (
+      <NewCastingRoleCard projetId={currentProjetId} categorie={categorie} />
+
+      {rolesCategorie.map((role, i) => (
         <CastingRoleSection
           key={role.id}
           projetId={currentProjetId}
@@ -207,54 +308,61 @@ export default async function CastingPage({
           signature={signature}
           role={role}
           entries={entriesByRole.get(role.id) ?? []}
-          portraitByFigurant={portraitByFigurant}
+          vignetteByEntry={vignetteByEntry}
+          photosVignetteByEntry={photosVignetteByEntry}
           videoUrlsByEntry={videoUrlsByEntry}
           entryPhotosByEntry={entryPhotosByEntry}
           allFigurants={allFigurants ?? []}
           templates={templates ?? []}
           presentielJournees={presentielJournees}
           presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
+          avisReelByEntry={retourReel.avisParEntry}
+          commentairesReelByEntry={retourReel.commentairesParEntry}
           position={i + 1}
         />
       ))}
 
-      {roles.length === 0 && (
-        <Card className="flex flex-col gap-4 border border-coral/25">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-coral">Première étape</p>
-            <h2 className="mt-1 text-xl font-semibold">Crée ton premier rôle</h2>
-            <p className="mt-2 text-sm text-text-muted">
-              Un rôle correspond à un profil que tu recherches pour le projet. Une fois créé,
-              tu pourras y ajouter des figurants depuis la base, puis gérer leurs vidéos et documents.
-            </p>
-          </div>
-          <ol className="grid gap-2 text-sm sm:grid-cols-3">
-            <li className="rounded-xl border border-coral/40 bg-ink p-3"><strong>1. Créer un rôle</strong><span className="mt-1 block text-text-muted">Nom et critères recherchés</span></li>
-            <li className="rounded-xl border border-border bg-ink p-3"><strong>2. Ajouter des profils</strong><span className="mt-1 block text-text-muted">Recherche dans la base</span></li>
-            <li className="rounded-xl border border-border bg-ink p-3"><strong>3. Examiner et choisir</strong><span className="mt-1 block text-text-muted">Vidéos, PDF et sélection</span></li>
-          </ol>
-          <NewCastingRoleCard projetId={currentProjetId} />
+      {rolesCategorie.length === 0 && (
+        <Card>
+          <p className="text-sm text-text-muted">
+            Aucun casting dans « {CATEGORIE_CACHET_LABELS[categorie]}s » pour l&apos;instant — crée-en un ci-dessus, ou
+            envoie une sélection depuis Base Profils, Bookings ou Candidatures (bouton « Envoyer au casting »).
+          </p>
         </Card>
       )}
 
-      {roles.length > 0 && <PartageCard
-        projetId={currentProjetId}
-        type="casting"
-        label={`Partage réal — Casting « ${projet.nom} »`}
-        description="Lien en lecture seule pour le réalisateur·ice, classé par rôle."
-        token={partageToken}
-        publicBaseUrl={`${origin}/partage/casting`}
-        titre={partageTitre}
-        titrePlaceholder={`Casting — ${projet.nom}`}
-      >
-        <CastingDocsVisibilityToggle
+      {[liensCategorie, lienTout].map((lien) => (
+        <PartageCard
+          key={lien.cat ?? "tout"}
           projetId={currentProjetId}
-          listeArtistique={docsVisibility.listeArtistique}
-          fichesRoles={docsVisibility.fichesRoles}
-          distribution={docsVisibility.distribution}
-          fichesRolesMasquerContact={docsVisibility.fichesRolesMasquerContact}
-        />
-      </PartageCard>}
+          type="casting"
+          categorie={lien.cat}
+          label={
+            lien.cat
+              ? `Partage réal — ${CATEGORIE_CACHET_LABELS[lien.cat]}s « ${projet.nom} »`
+              : `Partage réal — Tout le casting « ${projet.nom} »`
+          }
+          description={
+            lien.cat
+              ? `Lien séparé : uniquement les ${CATEGORIE_CACHET_LABELS[lien.cat].toLowerCase()}s, classées par rôle.`
+              : "Un seul lien pour les rôles, les silhouettes et les doublures, rangés par catégorie."
+          }
+          token={lien.token}
+          publicBaseUrl={`${origin}/partage/casting`}
+          titre={lien.titre}
+          titrePlaceholder={lien.cat ? `${CATEGORIE_CACHET_LABELS[lien.cat]}s — ${projet.nom}` : `Casting — ${projet.nom}`}
+        >
+          <CastingDocsVisibilityToggle
+            projetId={currentProjetId}
+            categorie={lien.cat}
+            listeArtistique={lien.docs.listeArtistique}
+            fichesRoles={lien.docs.fichesRoles}
+            distribution={lien.docs.distribution}
+            fichesRolesMasquerContact={lien.docs.fichesRolesMasquerContact}
+          />
+          <CastingReelOptions projetId={currentProjetId} categorie={lien.cat} options={lien.options} />
+        </PartageCard>
+      ))}
     </div>
   );
 }

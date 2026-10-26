@@ -10,6 +10,15 @@ import type { CategorieCachet, CastingMode } from "./types";
 import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
 import { validateCastingBulkStatusRequest } from "./bulk-status";
 
+// Questions oui / non posées sur la page d'envoi : une par ligne.
+function parseQuestions(formData: FormData): string[] {
+  return String(formData.get("questions") ?? "")
+    .split("\n")
+    .map((q) => q.trim().slice(0, 200))
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
 function parsePhotoLabels(formData: FormData): string[] {
   return formData
     .getAll("photo_label")
@@ -77,6 +86,7 @@ export async function createCastingRole(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const questions = parseQuestions(formData);
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
 
@@ -106,6 +116,7 @@ export async function createCastingRole(
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
+      questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
     })
@@ -147,6 +158,7 @@ export async function updateCastingRoleCalibration(
   const nbVideos = Math.max(0, Number(formData.get("nb_videos") ?? 1) || 0);
   const photoLabels = parsePhotoLabels(formData);
   const demandeBandeDemo = formData.get("demande_bande_demo") === "on";
+  const questions = parseQuestions(formData);
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
 
@@ -177,6 +189,7 @@ export async function updateCastingRoleCalibration(
       nb_videos: nbVideos,
       photo_labels: photoLabels,
       demande_bande_demo: demandeBandeDemo,
+      questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
       ...pdfPatch,
@@ -376,6 +389,34 @@ export async function updateCastingEntryVisiblePartage(
   if (accessError) return { error: accessError };
 
   const { error } = await supabase.from("casting_entries").update({ visible_partage: visible }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Photo affichée sur la vignette du profil dans ce rôle (null = choix
+// automatique). Seulement une photo de ce profil.
+export async function choisirVignetteCasting(
+  entryId: string,
+  photoId: string | null
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, figurant_id")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  if (photoId) {
+    const { data: photo } = await supabase.from("figurant_photos").select("figurant_id").eq("id", photoId).maybeSingle();
+    if (!photo || photo.figurant_id !== entry.figurant_id) return { error: "Photo introuvable." };
+  }
+
+  const { error } = await supabase.from("casting_entries").update({ photo_vignette_id: photoId }).eq("id", entryId);
   if (error) return { error: error.message };
 
   revalidatePath("/casting");

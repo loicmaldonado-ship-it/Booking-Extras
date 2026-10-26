@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile, getAccessibleProjetIds, checkProjetAccess, idsOrNone } from "@/lib/auth/session";
 import { findOrInviteProfile } from "@/lib/auth/invite";
+import { aAccesComplet } from "@/lib/auth/owner";
 import type { SectionKey } from "@/lib/auth/sections";
 
 // Réservé au·à la chef·fe propriétaire du projet ciblé (ou au compte
@@ -58,6 +59,8 @@ export async function revokeAccess(projetMembreId: string) {
 
   const accessError = await requireChefOnProjet(membre.projet_id);
   if (accessError) throw new Error(accessError);
+  // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
+  if (!aAccesComplet(await getCurrentProfile())) throw new Error("Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès.");
 
   await admin.from("projet_membres").delete().eq("id", projetMembreId);
   revalidatePath("/equipe");

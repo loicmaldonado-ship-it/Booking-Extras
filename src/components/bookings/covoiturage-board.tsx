@@ -1,8 +1,10 @@
 "use client";
 
+import { nomComplet, formatPrenom, comparerNoms } from "@/lib/noms";
 import { useMemo, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { bulkUpdateBookings, copyCovoiturageToDate, recordCovoiturageMessage } from "@/lib/bookings/actions";
 import { formatDateShort } from "@/lib/format-date";
@@ -48,11 +50,7 @@ function lieuLabel(r: CovoiturageRow) {
 // d'un coup d'œil qui habite dans le même coin quand on regarde le groupe
 // "Sans covoiturage" pour organiser les trajets à la main.
 function sortByNomFamille(rows: CovoiturageRow[]) {
-  return [...rows].sort(
-    (a, b) =>
-      (a.figurants?.nom ?? "").localeCompare(b.figurants?.nom ?? "") ||
-      (a.figurants?.prenom ?? "").localeCompare(b.figurants?.prenom ?? "")
-  );
+  return [...rows].sort((a, b) => comparerNoms(a.figurants, b.figurants));
 }
 
 // Regroupe par code postal croissant (non renseigné en dernier), chaque
@@ -295,7 +293,7 @@ export function CovoiturageBoard({
     setSendError(null);
     startTransition(async () => {
       const result = await recordCovoiturageMessage(r.figurant_id, body!, r.figurants!.email, subject, projetId);
-      if (result?.error) setSendError(`Échec de l'envoi à ${r.figurants!.prenom} : ${result.error}`);
+      if (result?.error) setSendError(`Échec de l'envoi à ${formatPrenom(r.figurants!.prenom)} : ${result.error}`);
       else setSentIds((prev) => new Set([...prev, r.id]));
     });
   }
@@ -324,7 +322,7 @@ export function CovoiturageBoard({
         }}
         className={cn(
           "group relative flex w-24 shrink-0 cursor-grab flex-col items-center gap-1 rounded-xl border p-2 text-center active:cursor-grabbing",
-          checked ? "border-coral bg-coral/10" : "glass-subtle"
+          checked ? "border-coral bg-coral/10" : "border-border bg-ink"
         )}
       >
         <label
@@ -342,7 +340,7 @@ export function CovoiturageBoard({
           <button
             type="button"
             onClick={onRemove}
-            className="absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-ink-raised-2 text-[10px] text-text-muted hover:bg-danger hover:text-ink group-hover:flex"
+            className="absolute right-1 top-1 z-10 hidden h-4 w-4 items-center justify-center rounded-full bg-ink-raised-2 text-[10px] text-text hover:bg-danger hover:text-ink group-hover:flex"
             title="Retirer"
           >
             ×
@@ -352,7 +350,7 @@ export function CovoiturageBoard({
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="96px" className="object-cover" />}
         </div>
         <span className="block w-full truncate text-xs font-medium">
-          {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+          {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
         {lieuLabel(r) && (
           <span className="block w-full truncate text-[9px] leading-tight text-text-muted">{lieuLabel(r)}</span>
@@ -362,7 +360,7 @@ export function CovoiturageBoard({
           <button
             type="button"
             onClick={onMessage}
-            className="w-full truncate rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium text-text-muted hover:border-coral/60 hover:text-text"
+            className="w-full truncate rounded-full border border-border-strong px-1.5 py-0.5 text-[10px] font-medium text-text hover:border-coral/60 hover:text-text"
           >
             Rappel {r.figurants?.telephone ? "texto" : "email"}
           </button>
@@ -383,7 +381,7 @@ export function CovoiturageBoard({
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill sizes="36px" className="object-cover" />}
         </div>
         <div className="w-36 shrink-0">
-          <div className="truncate font-medium">{r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}</div>
+          <div className="truncate font-medium">{r.figurants ? nomComplet(r.figurants) : "—"}</div>
           {lieuLabel(r) && <div className="truncate text-[11px] text-text-muted">{lieuLabel(r)}</div>}
         </div>
 
@@ -445,7 +443,7 @@ export function CovoiturageBoard({
               .filter((c) => c.figurant_id !== r.figurant_id)
               .map((c) => (
                 <option key={c.figurant_id} value={c.figurant_id}>
-                  {c.figurants ? `${c.figurants.prenom} ${c.figurants.nom}` : "—"}
+                  {c.figurants ? nomComplet(c.figurants) : "—"}
                   {c.covoiturage_lieu_depart ? ` · ${c.covoiturage_lieu_depart}` : ""}
                 </option>
               ))}
@@ -458,7 +456,7 @@ export function CovoiturageBoard({
             type="button"
             onClick={() => sendCovoiturageMessage(r)}
             disabled={!r.figurants?.telephone && !r.figurants?.email}
-            className="rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted hover:border-coral/60 hover:text-text disabled:opacity-30"
+            className="rounded-full border border-border-strong px-3 py-1 text-xs font-medium text-text hover:border-coral/60 hover:text-text disabled:opacity-30"
           >
             {r.figurants?.telephone ? "Texto" : r.figurants?.email ? "Email" : "Pas de contact"}
           </button>
@@ -490,7 +488,7 @@ export function CovoiturageBoard({
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               viewMode === v.value
                 ? "border-coral bg-coral/15 text-coral"
-                : "border-border text-text-muted hover:text-text"
+                : "border-border-strong text-text hover:text-text"
             )}
           >
             {v.label}
@@ -553,7 +551,7 @@ export function CovoiturageBoard({
         <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Appliquer cette organisation à une autre journée</span>
-            <button type="button" onClick={() => setCopyOpen(false)} className="text-text-muted hover:text-coral">
+            <button type="button" onClick={() => setCopyOpen(false)} className="text-text hover:text-coral">
               Fermer
             </button>
           </div>
@@ -584,20 +582,16 @@ export function CovoiturageBoard({
       )}
 
       {bulkOpen && (
-        <div className="flex flex-col gap-2 rounded-xl border border-coral/40 bg-coral/10 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
-              Envoyer le texto/email de covoiturage à chacun ({sentIds.size}/{eligibles.length} envoyés)
-            </span>
-            <button type="button" onClick={() => setBulkOpen(false)} className="text-text-muted hover:text-coral">
-              Fermer
-            </button>
-          </div>
+        <Modale
+          titre="🚗 Messages de covoiturage"
+          sousTitre={`Texto ou email à chacun · ${sentIds.size}/${eligibles.length} envoyés`}
+          onClose={() => setBulkOpen(false)}
+        >
           <div className="flex flex-col gap-1">
             {eligibles.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
                 <span>
-                  {r.figurants ? `${r.figurants.prenom} ${r.figurants.nom}` : "—"}
+                  {r.figurants ? nomComplet(r.figurants) : "—"}
                   <span className="ml-2 text-xs text-text-muted">
                     {r.covoiturage_role === "conducteur" ? "Chauffeur" : "Passager"}
                   </span>
@@ -616,7 +610,7 @@ export function CovoiturageBoard({
               </div>
             ))}
           </div>
-        </div>
+        </Modale>
       )}
 
       {viewMode === "trombi" && (

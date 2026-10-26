@@ -1,3 +1,4 @@
+import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -24,6 +25,7 @@ import { DeleteLienButton } from "@/components/figurants/delete-lien-button";
 import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { aAccesComplet } from "@/lib/auth/owner";
 
 type FigurantBookingRow = {
   id: string;
@@ -86,9 +88,9 @@ export default async function FigurantDetailPage({
   // d'une autre équipe sur ce même profil partagé.
   let messagesQuery = supabase
     .from("figurant_messages")
-    .select("*")
+    .select("*, auteur:profiles!figurant_messages_envoye_par_fkey(prenom, nom)")
     .eq("figurant_id", id)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
   if (accessibleIds !== null) {
     messagesQuery = messagesQuery.or(`projet_id.is.null,projet_id.in.(${idsOrNone(accessibleIds).join(",")})`);
   }
@@ -122,8 +124,10 @@ export default async function FigurantDetailPage({
   const bookingById = new Map((bookings ?? []).map((b) => [b.id, b]));
   const messagesEnriched = (messages ?? []).map((m) => {
     const booking = m.booking_id ? bookingById.get(m.booking_id) : undefined;
+    const auteur = (m as unknown as { auteur: { prenom: string | null; nom: string | null } | null }).auteur;
     return {
       ...m,
+      auteur: auteur ? nomComplet(auteur) : null,
       projetId: booking?.projet_id ?? null,
       projetLabel: booking ? (booking.projets?.nom_code || booking.projets?.nom || null) : null,
     };
@@ -148,7 +152,7 @@ export default async function FigurantDetailPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold">
             {figurant.civilite ? `${figurant.civilite} ` : ""}
-            {figurant.prenom} {figurant.nom}
+            {nomComplet(figurant)}
             {figurant.est_comedien && <Badge tone="coral">Comédien·ne</Badge>}
           </h1>
           <p className="mt-1 text-text-muted">
@@ -174,7 +178,12 @@ export default async function FigurantDetailPage({
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Contact</h2>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <AccesCompteToggle figurantId={figurant.id} actif={figurant.acces_compte} projetId={currentProjetId} />
+          <AccesCompteToggle
+            figurantId={figurant.id}
+            actif={figurant.acces_compte}
+            projetId={currentProjetId}
+            peutRevoquer={aAccesComplet(profile)}
+          />
           {figurant.acces_compte && currentProjetId && (
             <SendEspacePersoButton
               figurantId={figurant.id}
