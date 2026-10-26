@@ -64,7 +64,7 @@ export default async function RgpdPage({
               <dd>{f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}</dd>
             </dl>
             <div className="flex flex-wrap items-center gap-2">
-              <AnonymiserButton figurantId={f.id} nom={f.prenom + " " + f.nom} />
+              <AnonymiserButton figurantId={f.id} effacementEnCours={f.effacementEnCours} nom={f.prenom + " " + f.nom} />
             </div>
           </Card>
         ))}
@@ -96,7 +96,7 @@ export default async function RgpdPage({
                   {f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}
                 </td>
                 <td className="px-6 py-3">
-                  <AnonymiserButton figurantId={f.id} nom={nomComplet(f)} />
+                  <AnonymiserButton figurantId={f.id} effacementEnCours={f.effacementEnCours} nom={nomComplet(f)} />
                 </td>
               </tr>
             ))}

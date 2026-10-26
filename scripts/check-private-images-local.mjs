@@ -6,11 +6,13 @@ const backend=new URL(process.env.NEXT_PUBLIC_SUPABASE_URL),site=new URL(process
 const loopback=url=>url.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(url.hostname);
 assert.equal(process.env.BOOKING_TEST_MODE,'1');assert.ok(loopback(backend)&&loopback(site),'Base et site loopback uniquement');
 const admin=createClient(backend.href,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-const path=`privacy-fixture/${randomUUID()}.png`,privateBucket='figurant-photos',publicBucket='profile-avatars';
+const figurantId=randomUUID();
+const path=`${figurantId}/${randomUUID()}.png`,privateBucket='figurant-photos',publicBucket='profile-avatars';
 const image=await sharp({create:{width:32,height:32,channels:3,background:'#23a'}}).png().toBuffer();
 const check=result=>{assert.ifError(result.error);return result.data;};
 async function optimized(url){const target=new URL('/_next/image',site);target.searchParams.set('url',url);target.searchParams.set('w','64');target.searchParams.set('q','75');return fetch(target);}
 try{
+ check(await admin.from("figurants").insert({id:figurantId,prenom:"Image",nom:"Test fictif"}));
  check(await admin.storage.from(privateBucket).upload(path,image,{contentType:'image/png',cacheControl:'0'}));
  check(await admin.storage.from(publicBucket).upload(path,image,{contentType:'image/png',cacheControl:'0'}));
  const signed=check(await admin.storage.from(privateBucket).createSignedUrl(path,60)).signedUrl;
@@ -25,5 +27,6 @@ try{
  console.log('PASS HTTP: après suppression, le lien signé ne rend plus la photo privée');
 }finally{
  check(await admin.storage.from(privateBucket).remove([path]));check(await admin.storage.from(publicBucket).remove([path]));
+ check(await admin.from("figurants").delete().eq("id",figurantId));
  console.log('PASS nettoyage: seules les deux images fictives du test ont été supprimées');
 }

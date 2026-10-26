@@ -79,14 +79,16 @@ test('global anonymisation refuses a non-owner before any privileged mutation', 
 });
 
 
-test('failed minor document purge prevents a successful global anonymisation', async () => {
+test('failed file removal leaves a resumable job and never finalizes', async () => {
+ const calls=[];
  const {anonymiserFigurant}=load('src/lib/rgpd/actions.ts', {
-  'next/cache': {},
-  '@/lib/auth/session': {requireChef: async()=>({isOwner:true})},
-  '@/lib/minors/cleanup': {purgeMinorDossiersForVerifiedChild: async()=>({error:'Fixture storage failure'})},
-  '@/lib/supabase/admin': {createAdminClient(){throw Error('must not anonymise while private files remain');}},
+  'next/cache': {revalidatePath:()=>{}},
+  '@/lib/auth/session': {requireChef: async()=>({isOwner:true,id:'owner'})},
+  '@/lib/supabase/admin': {createAdminClient:()=>({rpc:async(name,args)=>{calls.push([name,args]);return {data:{files:[{bucket:'minor-documents',path:'fixture/file.pdf'}]}};},storage:{from:()=>({remove:async()=>({error:{message:'fixture failure'}})})}})},
  });
- assert.deepEqual(await anonymiserFigurant('fixture'),{error:'Fixture storage failure'});
+ const result=await anonymiserFigurant('fixture');
+ assert.equal(result.refresh,true);assert.match(result.error,/nettoyage.*incomplet/);
+ assert.deepEqual(calls,[['preparer_effacement_figurant',{p_id:'fixture',p_actor:'owner'}]]);
 });
 
 test('global RGPD profile reads refuse anonymous, assistant and non-owner chef accounts before using admin access',async()=>{

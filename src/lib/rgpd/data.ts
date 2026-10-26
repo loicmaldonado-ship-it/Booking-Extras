@@ -8,6 +8,7 @@ export type FigurantInactif = {
   nom: string;
   email: string | null;
   derniereActivite: string | null;
+  effacementEnCours: boolean;
 };
 
 // Aucune tâche planifiée n'appelle cette fonction : c'est une consultation
@@ -22,7 +23,7 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
 
   const { data: figurants } = await supabase
     .from("figurants")
-    .select("id, prenom, nom, email, updated_at")
+    .select("id, prenom, nom, email, updated_at, anonymisation_en_cours_at")
     .eq("anonymise", false);
 
   if (!figurants || figurants.length === 0) return [];
@@ -54,8 +55,9 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
       prenom: f.prenom,
       nom: f.nom,
       email: f.email,
+      effacementEnCours: f.anonymisation_en_cours_at !== null,
       derniereActivite: lastByFigurant.get(f.id) ?? null,
     }))
-    .filter((f) => f.derniereActivite !== null && f.derniereActivite < seuilIso)
+    .filter((f) => f.effacementEnCours || (f.derniereActivite !== null && f.derniereActivite < seuilIso))
     .sort((a, b) => (a.derniereActivite ?? "").localeCompare(b.derniereActivite ?? ""));
 }
