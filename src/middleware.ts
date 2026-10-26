@@ -24,6 +24,8 @@ const PUBLIC_PREFIXES = [
   "/relais-textos",
   "/recu/",
   "/compte",
+  "/mineurs/depot/",
+  "/mineurs/partage/",
   "/manifest.ts",
   "/icon",
   "/apple-icon",

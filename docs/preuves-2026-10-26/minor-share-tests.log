@@ -1,0 +1,10 @@
+✔ production share signs only current active documents and never renders internal notes or child email (172.468685ms)
+✔ invalid production share stops before any file signing or privileged query (24.003128ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 766.559516

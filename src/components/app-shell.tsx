@@ -44,6 +44,7 @@ const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIc
   { label: "Partage", href: "/partage", enabled: true, icon: Share2 },
   { label: "Modèles", href: "/modeles", enabled: true, icon: Mail },
   { label: "Barème", href: "/bareme", enabled: true, icon: Calculator },
+  { label: "Mineurs / DRIEETS", href: "/mineurs", enabled: true, icon: ShieldCheck },
   { label: "RGPD", href: "/rgpd", enabled: true, icon: ShieldCheck },
 ];
 
@@ -66,6 +67,8 @@ const PUBLIC_PREFIXES = [
   "/casting/rejoindre",
   "/recu/",
   "/compte",
+  "/mineurs/depot/",
+  "/mineurs/partage/",
 ];
 
 export function AppShell({

@@ -60,6 +60,7 @@ export default async function ProjetDetailPage({
           </p>
         </div>
         <div className="flex gap-3">
+          <ButtonLink href={`/projets/${id}/mineurs`} variant="secondary">Mineurs / DRIEETS</ButtonLink>
           <ButtonLink href={`/projets/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>

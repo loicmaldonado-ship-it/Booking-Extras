@@ -5,6 +5,13 @@ const localStorage = storageUrl?.protocol === "http:" && ["localhost", "127.0.0.
   && (process.env.NODE_ENV !== "production" || process.env.BOOKING_TEST_MODE === "1");
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/mineurs/:path*", headers: [
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      { key: "Cache-Control", value: "private, no-store, max-age=0" },
+    ] }];
+  },
   // ffmpeg (allègement des vidéos du casting après l'envoi) : binaire du
   // paquet npm, laissé tel quel et embarqué dans les fonctions concernées.
   serverExternalPackages: ["@ffmpeg-installer/ffmpeg"],

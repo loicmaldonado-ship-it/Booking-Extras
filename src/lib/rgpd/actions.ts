@@ -1,5 +1,6 @@
 "use server";
 
+import { purgeMinorDossiersForVerifiedChild } from "@/lib/minors/cleanup";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireChef } from "@/lib/auth/session";
@@ -12,6 +13,8 @@ export async function anonymiserFigurant(id: string) {
   const actor = await requireChef();
   if (!actor.isOwner) return { error: "L’anonymisation globale est réservée au compte propriétaire." };
 
+  const minorCleanup = await purgeMinorDossiersForVerifiedChild(id);
+  if (minorCleanup.error) return minorCleanup;
   const supabase = createAdminClient();
 
   const { data: photos } = await supabase

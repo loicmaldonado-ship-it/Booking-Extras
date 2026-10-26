@@ -1,0 +1,10 @@
+PASS auth-hardening-local.sql
+PASS grants-october30-local.sql
+PASS guardians-local.sql
+PASS invitation-integration-local.sql
+PASS minor-dossiers-local.sql
+PASS minor-identity-local.sql
+PASS rls-integration-local.sql
+PASS slots-integrity-local.sql
+PASS scripts/check-minors-local.mjs
+PASS scripts/check-auth-concurrency-local.mjs

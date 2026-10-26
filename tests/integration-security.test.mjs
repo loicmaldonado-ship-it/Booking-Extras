@@ -73,6 +73,18 @@ test('global anonymisation refuses a non-owner before any privileged mutation', 
     'next/cache': {},
     '@/lib/auth/session': {requireChef: async () => ({isOwner:false})},
     '@/lib/supabase/admin': {createAdminClient() {throw Error('privileged mutation');}},
+    '@/lib/minors/cleanup': {purgeMinorDossiersForVerifiedChild: async () => {throw Error('private minor cleanup');}},
   });
   assert.ok((await anonymiserFigurant('fixture')).error);
+});
+
+
+test('failed minor document purge prevents a successful global anonymisation', async () => {
+ const {anonymiserFigurant}=load('src/lib/rgpd/actions.ts', {
+  'next/cache': {},
+  '@/lib/auth/session': {requireChef: async()=>({isOwner:true})},
+  '@/lib/minors/cleanup': {purgeMinorDossiersForVerifiedChild: async()=>({error:'Fixture storage failure'})},
+  '@/lib/supabase/admin': {createAdminClient(){throw Error('must not anonymise while private files remain');}},
+ });
+ assert.deepEqual(await anonymiserFigurant('fixture'),{error:'Fixture storage failure'});
 });

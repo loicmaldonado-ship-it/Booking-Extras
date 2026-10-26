@@ -1,0 +1,8 @@
+PASS REST: dossier sans pièces refuse booking
+PASS REST: premier dépôt reçu, validation explicite, second parent encore requis
+PASS REST: deux vraies pièces stockées et validées permettent le booking
+PASS REST: public et rôle staff générique sans accès direct aux pièces/liens, projet étranger invisible
+PASS REST: URL signée rend exactement le PDF fictif stocké
+PASS REST: remplacement annule validation, ancien fichier supprimé, expiration refuse déplacement de booking
+PASS REST: lien révoqué ne peut plus consommer ni terminer un dépôt
+PASS nettoyage: seules les fixtures privées de ce script ont été supprimées
