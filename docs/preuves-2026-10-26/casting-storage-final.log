@@ -1,0 +1,6 @@
+PASS: réponses incomplètes refusées sans mutation métier
+PASS: chemin d’une autre entrée et fichier absent refusés sans mutation
+PASS: première soumission complète, seconde et nouveau slot refusés sans duplication
+PASS: ancienne signature de dépôt refusée après finalisation
+PASS: média transmis toujours lisible et chemin de dépôt équipe toujours utilisable
+PASS nettoyage: seules les données et images fictives de cette recette retirées

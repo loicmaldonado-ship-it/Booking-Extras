@@ -41,8 +41,22 @@ try{
   const late=await admin.storage.from(missing.bucket).uploadToSignedUrl(missing.path,missing.token,jpeg,{contentType:'image/jpeg'});
   assert.ok(late.error,'BUG-14 : une signature obtenue avant finalisation doit refuser un dépôt après finalisation');
   console.log('PASS: ancienne signature de dépôt refusée après finalisation');
+  const signed=check(await admin.storage.from(slot.bucket).createSignedUrl(slot.path,60)).signedUrl;
+  assert.equal((await fetch(signed)).status,200,'La lecture des médias transmis doit rester possible');
+  const staffPath=`${person}/casting-Portrait-${randomUUID()}.jpg`;paths.push(staffPath);
+  check(await admin.storage.from('figurant-photos').upload(staffPath,jpeg,{contentType:'image/jpeg'}));
+  console.log('PASS: média transmis toujours lisible et chemin de dépôt équipe toujours utilisable');
+
  }
 
+ if(process.argv.includes('--race')){
+  check(await admin.from('casting_entries').update({submitted_at:null,statut:'proposé'}).eq('id',entry));
+  check(await admin.from('figurant_photos').delete().eq('casting_entry_id',entry));
+  const results=await Promise.all([actions.finalizeCastingUpload(requestToken,valid),actions.finalizeCastingUpload(requestToken,valid)]);
+  assert.equal(results.filter(r=>r.success===true).length,1,'Une seule soumission doit gagner');
+  assert.equal(check(await admin.from('figurant_photos').select('id').eq('casting_entry_id',entry)).length,1,'La finalisation concurrente ne doit pas dupliquer les références photo');
+  console.log('PASS: deux finalisations concurrentes, un seul succès et une seule photo');
+ }
 }finally{
  if(paths.length)check(await admin.storage.from('figurant-photos').remove(paths));
  check(await admin.from('notifications').delete().eq('figurant_id',person));
