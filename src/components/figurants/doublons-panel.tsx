@@ -1,8 +1,7 @@
 "use client";
 
 import { nomComplet } from "@/lib/noms";
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";

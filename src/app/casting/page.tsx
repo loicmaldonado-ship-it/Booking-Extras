@@ -331,7 +331,7 @@ export default async function CastingPage({
         </Card>
       )}
 
-      {[liensCategorie, lienTout].map((lien) => (
+      {roles.length > 0 && [liensCategorie, lienTout].map((lien) => (
         <PartageCard
           key={lien.cat ?? "tout"}
           projetId={currentProjetId}

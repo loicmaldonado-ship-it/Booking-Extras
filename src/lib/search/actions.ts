@@ -12,29 +12,39 @@ export type SearchResult = {
   kind: "figurant" | "projet" | "annonce";
 };
 
+import { hasSectionAccess } from "@/lib/auth/sections";
+import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { buildProfileSearchFilter } from "@/lib/figurants/search-filter";
+
 const RESULTS_PER_KIND = 5;
 
 export async function searchGlobal(query: string): Promise<SearchResult[]> {
   const q = query.trim();
   if (q.length < 2) return [];
 
-  const supabase = createAdminClient();
   const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  if (!profile) return [];
+  const supabase = createAdminClient();
+  const accessibleIds = await getAccessibleProjetIds(profile);
+  const profileFilter = buildProfileSearchFilter(q);
+  const poolClause = comedienPoolClause(profile);
 
   const [figurantsRes, projetsRes, annoncesRes] = await Promise.all([
-    supabase
-      .from("figurants")
-      .select("id, prenom, nom, ville")
-      .eq("confirme", true)
-      .or(`prenom.ilike.%${q}%,nom.ilike.%${q}%`)
-      .limit(RESULTS_PER_KIND),
     (() => {
+      if (!hasSectionAccess(profile, "/figurants") || !profileFilter) return { data: [] };
+      let query = supabase.from("figurants").select("id, prenom, nom, ville")
+        .eq("confirme", true).eq("acces_compte", true).or(profileFilter).limit(RESULTS_PER_KIND);
+      if (poolClause) query = query.or(poolClause);
+      return query;
+    })(),
+    (() => {
+      if (!hasSectionAccess(profile, "/projets")) return { data: [] };
       let query = supabase.from("projets").select("id, nom, lieu").ilike("nom", `%${q}%`).limit(RESULTS_PER_KIND);
       if (accessibleIds !== null) query = query.in("id", idsOrNone(accessibleIds));
       return query;
     })(),
     (() => {
+      if (!hasSectionAccess(profile, "/annonces")) return { data: [] };
       let query = supabase
         .from("annonces")
         .select("id, titre, projets(nom)")

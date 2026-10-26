@@ -24,6 +24,6 @@ test("BUG-17: both list filters remain usable on small screens", () => {
   for (const page of ["projets", "annonces"]) {
     const source = readFileSync(`src/app/${page}/page.tsx`, "utf8");
     assert.ok(source.includes("grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4"));
-    assert.ok(source.includes("sm:col-span-2 md:col-span-1"));
+    assert.match(source, /className="sm:col-span-2[^"]*md:col-span-1"/);
   }
 });

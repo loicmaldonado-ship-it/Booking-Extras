@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile } from "@/lib/auth/session";
-
+import { checkProjetAccess } from "@/lib/auth/session";
 async function getFigurantIdByToken(token: string) {
   const supabase = createAdminClient();
   const { data } = await supabase.from("figurants").select("id").eq("token_disponibilite", token).single();
@@ -29,20 +28,44 @@ export async function addIndisponibilite(token: string, date: string) {
 // Pour signaler un conflit quand on booke quelqu'un un jour où il/elle a
 // déclaré être indisponible — clé "figurantId|date" pour un lookup direct.
 export async function getIndisponibilitesForFigurants(
+  projetId: string,
   figurantIds: string[]
 ): Promise<Map<string, string | null>> {
   const map = new Map<string, string | null>();
-  if (!(await getCurrentProfile()) || figurantIds.length === 0) return map;
+
+  if (
+    !projetId ||
+    figurantIds.length === 0 ||
+    (await checkProjetAccess(projetId))
+  ) {
+    return map;
+  }
 
   const supabase = createAdminClient();
+
+  const { data: bookings, error: bookingsError } = await supabase
+    .from("bookings")
+    .select("figurant_id")
+    .eq("projet_id", projetId)
+    .in("figurant_id", figurantIds);
+
+  if (bookingsError || !bookings?.length) {
+    return map;
+  }
+
+  const authorizedIds = [
+    ...new Set(bookings.map((booking) => booking.figurant_id)),
+  ];
+
   const { data } = await supabase
     .from("figurant_indisponibilites")
     .select("figurant_id, date, motif")
-    .in("figurant_id", figurantIds);
+    .in("figurant_id", authorizedIds);
 
   for (const row of data ?? []) {
     map.set(`${row.figurant_id}|${row.date}`, row.motif);
   }
+
   return map;
 }
 

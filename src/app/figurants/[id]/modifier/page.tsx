@@ -1,5 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FigurantForm } from "@/components/figurants/figurant-form";
 import { BackLink } from "@/components/ui/back-link";
@@ -14,7 +15,7 @@ export default async function ModifierFigurantPage({
   const { id } = await params;
   const supabase = createAdminClient();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
     .select("*")
     .eq("id", id)

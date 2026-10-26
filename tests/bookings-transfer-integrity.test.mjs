@@ -59,7 +59,7 @@ function mock({ denied = null, cRows, cError = null, existing = [], existingErro
   return { actions: exports, writes, reads, validated, revalidates };
 }
 
-const bulk = (e, map = { [id(1)]: id(10) }) => e.actions.createBookingsFromDropBulk([id(1)], id(100), [day], map, "Silhouette", "");
+const bulk = (e, map = { [id(1)]: id(10) }) => e.actions.createBookingsFromDropBulk([id(1)], id(100), [day], map, "Silhouette", "Silhouette");
 
 test("booking dates reject calendar overflow, forged ids, huge or duplicate selections", () => {
   assert.equal(isValidBookingDate("2026-02-29"), false);

@@ -187,11 +187,15 @@ export async function revokeJourneePartageLien(projetId: string, date: string) {
 // peut faire (avis Oui / Peut-être / Non, commentaires par profil).
 export async function updateReelOption(projetId: string, cle: keyof OptionsReel, valeur: boolean, categorie: CategorieLien = null) {
   await requireAccessOrThrow(projetId);
+  if (!Object.prototype.hasOwnProperty.call(COLONNES_OPTIONS_REEL, cle)) {
+    throw new Error("Option de partage invalide.");
+  }
+  if (typeof valeur !== "boolean") throw new Error("Valeur de partage invalide.");
   const colonne = COLONNES_OPTIONS_REEL[cle];
-  if (!colonne) return;
-  await dansCategorie(
+  const { error } = await dansCategorie(
     createAdminClient().from("partage_liens").update({ [colonne]: valeur }).eq("projet_id", projetId).eq("type", "casting"),
     categorie
   );
+  if (error) throw new Error("Impossible de modifier les options du lien réal.");
   revalidatePath("/casting");
 }

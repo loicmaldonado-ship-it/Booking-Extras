@@ -18,6 +18,7 @@ function harness({ error = null, deny = null, data = null } = {}) {
   const revalidations = [];
   const query = {
     eq() { return this; },
+    is() { return this; },
     select() { return this; },
     update(value) { writes.push({ action: "update", value }); return this; },
     delete() { writes.push({ action: "delete" }); return this; },
@@ -32,6 +33,7 @@ function harness({ error = null, deny = null, data = null } = {}) {
       if (name === "next/cache") return { revalidatePath: (path) => revalidations.push(path) };
       if (name === "@/lib/supabase/admin") return { createAdminClient: () => ({ from: () => query }) };
       if (name === "@/lib/auth/session") return { checkProjetAccess: async () => deny };
+      if (name === "@/lib/partage/data") return { COLONNES_OPTIONS_REEL: { age: "reel_afficher_age" } };
       throw new Error(`Unexpected module: ${name}`);
     },
   });
@@ -43,6 +45,7 @@ const actions = [
   ["updatePartageTitre", [project, "casting", "Nouveau titre"]],
   ["updateCastingDocVisible", [project, "distribution", true]],
   ["updateFichesRolesMasquerContact", [project, true]],
+  ["updateReelOption", [project, "age", false]],
   ["revokePartageLien", [project, "casting"]],
   ["revokeJourneePartageLien", [project, "2026-10-20"]],
 ];
@@ -90,9 +93,46 @@ test("les paramètres falsifiés ne modifient pas la visibilité casting", async
     ["updateCastingDocVisible", [project, "inconnu", true]],
     ["updateCastingDocVisible", [project, "distribution", "false"]],
     ["updateFichesRolesMasquerContact", [project, "true"]],
+    ["updateReelOption", [project, "age", "false"]],
+    ["updateReelOption", [project, "__proto__", true]],
   ]) {
     const app = harness();
     await assert.rejects(app.actions[method](...args), /invalide/);
     assert.equal(app.writes.length, 0);
   }
+});
+
+const partageDataSource = readFileSync(new URL("../src/lib/partage/data.ts", import.meta.url), "utf8");
+const partageDataCompiled = ts.transpileModule(partageDataSource, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+
+function dataHarness({ data = null, error = null } = {}) {
+  const query = {
+    select() { return this; },
+    eq() { return this; },
+    is() { return this; },
+    maybeSingle() { return Promise.resolve({ data, error }); },
+  };
+  const exports = {};
+  runInNewContext(partageDataCompiled, {
+    exports,
+    require(name) {
+      if (name === "next/headers") return { headers: async () => ({ get: () => "test.local" }) };
+      if (name === "@/lib/supabase/admin") return { createAdminClient: () => ({ from: () => query }) };
+      throw new Error(`Unexpected module: ${name}`);
+    },
+  });
+  return exports;
+}
+
+test("le lien réal échoue fermé si sa catégorie ou ses options ne sont pas lisibles", async () => {
+  const broken = dataHarness({ error: { message: "DB unavailable" } });
+  await assert.rejects(broken.getCategorieLienCasting("token"), /indisponible/);
+  await assert.rejects(broken.getReelOptions({ token: "token" }), /Impossible de/);
+
+  const missing = dataHarness();
+  await assert.rejects(missing.getCategorieLienCasting("token"), /indisponible/);
+  await assert.rejects(missing.getReelOptions({ token: "token" }), /indisponible/);
+  assert.equal((await missing.getReelOptions({ projetId: project })).age, true);
 });

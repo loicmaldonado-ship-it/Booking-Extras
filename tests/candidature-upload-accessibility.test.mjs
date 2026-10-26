@@ -35,5 +35,5 @@ test("les URL blob des aperçus sont libérées et les erreurs préparation ne b
 
 test("la confirmation n'est affichée que pour un succès serveur", () => {
   assert.match(source, /if \(state\?\.success\) \{\s*return \(\s*<Card[^>]*role="status"/);
-  assert.match(source, /ref=\{erreurServeurRef\} role="alert"/);
+  assert.match(source, /ref=\{erreurServeurRef\} role=\{state\.invitationEnvoyee \? "status" : "alert"\}/);
 });

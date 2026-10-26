@@ -1,6 +1,6 @@
 import { comparerNoms } from "@/lib/noms";
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
 import { computeAge, parseIds } from "@/lib/documents/fields";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -21,7 +21,7 @@ export default async function FigurantsFichesPage({
     return <p className="text-text-muted">Sélectionne des profils depuis Base Profils pour générer leurs fiches.</p>;
   }
 
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabaseClient();
   const { data: figurantsRaw } = await supabase
     .from("figurants")
     .select("*")
@@ -32,8 +32,8 @@ export default async function FigurantsFichesPage({
   const figurantIds = figurants.map((f) => f.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
-    getPhotosByFigurantId(figurantIds),
-    getFutureBookingsByFigurant(figurantIds, today),
+    getPhotosByFigurantId(figurantIds, supabase),
+    getFutureBookingsByFigurant(figurantIds, today, supabase),
   ]);
 
   return (

@@ -35,7 +35,7 @@ export default async function BookingDetailPage({
   const boundDelete = deleteBooking.bind(null, id);
 
   const indispoMap = booking.figurants?.id
-    ? await getIndisponibilitesForFigurants([booking.figurants.id])
+    ? await getIndisponibilitesForFigurants(booking.projet_id, [booking.figurants.id])
     : new Map<string, string | null>();
   const indispoMotif = booking.figurants?.id ? indispoMap.get(`${booking.figurants.id}|${booking.date}`) : undefined;
   const enConflit = indispoMotif !== undefined;

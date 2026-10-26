@@ -9,7 +9,8 @@ import { requireChef } from "@/lib/auth/session";
 // mensurations/bookings passés sont conservés (comptabilité, historique de
 // tournage) ; seules les données directement identifiantes sont effacées.
 export async function anonymiserFigurant(id: string) {
-  await requireChef();
+  const actor = await requireChef();
+  if (!actor.isOwner) return { error: "L’anonymisation globale est réservée au compte propriétaire." };
 
   const supabase = createAdminClient();
 
@@ -19,11 +20,20 @@ export async function anonymiserFigurant(id: string) {
     .eq("figurant_id", id);
 
   if (photos && photos.length > 0) {
-    await supabase.storage.from("figurant-photos").remove(photos.map((p) => p.storage_path));
-    await supabase.from("figurant_photos").delete().eq("figurant_id", id);
+    const { error: storageError } = await supabase.storage.from("figurant-photos").remove(photos.map((p) => p.storage_path));
+    if (storageError) return { error: "Suppression des médias impossible. Aucune anonymisation confirmée." };
+    const { error: photosError } = await supabase.from("figurant_photos").delete().eq("figurant_id", id);
+    if (photosError) return { error: "Suppression des références photo impossible. Réessaie." };
   }
 
-  await supabase.from("figurant_liens").delete().eq("figurant_id", id);
+  const { error: linksError } = await supabase.from("figurant_liens").delete().eq("figurant_id", id);
+  if (linksError) return { error: "Suppression des liens impossible. Réessaie." };
+  const { error: accessError } = await supabase.from("figurants").update({ acces_compte: false }).eq("id", id);
+  if (accessError) return { error: "Révocation de l’accès impossible. Réessaie." };
+  for (const table of ["figurant_sessions", "figurant_auth_tokens", "figurant_comptes"]) {
+    const { error: authError } = await supabase.from(table).delete().eq("figurant_id", id);
+    if (authError) return { error: "Nettoyage des accès incomplet. Réessaie." };
+  }
 
   const { error } = await supabase
     .from("figurants")

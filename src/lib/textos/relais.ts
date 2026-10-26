@@ -1,4 +1,5 @@
 import "server-only";
+import { communicationsDesactivees } from "@/lib/communications-test";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -8,6 +9,7 @@ export function hacherCle(cle: string) {
 
 // Relais du Mac : identifié par sa clé (en-tête Authorization: Bearer …).
 export async function profilDuRelais(request: Request): Promise<string | null> {
+  if (communicationsDesactivees()) return null;
   const entete = request.headers.get("authorization") ?? "";
   const cle = entete.startsWith("Bearer ") ? entete.slice(7).trim() : "";
   if (cle.length < 20) return null;

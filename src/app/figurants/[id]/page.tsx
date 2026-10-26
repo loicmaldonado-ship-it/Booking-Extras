@@ -2,6 +2,7 @@ import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { Card, Badge } from "@/components/ui/card";
@@ -44,10 +45,13 @@ export default async function FigurantDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const profile = await getCurrentProfile();
+  if (!profile) notFound();
+  const accessibleIds = await getAccessibleProjetIds(profile);
   const supabase = createAdminClient();
   const currentProjetId = await getCurrentProjetId();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
     .select("*")
     .eq("id", id)
@@ -55,7 +59,7 @@ export default async function FigurantDetailPage({
 
   if (!figurant) notFound();
 
-  const { data: photosRaw } = await supabase
+  const { data: photosRaw } = await (await createServerSupabaseClient())
     .from("figurant_photos")
     .select("*")
     .eq("figurant_id", id)
@@ -67,20 +71,19 @@ export default async function FigurantDetailPage({
     .eq("figurant_id", id)
     .returns<FigurantLien[]>();
 
-  const { data: bookings } = await supabase
+  let bookingsQuery = supabase
     .from("bookings")
     .select("id, date, heure_convocation, fonction, cachet, statut, projet_id, projets(nom, confidentiel, nom_code)")
     .eq("figurant_id", id)
-    .order("date", { ascending: true })
-    .returns<FigurantBookingRow[]>();
+    .order("date", { ascending: true });
+  if (accessibleIds !== null) bookingsQuery = bookingsQuery.in("projet_id", idsOrNone(accessibleIds));
+  const { data: bookings } = await bookingsQuery.returns<FigurantBookingRow[]>();
 
   const { data: indispos } = await supabase
     .from("figurant_indisponibilites")
     .select("date")
     .eq("figurant_id", id);
 
-  const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
 
   // La fiche figurant est partagée entre cheffes, mais la messagerie interne
   // ne doit montrer que les fils rattachés à un projet accessible à cette
@@ -96,12 +99,13 @@ export default async function FigurantDetailPage({
   }
   const { data: messages } = await messagesQuery.returns<FigurantMessage[]>();
 
-  const { data: costumes } = await supabase
+  let costumesQuery = supabase
     .from("essayages")
     .select("id, numero_costume, projets(nom)")
     .eq("figurant_id", id)
-    .not("numero_costume", "is", null)
-    .returns<{ id: string; numero_costume: string; projets: { nom: string } | null }[]>();
+    .not("numero_costume", "is", null);
+  if (accessibleIds !== null) costumesQuery = costumesQuery.in("projet_id", idsOrNone(accessibleIds));
+  const { data: costumes } = await costumesQuery.returns<{ id: string; numero_costume: string; projets: { nom: string } | null }[]>();
 
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");

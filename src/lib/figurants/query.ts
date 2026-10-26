@@ -33,6 +33,7 @@ export function buildFigurantsQuery(
     .from("figurants")
     .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
+    .eq("acces_compte", true)
     .order("nom", { ascending: true })
     .order("prenom", { ascending: true });
 

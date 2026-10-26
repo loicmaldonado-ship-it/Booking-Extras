@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const storageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL) : null;
+const localStorage = storageUrl?.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(storageUrl.hostname)
+  && (process.env.NODE_ENV !== "production" || process.env.BOOKING_TEST_MODE === "1");
+
 const nextConfig: NextConfig = {
   // ffmpeg (allègement des vidéos du casting après l'envoi) : binaire du
   // paquet npm, laissé tel quel et embarqué dans les fonctions concernées.
@@ -24,6 +28,7 @@ const nextConfig: NextConfig = {
     // `unoptimized` et sert le fichier original, même pour une vignette de
     // 40px — gros contributeur d'egress inutile.
     remotePatterns: [
+      ...(localStorage && storageUrl ? [{ protocol: "http" as const, hostname: storageUrl.hostname, port: storageUrl.port, pathname: "/storage/v1/object/**" }] : []),
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/**" },
       { protocol: "http", hostname: "127.0.0.1", port: "54321", pathname: "/storage/v1/object/**" },
       { protocol: "http", hostname: "localhost", port: "54321", pathname: "/storage/v1/object/**" },
@@ -33,7 +38,7 @@ const nextConfig: NextConfig = {
     // local tourne sur 127.0.0.1. La prod ne pointe que vers *.supabase.co,
     // jamais une IP locale, donc pas besoin (et pas souhaitable) d'élargir
     // cette protection en prod.
-    ...(process.env.NODE_ENV !== "production" ? { dangerouslyAllowLocalIP: true } : {}),
+    ...(localStorage ? { dangerouslyAllowLocalIP: true } : {}),
   },
 };
 

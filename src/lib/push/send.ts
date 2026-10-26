@@ -1,4 +1,5 @@
 import "server-only";
+import { communicationsDesactivees } from "@/lib/communications-test";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -15,6 +16,7 @@ function ensureConfigured() {
 }
 
 export async function sendPushToFigurant(figurantId: string, payload: { title: string; body: string; url?: string }) {
+  if (communicationsDesactivees()) return;
   ensureConfigured();
   if (!configured) return;
 

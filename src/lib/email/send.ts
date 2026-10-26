@@ -1,4 +1,5 @@
 import "server-only";
+import { communicationsDesactivees } from "@/lib/communications-test";
 import nodemailer from "nodemailer";
 
 // Un transporteur par adresse d'expédition — la globale par défaut, plus une
@@ -6,6 +7,7 @@ import nodemailer from "nodemailer";
 const transporters = new Map<string, ReturnType<typeof nodemailer.createTransport>>();
 
 function getTransporter(user?: string | null, pass?: string | null) {
+  if (communicationsDesactivees()) return null;
   const resolvedUser = user || process.env.GMAIL_SMTP_USER;
   const resolvedPass = pass || process.env.GMAIL_SMTP_APP_PASSWORD;
   if (!resolvedUser || !resolvedPass) return null;

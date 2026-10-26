@@ -24,6 +24,7 @@ async function ownerAccessError(): Promise<string | null> {
 // l'admin. Ne renvoie rien pour une requête trop courte, pour ne jamais
 // exposer toute la base par une recherche vide.
 export async function searchAgents(query: string): Promise<Agent[]> {
+  if (!(await getCurrentProfile())) return [];
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
@@ -50,6 +51,8 @@ export async function upsertAgent(agent: {
   telephone?: string | null;
 }): Promise<void> {
   if (!agent.nom) return;
+  if (!(await getCurrentProfile())) return;
+
   const supabase = createAdminClient();
 
   let existing: { id: string } | null = null;

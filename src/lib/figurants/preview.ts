@@ -1,5 +1,6 @@
 "use server";
 
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrl } from "@/lib/supabase/signed-urls";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
@@ -42,7 +43,7 @@ export async function getFigurantPreview(figurantId: string): Promise<FigurantPr
   if (!profile) return { error: "Non autorisé." };
   const supabase = createAdminClient();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
     .select("id, prenom, nom, ville, telephone, email, est_comedien, comedien_pool_id")
     .eq("id", figurantId)
@@ -53,7 +54,7 @@ export async function getFigurantPreview(figurantId: string): Promise<FigurantPr
     return { error: "Profil introuvable." };
   }
 
-  const { data: photos } = await supabase
+  const { data: photos } = await (await createServerSupabaseClient())
     .from("figurant_photos")
     .select("storage_path, type")
     .eq("figurant_id", figurantId)

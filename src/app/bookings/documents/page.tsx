@@ -164,7 +164,7 @@ export default async function JourneeDashboardPage({
           .in("figurant_id", figurantIds)
       : { data: [] as { figurant_id: string; numero_costume: string }[] };
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
-  const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
+const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds);
 
   // Raccord = personne CONFIRMÉE ce jour-là et confirmée sur au moins une
   // autre journée du même projet (badge R, dates déroulables), même si elle

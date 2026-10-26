@@ -1,4 +1,5 @@
 import "server-only";
+import { communicationsDesactivees } from "@/lib/communications-test";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -183,7 +184,7 @@ async function releverBoite(boite: Boite): Promise<ReleveResultat> {
 export async function releverReponsesMail(seulementProjetId?: string): Promise<ReleveResultat[]> {
   // En local, le .env pointe vers de vraies boîtes Gmail : pas de relève
   // sauf demande explicite (RELEVE_MAILS_LOCAL=1).
-  if (process.env.NODE_ENV !== "production" && !process.env.RELEVE_MAILS_LOCAL) {
+  if (communicationsDesactivees() || (process.env.NODE_ENV !== "production" && !process.env.RELEVE_MAILS_LOCAL)) {
     return [{ boite: "local", nouvelles: 0, erreur: "relève désactivée en local" }];
   }
   const boites = await boitesARelever(seulementProjetId);
@@ -205,6 +206,7 @@ export async function derniereReleveProjet(projetId: string): Promise<{ le: stri
 // « Marquer comme lu dans Gmail » : une fois la réponse traitée dans
 // l'appli, le mail correspondant passe en lu dans la boîte du projet.
 export async function marquerMailLu(messageRowId: string): Promise<{ error?: string }> {
+  if (communicationsDesactivees()) return { error: "Accès aux boîtes réelles désactivé en test." };
   const supabase = createAdminClient();
   const { data: m } = await supabase
     .from("figurant_messages")
@@ -212,7 +214,7 @@ export async function marquerMailLu(messageRowId: string): Promise<{ error?: str
     .eq("id", messageRowId)
     .maybeSingle();
   if (!m?.mail_message_id || !m.projet_id) return { error: "Ce message ne vient pas d'une boîte mail." };
-  if (process.env.NODE_ENV !== "production" && !process.env.RELEVE_MAILS_LOCAL) {
+  if (communicationsDesactivees() || (process.env.NODE_ENV !== "production" && !process.env.RELEVE_MAILS_LOCAL)) {
     return { error: "Désactivé en local." };
   }
   const { credentials, error } = await getProjetEmailCredentials(supabase, m.projet_id);

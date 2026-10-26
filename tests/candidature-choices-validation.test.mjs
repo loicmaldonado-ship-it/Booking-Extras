@@ -37,7 +37,7 @@ test("l'action de candidature échoue si la lecture échoue et vérifie les erre
   const code = s.slice(start, end);
   assert.ok(code.includes("if (countError || count === null)"));
   assert.ok(code.includes("questionsResult.error || datesResult.error"));
-  assert.ok(code.includes("validateCandidatureChoices(formData, questions, annonceDates)"));
+  assert.ok(code.includes("validateCandidatureChoices(validatedForm, questions, annonceDates)"));
   assert.ok(code.includes("if (reponsesError)"));
   assert.ok(code.includes("if (disponibilitesError)"));
   assert.ok(code.includes("if (profilError)"));

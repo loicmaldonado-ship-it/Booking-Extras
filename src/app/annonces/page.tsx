@@ -100,7 +100,7 @@ export default async function AnnoncesPage({
           </button>
           <Link
             href="/annonces"
-            className="col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
+            className="sm:col-span-2 flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium text-text hover:text-text md:col-span-1"
           >
             Réinitialiser
           </Link>

@@ -362,7 +362,6 @@ function CastingRealMediaModal({
           {video ? (
             <>
               <div className="relative">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
                 <video
                   ref={videoRef}
                   src={video.url}

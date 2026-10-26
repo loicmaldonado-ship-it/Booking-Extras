@@ -583,7 +583,7 @@ export function CandidaturesTable({
 
         {erreur && (
           <Modale titre="Action impossible" onClose={() => setErreur(null)}>
-            <p className="text-sm text-danger">{erreur}</p>
+            <p role="alert" className="text-sm text-danger">{erreur}</p>
             <div className="flex justify-end">
               <Button type="button" onClick={() => setErreur(null)}>
                 Fermer

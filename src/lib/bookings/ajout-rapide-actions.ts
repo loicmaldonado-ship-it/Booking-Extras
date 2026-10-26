@@ -139,6 +139,8 @@ export async function ajoutRapideBooking(
         telephone: telephone || null,
         confirme: true,
         acces_compte: false,
+        temporaire: true,
+        temporaire_projet_id: projetId,
       })
       .select("id")
       .single();

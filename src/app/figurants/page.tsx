@@ -12,7 +12,6 @@ import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
 import { hasActiveMensurationFilters } from "@/lib/figurants/mensuration-filters";
-import { MensurationsFilterPanel } from "@/components/figurants/mensurations-filter-panel";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";

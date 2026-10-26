@@ -135,6 +135,6 @@ test("owner/member can delete own tab and receives a result", async () => {
 
 test("bulk UI preserves selected candidates and alerts on a failed operation", () => {
   const view = readFileSync(new URL("../src/components/candidatures/candidatures-table.tsx", import.meta.url), "utf8");
-  assert.match(view, /if \(result\.error\)\s*\{\s*setBulkOngletError\(result\.error\);\s*return;/);
-  assert.match(view, /bulkOngletError && <p role="alert"/);
+  assert.match(view, /if \(res && "error" in res && res\.error\)\s*\{\s*setErreur\(res\.error\);\s*return;/);
+  assert.match(view, /<p role="alert" className="text-sm text-danger">\{erreur\}<\/p>/);
 });

@@ -18,7 +18,7 @@ async function requireStaffFigurantAccess(figurantId?: string): Promise<string |
   if (!actor) return "Non autorisé.";
   if (!figurantId) return null;
 
-  const { data: person, error } = await createAdminClient().from("figurants")
+  const { data: person, error } = await (await createServerSupabaseClient()).from("figurants")
     .select("est_comedien, comedien_pool_id").eq("id", figurantId).maybeSingle();
   if (error || !person) return "Profil introuvable.";
   if (person.est_comedien && !actor.isOwner && person.comedien_pool_id !== comedienPoolIdFor(actor)) {

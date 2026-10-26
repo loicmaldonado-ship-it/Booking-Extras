@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
-import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
+import { hashPassword } from "@/lib/candidats/password";
 import { MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { invitationValide } from "@/lib/candidats/invitation-lecture";
@@ -28,13 +28,12 @@ export async function creerCompteDepuisInvitation(
   }
 
   const supabase = createAdminClient();
-  const { error } = await definirMotDePasse(invitation.figurantId, motDePasse);
-  if (error) return { error: "Création du compte impossible, réessaie." };
-  await Promise.all([
-    supabase.from("figurants").update({ acces_compte: true }).eq("id", invitation.figurantId),
-    supabase.from("figurant_auth_tokens").update({ used_at: new Date().toISOString() }).eq("id", invitation.id),
-  ]);
+  const { data: figurantId, error } = await supabase.rpc("activer_compte_invitation", {
+    p_token: token,
+    p_password_hash: await hashPassword(motDePasse),
+  });
+  if (error || !figurantId) return { error: "Ce lien n'est plus valide ou le compte a déjà été créé. Connecte-toi ou demande une nouvelle invitation." };
 
-  await createFigurantSession(invitation.figurantId);
+  await createFigurantSession(figurantId);
   redirect(retourAutorise(formData.get("retour")) ?? "/compte?bienvenue=1");
 }

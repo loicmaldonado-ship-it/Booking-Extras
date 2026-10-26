@@ -1,5 +1,6 @@
 "use server";
 
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
@@ -15,7 +16,7 @@ export async function getFigurantForEdit(
   if (!profile) return { error: "Non autorisé." };
   const supabase = createAdminClient();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
     .select("*")
     .eq("id", figurantId)

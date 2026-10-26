@@ -26,9 +26,9 @@ test("PDF upload requires project access and validates actual PDF content", () =
 
 test("the Casting page guides new users and hides irrelevant empty-state controls", () => {
   const casting = read("src/app/casting/page.tsx");
-  assert.match(casting, /Crée ton premier rôle/);
-  assert.match(casting, /entries\.length > 0 && <form/);
-  assert.match(casting, /roles\.length > 0 && <PartageCard/);
+  assert.match(casting, /Aucun casting dans/);
+  assert.match(casting, /<NewCastingRoleCard projetId=\{currentProjetId\} categorie=\{categorie\}/);
+  assert.match(casting, /roles\.length > 0 && \[liensCategorie, lienTout\]\.map/);
   assert.match(read("src/components/casting/new-casting-role-card.tsx"), /Créer un rôle/);
 });
 
