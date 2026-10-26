@@ -16,7 +16,7 @@ Décompressez entièrement l’archive dans un nouveau dossier nommé simplement
 
 Quand la fenêtre affiche que le site est prêt, ouvrez **[http://localhost:3100](http://localhost:3100)** dans Chrome, Safari ou Firefox. Cette adresse fonctionne uniquement sur l’ordinateur où le programme tourne. Attendez la fin du premier démarrage : les composants de la base doivent être téléchargés.
 
-Pour revenir un autre jour : ouvrez Docker Desktop, puis relancez le même fichier. Vos données fictives sont conservées. Pour arrêter le site : revenez dans la fenêtre et appuyez sur **Ctrl+C**. Vous pouvez ensuite quitter Docker Desktop. Ne supprimez pas ses volumes si vous souhaitez conserver vos essais.
+Pour revenir un autre jour : ouvrez Docker Desktop, puis relancez le même fichier. Vos données fictives sont conservées. Pour arrêter le site : revenez dans la fenêtre et appuyez sur **Ctrl+C**. Double-cliquez ensuite sur `ARRETER-RECETTE.command` (Mac) ou `ARRETER-RECETTE.cmd` (Windows) pour arrêter uniquement la base de cette copie ; vos essais sont conservés. Vous pouvez ensuite quitter Docker Desktop. Ne supprimez pas ses volumes si vous souhaitez conserver vos essais.
 
 ## 3. Se connecter
 
@@ -40,7 +40,7 @@ Commencez par le parcours quotidien, puis les exceptions. Utilisez uniquement de
 4. **Essayages et casting** : essayez les créneaux, les affectations, un changement de créneau et les listes. Signalez un profil placé sur une mauvaise journée ou une information perdue.
 5. **Documents et exports** : ouvrez les documents et exports qui vous servent réellement. Relisez noms, dates, regroupements, ordre, présentation et pages imprimées. Les fichiers attendus par votre métier doivent être comparés à vos modèles validés.
 6. **Droits et confidentialité** : avec l’assistante et le candidat, vérifiez que chacun ne voit que les informations qui lui sont destinées. Signalez immédiatement toute information appartenant à un autre projet ou à une autre personne.
-7. **Mineurs et exceptions** : consultez le bilan avant de tester. Les coordonnées des représentants sont en cours d’intégration ; un dossier DRIEETS complet et une autorisation signée ne sont pas garantis par la seule présence de ces champs.
+7. **Mineurs et exceptions** : consultez le bilan avant de tester. Le menu Mineurs / DRIEETS permet de créer un dossier par enfant, demander des pièces et les vérifier. Pour ce parcours, créez d’abord un profil fictif avec une naissance mineure et un email en `example.test`. Utilisez uniquement des fichiers de démonstration ; `tests/fixtures/minor-authorization-demo.pdf` est fourni sans valeur légale. Comparez les préparations aux modèles métier validés.
 
 Les messages internes peuvent être essayés. **Les emails, SMS, notifications externes et lectures Gmail sont bloqués en mode recette** : leur non-réception sur un vrai téléphone est attendue. Cette copie ne permet donc pas de valider la livraison réelle de messages. Ne saisissez aucun mot de passe Gmail, aucune clé de production et aucun véritable destinataire pour tenter de débloquer ces envois.
 
@@ -54,7 +54,7 @@ Pour chaque problème, envoyez à Éléa : **le rôle utilisé**, **la page**, *
 - **« node… introuvable »** : installez Node.js 22 ou 24, fermez la fenêtre puis relancez.
 - **Page inaccessible** : vérifiez que la fenêtre de lancement reste ouverte et qu’elle a fini son démarrage. Utilisez bien `localhost:3100`, pas l’adresse d’une autre personne.
 - **Port déjà utilisé** : fermez votre précédente fenêtre de recette avec Ctrl+C avant de relancer.
-- **Configuration personnelle ou schéma différent** : gardez votre dossier actuel et transmettez le message à Éléa. Le lanceur refuse de l’écraser ou de réinitialiser vos essais.
+- **Configuration personnelle ou schéma différent** : gardez votre dossier actuel. Pour une nouvelle version, arrêtez son site avec Ctrl+C puis utilisez son fichier ARRETER-RECETTE avant d’ouvrir la nouvelle archive dans un autre dossier. Le lanceur refuse d’écraser ou de réinitialiser vos essais ; chaque version de schéma possède sa propre base.
 - **Autre message** : faites une capture de la partie qui contient l’erreur. Ne transmettez jamais le contenu de `.env.local` : il contient les clés de votre base locale.
 
 Le bilan des 86 cartes fait foi pour savoir ce qui est démontré, ce qui reste à tester et ce qui empêche encore une mise en production. Votre recette métier complète les tests techniques ; elle ne les remplace pas.

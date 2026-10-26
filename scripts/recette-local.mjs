@@ -6,7 +6,7 @@ import {randomBytes, createHash} from 'node:crypto';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const cliVersion='2.122.0';
 const local=join(root,'.recette');
-const projectId='BOOKING_EXTRAS_RECETTE';
+const projectPrefix='BOOKING_EXTRAS_RECETTE';
 function fail(message){console.error('\n'+message);process.exit(1);}
 function command(name,args,options={}){
  const program=process.platform==='win32'&&['npm','npx'].includes(name)?name+'.cmd':name;
@@ -23,6 +23,14 @@ function command(name,args,options={}){
 }
 if(Number(process.versions.node.split('.')[0])<22)fail('Installez Node.js 22 ou 24 depuis nodejs.org, puis relancez ce fichier.');
 console.log('Booking Extras — recette locale, uniquement avec des données fictives.');
+if(process.argv.includes('--stop')){
+ const configPath=join(local,'supabase/config.toml');
+ if(!existsSync(configPath)){console.log('Aucune base de recette à arrêter dans ce dossier.');process.exit(0);}
+ const id=readFileSync(configPath,'utf8').match(/^project_id\s*=\s*"([^"]+)"/m)?.[1];
+ if(!id||!/^BOOKING_EXTRAS_RECETTE(?:_[a-f0-9]{12})?$/.test(id))fail('Arrêt refusé : ce dossier ne désigne pas une base de recette gérée par ce lanceur.');
+ command('npx',['--yes',`supabase@${cliVersion}`,'stop'],{cwd:local,capture:true});
+ console.log('Base de cette copie arrêtée. Vos essais sont conservés.');process.exit(0);
+}
 command('docker',['info'],{capture:true,failure:'Ouvrez Docker Desktop, attendez que le moteur soit démarré, puis relancez ce fichier.'});
 // Cette installation ne lit aucun lien Supabase distant et ne lance aucun reset.
 const migrationNames=readdirSync(join(root,'supabase/migrations')).filter(n=>n.endsWith('.sql')).sort();
@@ -38,7 +46,7 @@ if(existsSync(envPath)&&!readFileSync(envPath,'utf8').startsWith(managed))fail('
 mkdirSync(join(local,'supabase/migrations'),{recursive:true});
 for(const n of migrationNames)copyFileSync(join(root,'supabase/migrations',n),join(local,'supabase/migrations',n));
 copyFileSync(join(root,'supabase/seed.sql'),join(local,'supabase/seed.sql'));
-let config=readFileSync(join(root,'supabase/config.toml'),'utf8').replace(/^project_id\s*=.*$/m,`project_id = "${projectId}"`);
+let config=readFileSync(join(root,'supabase/config.toml'),'utf8').replace(/^project_id\s*=.*$/m,`project_id = "${projectPrefix}_${fingerprint.slice(0,12)}"`);
 for(const [a,b] of [['54321','29194'],['54322','29242'],['54320','29240'],['54323','29243'],['54324','29244'],['54327','29247'],['54329','29249']])config=config.replaceAll(a,b);
 writeFileSync(join(local,'supabase/config.toml'),config);
 console.log('Préparation de la base de démonstration. Le premier démarrage peut prendre plusieurs minutes.');
