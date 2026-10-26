@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
+import { GuardianFields } from "@/components/minors/guardian-fields";
+import type { GuardiansData } from "@/lib/minors/model";
 import { inscrireCandidat } from "@/lib/candidats/inscription";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
@@ -325,7 +327,9 @@ export function PostulerForm({
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
+  guardians,
 }: {
+  guardians?: GuardiansData;
   mode?: "candidature" | "inscription";
   publicToken?: string;
   connecte?: boolean;
@@ -361,6 +365,7 @@ export function PostulerForm({
   bandeDemoObligatoire?: boolean;
   showAgent?: boolean;
 }) {
+  const [birthDate, setBirthDate] = useState(prefill?.date_naissance ?? "");
   const inscription = mode === "inscription";
   // Compte obligatoire pour postuler : sans connexion, le mot de passe se
   // crée en validant la candidature.
@@ -555,7 +560,8 @@ export function PostulerForm({
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
           </Field>
-          <DateNaissanceField name="date_naissance" required defaultValue={prefill?.date_naissance} />
+          <DateNaissanceField name="date_naissance" required defaultValue={prefill?.date_naissance} onValueChange={setBirthDate} />
+          <GuardianFields birth={birthDate} initial={guardians} />
           <Field label="Commune de naissance" required>
             <Input name="commune_naissance" required defaultValue={prefill?.commune_naissance ?? undefined} />
           </Field>

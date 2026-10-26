@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { GuardianFields } from "@/components/minors/guardian-fields";
+import { DateNaissanceField } from "@/components/ui/date-naissance-field";
+import { useState, useActionState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -11,12 +13,15 @@ export function CreerCompteForm({
   email,
   retour,
   min,
+  dateNaissance,
 }: {
   token: string;
   email: string | null;
   retour: string | null;
   min: number;
+  dateNaissance?: string | null;
 }) {
+  const [birth, setBirth] = useState(dateNaissance ?? "");
   const [state, action, pending] = useActionState(creerCompteDepuisInvitation.bind(null, token), undefined);
 
   return (
@@ -31,6 +36,8 @@ export function CreerCompteForm({
             <Input type="email" value={email} readOnly autoComplete="username" />
           </Field>
         )}
+        {dateNaissance ? <p className="text-sm">Date de naissance enregistrée : {dateNaissance.split("-").reverse().join("/")}</p> : <DateNaissanceField name="date_naissance" required onValueChange={setBirth} />}
+        <GuardianFields birth={birth} />
         <Field label={`Mot de passe (au moins ${min} caractères)`} required>
           <Input type="password" name="password" required minLength={min} autoComplete="new-password" autoFocus />
         </Field>

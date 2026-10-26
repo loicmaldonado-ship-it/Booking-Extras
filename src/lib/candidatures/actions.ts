@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readGuardians } from "@/lib/minors/model";
+import { saveGuardiansFromForm } from "@/lib/minors/data";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
@@ -175,11 +177,18 @@ export async function postulerAnnonce(
     }
   }
 
+  if (session) {
+    const { data: ownProfile, error: ownError } = await createAdminClient().from("figurants").select("date_naissance").eq("id", session.id).single();
+    if (ownError || !ownProfile) return { error: "Profil indisponible. Réessaie plus tard." };
+    if (ownProfile.date_naissance !== dateNaissance) return { error: "Modifie d’abord ta date de naissance depuis ta fiche dans ton compte." };
+  }
   const age = computeAge(dateNaissance);
   if (age === null || age < 0 || age > 120) {
     return { error: "Date de naissance invalide." };
   }
 
+  const guardians = readGuardians(formData, dateNaissance, session?.email ?? email);
+  if ("error" in guardians) return guardians;
   const motDePasse = String(formData.get("password") ?? "");
   if (!session) {
     if (motDePasse.length < MOT_DE_PASSE_MIN) {
@@ -343,6 +352,11 @@ export async function postulerAnnonce(
       return { error: figurantError?.message ?? "Création du compte impossible." };
     }
     figurantId = newFigurant.id;
+    const legal = await saveGuardiansFromForm(figurantId, formData, dateNaissance, email);
+    if (legal.error) {
+      await supabase.from("figurants").delete().eq("id", figurantId);
+      return legal;
+    }
     const mdp = await definirMotDePasse(figurantId, motDePasse);
     if (mdp.error) {
       await supabase.from("figurants").delete().eq("id", figurantId);
@@ -353,6 +367,11 @@ export async function postulerAnnonce(
     // « ajouté·e à une date de tournage », faux ici) : si la suite échoue,
     // un nouvel essai passe par le compte au lieu de « déjà un compte ».
     await createFigurantSession(figurantId);
+  }
+
+  if (session) {
+    const legal = await saveGuardiansFromForm(figurantId, formData, dateNaissance, session.email ?? email);
+    if (legal.error) return legal;
   }
 
   // On n'écrase le lien existant que si un nouveau a été fourni — sinon un

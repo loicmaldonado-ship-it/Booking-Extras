@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createFigurantSession } from "@/lib/candidats/session";
+import { readGuardians, ageOnDate } from "@/lib/minors/model";
 import { hashPassword } from "@/lib/candidats/password";
 import { MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { retourAutorise } from "@/lib/candidats/retour";
@@ -19,6 +20,10 @@ export async function creerCompteDepuisInvitation(
   if (!invitation) return { error: "Ce lien n'est plus valide (expiré ou déjà utilisé)." };
   if (invitation.compteExistant) return { error: "Ton compte existe déjà : connecte-toi avec ton email et ton mot de passe." };
 
+  const birth = invitation.dateNaissance ?? String(formData.get("date_naissance") ?? "");
+  if (ageOnDate(birth) === null) return { error: "La date de naissance est obligatoire." };
+  const guardians = readGuardians(formData, birth, invitation.email ?? "");
+  if ("error" in guardians) return guardians;
   const motDePasse = String(formData.get("password") ?? "");
   if (motDePasse.length < MOT_DE_PASSE_MIN) {
     return { error: `Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.` };
@@ -30,6 +35,8 @@ export async function creerCompteDepuisInvitation(
   const supabase = createAdminClient();
   const { data: figurantId, error } = await supabase.rpc("activer_compte_invitation", {
     p_token: token,
+    p_birth: birth,
+    p_guardians: guardians.data,
     p_password_hash: await hashPassword(motDePasse),
   });
   if (error || !figurantId) return { error: "Ce lien n'est plus valide ou le compte a déjà été créé. Connecte-toi ou demande une nouvelle invitation." };

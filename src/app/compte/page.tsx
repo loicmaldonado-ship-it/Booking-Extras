@@ -1,3 +1,4 @@
+import { getGuardiansForVerifiedCandidate } from "@/lib/minors/data";
 import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -56,6 +57,7 @@ export default async function CompteCandidatPage({
     redirect("/compte/connexion");
   }
 
+  const guardians = await getGuardiansForVerifiedCandidate(session.id);
   const supabase = createAdminClient();
   const [{ data: figurant }, { data: messages }, { data: candidaturesExistantes }, { data: liens }, { data: photosRaw }] =
     await Promise.all([
@@ -156,7 +158,7 @@ export default async function CompteCandidatPage({
 
       <PushSubscribe />
 
-      <MaFicheForm figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
+      <MaFicheForm guardians={guardians} figurant={figurant} lienBandeDemo={lienBandeDemo} lienInstagram={lienInstagram} />
 
       <IndisponibilitesPanel indisponibilites={indisponibilites ?? []} />
 

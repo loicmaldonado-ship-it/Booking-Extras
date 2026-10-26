@@ -1,5 +1,7 @@
 "use server";
 
+import { readGuardians } from "@/lib/minors/model";
+import { saveGuardiansFromForm } from "@/lib/minors/data";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,10 +26,9 @@ export async function inscrireCandidat(
 ): Promise<{ error?: string; compteExistant?: boolean; invitationEnvoyee?: boolean }> {
   const lu = lireProfil(formData);
   if ("error" in lu) return { error: lu.error };
-  const { profil, age } = lu;
-  if (age < 16) {
-    return { error: "L'inscription en ligne est réservée aux 16 ans et plus. Pour un·e mineur·e, contacte le casting." };
-  }
+  const { profil } = lu;
+  const guardians = readGuardians(formData, profil.date_naissance, profil.email);
+  if ("error" in guardians) return guardians;
 
   const motDePasse = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("password_confirmation") ?? "");
@@ -96,6 +97,11 @@ export async function inscrireCandidat(
       return { compteExistant: true, error: "Tu as déjà un compte avec cet email. Connecte-toi." };
     }
     return { error: error?.message ?? "Création du compte impossible." };
+  }
+  const legal = await saveGuardiansFromForm(figurant.id, formData, profil.date_naissance, profil.email);
+  if (legal.error) {
+    await supabase.from("figurants").delete().eq("id", figurant.id);
+    return legal;
   }
   const mdp = await definirMotDePasse(figurant.id, motDePasse);
   if (mdp.error) {

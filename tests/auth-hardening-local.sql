@@ -17,6 +17,7 @@ begin begin
  assert not has_function_privilege('authenticated','public.changer_mot_de_passe_candidat(uuid,text,boolean,text)','execute');
 
  insert into public.figurants(id,prenom,nom,acces_compte) values(fid,'Session','Test',true);
+ update public.figurants set date_naissance='1995-01-01' where id=fid;
  insert into public.figurant_sessions(figurant_id,token,expires_at) values(fid,repeat('d',32),now()+interval '1 hour'),(fid,repeat('e',32),now()+interval '1 hour');
  insert into public.figurant_auth_tokens(figurant_id,token,objet,expires_at) values(fid,repeat('f',32),'connexion',now()+interval '1 hour');
  set local role service_role;

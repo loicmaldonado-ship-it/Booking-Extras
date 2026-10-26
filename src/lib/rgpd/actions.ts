@@ -30,7 +30,7 @@ export async function anonymiserFigurant(id: string) {
   if (linksError) return { error: "Suppression des liens impossible. Réessaie." };
   const { error: accessError } = await supabase.from("figurants").update({ acces_compte: false }).eq("id", id);
   if (accessError) return { error: "Révocation de l’accès impossible. Réessaie." };
-  for (const table of ["figurant_sessions", "figurant_auth_tokens", "figurant_comptes"]) {
+  for (const table of ["figurant_sessions", "figurant_auth_tokens", "figurant_comptes", "minor_guardians"]) {
     const { error: authError } = await supabase.from(table).delete().eq("figurant_id", id);
     if (authError) return { error: "Nettoyage des accès incomplet. Réessaie." };
   }

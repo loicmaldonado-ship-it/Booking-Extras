@@ -39,11 +39,13 @@ export function DateNaissanceField({
   label = "Date de naissance",
   required,
   defaultValue,
+  onValueChange,
 }: {
   name: string;
   label?: string;
   required?: boolean;
   defaultValue?: string | null;
+  onValueChange?: (value: string) => void;
 }) {
   const initial = defaultValue ? defaultValue.split("-").map(Number) : null;
   const [year, setYear] = useState<number | null>(initial?.[0] ?? null);
@@ -54,6 +56,11 @@ export function DateNaissanceField({
   const clampedDay = day && day > maxDay ? maxDay : day;
 
   const value = year && month && clampedDay ? `${year}-${pad(month)}-${pad(clampedDay)}` : "";
+
+  function emit(y: number | null, m: number | null, d: number | null) {
+    const limited = d ? Math.min(d, daysInMonth(y, m)) : null;
+    onValueChange?.(y && m && limited ? `${y}-${pad(m)}-${pad(limited)}` : "");
+  }
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 1920 + 1 }, (_, i) => currentYear - i);
@@ -66,7 +73,7 @@ export function DateNaissanceField({
           aria-label="Jour de naissance"
           required={required}
           value={clampedDay ?? ""}
-          onChange={(e) => setDay(e.target.value ? Number(e.target.value) : null)}
+          onChange={(e) => { const next = e.target.value ? Number(e.target.value) : null; setDay(next); emit(year, month, next); }}
         >
           <option value="">Jour</option>
           {Array.from({ length: maxDay }, (_, i) => i + 1).map((d) => (
@@ -79,7 +86,7 @@ export function DateNaissanceField({
           aria-label="Mois de naissance"
           required={required}
           value={month ?? ""}
-          onChange={(e) => setMonth(e.target.value ? Number(e.target.value) : null)}
+          onChange={(e) => { const next = e.target.value ? Number(e.target.value) : null; setMonth(next); emit(year, next, day); }}
         >
           <option value="">Mois</option>
           {MOIS.map((m, i) => (
@@ -92,7 +99,7 @@ export function DateNaissanceField({
           aria-label="Année de naissance"
           required={required}
           value={year ?? ""}
-          onChange={(e) => setYear(e.target.value ? Number(e.target.value) : null)}
+          onChange={(e) => { const next = e.target.value ? Number(e.target.value) : null; setYear(next); emit(next, month, day); }}
         >
           <option value="">Année</option>
           {years.map((y) => (

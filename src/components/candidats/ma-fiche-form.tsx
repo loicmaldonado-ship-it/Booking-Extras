@@ -1,5 +1,7 @@
 "use client";
 
+import { GuardianFields } from "@/components/minors/guardian-fields";
+import type { GuardiansData } from "@/lib/minors/model";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
@@ -35,13 +37,16 @@ function missingFieldLabels(figurant: Figurant): string[] {
 
 export function MaFicheForm({
   figurant,
+  guardians,
   lienBandeDemo,
   lienInstagram,
 }: {
   figurant: Figurant;
+  guardians?: GuardiansData;
   lienBandeDemo: string | null;
   lienInstagram: string | null;
 }) {
+  const [birth, setBirth] = useState(figurant.date_naissance ?? "");
   const router = useRouter();
   const missing = missingFieldLabels(figurant);
   const [editing, setEditing] = useState(missing.length > 0);
@@ -254,7 +259,8 @@ export function MaFicheForm({
             <Field label="Téléphone" required>
               <Input type="tel" name="telephone" required defaultValue={figurant.telephone ?? ""} />
             </Field>
-            <DateNaissanceField name="date_naissance" defaultValue={figurant.date_naissance} />
+            <DateNaissanceField name="date_naissance" required defaultValue={figurant.date_naissance} onValueChange={setBirth} />
+            <GuardianFields birth={birth} initial={guardians} />
             <Field label="Commune de naissance" required>
               <Input name="commune_naissance" defaultValue={figurant.commune_naissance ?? ""} required />
             </Field>

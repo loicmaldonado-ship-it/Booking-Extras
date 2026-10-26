@@ -7,7 +7,7 @@ assert.equal(process.env.BOOKING_TEST_MODE,'1');
 const client=createClient(url.href,process.env.SUPABASE_SERVICE_ROLE_KEY,{auth:{persistSession:false}});
 const id=randomUUID(),token=randomUUID().replaceAll('-','');
 try {
- assert.ifError((await client.from('figurants').insert({id,prenom:'Concurrence',nom:'Fixture',acces_compte:true})).error);
+ assert.ifError((await client.from('figurants').insert({id,prenom:'Concurrence',nom:'Fixture',acces_compte:true,date_naissance:'1995-01-01'})).error);
  assert.ifError((await client.from('figurant_sessions').insert({figurant_id:id,token,expires_at:new Date(Date.now()+3600000).toISOString()})).error);
  const answers=await Promise.all(['a','b'].map(c=>client.rpc('changer_mot_de_passe_candidat',{
   p_id:id,p_hash:c.repeat(32)+':'+c.repeat(128),p_creer_session:true,p_current_token:token,

@@ -1,3 +1,4 @@
+import { getGuardiansForVerifiedCandidate } from "@/lib/minors/data";
 import Image from "next/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -196,6 +197,7 @@ export default async function PostulerPage({
       {annonce.statut === "ouverte" && !complet ? (
         <PostulerForm
           publicToken={annonce.public_token}
+          guardians={session ? await getGuardiansForVerifiedCandidate(session.id) : undefined}
           questions={await getAnnonceQuestions(annonce.id)}
           dates={annonceDates}
           disposParCalendrier={annonce.dispos_par_calendrier}

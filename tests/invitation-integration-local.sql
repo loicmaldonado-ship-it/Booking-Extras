@@ -2,9 +2,10 @@ do $test$
 declare result uuid; n integer; expected_hash text := repeat('a',32)||':'||repeat('b',128);
 begin
  begin
-  assert not has_function_privilege('anon','public.activer_compte_invitation(text,text)','execute'),'RPC ouverte au public';
-  assert not has_function_privilege('authenticated','public.activer_compte_invitation(text,text)','execute'),'RPC ouverte au staff direct';
+  assert not has_function_privilege('anon','public.activer_compte_invitation(text,text,date,jsonb)','execute'),'RPC ouverte au public';
+  assert not has_function_privilege('authenticated','public.activer_compte_invitation(text,text,date,jsonb)','execute'),'RPC ouverte au staff direct';
   insert into public.figurants(id,prenom,nom,acces_compte) values('00000000-0000-4000-8000-00000000b100','Invitation','Test',false);
+  update public.figurants set date_naissance='1995-01-01' where id='00000000-0000-4000-8000-00000000b100';
   insert into public.figurant_auth_tokens(figurant_id,token,objet,expires_at) values
     ('00000000-0000-4000-8000-00000000b100',repeat('c',32),'creation_compte',now()+interval '1 hour'),
     ('00000000-0000-4000-8000-00000000b100',repeat('d',32),'creation_compte',now()+interval '1 hour');

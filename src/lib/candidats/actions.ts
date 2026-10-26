@@ -1,5 +1,6 @@
 "use server";
 
+import { readGuardians } from "@/lib/minors/model";
 import { aAccesComplet } from "@/lib/auth/owner";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -323,7 +324,7 @@ function buildVehiculePayload(fd: FormData) {
 // Le candidat ne modifie que sa PROPRE fiche — l'id vient de sa session,
 // jamais d'un champ du formulaire, pour ne jamais pouvoir modifier un autre
 // profil.
-export async function updateMaFiche(_prevState: unknown, formData: FormData) {
+export async function updateMaFiche(_prevState: unknown, formData: FormData): Promise<{ error?: string; success?: true }> {
   const session = await getCurrentFigurant();
   if (!session) return { error: "Non connecté." };
 
@@ -352,17 +353,22 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
     return { error: "La pointure doit être comprise entre 15 et 60." };
   }
 
+  const birth = str(formData, "date_naissance") ?? "";
+  const guardians = readGuardians(formData, birth, email);
+  if ("error" in guardians) return guardians;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { error: "Adresse email invalide." };
   const supabase = createAdminClient();
+  const { error: identityError } = await supabase.rpc("update_candidate_identity", { p_id: session.id, p_email: email, p_birth: birth, p_guardians: guardians.data });
+  if (identityError) return { error: "L’identité n’a pas pu être enregistrée. Vérifie la date de naissance et les trois emails." };
   const { error } = await supabase
     .from("figurants")
     .update({
-      email,
       telephone,
       ville,
       adresse,
       code_postal: codePostal,
       commune_naissance: communeNaissance,
-      date_naissance: str(formData, "date_naissance"),
+
       genre,
       pronom,
       taille_cm: num(formData, "taille_cm"),
