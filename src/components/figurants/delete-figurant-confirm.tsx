@@ -11,13 +11,13 @@ export function DeleteFigurantConfirm({ id, label }: { id: string; label: string
   useEffect(() => {
     if (!open) return;
     const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") { setOpen(false); setConfirmation(""); setError(null); }
     };
     document.addEventListener("keydown", onEscape);
     return () => document.removeEventListener("keydown", onEscape);
   }, [open]);
   if (!open) {
-    return <button type="button" className="rounded-full px-3 py-2 text-sm text-danger hover:underline" onClick={() => setOpen(true)}>
+    return <button type="button" className="rounded-full px-3 py-2 text-sm text-danger hover:underline" onClick={() => { setConfirmation(""); setError(null); setOpen(true); }}>
       Supprimer
     </button>;
   }

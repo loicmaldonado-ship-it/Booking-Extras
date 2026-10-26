@@ -1,0 +1,32 @@
+do $test$
+declare empty_profile uuid:=gen_random_uuid(); booked uuid:=gen_random_uuid(); candidate uuid:=gen_random_uuid(); orphan_media uuid:=gen_random_uuid(); fitting uuid:=gen_random_uuid(); assistant_session uuid:=gen_random_uuid(); session_id uuid:=gen_random_uuid();
+ actor uuid:='00000000-0000-4000-8000-00000000c0c0'; project uuid:='00000000-0000-4000-8000-0000000070e0';
+begin begin
+ insert into public.figurants(id,prenom,nom,date_naissance,acces_compte) values(empty_profile,'Vide','Fixture','1990-01-01',false),(booked,'Booking','Fixture','1990-01-01',false),(candidate,'Candidature','Fixture','1990-01-01',true),(orphan_media,'Fichier','Fixture','1990-01-01',false),(fitting,'Essayage','Fixture','1990-01-01',false);
+ insert into public.figurant_comptes(figurant_id,password_hash) values(candidate,'fixture-inutilisable');
+ insert into public.candidatures(figurant_id,annonce_id) values(candidate,'00000000-0000-4000-8000-00000000a000');
+ insert into public.bookings(figurant_id,projet_id,date) values(booked,project,current_date+10);
+ insert into public.essayages(figurant_id,projet_id,date) values(fitting,project,current_date+10);
+ insert into storage.objects(bucket_id,name) values('figurant-photos',orphan_media::text||'/orphelin-fictif.png');
+ insert into auth.sessions(id,user_id,created_at) values(session_id,actor,now()),(assistant_session,'00000000-0000-4000-8000-00000000a551',now());
+ assert not has_function_privilege('anon','public.delete_unused_figurant(uuid)','EXECUTE'),'RPC suppression accessible anon';
+ perform set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-00000000a551','role','authenticated','session_id',assistant_session)::text,true);
+ set local role authenticated;
+ begin perform public.delete_unused_figurant(booked); raise exception using errcode='ZX002',message='Suppression assistante acceptée'; exception when insufficient_privilege then null; end;
+ reset role;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'role','authenticated','session_id',session_id)::text,true);
+ set local role authenticated;
+ perform public.delete_unused_figurant(empty_profile);
+ begin perform public.delete_unused_figurant(candidate); raise exception using errcode='ZX002',message='Candidature supprimée en cascade'; exception when foreign_key_violation then null; end;
+ begin perform public.delete_unused_figurant(booked); raise exception using errcode='ZX002',message='Booking supprimé en cascade'; exception when foreign_key_violation then null; end;
+ begin perform public.delete_unused_figurant(fitting); raise exception using errcode='ZX002',message='Essayage supprimé en cascade'; exception when foreign_key_violation then null; end;
+ begin perform public.delete_unused_figurant(orphan_media); raise exception using errcode='ZX002',message='Média sans référence oublié'; exception when foreign_key_violation then null; end;
+ reset role;
+ assert not exists(select 1 from public.figurants where id=empty_profile),'Profil vide non supprimé';
+ assert exists(select 1 from public.candidatures where figurant_id=candidate),'Candidature perdue';
+ assert exists(select 1 from public.essayages where figurant_id=fitting),'Essayage perdu';
+ assert exists(select 1 from public.bookings where figurant_id=booked),'Booking perdu';
+ assert exists(select 1 from public.figurants where id=orphan_media),'Profil avec média perdu';
+ raise exception using errcode='ZX001',message='rollback fixtures';
+ exception when sqlstate 'ZX001' then null; end;
+end $test$;
