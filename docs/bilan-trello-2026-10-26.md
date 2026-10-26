@@ -2,7 +2,7 @@
 
 Code examiné : `f4961bb8742b0dc3c68f43b3b02639975afd11eb` ; branche `tests/integration-main-elea-2026-10-22`. Mission en cours : ce document n’est pas une validation globale de fin de chantier.
 
-Tableau actuel relu le 26 octobre 2026 : 86 cartes actives, aucun changement de titre/description/activité depuis le relevé complet. Les descriptions, commentaires et checklists du relevé intégral sont archivés dans trello-source-2026-10-26.json. Éléa autorise désormais la coche verte et un commentaire uniquement après validation réelle. La synchronisation est en cours. Les commentaires CAN-02 et DEC-03 priment sur les anciens titres. Aucune durée de conservation n’a été trouvée dans les cartes/commentaires consultés.
+Tableau actuel relu le 26 octobre 2026 : 86 cartes actives, aucun changement de titre/description/activité depuis le relevé complet. Les descriptions, commentaires et checklists du relevé intégral sont archivés dans trello-source-2026-10-26.json. Éléa autorise désormais la coche verte et un commentaire uniquement après validation réelle. Synchronisation vérifiée : 12 commentaires de preuves, 9 nouvelles coches vertes et 3 décisions déjà cochées, le 26/10. Voir trello-validations-2026-10-26.json. Les autres coches historiques ne constituent pas une preuve de recette. Les commentaires CAN-02 et DEC-03 priment sur les anciens titres. Aucune durée de conservation n’a été trouvée dans les cartes/commentaires consultés.
 
 ## Preuves et portée
 

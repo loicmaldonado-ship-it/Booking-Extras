@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-26",
+  "authorization": "Éléa autorise coche verte et commentaire après développement, tests et contrôles de sécurité réussis.",
+  "branch": "tests/integration-main-elea-2026-10-22",
+  "codeCommit": "f4961bb",
+  "documentationCommit": "e9d2b13",
+  "total": 12,
+  "newlyChecked": 9,
+  "records": [
+    {
+      "key": "BUG-04",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9943bf7c7d43251f39a",
+      "title": "[BUG-04] La révocation de l’accès candidat n’empêche pas la connexion",
+      "url": "https://trello.com/c/dTq3LVXS/71-bug-04-la-r%C3%A9vocation-de-lacc%C3%A8s-candidat-nemp%C3%AAche-pas-la-connexion",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf91e41f91b44ab814dfea",
+      "commentText": "[RECETTE 2026-10-26 — BUG-04]\nOK — terminée et vérifiée.\n\nFait : la désactivation du compte et la suppression de ses sessions/liens sont atomiques. Une nouvelle session ou un nouveau lien de connexion est verrouillé contre une révocation simultanée. Les invitations explicites des fiches sans compte restent possibles.\n\nTests exécutés : navigateur, compte actif OK ; session ouverte refusée après désactivation ; nouvelle connexion refusée avec message neutre ; réactivation puis connexion OK. Durée initiale de session de 7 jours contrôlée et expiration forcée refusée. SQL : panne volontaire de suppression → rollback complet. API réelle : 20 courses session/lien/révocation, aucun jeton survivant. Cinq scénarios SQL de non-régression réussis.\n\nCorrectif : 999a9a8. Preuves : docs/recette-revocation-2026-10-26.md et logs/captures associés. Les autres scénarios de récupération et de partage de SEC-02/07 restent distincts.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "BUG-06",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99508b82aef2dda6efb",
+      "title": "[BUG-06] Sécuriser la suppression destructive d’un profil",
+      "url": "https://trello.com/c/PbLEsfag/73-bug-06-s%C3%A9curiser-la-suppression-destructive-dun-profil",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf9219dc1a6bab769c91b6",
+      "commentText": "[RECETTE 2026-10-26 — BUG-06]\nOK — terminée et vérifiée.\n\nFait : suppression réservée au propriétaire, confirmation SUPPRIMER contrôlée côté serveur, avertissement explicite et annulation. Échap et toute réouverture effacent la confirmation. Profil avec historique ou fichier privé encore présent, même sans référence photo, refusé et orienté vers RGPD.\n\nTests exécutés : SQL profil vide/candidature/booking/essayage/fichier orphelin et refus assistante/anon ; API Storage réelle : fichier et profil préservés lors du refus, puis suppression autorisée après retrait physique du fichier. Navigateur : saisie, Échap, réouverture vide et bouton désactivé, Annuler sans suppression. Cinq tests comportementaux ; suite 184/184, types/lint/build réussis.\n\nCorrectif : f4961bb. Preuves : docs/recette-suppression-2026-10-26.md. Aucun clic de suppression définitive sur la fiche Sacha pendant le contrôle navigateur ; la suppression réelle a porté sur des fixtures créées pour le test API.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "BUG-12",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c999d0267f05f14962ef",
+      "title": "[BUG-12] Rendre la fusion de profils transactionnelle",
+      "url": "https://trello.com/c/9ro08hh9/79-bug-12-rendre-la-fusion-de-profils-transactionnelle",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf921fd179bf713201678b",
+      "commentText": "[RECETTE 2026-10-26 — BUG-12]\nOK — terminée et vérifiée pour le caractère transactionnel de la fusion.\n\nFait : correction d’un échec réel dû à l’ordre des dépendances ; le compte précède désormais ses candidatures. Compte, candidature, booking lié, photo, messages et liens sont transférés dans une transaction. Anciennes sessions/liens révoqués. Deux comptes existants restent un conflit, sans écrasement du mot de passe.\n\nTests exécutés : SQL transfert complet ; panne volontaire au transfert photo après déplacement des autres données → rollback complet, y compris compte et sessions ; candidatures/comptes en conflit conservés. API authentifiée : assistante refusée et cinq courses de fusion inversée, un succès/un refus propre, aucun lien perdu. Conseiller sécurité local : aucune alerte warn/error.\n\nCorrectif : 1b3c2c8. Preuves : docs/recette-fusion-2026-10-26.md. Les fiches portant des données légales mineur sont conservées et leur fusion automatique refusée pour revue ; CAN-03 reste partielle. Le dialogue de conflit n’a pas été recliqué, le vrai RPC a été testé par SQL et HTTP.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "QA-01",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0035f6d65d4de893ee",
+      "title": "[QA-01] Obtenir un build TypeScript propre",
+      "url": "https://trello.com/c/kpb6iMIS/52-qa-01-obtenir-un-build-typescript-propre",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf922535f8b94a427d0eed",
+      "commentText": "[RECETTE 2026-10-26 — QA-01]\nOK — compilation et types vérifiés.\n\nFait : correction des erreurs rencontrées sur la branche intégrée, sans ignoreBuildErrors. Contrôles réellement exécutés après le dernier changement applicatif : npm run typecheck et npm run build, tous deux réussis. Le build utilise la configuration locale isolée, sans cible de production.\n\nPreuves : docs/preuves-2026-10-26/delete-profile-types.log et delete-profile-build.log. La suite complète compte 184 tests réussis. Cette validation concerne la compilation ; elle ne vaut pas recette fonctionnelle de toutes les cartes.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "QA-02",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a00d17592047b2e2797",
+      "title": "[QA-02] Obtenir un lint propre",
+      "url": "https://trello.com/c/8bnndDFF/53-qa-02-obtenir-un-lint-propre",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf922ab583ce20474344f0",
+      "commentText": "[RECETTE 2026-10-26 — QA-02]\nOK — lint vérifié.\n\nFait : correction des erreurs de qualité/imports/formulaires au fil des lots. Dernière exécution npm run lint : succès, 0 erreur et aucun avertissement émis. Types et build réussis après le changement de composant de confirmation.\n\nPreuve : docs/preuves-2026-10-26/delete-profile-lint.log, types/build associés. Aucune désactivation globale supplémentaire pour masquer les erreurs.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "QA-03",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0128840d340207ed41",
+      "title": "[QA-03] Rejouer l’audit des dépendances et corriger les vulnérabilités",
+      "url": "https://trello.com/c/TMOYefob/54-qa-03-rejouer-laudit-des-d%C3%A9pendances-et-corriger-les-vuln%C3%A9rabilit%C3%A9s",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf9231a28dde2a46ca0b44",
+      "commentText": "[RECETTE 2026-10-26 — QA-03]\nOK — audit des dépendances vérifié.\n\nFait : dépendances vulnérables mises à jour et lockfile sauvegardé, notamment Next, Supabase, bibliothèques email, sharp et corrections transitives uuid/zod. Dernier npm audit --json réellement relancé avant cette coche : 0 vulnérabilité (critique, haute, modérée, faible et information : toutes à 0).\n\nNon-régression : types/lint/build réussis, 184 tests ; décodage d’images et vérification Storage/Next réels ; export/relecture XLSX exécutés dans les lots précédents.\n\nPreuve actuelle : docs/preuves-2026-10-26/trello-audit-current.json. Audit valable au 26 octobre ; à relancer lors des prochaines mises à jour. Il ne remplace pas l’audit des autorisations métier.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "ENV-03",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e15f1e69f005f423d4",
+      "title": "[ENV-03] Vérifier les trois profils de test",
+      "url": "https://trello.com/c/WE4obZ2A/7-env-03-v%C3%A9rifier-les-trois-profils-de-test",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf9238b5849df6211db279",
+      "commentText": "[RECETTE 2026-10-26 — ENV-03]\nOK — les trois profils fictifs ont été vérifiés.\n\nTests navigateur réellement exécutés : cheffe propriétaire → tableau de bord et sections ; assistante → projet membre et écrans de son périmètre ; candidate Sacha → fiche, historique de candidature et espace personnel. Une session candidate ne donne pas accès aux pages staff. Déconnexion staff/candidate et reconnexions exécutées. Expiration et révocation candidate ont également été contrôlées dans BUG-04.\n\nComplément API récent : connexions cheffe/assistante réussies ; assistante refusée sur suppression globale et fusion, propriétaire autorisé sur fixtures. Aucune identité ni aucun secret de production utilisés.\n\nPreuves : captures dans docs/preuves-2026-10-26 et docs/recette-revocation-2026-10-26.md. Cette carte valide les trois connexions distinctes ; la matrice exhaustive de toutes les ressources reste dans SEC-03/04.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "ENV-07",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e4de0bda4e991e31ba",
+      "title": "[ENV-07] Fixer la méthode Git de l’équipe",
+      "url": "https://trello.com/c/lrbA93xT/11-env-07-fixer-la-m%C3%A9thode-git-de-l%C3%A9quipe",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf923de38c00a74be3b230",
+      "commentText": "[RECETTE 2026-10-26 — ENV-07]\nOK — méthode écrite et appliquée à cette reprise.\n\nFait : règles Git documentées dans docs/git-workflow-elea.md, avec priorité explicite à la mission actuelle : seule la branche de tests est modifiée, commits cohérents locaux, nouvelles migrations, préservation du travail initial, aucun push ni déploiement. Le workflow général futur ne permet aucune modification de main/elea dans cette mission.\n\nVérification Git : fusion 01996d0 avec parents elea 713d360 et main 855b021 ; les deux commits et les références origin/main/origin/elea connues sont ancêtres de la branche actuelle. Changements locaux initiaux sauvegardés avant fusion. Les correctifs et preuves ont été commités par lots.\n\nLa publication et l’adoption de futurs changements par l’équipe restent soumises à une autorisation séparée ; cette coche ne promet ni CI distante exécutée ni protection de branche distante vérifiée.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "DEC-01",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499dd2faf63ee341711c6",
+      "title": "[DEC-01] Trancher : peut-on postuler sans compte ?",
+      "url": "https://trello.com/c/hlHTJ1Ju/1-dec-01-trancher-peut-on-postuler-sans-compte",
+      "complete": true,
+      "wasAlreadyComplete": true,
+      "commentId": "ari:cloud:trello::action/6adf92424f77d2bbc5c78358",
+      "commentText": "[RECETTE 2026-10-26 — DEC-01]\nOK — décision métier existante relue et appliquée.\n\nDécision : compte obligatoire pour postuler ; l’ancienne formulation « sans compte » de CAN-02 ne doit pas être implémentée comme un parcours public concurrent. Une fiche ajoutée rapidement reste sans accès jusqu’à activation.\n\nVérification : commentaire Éléa « non » et précision métier CAN-02 relus ; garde côté base refusant une candidature sans compte, tests d’invitation/activation SQL exécutés. Le compte et la candidature sont distingués dans les messages et le modèle.\n\nCette carte porte sur la décision. Les scénarios complets de création/reprise, doublons, médias et candidature sont suivis séparément dans CAN-01/02/03/05.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "DEC-03",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499df725b57dedf8a8a1d",
+      "title": "[DEC-03] Valider les règles métier pour les mineurs et les dossiers DRIEETS",
+      "url": "https://trello.com/c/FyvaKghw/3-dec-03-valider-les-r%C3%A8gles-m%C3%A9tier-pour-les-mineurs-et-les-dossiers-drieets",
+      "complete": true,
+      "wasAlreadyComplete": true,
+      "commentId": "ari:cloud:trello::action/6adf92457407fe7fb620be50",
+      "commentText": "[RECETTE 2026-10-26 — DEC-03]\nOK pour la décision métier documentée — pas une validation globale de toutes les cartes LEG.\n\nCommentaire Mathieu du 19/10 relu : deux représentants et trois emails différents ; exception du second représentant selon décès/absence d’autorité ; moins de 16 ans, pièces configurables et dossier DRIEETS complet avant booking ; 16–18 ans, autorisations parentales.\n\nConcrètement développé ensuite : représentants privés, dossiers par enfant/projet, dépôt et validation des pièces, liens parent/production révocables, préparation DRIEETS, verrou booking/convocation. SQL, API et parcours navigateur ciblés exécutés ; preuves dans docs/dossiers-mineurs-2026-10-26.md.\n\nPoint NON décidé dans les cartes/commentaires consultés : durée de conservation et événement de départ. Aucun délai inventé ; LEG-02/05/06 restent ouverts pour ce point et les autres critères restants. Modèle DRIEETS et recette métier finale restent à valider.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "DEC-04",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499dfad3ee897314f69a0",
+      "title": "[DEC-04] Définir la recette : qui valide chaque grande fonctionnalité ?",
+      "url": "https://trello.com/c/ctPcehBU/4-dec-04-d%C3%A9finir-la-recette-qui-valide-chaque-grande-fonctionnalit%C3%A9",
+      "complete": true,
+      "wasAlreadyComplete": true,
+      "commentId": "ari:cloud:trello::action/6adf9249e603955fa2eed607",
+      "commentText": "[RECETTE 2026-10-26 — DEC-04]\nOK — responsabilités de recette documentées selon la décision existante.\n\nCommentaire Mathieu du 19/10 : Loïc et Mathieu décident des règles métier, interface et organisation ; Éléa décide des aspects strictement techniques. docs/recette.md contient désormais, pour chaque bloc, scénario/résultat attendu, référents Loïc et Mathieu et état de validation.\n\nBlocs couverts : accès/candidature, équipes/confidentialité, booking/messages, essayages/casting, documents/rémunération, mineurs/DRIEETS, RGPD et appareils réels. README-RECETTE.md explique le lancement et le signalement d’anomalies.\n\nCette coche valide la désignation et la grille, pas l’exécution de la recette métier : REL-03 reste bloquée en attente de Loïc/Mathieu.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb (documents de bilan : e9d2b13). Vérifications sur bases locales isolées et données fictives ; aucun push ni déploiement. Cette coche valide les critères de cette carte, pas l’ensemble du produit.",
+      "verified": true
+    },
+    {
+      "key": "BUG-10",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9984573c78bea9d32f1",
+      "title": "[BUG-10] Fermer l’open redirect sur le paramètre next",
+      "url": "https://trello.com/c/OdQcdTf0/77-bug-10-fermer-lopen-redirect-sur-le-param%C3%A8tre-next",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6adf924d23606c5220ea4b84",
+      "commentText": "[RECETTE 2026-10-26 — BUG-10]\nOK — redirections internes vérifiées.\n\nFait : helper safeInternalPath central et validation des retours candidat ; refus des URL externes, protocol-relative et formes ambiguës. Auth staff et confirmation après échange de code utilisent le retour validé.\n\nTests réellement exécutés : /projets accepté ; //evil.example et https://evil.example refusés ; valeur vide retombe sur la route locale ; variantes avec antislash et redirect_to externe refusées même après un échange de code réussi. Les tests de redirection et frontières auth passent dans la suite complète 184/184.\n\nPreuves : tests/auth-boundaries.test.mjs et docs/preuves-2026-10-26/delete-profile-tests.log. Aucun accès au domaine de test externe n’a été nécessaire : les URL sont des valeurs de test.\n\nBranche : tests/integration-main-elea-2026-10-22. Code vérifié : f4961bb ; bilan e9d2b13. Cette carte ne valide pas tous les autres aspects de l’authentification.",
+      "verified": true
+    }
+  ]
+}

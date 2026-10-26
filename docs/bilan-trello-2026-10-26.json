@@ -25,7 +25,9 @@
       "next": "Appliquer cette règle dans les derniers cas de reprise ; aucune nouvelle décision utilisateur nécessaire.",
       "references": [
         "docs/trello-source-2026-10-26.json"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf92424f77d2bbc5c78358"
     },
     {
       "id": "DEC-02",
@@ -57,7 +59,9 @@
       "next": "Appliquer la décision existante ; ne solliciter le métier que pour la conservation et les modèles non fournis.",
       "references": [
         "docs/trello-source-2026-10-26.json"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf92457407fe7fb620be50"
     },
     {
       "id": "DEC-04",
@@ -73,7 +77,9 @@
       "next": "Faire valider les scénarios métier finaux à Loïc/Mathieu ; leur intervention est nécessaire pour REL-03.",
       "references": [
         "docs/trello-source-2026-10-26.json"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf9249e603955fa2eed607"
     },
     {
       "id": "ENV-01",
@@ -127,7 +133,9 @@
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
         "README.md"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf9238b5849df6211db279"
     },
     {
       "id": "ENV-04",
@@ -199,7 +207,9 @@
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
         "README.md"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf923de38c00a74be3b230"
     },
     {
       "id": "SEC-01",
@@ -899,7 +909,9 @@
       "references": [
         "package.json",
         "tests/integration-security.test.mjs"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf922535f8b94a427d0eed"
     },
     {
       "id": "QA-02",
@@ -916,7 +928,9 @@
       "references": [
         "package.json",
         "tests/integration-security.test.mjs"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf922ab583ce20474344f0"
     },
     {
       "id": "QA-03",
@@ -933,7 +947,9 @@
       "references": [
         "package.json",
         "docs/preuves-2026-10-26/dependencies-final.json"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf9231a28dde2a46ca0b44"
     },
     {
       "id": "QA-04",
@@ -1234,7 +1250,9 @@
       "references": [
         "src/lib/candidats/session.ts",
         "src/lib/candidats/actions.ts"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf91e41f91b44ab814dfea"
     },
     {
       "id": "BUG-05",
@@ -1268,7 +1286,9 @@
       "references": [
         "src/lib/figurants/actions.ts",
         "tests/access-and-deletion-guards.test.mjs"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf9219dc1a6bab769c91b6"
     },
     {
       "id": "BUG-07",
@@ -1334,7 +1354,9 @@
       "next": "Préserver les tests lors de nouveaux écrans auth ; aucune action utilisateur.",
       "references": [
         "tests/safe-next.test.mjs"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf924d23606c5220ea4b84"
     },
     {
       "id": "BUG-11",
@@ -1368,7 +1390,9 @@
       "references": [
         "supabase/migrations/20261011000004_merge_figurants_atomique.sql",
         "src/lib/figurants/actions.ts"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6adf921fd179bf713201678b"
     },
     {
       "id": "BUG-13",
@@ -1476,5 +1500,10 @@
   "state": "bilan de progression exhaustif, mission en cours",
   "trello_rechecked": "2026-10-26 : 86 cartes actives, titres/descriptions/activité inchangés",
   "non_evaluees": 0,
-  "trello_updates_authorized": true
+  "trello_updates_authorized": true,
+  "trello_sync": {
+    "verified": 12,
+    "newly_checked": 9,
+    "already_checked": 3
+  }
 }
