@@ -1,3 +1,5 @@
+import "server-only";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FigurantInactif = {
@@ -11,6 +13,8 @@ export type FigurantInactif = {
 // Aucune tâche planifiée n'appelle cette fonction : c'est une consultation
 // à la demande, pour préparer une anonymisation manuelle (voir actions.ts).
 export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantInactif[]> {
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner || actor.role !== "chef") return [];
   const supabase = createAdminClient();
   const seuilDate = new Date();
   seuilDate.setFullYear(seuilDate.getFullYear() - seuilAns);

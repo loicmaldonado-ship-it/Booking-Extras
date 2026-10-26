@@ -106,7 +106,7 @@ export default async function Home() {
     candidatureCounts.set(c.annonce_id, (candidatureCounts.get(c.annonce_id) ?? 0) + 1);
   }
 
-  const sections = SECTIONS.filter((s) => !s.chefOnly || profile?.role === "chef");
+  const sections = SECTIONS.filter((s) => (s.href !== "/rgpd" || profile?.isOwner) && (!s.chefOnly || profile?.role === "chef"));
 
   return (
     <div className="flex flex-col gap-8">

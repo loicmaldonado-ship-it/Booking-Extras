@@ -143,7 +143,7 @@ export function AppShell({
   }
 
   const navItems = [
-    ...NAV_ITEMS.filter((item) => item.href === "/" || hasSectionAccess(profile, item.href as SectionKey)),
+    ...NAV_ITEMS.filter((item) => (item.href !== "/rgpd" || isOwner(profile)) && (item.href === "/" || hasSectionAccess(profile, item.href as SectionKey))),
     ...(profile?.role === "chef"
       ? [{ label: "Équipe", href: "/equipe", enabled: true, icon: UsersRound }]
       : []),

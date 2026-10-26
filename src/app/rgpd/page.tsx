@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { nomComplet } from "@/lib/noms";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
@@ -15,6 +17,8 @@ export default async function RgpdPage({
 }: {
   searchParams: Promise<{ seuil?: string }>;
 }) {
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner || actor.role !== "chef") notFound();
   const { seuil } = await searchParams;
   const seuilAns = Number(seuil) > 0 ? Number(seuil) : 3;
   const figurants = await getFigurantsInactifs(seuilAns);

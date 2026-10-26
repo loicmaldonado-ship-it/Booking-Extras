@@ -88,3 +88,13 @@ test('failed minor document purge prevents a successful global anonymisation', a
  });
  assert.deepEqual(await anonymiserFigurant('fixture'),{error:'Fixture storage failure'});
 });
+
+test('global RGPD profile reads refuse anonymous, assistant and non-owner chef accounts before using admin access',async()=>{
+ for(const actor of [null,{role:'assistant',isOwner:false},{role:'chef',isOwner:false}]){
+  const {getFigurantsInactifs}=load('src/lib/rgpd/data.ts',{
+   'server-only':{},'@/lib/auth/session':{getCurrentProfile:async()=>actor},
+   '@/lib/supabase/admin':{createAdminClient(){throw Error('global data must remain private');}},
+  });
+  assert.deepEqual(await getFigurantsInactifs(1),[]);
+ }
+});
