@@ -1,5 +1,6 @@
 "use server";
 
+import { ageOnDate } from "@/lib/minors/model";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
@@ -47,6 +48,7 @@ export async function ajoutRapideBooking(
   const email = champ("email").toLowerCase();
   const telephone = champ("telephone");
   const photo = formData.get("photo");
+  const birth = champ("date_naissance");
   if (!prenom || !nom) return { error: "Prénom et nom obligatoires." };
   if (email && !EMAIL_RE.test(email)) return { error: "Adresse email invalide." };
   if (!email && !telephone) return { error: "Indique au moins un email ou un téléphone." };
@@ -117,9 +119,10 @@ export async function ajoutRapideBooking(
     // Fiche reprise : on complète l'email / le téléphone s'ils manquaient.
     const { data: fiche } = await supabase
       .from("figurants")
-      .select("prenom, nom, email, telephone")
+      .select("prenom, nom, email, telephone, date_naissance")
       .eq("id", figurantId)
       .single();
+    if (!fiche?.date_naissance || ageOnDate(fiche.date_naissance, date) === null) return { error: "Complète une date de naissance valide dans la fiche profil avant le booking." };
     if (fiche) nomAffiche = `${fiche.prenom} ${fiche.nom}`;
     const complement = {
       ...(email && !fiche?.email ? { email } : {}),
@@ -130,11 +133,15 @@ export async function ajoutRapideBooking(
       if (error) console.error("[ajoutRapideBooking] complément de fiche :", error.message);
     }
   } else {
+    const age = ageOnDate(birth, date);
+    if (age === null) return { error: "Renseigne une date de naissance valide pour ce nouveau profil." };
+    if (age < 18) return { error: "Pour un mineur, crée d’abord sa fiche et complète son dossier dans Mineurs avant de l’ajouter au booking." };
     const { data: creee, error } = await supabase
       .from("figurants")
       .insert({
         prenom,
         nom,
+        date_naissance: birth,
         email: email || null,
         telephone: telephone || null,
         confirme: true,

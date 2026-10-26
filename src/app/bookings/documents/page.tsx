@@ -1,3 +1,4 @@
+import { ageOnDate } from "@/lib/minors/model";
 import { nomComplet } from "@/lib/noms";
 import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
 import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
@@ -98,6 +99,15 @@ export default async function JourneeDashboardPage({
       .returns<ProjetIndemnite[]>(),
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
+
+  const ageAlerts = await Promise.all((bookingsRaw ?? []).filter(b => b.statut !== "annulé").map(async b => {
+    const age = ageOnDate(b.figurants?.date_naissance, b.date);
+    if (age === null) return `${nomComplet(b.figurants ?? { prenom: "Profil", nom: "" })} : date de naissance à compléter`;
+    if (age >= 18) return null;
+    const { data: complete, error } = await supabase.rpc("minor_dossier_complete", { p_project: projet_id, p_child: b.figurant_id, p_date: b.date });
+    return error || complete !== true ? `${nomComplet(b.figurants ?? { prenom: "Profil", nom: "" })} : dossier mineur incomplet ou non vérifié` : null;
+  }));
+  const unresolvedAgeAlerts = ageAlerts.filter((message): message is string => message !== null);
 
   const [journees, fonctionsProjet, envois, liensMes, candidatureParFigurant] = await Promise.all([
     getJournees(projet_id),
@@ -328,6 +338,13 @@ const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds)
               <span className="text-sm text-text-muted/30">Journée suivante →</span>
             )}
           </div>
+          {unresolvedAgeAlerts.length > 0 && (
+            <div role="status" className="mt-3 rounded-xl border border-yellow/50 bg-yellow/10 p-3 text-sm">
+              <p className="font-semibold">Âge ou dossier à vérifier avant convocation</p>
+              <ul className="mt-1 list-disc pl-5">{unresolvedAgeAlerts.map((message, index) => <li key={index}>{message}</li>)}</ul>
+              <Link className="mt-2 inline-block text-coral underline" href={`/projets/${projet_id}/mineurs`}>Ouvrir les dossiers mineurs</Link>
+            </div>
+          )}
           <div className="mt-2 flex gap-2">
             <Badge tone="turquoise">{confirmes} confirmé·e{confirmes > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{enAttente} en attente</Badge>

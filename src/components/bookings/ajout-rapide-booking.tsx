@@ -197,6 +197,11 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
                 <Input name="nom" placeholder="Nom *" required disabled={pending} aria-label="Nom" />
                 <Input name="email" type="email" placeholder="Email" disabled={pending} aria-label="Email" />
                 <Input name="telephone" type="tel" placeholder="Téléphone" disabled={pending} aria-label="Téléphone" />
+                <label className="flex flex-col gap-1 text-xs text-text-muted">
+                  Date de naissance (nouveau profil)
+                  <Input name="date_naissance" type="date" disabled={pending} />
+                </label>
+                <p className="text-xs text-text-muted">Pour un mineur, prépare sa fiche et son dossier dans Mineurs avant le booking.</p>
               </div>
             </div>
 

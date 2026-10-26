@@ -5,7 +5,7 @@ declare pA uuid:='00000000-0000-4000-8000-0000000070e0'; pB uuid:=gen_random_uui
  eA uuid:=gen_random_uuid(); eB uuid:=gen_random_uuid(); ecA uuid:=gen_random_uuid(); ecB uuid:=gen_random_uuid(); fitting uuid:=gen_random_uuid();
 begin begin
  insert into public.projets(id,nom,owner_id) values(pB,'Projet fixture créneaux','00000000-0000-4000-8000-00000000c0c0');
- insert into public.figurants(id,prenom,nom) values(f,'Créneau','Fixture');
+ insert into public.figurants(id,prenom,nom,date_naissance) values(f,'Créneau','Fixture','1990-01-01');
  insert into public.casting_presentiel_journees(id,projet_id,date) values(dA,pA,current_date+20),(dB,pB,current_date+20);
  insert into public.casting_presentiel_creneaux(id,journee_id,heure_debut,heure_fin) values(cA,dA,'10:00','11:00'),(cB,dB,'10:00','11:00');
  insert into public.casting_roles(id,projet_id,nom) values(rA,pA,'Rôle fixture A'),(rB,pB,'Rôle fixture B');
