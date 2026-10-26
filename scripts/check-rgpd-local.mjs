@@ -11,6 +11,8 @@ let prepared=false;
 try{
  check(await admin.from('figurants').insert([{id:subject,prenom:'RGPD',nom:'Fictif',email:'rgpd-fixture@example.test',date_naissance:'1990-01-01',code_postal:'75000',agent_email:'agent@example.test',acces_compte:true},{id:other,prenom:'Autre',nom:'Fictif',acces_compte:false}]));
  check(await admin.storage.from(bucket).upload(path,Buffer.from('fichier fictif'),{contentType:'image/png'}));
+ const replacement=check(await admin.storage.from(bucket).createSignedUploadUrl(path,{upsert:true}));
+ check(await admin.storage.from(bucket).uploadToSignedUrl(replacement.path,replacement.token,Buffer.from('remplacement actif'),{contentType:'image/png'}));
  const upload=check(await admin.storage.from(bucket).createSignedUploadUrl(`${subject}/retard.png`));
  assert.ok((await anon.rpc('preparer_effacement_figurant',{p_id:subject,p_actor:actor})).error,'RPC exposée à anon');
  assert.ok((await admin.rpc('preparer_effacement_figurant',{p_id:subject,p_actor:'00000000-0000-4000-8000-00000000a551'})).error,'Assistant autorisé');
@@ -20,9 +22,10 @@ try{
  assert.equal(row.email,null);assert.equal(row.date_naissance,null);assert.equal(row.agent_email,null);assert.equal(row.code_postal,null);assert.equal(row.acces_compte,false);assert.ok(row.anonymisation_en_cours_at);assert.equal(row.anonymise,false);
  assert.ok((await admin.from('figurants').update({email:'retard@example.test'}).eq('id',subject)).error);
  assert.ok((await admin.storage.from(bucket).uploadToSignedUrl(upload.path,upload.token,Buffer.from('retard'))).error,'Ancien droit upload accepté');
+ assert.ok((await admin.storage.from(bucket).uploadToSignedUrl(replacement.path,replacement.token,Buffer.from('remplacement'),{contentType:'image/png'})).error,'Remplacement signé antérieur accepté');
  assert.ok((await admin.rpc('terminer_effacement_figurant',{p_id:subject,p_actor:actor})).error,'Succès avec fichier restant');
  assert.deepEqual(check(await admin.rpc('preparer_effacement_figurant',{p_id:subject,p_actor:actor})).files,plan.files);
- console.log('PASS API: droits, révocation, upload signé antérieur refusé, fichier restant bloque la fin, reprise conserve le plan');
+ console.log('PASS API: droits, remplacement actif autorisé, révocation, dépôt et remplacement signés antérieurs refusés, fichier restant bloque la fin, reprise conserve le plan');
  check(await admin.storage.from(bucket).remove([path]));
  check(await admin.rpc('terminer_effacement_figurant',{p_id:subject,p_actor:actor}));
  const final=check(await admin.from('figurants').select('anonymise,anonymisation_en_cours_at').eq('id',subject).single());assert.equal(final.anonymise,true);assert.equal(final.anonymisation_en_cours_at,null);
