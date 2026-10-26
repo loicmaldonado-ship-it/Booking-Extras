@@ -1,0 +1,1391 @@
+[
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499dd2faf63ee341711c6",
+    "name": "[DEC-01] Trancher : peut-on postuler sans compte ?",
+    "url": "https://trello.com/c/hlHTJ1Ju/1-dec-01-trancher-peut-on-postuler-sans-compte",
+    "description": "DEC-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : S\nDÉPEND DE : —\n\nOBJECTIF\nDécider le parcours cible : compte obligatoire avant candidature, compte créé pendant la candidature, ou candidature sans compte puis création ensuite.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE TECHNIQUE À IMPACTER APRÈS DÉCISION\n- Parcours public : `src/app/postuler/[token]/page.tsx` + `src/components/candidatures/postuler-form.tsx`.\n- Création/rapprochement de profil : `src/lib/candidatures/actions.ts` (`postulerAnnonce`) et fonctions liées aux figurants/candidats.\n- Auth candidate : `src/lib/candidats/password.ts`, `src/lib/candidats/session.ts`, écrans `src/app/compte/*` et `src/components/candidats/*`.\n\nTRAVAIL DEV APRÈS VALIDATION MÉTIER\n1. Écrire le parcours retenu sous forme d'états : personne inconnue / profil existant sans accès / profil avec accès / session active.\n2. Définir à quel moment un `figurant` est créé, quand le mot de passe est défini, et si la candidature peut exister sans session candidate.\n3. Éviter toute création silencieuse de doublon : le rapprochement doit suivre la règle de CAN-03 et ne jamais se faire uniquement sur une information faible.\n4. Adapter les messages UI : l'utilisateur doit toujours savoir s'il vient de candidater, créer un accès ou se connecter.\n5. Prévoir les chemins de reprise : email déjà connu, candidature déjà existante, mot de passe oublié.\n\nTESTS À PRÉVOIR\n- Nouvelle adresse inconnue.\n- Adresse déjà liée à un profil sans compte.\n- Adresse déjà liée à un compte actif.\n- Même personne qui revient sur une autre annonce.\n- Erreur réseau au moment candidature/création d'accès : aucune demi-création incohérente.\n\nNe pas coder trois comportements concurrents. Cette carte doit produire UNE règle métier qui sera ensuite implémentée dans CAN-01/CAN-02/SEC-02.\n\nTERMINÉ QUAND\nDécision écrite et validée par l'équipe ; le parcours choisi est unique et compréhensible.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6acb975cf034e59a41707a5c",
+        "text": "non",
+        "date": "2026-10-11T14:04:12.024Z",
+        "author": {
+          "id": "ari:cloud:trello::user/622084c9be13877125811681",
+          "fullName": "Elea Gravagna",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/622084c9be13877125811681/6199e30a91dabc80621d6e7e43406a10"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T14:27:34.120Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ab560a616a5a958df8",
+      "name": "00 - Décisions à trancher"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499de61659e31eb445ae9",
+    "name": "[DEC-02] Valider qui peut voir quoi entre cheffes et assistantes",
+    "url": "https://trello.com/c/nUW5pRQb/2-dec-02-valider-qui-peut-voir-quoi-entre-cheffes-et-assistantes",
+    "description": "DEC-02\n\nPRIORITÉ : P0\nCHARGE RELATIVE : S\nDÉPEND DE : —\n\nOBJECTIF\nDéfinir simplement les droits : données privées d'une cheffe, données partagées avec son équipe, accès d'une assistante invitée et cas multi-projets.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nSORTIE ATTENDUE POUR LE DEV\nConstruire une matrice par ressource et action : `projets`, `projet_membres`, `figurants`, `candidatures`, `bookings`, `essayages`, `casting_*`, `notifications`, `messages`, documents/liens de partage. Colonnes conseillées : propriétaire, cheffe non propriétaire, assistante membre du projet, assistante non membre, candidate, public avec token.\n\nCODE À RACCROCHER À LA DÉCISION\n- `src/lib/auth/session.ts` : `getCurrentProfile`, `checkProjetAccess`, rôles.\n- `src/lib/auth/sections.ts` : sections autorisées des assistantes.\n- `src/lib/equipe/actions.ts` : invitation/révocation/permissions.\n- `src/lib/figurants/comedien-privacy.ts` : isolation du vivier comédien.\n- Migration centrale : `supabase/migrations/20260901000001_multi_chef_isolation.sql`.\n- Isolation comédiens : `20260911000022_comedien_pool_isolation.sql`.\n\nÀ VALIDER AVANT SEC-03/SEC-04\nPour chaque ligne de la matrice, noter : lecture / création / modification / suppression / export / partage. Ne pas laisser de règle implicite du type « connecté = accès ». Toute règle métier validée ici devra avoir un équivalent côté serveur/RLS ; le masquage d'un bouton côté front ne compte pas comme sécurité.\n\nTERMINÉ QUAND\nMatrice de droits validée avec 3 à 5 cas concrets.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad629600c35477f69815ea6",
+        "text": "c’est déjà le cas. Dans l’onglet Equipe, Nom de l’assistant, la section : Accès complet (différents accès à cocher).",
+        "date": "2026-10-19T14:29:52.842Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T14:29:57.391Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ab560a616a5a958df8",
+      "name": "00 - Décisions à trancher"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499df725b57dedf8a8a1d",
+    "name": "[DEC-03] Valider les règles métier pour les mineurs et les dossiers DRIEETS",
+    "url": "https://trello.com/c/FyvaKghw/3-dec-03-valider-les-r%C3%A8gles-m%C3%A9tier-pour-les-mineurs-et-les-dossiers-drieets",
+    "description": "DEC-03\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : —\n\nOBJECTIF\nLister ce qui est réellement attendu pour un mineur : représentant légal, autorisations, pièces et informations nécessaires au dossier DRIEETS.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nSORTIE TECHNIQUE ATTENDUE\nTransformer la décision métier en modèle de données avant de toucher aux formulaires. Définir précisément : données du représentant légal, lien avec le mineur, autorisations/documents, statut de complétude, dates/signatures éventuelles, pièces DRIEETS, règles de conservation RGPD.\n\nMODULES QUI SERONT IMPACTÉS\n- `src/lib/figurants/actions.ts` + `src/lib/figurants/edit.ts` + formulaires figurant/candidate.\n- `src/lib/candidatures/actions.ts` pour les règles de candidature mineur.\n- `src/lib/documents/*` et futurs exports DRIEETS.\n- `src/lib/rgpd/actions.ts` pour anonymisation/suppression des nouvelles données.\n- Nouvelles migrations Supabase à créer ; ne jamais modifier une ancienne migration déjà déployée.\n\nPOINTS À TRANCHER EXPLICITEMENT\n- Un représentant légal peut-il être partagé entre plusieurs enfants ?\n- Les pièces sont-elles stockées en Storage ? dans quel bucket et avec quelles RLS ?\n- Quels champs sont obligatoires avant candidature, booking ou génération DRIEETS ?\n- Quels éléments doivent être masqués aux liens publics/assistantes ?\n\nLa carte est prête pour LEG-01/02/03 seulement quand ces réponses sont assez précises pour écrire le schéma SQL sans deviner.\n\nTERMINÉ QUAND\nListe des données et documents obligatoires validée par les utilisateurs métier.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad631f53190fbdd1644309a",
+        "text": "Ajout d’un menu déroulant : Mineurs / DRIEETS (- de 16 ans révolu)\nLe chargé de casting doit paramétrer une période de tournage et une date de commission DRIEETS.\nIl doit aussi paramétrer les documents nécessaires pour le dépôt (ex : certificat de scolarité, autorisation parentale, etc) options à cocher avec la possibilité de rajouter une case document nécessaire.\nSi possible, avoir une autorisation parentale pré-remplie avec les infos de la fiche de l’enfant/parents.\n\nPour les profils Mineurs : lors de la création d’un compte ou d’une candidature à une annonce mineur (il existe déjà une différence entre les annonces majeurs et mineurs), il est obligatoire de renseigner les infos des 2 représentants légaux (noms, adresse, téléphone et mails différents) en plus des infos de base de l’enfant (photos, mensurations…)\n\\-> il faut une adresse mail différente pour l’enfant, le représentant légal 1 et le représentant légal 2\n\n→ une case à cocher si le représentant légal 2 est décédé ou n’a plus d’autorité.\n\n‌\n\nPour constituer les dossiers DRIEETS  (- de 16ans révolu)\n\nenvoyer un lien d’upload aux différents représentants légaux (comme un lien selftape pour les comédiens casting) où ils pourront drop les documents obligatoires.\n\nCe lien sera partageable avec la production qui pourra télécharger les documents nécessaires à envoyer à la DRIEETS.\n\n→ une fois le dossier DRIEETS complet, l’enfant pourra être ajouté aux journées booking.\n\n→ Pour les mineurs entre 16 et 18 ans : on demande simplement une autorisation parentale à signer aux deux représentants légaux",
+        "date": "2026-10-19T15:06:29.610Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-20T13:09:45.754Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ab560a616a5a958df8",
+      "name": "00 - Décisions à trancher"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499dfad3ee897314f69a0",
+    "name": "[DEC-04] Définir la recette : qui valide chaque grande fonctionnalité ?",
+    "url": "https://trello.com/c/ctPcehBU/4-dec-04-d%C3%A9finir-la-recette-qui-valide-chaque-grande-fonctionnalit%C3%A9",
+    "description": "DEC-04\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : —\n\nOBJECTIF\nAttribuer un référent métier pour candidatures, bookings, casting/essayages et documents afin que la validation ne repose pas uniquement sur la développeuse.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nMISE EN PLACE POUR LE DEV\nCréer une grille de recette versionnée dans le dépôt (`docs/recette.md` ou équivalent) avec un scénario, des données d'entrée, le résultat attendu et la personne qui valide. Relier chaque scénario aux cartes Trello par ID (ex. MET-04, MET-07).\n\nCONTENU MINIMAL\n- Candidature et accès candidate.\n- Séparation multi-équipe.\n- Passage candidature → booking → journée → convocation.\n- Essayages.\n- Casting, y compris upload public par token.\n- Documents/exports.\n- Mineurs/RGPD.\n\nRÈGLE DE TRAVAIL\nUn ticket technique n'est pas “validé” uniquement parce que le dev voit que ça fonctionne. Pour les cartes métier, la fin = tests techniques OK + validation du référent métier. Les anomalies de recette doivent avoir reproduction, compte utilisé, projet utilisé et résultat observé.\n\nTERMINÉ QUAND\nChaque bloc a une personne qui peut dire « OK métier » avant mise en ligne.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad632f91b5a98e57930c596",
+        "text": "Loïc et Mathieu s’occupent de prendre les grandes décisions style changements de l’interface, organisation du site, qui peut ou pas postuler…\n\nElea peut prendre des décisions qui relèvent strictement du code et du développement. Pour le reste, nous souhaitons être tout le temps tenu au courant.\n\nElea ne sera jamais responsable des décisions prises moralement pour le site.",
+        "date": "2026-10-19T15:10:49.973Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-20T13:09:55.294Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ab560a616a5a958df8",
+      "name": "00 - Décisions à trancher"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e07e4e83cd3bab0565",
+    "name": "[ENV-01] Débloquer Supabase en local sur le Mac d’Elea",
+    "url": "https://trello.com/c/PXiBHS3u/5-env-01-d%C3%A9bloquer-supabase-en-local-sur-le-mac-delea",
+    "description": "ENV-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nDÉPEND DE : —\n\nOBJECTIF\nRésoudre le blocage actuel du projet Supabase local afin de pouvoir démarrer la base sans toucher à la production.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS / OUTILS\n- `supabase/config.toml`, `supabase/migrations/*`, `supabase/seed.sql`.\n- Docker Desktop et Supabase CLI.\n- `.env.example` pour les valeurs locales attendues.\n\nPROCÉDURE\n1. Depuis la racine : vérifier `docker context ls`, `docker info`, puis `npx supabase --version`.\n2. Lancer `npx supabase start`. Si erreur de socket Docker, vérifier le contexte actif et `DOCKER_HOST`; ne pas mettre un chemin local en dur dans le dépôt.\n3. Lancer `npx supabase status -o env` et reporter les clés LOCALES dans `.env.local` : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.\n4. Générer localement `SECRETS_ENCRYPTION_KEY` et les clés VAPID si nécessaire ; laisser Gmail vide pour éviter tout envoi réel.\n5. Lancer `npm install` puis `npm run dev` et ouvrir `http://localhost:3000`.\n\nDIAGNOSTIC SI ÇA BLOQUE\n- Port occupé : vérifier les conteneurs Supabase/Docker existants.\n- DB qui démarre puis tombe : regarder `npx supabase status` et logs Docker.\n- Variables incohérentes : ne jamais réutiliser les clés de prod.\n\nVALIDATION DEV\n`npx supabase start` + `npm run dev` doivent fonctionner après redémarrage de la machine avec une procédure reproductible.\n\nTERMINÉ QUAND\nnpx supabase start fonctionne et les services locaux sont accessibles.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:50:14.387Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e1569bf65fd77c758c",
+    "name": "[ENV-02] Recréer la base locale avec migrations + seed",
+    "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
+    "description": "ENV-02\n\nPRIORITÉ : P0\nCHARGE RELATIVE : S\nDÉPEND DE : ENV-01\n\nOBJECTIF\nLancer le reset local pour rejouer toutes les migrations et charger les comptes/données de test présents dans supabase/seed.sql.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS\n- Toutes les migrations `supabase/migrations/*.sql`.\n- `supabase/seed.sql` (jeu de données local uniquement).\n\nPROCÉDURE\n1. Base locale démarrée : exécuter `npx supabase db reset`.\n2. Le reset doit supprimer/recréer la DB, rejouer les migrations dans l'ordre puis charger le seed.\n3. Ne jamais exécuter `supabase/seed.sql` comme un script shell (`supabase/seed.sql` dans zsh donne “permission denied”) : le seed est chargé par Supabase pendant le reset.\n4. Contrôler dans Studio local que les comptes/profils/projet/annonce/candidature du seed existent.\n5. Relancer une deuxième fois `npx supabase db reset` : le résultat doit rester reproductible.\n\nEN CAS D'ÉCHEC\nIdentifier LA migration qui échoue, corriger par une nouvelle migration si elle a déjà été utilisée ailleurs. Ne pas bricoler la base manuellement pour “passer” le reset.\n\nVALIDATION DEV\nReset complet deux fois de suite sans erreur + données seed attendues + application capable de lire la base.\n\nTERMINÉ QUAND\nLe reset termine sans erreur et les données de test sont présentes.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:50:15.903Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e15f1e69f005f423d4",
+    "name": "[ENV-03] Vérifier les trois profils de test",
+    "url": "https://trello.com/c/WE4obZ2A/7-env-03-v%C3%A9rifier-les-trois-profils-de-test",
+    "description": "ENV-03\n\nPRIORITÉ : P0\nCHARGE RELATIVE : S\nDÉPEND DE : ENV-02\n\nOBJECTIF\nTester au minimum : cheffe propriétaire, assistante invitée et candidate existante avec les identifiants du seed local.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPRÉREQUIS\nUtiliser uniquement les identifiants documentés en tête de `supabase/seed.sql` sur la base locale.\n\nSCÉNARIOS\n1. Cheffe propriétaire : connexion via `/login`; vérifier tableau de bord et accès aux sections.\n2. Assistante invitée : connexion et vérification de son périmètre projet/sections.\n3. Candidate existante : connexion via le parcours candidat (`/compte/connexion` ou écran prévu) et accès à son espace.\n\nCONTRÔLES TECHNIQUES\n- Vérifier les cookies/session dans le navigateur : auth staff Supabase d'un côté, `figurant_session` côté candidate.\n- Vérifier qu'une session staff ne donne pas implicitement une session candidate et inversement.\n- Tester accès direct à une URL protégée sans session.\n- Regarder les erreurs serveur dans le terminal Next, pas seulement l'écran.\n\nFICHIERS À CONSULTER SI ÉCHEC\n`src/middleware.ts`, `src/lib/auth/session.ts`, `src/lib/candidats/session.ts`, `src/lib/auth/actions.ts`, `src/lib/candidats/password.ts`.\n\nVALIDATION DEV\nLes trois comptes ont des comportements différents cohérents avec leur rôle, sans redirection en boucle ni accès imprévu.\n\nTERMINÉ QUAND\nLes trois profils se connectent et arrivent sur les écrans attendus.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:05.995Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e2bd5515f2d65c9ff0",
+    "name": "[ENV-04] Faire un smoke test des écrans principaux",
+    "url": "https://trello.com/c/4fMnpo6t/8-env-04-faire-un-smoke-test-des-%C3%A9crans-principaux",
+    "description": "ENV-04\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-03\n\nOBJECTIF\nParcourir sans modifier la prod : projets, annonces, candidatures, figurants, bookings, casting, essayages, documents, équipe et compte.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nMÉTHODE DE SMOKE TEST\nTester sur base locale seedée, avec DevTools réseau + terminal Next visibles. Pour chaque écran, noter URL, rôle utilisé, action simple effectuée, erreur console/serveur éventuelle.\n\nPARCOURS À OUVRIR\n- `/projets`, détail/modification projet.\n- `/annonces`, détail, création/modification.\n- `/candidatures`, détail candidate.\n- `/figurants`, fiche/édition.\n- `/bookings`, détail/planning/documents.\n- `/casting` + présentiel + partage/upload.\n- `/essayages` + journée/planning.\n- `/equipe`, `/mon-compte`, `/admin` si rôle autorisé.\n\nCONTRÔLES\n- Pas de 500/404 inattendue.\n- Pas d'erreur React/hydratation bloquante.\n- Les requêtes Supabase respectent le projet courant.\n- Les actions dangereuses (suppression/envoi email) restent sur local/test.\n\nSORTIE\nCréer une ligne par anomalie avec : ID, rôle, URL, préconditions, étapes exactes, attendu, obtenu, capture/log. Les bugs réels deviennent ENV-05 ou une carte du domaine concerné.\n\nTERMINÉ QUAND\nUne liste claire « OK / bug / à confirmer » existe pour chaque grand écran.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:06.649Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e389a106fb095c5389",
+    "name": "[ENV-05] Créer le registre des bugs de reprise",
+    "url": "https://trello.com/c/EWqEz40G/9-env-05-cr%C3%A9er-le-registre-des-bugs-de-reprise",
+    "description": "ENV-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : ENV-04\n\nOBJECTIF\nCentraliser tous les bugs observés lors de la reprise avec étapes pour reproduire, impact et capture si utile.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFORMAT D'UN BUG EXPLOITABLE PAR LE DEV\n- Titre court orienté symptôme.\n- Environnement + commit SHA.\n- Compte/rôle et projet utilisés.\n- Préconditions/données.\n- Étapes numérotées de reproduction.\n- Résultat attendu / résultat obtenu.\n- Console navigateur + log serveur si pertinent.\n- Capture/vidéo seulement en complément.\n- Sévérité : bloquant / majeur / mineur.\n\nRÈGLE\nUn bug non reproductible doit rester “à qualifier”, pas être mélangé à un correctif. Avant de créer un ticket, retester après `npx supabase db reset` si le bug peut venir de données locales corrompues.\n\nPOUR LES CORRECTIFS\nAjouter ensuite le fichier/module suspect, le test de non-régression à écrire et le commit/PR qui ferme le bug.\n\nTERMINÉ QUAND\nChaque bug reproductible possède une carte distincte ou est rattaché à une carte existante.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:07.332Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e3bd2d0adcdb7d7f1a",
+    "name": "[ENV-06] Remplacer le README générique par une vraie passation développeur",
+    "url": "https://trello.com/c/GUXlpZw6/10-env-06-remplacer-le-readme-g%C3%A9n%C3%A9rique-par-une-vraie-passation-d%C3%A9veloppeur",
+    "description": "ENV-06\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-03\n\nOBJECTIF\nDocumenter installation locale, variables d'environnement, seed, commandes, architecture, règles de sécurité et choses à ne jamais faire directement en prod.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nREADME CIBLE\nRemplacer le README create-next-app par une vraie passation. Sections obligatoires : prérequis, installation, démarrage Supabase, `.env.local`, reset+seed, comptes de test, lancement Next, build/lint, architecture, stockage, authentifications, RLS, emails/push, déploiement, règles Git.\n\nRÉFÉRENCES DU REPO À DOCUMENTER\n- Next.js 16 / React 19 / TypeScript.\n- Supabase SSR + migrations + Storage.\n- Auth staff Supabase vs session candidate (`figurant_session`).\n- `.env.example` : Supabase, chiffrement, VAPID, Gmail.\n- `src/middleware.ts` et `src/lib/auth/*` pour accès.\n- `src/lib/media/*` pour compression.\n- Vercel (`vercel.json`, région `cdg1`).\n\nCOMMANDES À FOURNIR\n`npm install`, `npx supabase start`, `npx supabase db reset`, `npx supabase status -o env`, `npm run dev`, `npm run lint`, `npm run build`.\n\nTEST DU README\nFaire relire/exécuter par quelqu'un qui n'a pas préparé la machine. Toute étape implicite doit être ajoutée.\n\nTERMINÉ QUAND\nUn nouveau développeur peut lancer le projet en suivant uniquement le README.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:07.912Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e4de0bda4e991e31ba",
+    "name": "[ENV-07] Fixer la méthode Git de l’équipe",
+    "url": "https://trello.com/c/lrbA93xT/11-env-07-fixer-la-m%C3%A9thode-git-de-l%C3%A9quipe",
+    "description": "ENV-07\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : —\n\nOBJECTIF\nDéfinir branches de travail, pull requests, revue et règle « pas de développement direct sur main ».\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nWORKFLOW GIT À ÉCRIRE\n- `main` = branche stable/déployable.\n- Une branche par carte : ex. `sec/sec-01-session-candidate`.\n- Aucun commit de fonctionnalité directement sur `main`.\n- PR obligatoire avec ID Trello, résumé, tests effectués, capture si UI, migration éventuelle.\n- Migrations : fichier nouveau et daté, jamais modification rétroactive d'une migration déjà partagée/déployée.\n\nAVANT PUSH\n`npm run lint` + `npm run build` + tests du domaine. Si DB modifiée : `npx supabase db reset`.\n\nREVUE\nAu moins vérifier : contrôle d'accès côté serveur, absence de secret, impacts multi-projets, erreurs utilisateurs, migration/rollback. QA-05 automatisera une partie de ces règles.\n\nTERMINÉ QUAND\nLa méthode est écrite et suivie par les personnes qui touchent au code.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:08.494Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499abf6fb260bc922640b",
+      "name": "01 - Reprise & environnement"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e53337d7c85d2cb12c",
+    "name": "[SEC-01] Sécuriser le rapprochement entre une candidate et sa session",
+    "url": "https://trello.com/c/7dYGAn5L/12-sec-01-s%C3%A9curiser-le-rapprochement-entre-une-candidate-et-sa-session",
+    "description": "SEC-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : ENV-04\n\nOBJECTIF\nSupprimer tout scénario où l'on pourrait rattacher ou ouvrir un espace candidate en se basant seulement sur des informations faciles à connaître (ex. email ou identité + téléphone).\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS À LIRE EN PREMIER\n- `src/lib/candidats/session.ts` : cookie `figurant_session`, TTL 7 jours, lecture session.\n- `src/lib/candidats/password.ts` : hash scrypt + `timingSafeEqual`.\n- `src/lib/candidatures/actions.ts` : création/rapprochement pendant `postulerAnnonce`.\n- `src/lib/figurants/duplicates.ts` : détection de doublons (à ne pas confondre avec authentification).\n\nOBJECTIF TECHNIQUE\nAucune donnée publique (email, nom, téléphone, date de naissance) ne doit suffire à obtenir une session candidate existante. Le rapprochement métier d'un doublon et l'authentification sont deux sujets séparés.\n\nÀ FAIRE\n1. Cartographier où une session `figurant_sessions` est créée et avec quel niveau de preuve.\n2. Exiger une preuve d'authentification avant création d'une session pour un profil existant : mot de passe valide, reset sécurisé ou mécanisme décidé en SEC-02.\n3. À la candidature, si un profil similaire existe, ne jamais donner son accès automatiquement ; créer une candidature selon DEC-01/CAN-02 ou demander authentification.\n4. Rendre les erreurs neutres : éviter de confirmer publiquement qu'un email précis possède déjà un compte si ce n'est pas nécessaire.\n5. Invalider les sessions expirées/révoquées côté serveur, pas seulement côté UI.\n\nTESTS NÉGATIFS OBLIGATOIRES\n- Connaître email + téléphone d'une candidate ne permet pas d'ouvrir son espace.\n- Modifier un cookie/token ne permet pas de changer de figurant.\n- Token/session expiré → refus.\n- Candidate A ne peut jamais lire les données de B, même en appelant directement une action/URL.\n\nNe pas utiliser `duplicates.ts` comme mécanisme de sécurité : ce module sert à alerter humainement sur un doublon.\n\nTERMINÉ QUAND\nUne candidate ne peut accéder qu'à son propre compte après une authentification fiable ; tests négatifs inclus.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:09.122Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e569916145ca987976",
+    "name": "[SEC-02] Finaliser une authentification candidate robuste",
+    "url": "https://trello.com/c/lwz1ges2/13-sec-02-finaliser-une-authentification-candidate-robuste",
+    "description": "SEC-02\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : DEC-01; SEC-01\n\nOBJECTIF\nFiabiliser le système de mot de passe / récupération / création de compte et décider si la cible doit être centralisée dans Supabase Auth plutôt que dans une authentification parallèle.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nÉTAT ACTUEL À PRENDRE EN COMPTE\nLe staff utilise Supabase Auth. Les candidates ont aussi une authentification dédiée avec `password_hash` sur `figurants`, scrypt dans `src/lib/candidats/password.ts` et cookie/session dans `src/lib/candidats/session.ts`. La migration `20260921000001_figurant_password.sql` ajoute le hash.\n\nDÉCISION TECHNIQUE\nAvant de refactorer, décider si on conserve cette auth candidate séparée ou si on migre vers Supabase Auth. Documenter avantages/risques/migration des comptes existants. Ne pas mélanger deux méthodes sans règle claire.\n\nSI AUTH ACTUELLE CONSERVÉE\n- Vérifier génération de token session avec entropie forte, stockage serveur et expiration.\n- Cookie : HttpOnly, Secure en prod, SameSite adapté, Path correct.\n- Rotation/invalidation à connexion/déconnexion/reset.\n- Limiter les tentatives de connexion/reset si possible.\n- Ne jamais logger mot de passe/hash/token.\n- Reset mot de passe : token à usage unique, durée limitée, invalidation après usage.\n\nFICHIERS\n`src/lib/candidats/password.ts`, `session.ts`, écrans `src/app/compte/*`, composants `src/components/candidats/*`, actions de création/activation de compte.\n\nTESTS\nCréation, mauvais mot de passe, bon mot de passe, logout, reset, reset réutilisé, expiration, session volée/altérée, accès direct URL protégée.\n\nTERMINÉ QUAND\nCréation, connexion, déconnexion et récupération fonctionnent sans lien magique obligatoire.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:09.774Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e6370f172333d5a664",
+    "name": "[SEC-03] Auditer les règles RLS sur toutes les données sensibles",
+    "url": "https://trello.com/c/qRHibEjJ/14-sec-03-auditer-les-r%C3%A8gles-rls-sur-toutes-les-donn%C3%A9es-sensibles",
+    "description": "SEC-03\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : DEC-02; ENV-04\n\nOBJECTIF\nRevoir les règles Supabase qui protègent figurants, candidatures, bookings, messages, notifications, casting et documents partagés.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nAUDIT À FAIRE AU NIVEAU BASE, PAS UNIQUEMENT FRONT\nLister toutes les tables et buckets contenant données métier/personnelles. Pour chaque table : RLS activée ? policies SELECT/INSERT/UPDATE/DELETE ? fonction utilisée (`has_projet_access`, owner, service_role) ?\n\nPOINT DE DÉPART\n- `20260901000001_multi_chef_isolation.sql` introduit l'isolation par `owner_id`/`projet_membres`.\n- `20260911000022_comedien_pool_isolation.sql` protège le vivier comédien.\n- `20260924000002_notifications_par_equipe.sql` corrige l'isolation des notifications.\n- Plusieurs anciennes tables ont pu conserver des policies `authenticated full access` : les rechercher dans TOUTES les migrations.\n\nTABLES À TESTER AU MINIMUM\n`projets`, `projet_membres`, `figurants`, `annonces`, `candidatures`, `candidature_jours`, `bookings`, `journees`, `essayages*`, `casting*`, `figurant_messages`, `notifications`, `partage_liens`, `document_templates`, `push_subscriptions` et objets Storage.\n\nMÉTHODE\nCréer deux cheffes A/B + assistants + projets séparés. Tester via l'application ET requêtes Supabase avec chaque JWT. Pour chaque ressource, tenter lecture/modification/suppression croisée.\n\nCORRECTION\nCréer de nouvelles migrations SQL. Ne jamais compter sur `checkProjetAccess()` seul si le client/browser peut toucher la table ; la base doit refuser elle-même.\n\nFINITION\nDocumenter une matrice “table → policy → scénario testé”.\n\nTERMINÉ QUAND\nTests avec deux équipes distinctes : aucune donnée privée ne fuit d'une équipe à l'autre.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:10.505Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e7e57d25ad275bbdf1",
+    "name": "[SEC-04] Finaliser l’isolation des fiches et viviers par cheffe/équipe",
+    "url": "https://trello.com/c/dmukruOV/15-sec-04-finaliser-lisolation-des-fiches-et-viviers-par-cheffe-%C3%A9quipe",
+    "description": "SEC-04\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : DEC-02; SEC-03\n\nOBJECTIF\nVérifier et corriger le comportement des fiches privées, du vivier comédien/figurant et des accès assistants dans un contexte multi-cheffes.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE CLÉ\n- `src/lib/figurants/comedien-privacy.ts` : `comedienPoolIdFor` et `comedienPoolClause`.\n- Migration `20260911000022_comedien_pool_isolation.sql`.\n- Toutes les requêtes figurants/pickers : `src/lib/figurants/query.ts`, casting, bookings, essayages, quick-add.\n- `src/lib/auth/session.ts` pour owner / membre projet.\n\nÀ VÉRIFIER\n1. Les figurants “standards” et les comédiens n'ont pas forcément la même règle de partage : confirmer DEC-02.\n2. Toute liste/picker doit appliquer la même règle ; un écran oublié peut devenir une fuite.\n3. Tester owner global, cheffe A, cheffe B, assistante A.\n4. Tester création d'un comédien : le `comedien_pool_id` correct doit être posé dès l'insert, pas réparé après.\n5. Tester fiches historiques avec `comedien_pool_id IS NULL` : décider si elles restent volontairement visibles ou si un backfill/migration est requis.\n\nRECHERCHE CODE\nFaire une recherche globale `.from(\"figurants\")` et vérifier chacune des requêtes. Même chose pour les relations qui remontent des figurants via bookings/casting.\n\nTEST DE FIN\nCheffe B ne doit récupérer aucun comédien privé de A via page, picker, export, document, URL directe ou action serveur.\n\nTERMINÉ QUAND\nDeux cheffes de test ne voient que les données prévues par la matrice de droits.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:11.096Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e7ae2dedbc32b96745",
+    "name": "[SEC-05] Tester et sécuriser tous les liens de partage par token",
+    "url": "https://trello.com/c/FUS87PS0/16-sec-05-tester-et-s%C3%A9curiser-tous-les-liens-de-partage-par-token",
+    "description": "SEC-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-03\n\nOBJECTIF\nTester les liens publics de casting, documents, essayages, disponibilités et candidature : données exposées, révocation, URL invalide et accès non prévu.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\n- `src/lib/partage/actions.ts` et `src/lib/partage/data.ts`.\n- Pages `src/app/partage/**`, `src/app/disponibilites/[token]`, `src/app/postuler/[token]`, `src/app/casting/upload/[token]`.\n- `supabase/migrations/20260818040000_partage_liens.sql` et migrations casting/essayage associées.\n\nÀ FAIRE\n1. Inventorier chaque type de token : génération, stockage, durée, révocation, périmètre.\n2. Vérifier génération avec `crypto`/aléatoire fort et longueur suffisante ; aucun ID séquentiel/devinable.\n3. Un token public doit résoudre côté serveur uniquement les données nécessaires au type de partage.\n4. Tester token inexistant, tronqué, d'un autre type, révoqué, projet archivé/supprimé.\n5. Ajouter une vraie révocation/rotation si le modèle actuel ne fait que réutiliser un token permanent et si le métier l'exige.\n6. Vérifier que les pages publiques n'exposent pas emails/téléphones/champs privés non prévus.\n\nTESTS\nNavigation privée, sans cookie staff, sur mobile. Essayer de remplacer le token dans l'URL par celui d'un autre partage. Vérifier aussi les routes d'export derrière ces pages.\n\nTERMINÉ QUAND\nUn token ne donne accès qu'au périmètre prévu et peut être invalidé quand nécessaire.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:11.728Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e80bfabe6f9415f952",
+    "name": "[SEC-06] Revoir la gestion des secrets et des variables d’environnement",
+    "url": "https://trello.com/c/OvabMIAV/17-sec-06-revoir-la-gestion-des-secrets-et-des-variables-denvironnement",
+    "description": "SEC-06\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nVérifier clés Supabase, chiffrement, SMTP, VAPID et séparation local/préprod/prod ; aucun secret de production ne doit être nécessaire pour développer.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS\n- `.env.example`.\n- `src/lib/crypto/secrets.ts`.\n- `src/lib/email/send.ts`, `src/lib/projets/email.ts`.\n- `src/lib/push/send.ts`.\n- clients Supabase `src/lib/supabase/*`.\n\nVARIABLES À CLASSER\nPubliques navigateur : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.\nServeur uniquement : `SUPABASE_SERVICE_ROLE_KEY`, `SECRETS_ENCRYPTION_KEY`, `VAPID_PRIVATE_KEY`, SMTP/app passwords.\n\nÀ FAIRE\n1. Vérifier `git grep` de noms de secrets et chaînes ressemblant à des clés.\n2. Confirmer que rien de serveur n'est importé dans un composant `use client`.\n3. Garder Gmail vide en local ou utiliser une boîte explicitement de test.\n4. Prévoir trois jeux de variables séparés : local / préprod / prod.\n5. Documenter génération/rotation des clés de chiffrement et VAPID. Une rotation de `SECRETS_ENCRYPTION_KEY` peut rendre les secrets chiffrés existants illisibles : prévoir procédure.\n6. Vérifier les variables Vercel et Supabase sans copier les valeurs dans Trello/README.\n\nFINITION\n`.env.example` décrit chaque variable sans valeur sensible et le projet démarre localement sans aucun secret de production.\n\nTERMINÉ QUAND\nAucun secret sensible n'est versionné ; .env.example suffit pour connaître les variables requises.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:12.628Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e9834c56c10293e875",
+    "name": "[SEC-07] Tester session, expiration et déconnexion",
+    "url": "https://trello.com/c/vYfzpdgJ/18-sec-07-tester-session-expiration-et-d%C3%A9connexion",
+    "description": "SEC-07\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : SEC-02\n\nOBJECTIF\nVérifier le timeout de session, la déconnexion, la reconnexion et le comportement après expiration d'une session.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nDEUX SYSTÈMES À TESTER\n1. Staff Supabase Auth : `src/middleware.ts`, `src/lib/auth/session-timeout.ts` (`SESSION_MAX_AGE_SECONDS = 3600`), `src/lib/auth/actions.ts`.\n2. Candidate : `src/lib/candidats/session.ts` (`figurant_session`, TTL actuellement 7 jours).\n\nSCÉNARIOS STAFF\n- Login → cookie `session_started_at` posé.\n- Navigation avant/après 1 h.\n- Expiration → redirection login + impossibilité d'appeler une action protégée.\n- Logout → cookies/session invalidés.\n\nSCÉNARIOS CANDIDATE\n- Login → session DB + cookie.\n- Date `expires_at` passée → accès refusé.\n- Logout/révocation/reset de mot de passe → décider si toutes les sessions actives doivent être supprimées.\n\nATTENTION\nLe middleware protège la navigation mais toute action serveur sensible doit refaire le contrôle utilisateur/projet. Tester une requête/action directe après expiration, pas seulement le clic dans l'UI.\n\nTERMINÉ QUAND\nAucune page protégée ne reste accessible après déconnexion ou expiration.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:13.441Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499acbd333c50de6b5a7b",
+      "name": "02 - Sécurité & accès"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499ea1e4b458951b7833c",
+    "name": "[CAN-01] Permettre à une nouvelle candidate de créer son accès sans lien magique",
+    "url": "https://trello.com/c/MrWZWx3h/19-can-01-permettre-%C3%A0-une-nouvelle-candidate-de-cr%C3%A9er-son-acc%C3%A8s-sans-lien-magique",
+    "description": "CAN-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : SEC-02\n\nOBJECTIF\nLe lien public d'une annonce doit permettre à une nouvelle personne de candidater puis retrouver son espace sans dépendre d'un lien magique envoyé par email.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\n`src/app/postuler/[token]/page.tsx`, `src/components/candidatures/postuler-form.tsx`, `src/lib/candidatures/actions.ts`, `src/app/compte/*`, `src/lib/candidats/password.ts`, `src/lib/candidats/session.ts`.\n\nIMPLÉMENTATION\n1. À l'ouverture d'un token d'annonce valide, afficher le formulaire même pour une nouvelle personne selon DEC-01.\n2. À la soumission, valider côté serveur l'annonce (ouverte, limite candidatures, mineurs, dates, bande démo, etc.).\n3. Créer/rapprocher le profil sans accorder l'accès à un ancien profil sans preuve (SEC-01).\n4. Permettre la définition d'un mot de passe ou l'étape d'activation choisie sans dépendre d'un magic link.\n5. Créer une session candidate seulement après authentification/activation suffisante.\n6. En cas d'erreur après création partielle, retourner un état récupérable : la personne ne doit pas devoir recréer un nouveau profil.\n\nTEST DE BOUT EN BOUT\nAdresse jamais connue → candidature enregistrée → accès créé → déconnexion → reconnexion → candidature/espace retrouvés. Refaire avec email existant et avec annonce fermée.\n\nTERMINÉ QUAND\nParcours complet testé avec une adresse jamais connue de la base.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad6335ce5a92fe3ae3ece57",
+        "text": "c’est good",
+        "date": "2026-10-19T15:12:28.192Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T15:12:32.405Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499eac84073608d25c3a7",
+    "name": "[CAN-02] Implémenter le choix « postuler sans compte »",
+    "url": "https://trello.com/c/RwGpy5Gn/20-can-02-impl%C3%A9menter-le-choix-postuler-sans-compte",
+    "description": "CAN-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : DEC-01; CAN-01\n\nOBJECTIF\nAppliquer la décision DEC-01 au formulaire de candidature et à la création/récupération du profil.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nAPRÈS DEC-01\nImplémenter exactement le scénario choisi dans `postuler-form.tsx` + `postulerAnnonce` sans créer de branches UX ambiguës.\n\nSI CANDIDATURE SANS COMPTE AUTORISÉE\n- La candidature doit être enregistrable sans session candidate active.\n- Le profil créé/rapproché doit avoir un état clair “pas encore d'accès”.\n- L'activation ultérieure doit rattacher de façon sûre les candidatures existantes après preuve d'identité/authentification.\n- Ne jamais générer un accès automatique à un profil historique sur simple correspondance email/téléphone.\n\nSI COMPTE OBLIGATOIRE\n- Bloquer avant soumission finale tant que l'accès n'est pas créé/authentifié.\n- Conserver les données de formulaire sans les perdre lors de connexion/activation.\n\nTESTS\nNouvelle personne, profil existant sans compte, compte existant, doublon suspect, abandon au milieu, retour sur le lien après candidature.\n\nTERMINÉ QUAND\nLe comportement réel correspond exactement au parcours décidé.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad63374eb55c6f22e4c15a5",
+        "text": "Non (vu sur la première slide)\n\nOn ne peut plus postuler sans compte et ça ne changera pas.\n\nPrécision, Loïc a récemment ajouté la fonctionnalité “ajout rapide” qui permet de créer un profil sans compte, mais cette personne est obligée de créer un compte pour postuler à une annonce ou visualiser les infos concernant sa future embauche. Une invitation à créer son compte lui est envoyée directement une fois l’ajout rapide validé.\n\nS’il n’a pas créé de compte, ce profil est introuvable dans la base de donnée partagée avec les autres chargés de casting (à vérifier que c’est bien en place).",
+        "date": "2026-10-19T15:12:52.016Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T15:16:35.396Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499eb2d0b3c85489092c0",
+    "name": "[CAN-03] Fiabiliser la détection et le traitement des doublons",
+    "url": "https://trello.com/c/F67dimvq/21-can-03-fiabiliser-la-d%C3%A9tection-et-le-traitement-des-doublons",
+    "description": "CAN-03\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : SEC-01\n\nOBJECTIF\nTester les doublons par email/téléphone/identité, éviter les fusions dangereuses et définir comment une cheffe traite un doublon détecté.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE EXISTANT\n`src/lib/figurants/duplicates.ts` normalise téléphone/nom et distingue notamment correspondance téléphone ou date de naissance + nom. Les commentaires indiquent que les “doublons possibles” doivent être validés humainement, jamais fusionnés automatiquement.\n\nÀ FAIRE\n1. Lister les règles “match certain” vs “match possible”.\n2. Pour un match certain utilisé à la candidature, exiger plusieurs signaux robustes et ne pas confondre avec auth SEC-01.\n3. Pour les matches possibles, afficher un avertissement staff avec comparaison des champs utiles.\n4. Ajouter action explicite : conserver séparé / fusionner si le produit prévoit la fusion. Si fusion implémentée, définir quelle fiche gagne et déplacer références/medias dans une transaction logique.\n5. Journaliser au minimum l'action de fusion si elle devient possible.\n\nTESTS\nAccents, tirets, espaces, indicatifs téléphone, nom de scène, homonymes, jumeaux, même téléphone familial, changement d'email. Aucun cas ambigu ne doit fusionner seul.\n\nTERMINÉ QUAND\nPas de fusion automatique risquée ; les doublons possibles sont signalés et traitables.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ad6364bfe4bc52646862ac2",
+        "text": "Il y a déjà une vérification depuis la création de compte :\nSi une personne essaie de créer un compte avec le même mail, même numéro de téléphone et même nom le site détecte un doublon et empêche la création de compte.\n\nA vérifier dans le futur si ça amène des bugs qu’on a pas anticipé… ?",
+        "date": "2026-10-19T15:24:59.373Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T15:24:59.395Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499ebad71e299d3fe8504",
+    "name": "[CAN-04] Afficher/envoyer une confirmation « candidature bien reçue »",
+    "url": "https://trello.com/c/FO6dzCGj/22-can-04-afficher-envoyer-une-confirmation-candidature-bien-re%C3%A7ue",
+    "description": "CAN-04\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : CAN-01\n\nOBJECTIF\nAprès l'envoi d'une candidature, donner une confirmation claire à l'écran et, si validé métier, par notification/email.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nUI\nAprès succès réel de `postulerAnnonce`, afficher une confirmation dédiée ; ne pas afficher “envoyé” avant que l'action serveur ait confirmé l'insert.\n\nEMAIL/NOTIFICATION SI RETENU\n- Utiliser `src/lib/email/send.ts` via le mécanisme de credentials projet (`src/lib/projets/email.ts`).\n- Le contenu doit venir d'un modèle clair si configurable.\n- L'échec d'un email ne doit pas annuler une candidature déjà enregistrée ; retourner “candidature enregistrée, email non envoyé” si utile.\n- Éviter les doubles envois en cas de double clic/retry.\n\nTESTS\nSuccès candidature + email OK, succès candidature + SMTP KO, double soumission, retour arrière navigateur. Vérifier qu'une seule candidature existe et qu'aucun email n'est envoyé en local sans configuration explicite.\n\nTERMINÉ QUAND\nLa candidate sait immédiatement que sa candidature a été enregistrée.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:16.034Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499ec45bd23372eeaa21d",
+    "name": "[CAN-05] Recetter le formulaire de candidature complet",
+    "url": "https://trello.com/c/TlE7lhOf/23-can-05-recetter-le-formulaire-de-candidature-complet",
+    "description": "CAN-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : CAN-01\n\nOBJECTIF\nTester questions, dates disponibles, conditions mineur, bande démo, pièces/médias et champs obligatoires selon le paramétrage d'une annonce.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nÀ TESTER À PARTIR DU PARAMÉTRAGE ANNONCE\nLire `src/components/annonces/annonce-form.tsx`, `dates-manager.tsx`, `questions-manager.tsx` puis `postuler-form.tsx` et `src/lib/candidatures/actions.ts`.\n\nMATRICE DE CAS\n- annonce ouverte/fermée ; limite atteinte/non atteinte ; mineurs autorisés/refusés ; bande démo obligatoire/non ; une ou plusieurs dates ; questions custom ; types de cachet.\n- champs obligatoires manquants ; média invalide ; date non sélectionnée ; candidature doublée.\n\nCONTRÔLES SERVEUR\nTout ce qui est obligatoire dans l'UI doit être revérifié dans l'action serveur : un utilisateur peut contourner le front. Vérifier notamment `statut`, `ouverte_mineurs`, `limite_candidatures`, `bande_demo_obligatoire`, dates appartenant à l'annonce.\n\nDONNÉES\nAprès soumission, inspecter `candidatures`, réponses/questions, `candidature_jours`, médias et figurant. Aucun enregistrement orphelin en cas d'échec.\n\nTERMINÉ QUAND\nChaque option d'annonce a un cas de test réussi et un cas d'erreur contrôlé.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:16.691Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499edc7788171599f260d",
+    "name": "[CAN-06] Recetter l’espace personnel candidate par projet",
+    "url": "https://trello.com/c/eX5Zs5fp/24-can-06-recetter-lespace-personnel-candidate-par-projet",
+    "description": "CAN-06\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-04\n\nOBJECTIF\nVérifier fiche, photos, indisponibilités, messages et informations propres à chaque projet.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\nEspace candidat : composants `src/components/candidats/*`; session `src/lib/candidats/session.ts`; données projet dans migrations `20260825000001_espace_perso_par_projet.sql` et fonctions associées.\n\nSCÉNARIO\nCréer un même figurant lié à deux projets. Se connecter en candidate et basculer/ouvrir les contextes projet prévus.\n\nÀ VÉRIFIER\n- Fiche générale vs informations spécifiques projet.\n- Photos visibles/modifiables selon règle.\n- Indisponibilités.\n- Messages rattachés au bon projet.\n- Candidatures/bookings visibles uniquement dans le contexte autorisé.\n- Aucun mélange de signature, email, projet précédent ou données d'une autre cheffe.\n\nTEST SÉCURITÉ\nModifier manuellement l'ID/projet dans URL ou requête. Le serveur doit retrouver le projet autorisé depuis la session et refuser le reste, pas faire confiance à un ID envoyé par le client.\n\nTERMINÉ QUAND\nUne candidate retrouve les bonnes informations et aucune donnée d'un projet ne se mélange avec un autre.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:17.376Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499edc2590bf3f9b9faa4",
+    "name": "[CAN-07] Recetter les échanges candidate ↔ équipe",
+    "url": "https://trello.com/c/y7JdCAsB/25-can-07-recetter-les-%C3%A9changes-candidate-%E2%86%94-%C3%A9quipe",
+    "description": "CAN-07\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : CAN-06\n\nOBJECTIF\nTester messagerie, réponses, catégorie de message, statut lu/revu et lien éventuel vers un booking.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/components/candidats/message-thread.tsx`, `src/lib/candidats/messaging.ts`, `src/lib/figurants/messages-actions.ts`, migrations `figurant_messages*` et backfill projet `20260908000001_backfill_message_projet_id.sql`.\n\nTESTS\n1. Staff envoie un message à une candidate pour projet A.\n2. Candidate le voit dans A, pas dans B.\n3. Candidate répond ; staff voit la réponse et les timestamps/statuts attendus.\n4. Tester catégories/sujet, `reviewed`/`repondu` et lien booking si présent.\n5. Tester historique après changement de statut du booking.\n\nSÉCURITÉ\nChaque message doit être rattaché à un figurant ET au bon projet. Vérifier RLS/contrôles serveur pour empêcher candidate B ou équipe B de lire le thread.\n\nERREURS\nUn échec email/push associé ne doit pas faire disparaître le message enregistré en base.\n\nTERMINÉ QUAND\nLes deux côtés voient le bon fil de discussion et le bon statut.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:18.032Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499eea040e90bd65ae6f6",
+    "name": "[CAN-08] Test de non-régression : candidature déjà bookée",
+    "url": "https://trello.com/c/x2LZcyzm/26-can-08-test-de-non-r%C3%A9gression-candidature-d%C3%A9j%C3%A0-book%C3%A9e",
+    "description": "CAN-08\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nDÉPEND DE : ENV-04\n\nOBJECTIF\nVérifier la correction récente : une candidature envoyée dans un booking ne doit pas réapparaître dans la même annonce, même si d'autres jours étaient initialement prévus.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nRÉGRESSION À VERROUILLER\nLa correction récente garantit qu'une candidature déjà envoyée dans un booking ne réapparaît plus dans l'annonce, même si d'autres jours restent prévus. Le code concerné est dans les requêtes/onglets candidatures et la logique jours → booking (`src/lib/candidatures/*`, notamment `jours.ts`/requêtes de liste).\n\nSCÉNARIO EXACT\n1. Annonce avec au moins 2 dates.\n2. Candidate prévue sur les 2 dates.\n3. Envoyer seulement la première date en booking.\n4. Revenir à la liste de candidatures : la candidature ne doit plus réapparaître comme candidate active de l'annonce.\n5. Les jours restants doivent rester exploitables depuis la barre “jours de tournage” selon la règle actuelle.\n\nCONTRÔLE DB\nVérifier `candidatures`, `candidature_jours`, `bookings` : ne pas supprimer les jours restants juste pour masquer la ligne.\n\nAUTOMATISATION\nAjouter ce cas à QA-04 : c'est un bon test de non-régression fonctionnel.\n\nTERMINÉ QUAND\nLe scénario de régression est reproduit et passe.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:18.656Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499ef15ca1e3fc9f92295",
+    "name": "[CAN-09] Recetter création, activation et récupération d’accès candidate",
+    "url": "https://trello.com/c/yxO1KgGn/27-can-09-recetter-cr%C3%A9ation-activation-et-r%C3%A9cup%C3%A9ration-dacc%C3%A8s-candidate",
+    "description": "CAN-09\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-02\n\nOBJECTIF\nTester activation de l'espace personnel, mot de passe oublié, reset et désactivation/autorisation d'accès.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\nÉcrans `/compte/connexion`, `/compte`, routes/actions de vérification, `src/components/figurants/acces-compte-toggle.tsx`, `send-espace-perso-button.tsx`, auth candidate (`password.ts`, `session.ts`).\n\nCAS À TESTER\n- Profil créé sans accès puis activation.\n- Profil avec accès : connexion.\n- Mauvais mot de passe.\n- Mot de passe oublié/reset.\n- Accès désactivé par le staff : session existante doit-elle être coupée ? définir et implémenter.\n- Réactivation.\n\nCONTRÔLES\nLe `password_hash` ne doit jamais sortir au client. Les tokens de reset/activation doivent être à usage limité. Lors d'une désactivation, toutes les actions candidate doivent revérifier l'autorisation côté serveur.\n\nFINITION\nUn compte ne peut pas rester “semi-actif” : le statut affiché au staff doit correspondre à ce que le serveur autorise réellement.\n\nTERMINÉ QUAND\nTous les cas d'accès sont reproductibles et sécurisés.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:19.642Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ac38e916d2b2aa12f4",
+      "name": "03 - Candidats & candidatures"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f042b104306dcb2e1d",
+    "name": "[MED-01] Qualifier la compression des images sur mobile",
+    "url": "https://trello.com/c/SIZ3Hmb5/28-med-01-qualifier-la-compression-des-images-sur-mobile",
+    "description": "MED-01\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nTester photos lourdes et orientations différentes sur iPhone/Android et vérifier poids, qualité et upload.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE À TESTER\n`src/lib/media/compress-image.ts` : `createImageBitmap(..., imageOrientation: \"from-image\")`, dimension max 1920 par défaut, JPEG qualité 0.82, conservation de l'original si déjà léger ou si la compression grossit le fichier.\n\nMATRICE\n- iPhone HEIC/JPEG si accepté par le formulaire.\n- JPEG portrait avec EXIF rotation.\n- Photo 12–48 Mpx lourde.\n- Petite photo sous le seuil.\n- PNG avec transparence : vérifier si conversion JPEG est acceptable métier ou doit être exclue.\n- Android/Chrome + Safari iOS.\n\nMESURES À NOTER\nPoids entrée/sortie, dimensions, orientation, temps, qualité visible, réussite upload.\n\nPOINTS DE CODE\nSi un format n'est pas décodable par `createImageBitmap`, afficher une erreur exploitable plutôt qu'un échec silencieux. Vérifier le nombre max de photos et les buckets via `src/lib/figurants/photos.ts`.\n\nVALIDATION\nPas de rotation incorrecte, pas d'image noire, pas de perte qualité excessive, upload fiable sur mobile.\n\nTERMINÉ QUAND\nLes photos sont suffisamment légères sans perte visuelle bloquante ni rotation erronée.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:20.601Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f13c902376816e69fa",
+    "name": "[MED-02] Qualifier la compression vidéo sur Safari, Chrome et Firefox",
+    "url": "https://trello.com/c/ZOSGq249/29-med-02-qualifier-la-compression-vid%C3%A9o-sur-safari-chrome-et-firefox",
+    "description": "MED-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : ENV-04\n\nOBJECTIF\nTester de vrais selftapes : progression, annulation, son, durée, gros fichiers et comportement Safari.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE À LIRE\n`src/lib/media/compress-and-upload-video.ts`, `compress-video.ts`, `webcodecs-compress-video.ts`, `upload-error.ts` et `src/lib/casting/upload-actions.ts`.\n\nCOMPORTEMENT EXISTANT IMPORTANT\n- Voie rapide WebCodecs hors Safari.\n- Safari bascule volontairement sur compression temps réel.\n- Annulation via `AbortSignal` ne doit JAMAIS envoyer le fichier original.\n- Limites cible/dure et progression en deux passes.\n\nTESTS RÉELS\nChrome desktop, Firefox, Safari macOS/iPhone si possible ; vidéos 10 s, ~2 min, grosse vidéo, portrait/paysage, avec son. Tester mise en arrière-plan/verrouillage, annulation à 20%/99%, codec non supporté.\n\nCONTRÔLES\n- Sortie lisible avec son synchro.\n- Barre de progression ne reste pas bloquée.\n- Annulation stoppe l'upload.\n- Une compression échouée suit une stratégie claire ; ne pas envoyer un fichier > limite Storage en silence.\n- `logCastingUploadEvent` enregistre les étapes utiles au diagnostic.\n\nSi bug navigateur : noter UA, codec, taille/durée originales et dernière étape du log.\n\nTERMINÉ QUAND\nAucun blocage à 99 %, annulation fonctionnelle et vidéo lisible après upload.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:21.282Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f1e23ce296a3443b6e",
+    "name": "[MED-03] Améliorer les erreurs et limites d’upload",
+    "url": "https://trello.com/c/iWVHTHZO/30-med-03-am%C3%A9liorer-les-erreurs-et-limites-dupload",
+    "description": "MED-03\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : MED-01; MED-02\n\nOBJECTIF\nAfficher des messages compréhensibles quand un média est trop lourd, illisible, annulé ou ne peut pas être compressé.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\nCentraliser les erreurs dans `src/lib/media/upload-error.ts` et réutiliser dans les formulaires photo/vidéo plutôt que messages divergents.\n\nCAS À DISTINGUER\n- fichier trop lourd avant compression ; sortie encore trop lourde ; format/codec illisible ; navigateur incompatible ; permission/mémoire ; réseau/Storage ; annulation utilisateur ; délai compression dépassé.\n\nIMPLÉMENTATION\n1. Les fonctions bas niveau retournent/lèvent des erreurs typées ou codes stables.\n2. Le composant traduit ces codes en message utilisateur simple + action possible.\n3. Les détails techniques restent dans logs, sans secret ni données personnelles inutiles.\n4. Ne jamais convertir une annulation en “succès avec original”.\n\nTESTS\nForcer chaque branche d'erreur. Vérifier que bouton reste réutilisable après échec et que l'état de progression est reset.\n\nTERMINÉ QUAND\nL'utilisateur comprend quoi faire au lieu de rester bloqué.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:21.913Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f2c504463011d8ebdf",
+    "name": "[COM-01] Recetter les emails sans utiliser les secrets de prod en local",
+    "url": "https://trello.com/c/7Gubb3Nq/31-com-01-recetter-les-emails-sans-utiliser-les-secrets-de-prod-en-local",
+    "description": "COM-01\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-06\n\nOBJECTIF\nTester invitations, confirmations, convocations et messages avec un environnement de test/local ; vérifier expéditeur, contenu et erreurs.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/email/send.ts` (Nodemailer/Gmail), `src/lib/projets/email.ts` (résolution credentials projet/owner), `src/lib/crypto/secrets.ts`, actions qui envoient invitations/convocations/messages.\n\nCONFIG TEST\nUtiliser une boîte Gmail dédiée de test ou laisser Gmail vide en local pour vérifier le comportement “non configuré”. Ne jamais renseigner le mot de passe app de prod dans `.env.local` partagé.\n\nSCÉNARIOS\n- Envoi avec credentials projet.\n- Fallback credentials propriétaire.\n- Aucun credential → message contrôlé “Envoi automatique non configuré”.\n- Mauvais mot de passe SMTP.\n- Destinataire invalide.\n\nCONTRÔLES\nVérifier From/Reply-To si utilisés, sujet, signature, contenu et lien absolu basé sur `NEXT_PUBLIC_SITE_URL`. Un email échoué ne doit pas annuler une opération métier déjà confirmée sauf exigence explicite.\n\nLOGS\nNe jamais logger `pass`, secrets déchiffrés ou contenu sensible complet.\n\nTERMINÉ QUAND\nAucun email réel accidentel depuis le local ; les modèles attendus sont validés.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:22.688Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f31d04bf4149994ccf",
+    "name": "[COM-02] Recetter les notifications et leur isolation par équipe/projet",
+    "url": "https://trello.com/c/hfeMyDHZ/32-com-02-recetter-les-notifications-et-leur-isolation-par-%C3%A9quipe-projet",
+    "description": "COM-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-03\n\nOBJECTIF\nVérifier qu'une notification arrive aux bonnes personnes seulement et qu'elle est bien rattachée au bon projet.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE / DB\n`src/lib/notifications/create.ts`, cloche UI, migration `20260924000002_notifications_par_equipe.sql` qui rattache notamment `compte_cree` à un projet.\n\nSCÉNARIO MULTI-ÉQUIPE\nCréer A/projet A et B/projet B. Produire chaque type de notification : candidature, compte créé, casting, réponse, etc. Vérifier destinataires, compteur non lu et marquage lu.\n\nCONTRÔLE DB\nToute notification qui doit être privée d'équipe doit avoir un `projet_id` ou un autre scope explicite. Rechercher les appels `createNotification(` sans `projetId` et justifier chacun.\n\nSÉCURITÉ\nMême si l'UI filtre, les policies RLS doivent empêcher équipe B de SELECT/UPDATE les notifications de A.\n\nNON-RÉGRESSION\nLire une notification dans A ne doit pas la marquer lue pour B.\n\nTERMINÉ QUAND\nPas de notification croisée entre équipes ou projets.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:23.310Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f3bde984801c84f23f",
+    "name": "[COM-03] Recetter les notifications push candidate",
+    "url": "https://trello.com/c/yomIvsdk/33-com-03-recetter-les-notifications-push-candidate",
+    "description": "COM-03\n\nPRIORITÉ : P2\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-06\n\nOBJECTIF\nTester abonnement push, refus de permission, changement d'appareil et envoi réel sur navigateur compatible.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/components/candidats/push-subscribe.tsx`, `src/lib/push/send.ts`, `public/sw.js`, migration `20260819000008_push_subscriptions.sql`, variables VAPID.\n\nTESTS\n1. Permission acceptée → subscription enregistrée pour le bon figurant.\n2. Permission refusée → UI reste fonctionnelle, pas de boucle de demande.\n3. Deux appareils/navigateurs pour la même candidate → comportement attendu.\n4. Subscription expirée/410 → `sendPushToFigurant` doit la supprimer (code actuel le prévoit).\n5. Clic notification ouvre la bonne URL.\n\nSÉCURITÉ\nUne candidate ne doit pas pouvoir enregistrer une subscription sur l'ID d'une autre. Vérifier l'action qui persiste la subscription et le lien avec la session candidate.\n\nENV\nPréprod/prod ont leurs propres VAPID. `VAPID_PRIVATE_KEY` serveur uniquement.\n\nTERMINÉ QUAND\nLe push fonctionne quand autorisé et échoue proprement sinon.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:23.961Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f4c24f23349103a9c6",
+    "name": "[COM-04] Valider signatures et modèles de messages",
+    "url": "https://trello.com/c/5n96Vo8x/34-com-04-valider-signatures-et-mod%C3%A8les-de-messages",
+    "description": "COM-04\n\nPRIORITÉ : P2\nCHARGE RELATIVE : S\nDÉPEND DE : COM-01\n\nOBJECTIF\nPasser en revue les modèles email/messages et les signatures par projet/équipe.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS\n`src/lib/projets/email-templates.ts`, `src/lib/projets/signature.ts`, composants de modèles dans `/equipe` et projet, migrations des message templates.\n\nÀ VÉRIFIER\n- Priorité : modèle projet / modèle propriétaire / texte par défaut selon implémentation.\n- Variables dynamiques réellement remplacées et échappées.\n- Signature du bon projet/owner.\n- Pas de signature ou modèle de l'équipe A dans un email du projet B.\n- Aperçu et email final identiques sur les champs critiques.\n\nDEV\nSi plusieurs appels fabriquent chacun leur contenu, centraliser la résolution template + signature pour éviter divergence. Ajouter des tests de rendu pour les modèles les plus importants (convocation, espace perso, casting).\n\nTERMINÉ QUAND\nLes textes et signatures utilisés en production sont validés par l'équipe.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:24.613Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ad01f567aa42136224",
+      "name": "04 - Médias & communications"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f5a8bdf10250d4f355",
+    "name": "[MET-01] Recetter le cycle de vie d’un projet",
+    "url": "https://trello.com/c/jawAKYlC/35-met-01-recetter-le-cycle-de-vie-dun-projet",
+    "description": "MET-01\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nCréer, modifier, archiver et rouvrir/consulter un projet ; vérifier les paramètres, modèles et indemnités associés.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/projets/actions.ts`, `src/components/projets/projet-form.tsx`, indemnités, document templates, email/signature, `archiver-projet-button.tsx`.\n\nSCÉNARIO\nCréer projet avec nom/code/type/convention/données utiles → modifier → ajouter indemnité/modèle → archiver → vérifier comportement dans listes et accès.\n\nCONTRÔLES SERVEUR\n`createProjet/update` doivent utiliser `requireChef/checkProjetAccess` et poser le bon `owner_id`. Tester assistante non autorisée et cheffe d'un autre projet.\n\nDONNÉES LIÉES\nVérifier qu'archiver n'efface pas annonces/candidatures/bookings. La suppression éventuelle doit respecter `projetEstSupprimable` et les dépendances.\n\nRÉGRESSION\nDeux projets aux noms proches, changement de code/nom, projet archivé encore référencé dans documents/liens.\n\nTERMINÉ QUAND\nLe projet reste cohérent tout au long de son cycle de vie.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:25.254Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f5ca72e25c3e940a63",
+    "name": "[MET-02] Recetter le cycle de vie d’une annonce",
+    "url": "https://trello.com/c/KwFippSF/36-met-02-recetter-le-cycle-de-vie-dune-annonce",
+    "description": "MET-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : MET-01\n\nOBJECTIF\nCréer/modifier une annonce, dates, questions, visuels, ouverture/fermeture, lien public, QR/poster et limite de candidatures.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/annonces/actions.ts`, `src/components/annonces/annonce-form.tsx`, `dates-manager.tsx`, `questions-manager.tsx`, moodboard, QR `src/lib/annonces/qrcode.ts`, route poster.\n\nSCÉNARIOS\nCréer annonce sur projet A, plusieurs dates/questions, limite candidatures, option mineurs/bande démo/types cachet, visuel. Ouvrir puis fermer.\n\nÀ VÉRIFIER\n- Une annonce appartient toujours à un projet autorisé.\n- Les dates/questions supprimées ne laissent pas de références incohérentes.\n- Le token/lien public pointe sur la bonne annonce.\n- Limite de candidatures vérifiée côté serveur au moment de postuler.\n- Poster/QR encode une URL absolue correcte pour l'environnement.\n\nTEST\nOuvrir lien public navigation privée et après fermeture. Une annonce fermée doit refuser une nouvelle candidature côté serveur même si le formulaire était déjà ouvert.\n\nTERMINÉ QUAND\nUne annonce peut être préparée puis publiée sans incohérence.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:25.902Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f6d8920a6f81f90e9b",
+    "name": "[MET-03] Recetter tri et gestion des candidatures",
+    "url": "https://trello.com/c/R72I6GCW/37-met-03-recetter-tri-et-gestion-des-candidatures",
+    "description": "MET-03\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : MET-02\n\nOBJECTIF\nTester onglets par annonce, tris, badges, détails, statuts, jours de tournage et export.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/app/candidatures/*`, `src/components/candidatures/*`, `src/lib/candidatures/actions.ts`, `onglets.ts`, `jours.ts`, export route.\n\nTESTS\n- Onglets communs + onglets propres à une annonce.\n- Déplacement/statut/tri rapide.\n- Badges habitué et compte tournages confirmés.\n- Fiche détail / popup.\n- Sélection des jours de tournage.\n- Export filtré si prévu.\n\nCONTRÔLES\nLes filtres UI ne doivent pas charger des candidatures d'un projet non autorisé. `checkCandidatureAccess()` remonte via annonce → projet : tout nouvel action doit conserver ce pattern.\n\nPERF\nSur volume réaliste, surveiller N+1 (comptage bookings/photos) et requêtes multiples. Corriger seulement si mesuré, sans sacrifier l'isolation.\n\nTERMINÉ QUAND\nLes utilisateurs retrouvent rapidement les candidatures et leur état réel.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:26.552Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f7d1d028650bf81dc9",
+    "name": "[MET-04] Recetter le passage candidature → booking",
+    "url": "https://trello.com/c/X0xiQR5a/38-met-04-recetter-le-passage-candidature-%E2%86%92-booking",
+    "description": "MET-04\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : MET-03; CAN-08\n\nOBJECTIF\nTester ajout rapide, plusieurs jours, changement de date, suppression et cohérence des statuts entre candidature et booking.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/candidatures/jours.ts`, `src/lib/bookings/actions.ts`, composants `add-to-journee-bar.tsx`, `change-date-bar.tsx`, `quick-add-figurant.tsx`.\n\nRÈGLES À TESTER\n- `setCandidatureJour` range une candidature sur un jour sans créer de booking.\n- L'envoi au tournage crée le booking jour par jour.\n- Une candidature bookée ne revient pas dans l'annonce (CAN-08).\n\nSCÉNARIOS\n1. Candidate sur 1 date → booking.\n2. Candidate sur 2 dates → booking une seule date puis deuxième via barre jours.\n3. Changement de date.\n4. Suppression booking : définir si candidature réapparaît ou non selon règle métier.\n5. Quick-add d'un figurant sans candidature.\n\nINTÉGRITÉ\nVérifier FK projet/journée/figurant, absence de doublon booking pour même personne/jour si interdit et cohérence `figurants.confirme` mise à jour par `createBooking`.\n\nTEST DB + UI obligatoire après chaque action.\n\nTERMINÉ QUAND\nAucun doublon ni disparition de jour ; le booking reflète la décision métier.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:27.194Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f798118b8ecb7e6236",
+    "name": "[MET-05] Recetter une journée de booking de bout en bout",
+    "url": "https://trello.com/c/bLBuY9xm/39-met-05-recetter-une-journ%C3%A9e-de-booking-de-bout-en-bout",
+    "description": "MET-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : MET-04\n\nOBJECTIF\nTester besoins, planning, heures, lieux, convocations, réponses, majorations, remarques et suppression.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/bookings/actions.ts`, `besoins-actions.ts`, `journees.ts`, `convocation.ts`, `covoiturage-messages.ts`, composants planning/besoins/convocation/covoiturage.\n\nSCÉNARIO JOURNÉE\nCréer journée, lieu/heure par défaut, besoin par fonction → affecter bookings → modifier heures/fonctions/cachets → envoyer convocation → enregistrer réponse → planning/documents → supprimer/archiver selon fonctions disponibles.\n\nCONTRAINTES\nLe code traduit l'erreur `booking_present_requiert_confirme` : tester la transition des statuts dans le bon ordre. Vérifier total requis vs présents/confirmés.\n\nCONVOCATIONS\nTester sans SMTP, SMTP OK et erreur. Les timestamps réponse/envoi doivent rester cohérents.\n\nSÉCURITÉ\nToute action sur `journee_id` ou `booking_id` doit retrouver le projet et appeler le contrôle d'accès avant mutation.\n\nTERMINÉ QUAND\nUne journée réelle peut être préparée et suivie sans manipulation manuelle hors application.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:27.869Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f808908c4f842e59dd",
+    "name": "[MET-06] Recetter les essayages de bout en bout",
+    "url": "https://trello.com/c/OmtFVOYR/40-met-06-recetter-les-essayages-de-bout-en-bout",
+    "description": "MET-06\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : MET-01\n\nOBJECTIF\nCréer un essayage, journées/créneaux, lieu, affectations, messages, planning et partage.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/essayages/actions.ts`, `journees.ts`, `lieu.ts`, `messages.ts`, `partage-planning.ts`, composants essayages et pages `/essayages/**`.\n\nSCÉNARIO\nCréer essayage projet A → créer journées/créneaux → définir lieu/adresse → affecter figurants → photo tenue → numéro costume → message → planning → lien de partage.\n\nCONTRÔLES\n- `checkEssayageAccess` / `checkEssayageJourneeAccess` sur toutes les mutations.\n- Photo tenue rattachée au projet correct et bucket sécurisé.\n- Un créneau ne peut pas appartenir à une autre journée/essayage.\n- Partage public ne montre que les champs prévus.\n\nTESTS D'ERREUR\nSuppression journée utilisée, conflit/absence créneau, figurant d'un mauvais scope, lien de partage révoqué/invalide.\n\nTERMINÉ QUAND\nUn essayage réel peut être planifié et partagé correctement.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:28.587Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f9150ecc2570b48feb",
+    "name": "[MET-07] Recetter le casting de bout en bout",
+    "url": "https://trello.com/c/mRHXggEK/41-met-07-recetter-le-casting-de-bout-en-bout",
+    "description": "MET-07\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : MET-01\n\nOBJECTIF\nTester rôles, ajout de profils, casting présentiel, upload par token, notes, statuts, distribution et visibilité.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/casting/actions.ts`, `data.ts`, `upload-actions.ts`, `liste-artistique.ts`, composants casting, pages `/casting/**` et `/partage/casting/**`.\n\nSCÉNARIO COMPLET\nCréer rôle (mode rôle/silhouette/doublure, catégorie cachet, visibilité, deadline, PDF) → ajouter profils → demander médias → candidate upload via token → staff voit médias/notes/statuts → casting présentiel → distribution → liste artistique/fiches rôles/partage.\n\nSÉCURITÉ\n- Token upload doit résoudre une seule `casting_entry` et être vérifié à chaque étape.\n- Deadline vérifiée côté serveur (pas seulement UI).\n- Les rôles/docs non visibles ne doivent pas apparaître au partage public.\n- Storage `casting-role-documents` et vidéos : chemins par rôle/entry, accès contrôlé/signed URLs.\n\nTESTS\nUpload annulé/expiré, mauvais token, deadline passée, nombre de vidéos, rôle supprimé, deux équipes distinctes.\n\nTERMINÉ QUAND\nUne session de casting complète peut être menée avec les données attendues.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:29.189Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499f934d2a4750551bec5",
+    "name": "[MET-08] Recetter tous les documents et exports",
+    "url": "https://trello.com/c/A0lTfSbF/42-met-08-recetter-tous-les-documents-et-exports",
+    "description": "MET-08\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : MET-05; MET-06; MET-07\n\nOBJECTIF\nTester bordereau, covoiturage, fiches, liste d'appel, silhouettes, trombis, vCards, XLSX, impression et PDF.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPAGES/ROUTES\n`src/app/bookings/documents/**`, `src/components/documents/*`, `src/lib/documents/data.ts`, `templates.ts`, `trombi.ts`, routes export/vCards, `src/lib/export/xlsx.ts`, documents casting/essayages.\n\nMATRICE À RECETTER\nBordereau, covoiturage, fiches, liste d'appel, silhouettes, trombis, trombis HMC, vCards, XLSX, PDF/impression, documents casting et essayages.\n\nPOUR CHAQUE DOCUMENT\n1. Source de données et filtre (projet/journée/statut).\n2. Tri attendu.\n3. Champs optionnels/masqués.\n4. Photos/signed URLs.\n5. Pagination/impression A4.\n6. Nom de fichier (utiliser `sanitizeFilenamePart`).\n\nSÉCURITÉ\nLes routes d'export sont aussi des endpoints : elles doivent refaire `checkProjetAccess`, pas se fier à l'écran précédent.\n\nTEST\nDonnées accents/caractères spéciaux, champs vides, 1 personne puis volume plus grand. Aucun document d'un autre projet ne doit être exportable en changeant un ID.\n\nTERMINÉ QUAND\nChaque document contient les bonnes personnes, champs et tris, et est exploitable à l'impression/export.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:29.767Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fa39170b53121a7327",
+    "name": "[MET-09] Recetter barème, cachets, majorations et indemnités",
+    "url": "https://trello.com/c/7p3Y9F37/43-met-09-recetter-bar%C3%A8me-cachets-majorations-et-indemnit%C3%A9s",
+    "description": "MET-09\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : MET-05\n\nOBJECTIF\nVérifier les valeurs, calculs, catégories et cas de majoration utilisés dans les bookings.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/bareme/actions.ts`, éditeurs `bareme-cachets-editor.tsx`, `bareme-majorations-editor.tsx`, `src/lib/indemnites/actions.ts`, migrations cachets/majorations/indemnités, booking form.\n\nTESTS\n- CRUD barème par convention/cachet.\n- Majorations type/valeur.\n- Indemnité projet ajout/suppression/application à plusieurs bookings.\n- Booking change cachet/date/fonction après application.\n\nCONTRÔLES\nMontants numériques, arrondis et unités doivent être explicites. Ne pas faire de calcul financier uniquement dans le front si la valeur enregistrée dépend de règles métier. Vérifier que l'application d'une indemnité contrôle l'accès au projet des bookings ciblés.\n\nSORTIE\nÉcrire quelques cas de calcul de référence validés par métier et les réutiliser en tests.\n\nTERMINÉ QUAND\nLes montants affichés correspondent aux règles validées par l'équipe.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:30.353Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fa7e4e83cd3bab284b",
+    "name": "[MET-10] Recetter invitations et permissions de l’équipe",
+    "url": "https://trello.com/c/4qVRAihP/44-met-10-recetter-invitations-et-permissions-de-l%C3%A9quipe",
+    "description": "MET-10\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-04\n\nOBJECTIF\nInviter une assistante, modifier/retirer son accès et tester les sections qu'elle peut utiliser.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE\n`src/lib/equipe/actions.ts`, `src/lib/auth/invite.ts`, `src/lib/auth/sections.ts`, `src/middleware.ts`, composants `/equipe`.\n\nSCÉNARIO\nCheffe A invite assistante → acceptation invitation → accès projet A → définir sections autorisées → vérifier navigation ET accès direct URLs/actions → révoquer → retester session active.\n\nPOINT IMPORTANT\n`sections_autorisees` est stocké globalement sur `profiles` d'après le commentaire actuel, pas par `projet_membres`. Donc une assistante invitée sur plusieurs projets peut partager le même jeu de sections. Confirmer que c'est bien la règle DEC-02 ; sinon cela nécessite évolution du schéma.\n\nSÉCURITÉ\nLe middleware masque/refuse les sections, mais les actions serveur doivent aussi vérifier projet/rôle. Tester qu'une cheffe ne modifie pas les droits d'une assistante qu'elle ne gère pas.\n\nRÉVOCATION\nAprès révocation, accès projet doit être refusé immédiatement même si la session Supabase reste valide.\n\nTERMINÉ QUAND\nUne assistante n'accède qu'aux fonctions prévues et sa révocation est immédiate.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:31.013Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fb2e39c052b6694c7b",
+    "name": "[MET-11] Recetter toutes les pages publiques de partage",
+    "url": "https://trello.com/c/gDPvF658/45-met-11-recetter-toutes-les-pages-publiques-de-partage",
+    "description": "MET-11\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-05\n\nOBJECTIF\nOuvrir chaque partage depuis une navigation privée/mobile et vérifier langue, lisibilité, données visibles et téléchargement éventuel.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPÉRIMÈTRE\nToutes les pages `src/app/partage/**` + routes d'export accessibles depuis ces pages, et `src/components/partage/*`/i18n.\n\nPROCÉDURE\nOuvrir chaque lien en navigation privée et sur mobile, sans cookies staff. Tester FR/EN si le toggle est disponible.\n\nVÉRIFIER\n- Titre/projet attendu.\n- Uniquement les champs autorisés.\n- Photos/documents accessibles via URL signée si nécessaire, pas bucket public par accident.\n- Export lié au même token et même périmètre.\n- Token invalide/révoqué → page neutre sans fuite.\n- Pas de liens internes staff ou IDs exploitables affichés inutilement.\n\nDEVTOOLS\nInspecter payloads réseau : une page qui masque un champ CSS mais le reçoit dans JSON est quand même une fuite.\n\nTERMINÉ QUAND\nChaque lien public est compréhensible et n'expose pas d'information non prévue.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:31.819Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499adb18b8e94d36fff7e",
+      "name": "05 - Parcours métier"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fc44d7d053fe253dfc",
+    "name": "[LEG-01] Ajouter le représentant légal au dossier d’un mineur",
+    "url": "https://trello.com/c/8GkvF3Tx/46-leg-01-ajouter-le-repr%C3%A9sentant-l%C3%A9gal-au-dossier-dun-mineur",
+    "description": "LEG-01\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : DEC-03\n\nOBJECTIF\nAjouter les informations du représentant légal selon la décision DEC-03 et les rattacher correctement au profil mineur.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nAVANT CODE\nUtiliser le schéma validé DEC-03. Créer une NOUVELLE migration Supabase, pas ajouter des colonnes au hasard directement en prod.\n\nMODÈLE CONSEILLÉ À ÉVALUER\nTable `representants_legaux` + relation vers figurant mineur si réutilisation possible, sinon champs structurés sur figurant. Prévoir nom/prénom/contact/adresse/lien avec l'enfant + métadonnées strictement nécessaires.\n\nCODE\nMettre à jour types figurant, `buildFigurantPayload`, formulaires create/edit, espace candidate et documents concernés. Les actions serveur doivent valider qu'un représentant n'est exigé que selon les règles d'âge/métier.\n\nSÉCURITÉ/RGPD\nDonnées du représentant = données personnelles. Ajouter RLS identique au mineur, ne jamais les exposer dans les partages publics par défaut, et étendre `src/lib/rgpd/actions.ts`.\n\nTESTS\nMineur avec/sans représentant, majeur, passage de mineur à majeur après correction date, deux enfants partageant le même représentant si modèle le permet.\n\nTERMINÉ QUAND\nUn mineur possède un représentant légal exploitable dans les écrans et documents requis.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:32.508Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fdb7873cbc5e060fcd",
+    "name": "[LEG-02] Gérer les autorisations nécessaires pour un mineur",
+    "url": "https://trello.com/c/C4M51gSS/47-leg-02-g%C3%A9rer-les-autorisations-n%C3%A9cessaires-pour-un-mineur",
+    "description": "LEG-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nDÉPEND DE : LEG-01\n\nOBJECTIF\nAu-delà de la simple règle d'âge, enregistrer les accords/documents requis et leur statut.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nMODÈLE\nÀ partir de DEC-03, définir pour chaque autorisation : type, statut (manquante/demandée/reçue/validée/refusée/expirée selon besoin), date, fichier éventuel, commentaire interne, propriétaire/projet si spécifique.\n\nSTORAGE\nSi pièces : créer bucket/prefix et policies dédiées ou signed URLs. Interdire les URL publiques permanentes pour documents sensibles.\n\nUI\nAfficher un indicateur de complétude sur fiche mineur et au bon moment du workflow (candidature/booking). Les blocages doivent être appliqués côté serveur pour les opérations qui exigent un dossier complet.\n\nRGPD\nÉtendre anonymisation/suppression des fichiers. Définir durée de conservation.\n\nTESTS\nFichier remplacé/supprimé, autorisation expirée, mineur dans deux projets, assistante avec accès limité, lien public : aucun document légal ne fuit.\n\nTERMINÉ QUAND\nL'équipe peut voir immédiatement si le dossier du mineur est complet ou incomplet.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:33.137Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fd22d942b9e4297313",
+    "name": "[LEG-03] Créer le dossier DRIEETS attendu par le métier",
+    "url": "https://trello.com/c/lm7ksfFN/48-leg-03-cr%C3%A9er-le-dossier-drieets-attendu-par-le-m%C3%A9tier",
+    "description": "LEG-03\n\nPRIORITÉ : P2\nCHARGE RELATIVE : XL\nDÉPEND DE : DEC-03; LEG-01; LEG-02\n\nOBJECTIF\nMettre en place les champs, regroupements et documents nécessaires au dossier DRIEETS selon les règles validées.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCONCEPTION\nNe pas commencer par le PDF. D'abord définir un “dataset DRIEETS” serveur : projet + enfant + représentant + rôles/dates/cachets + autorisations/pièces nécessaires. Ce dataset doit être testable indépendamment de la mise en page.\n\nCODE POSSIBLE\nCréer `src/lib/drieets/data.ts` + pages/export dédiés, puis composants document dans `src/components/documents/`. Si PDF côté client, suivre le pattern existant `html2canvas-pro`/`jspdf`; si impression HTML suffit, préférer la solution la plus robuste.\n\nVALIDATIONS\n- Champs obligatoires : erreur claire avant génération.\n- Données d'un seul projet.\n- Tri/format dates/noms conformes au modèle métier.\n- Pièces sensibles non intégrées/partagées sans autorisation.\n\nTESTS\nDossier complet, incomplet, plusieurs mineurs, caractères spéciaux, pagination. Comparer un dossier généré à un exemple validé métier.\n\nTERMINÉ QUAND\nUn dossier test complet peut être préparé à partir des données de l'application.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:33.781Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fe4931958ef766f9e9",
+    "name": "[LEG-04] Recetter les règles d’âge dans annonces et candidatures",
+    "url": "https://trello.com/c/vrTF7vv7/49-leg-04-recetter-les-r%C3%A8gles-d%C3%A2ge-dans-annonces-et-candidatures",
+    "description": "LEG-04\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : DEC-03; CAN-05\n\nOBJECTIF\nTester limite d'âge, autorisation/refus mineur, changement de date de naissance et cas frontière.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPOINTS CODE\n`src/lib/candidatures/actions.ts` lit `ouverte_mineurs`; formulaire figurant contient `date_naissance`; annonce configure l'option mineur.\n\nMATRICE D'ÂGE\nCréer des dates de naissance juste avant/après le seuil pertinent à la date métier choisie (date candidature ? date tournage ?). DEC-03 doit préciser cette référence.\n\nTESTS\n- Mineur annonce autorisée.\n- Mineur annonce interdite.\n- Majeur.\n- Date de naissance corrigée après candidature.\n- Plusieurs dates de tournage autour d'un anniversaire si cela change la règle.\n\nSERVEUR\nLe refus doit être dans `postulerAnnonce`/action serveur, pas seulement désactiver un champ. Ajouter tests unitaires sur la fonction de calcul d'âge si créée.\n\nTERMINÉ QUAND\nAucun mineur n'entre dans un parcours interdit et les messages sont clairs.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:34.443Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499fe203d610c9ec444ae",
+    "name": "[LEG-05] Recetter l’anonymisation RGPD",
+    "url": "https://trello.com/c/F8qqNw75/50-leg-05-recetter-lanonymisation-rgpd",
+    "description": "LEG-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : SEC-03\n\nOBJECTIF\nTester l'outil d'anonymisation sur un profil ayant candidatures, bookings, messages et médias.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCODE EXISTANT\n`src/lib/rgpd/actions.ts` supprime photos Storage, liens puis remplace des champs du figurant et pose `anonymise/anonymise_le`. Migration `20260819000003_rgpd_anonymisation.sql` précise qu'il n'y a pas d'anonymisation automatique.\n\nAUDIT À FAIRE\nLister TOUTES les données perso liées : photos, messages, candidatures, réponses, indisponibilités, casting medias, push subscriptions, sessions, représentant légal futur, emails, téléphone, adresse, fichiers essayage/casting.\n\nRÈGLE\nDécider quelles lignes doivent être supprimées vs conservées mais désidentifiées pour historique/statistiques. Ne pas casser les FK nécessaires.\n\nTEST\nCréer un profil riche avec toutes les relations, lancer anonymisation, puis rechercher son nom/email/téléphone dans la base et Storage. Tester documents/exports après anonymisation pour éviter crash ou fuite d'ancien cache.\n\nTERMINÉ QUAND\nLes données personnelles ciblées sont réellement anonymisées sans casser les statistiques ou historiques nécessaires.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:35.024Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499ffc84073608d2623ec",
+    "name": "[LEG-06] Relire les pages confidentialité / RGPD / contacts",
+    "url": "https://trello.com/c/tnYeZGJF/51-leg-06-relire-les-pages-confidentialit%C3%A9-rgpd-contacts",
+    "description": "LEG-06\n\nPRIORITÉ : P2\nCHARGE RELATIVE : S\nDÉPEND DE : DEC-03\n\nOBJECTIF\nVérifier que les pages légales correspondent au fonctionnement réel de l'application et aux coordonnées attendues.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIERS\n`src/app/confidentialite/page.tsx`, `src/app/rgpd/page.tsx`, éventuelle config `src/lib/legal/contact.ts`.\n\nVÉRIFICATION DEV\nComparer le texte aux comportements réels : type de données collectées, finalités, médias, notifications push, emails, conservation/anonymisation, liens publics, responsables de traitement/contact.\n\nATTENTION\nNe pas “inventer” de conformité juridique en code. Les formulations doivent être validées par la personne compétente ; le dev vérifie seulement qu'elles correspondent à ce que fait réellement l'app.\n\nAPRÈS MODIFICATION\nTester responsive, liens mail/contact et absence d'informations obsolètes/nom d'environnement de test.\n\nTERMINÉ QUAND\nContenu relu et validé avant production.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:35.767Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499ae143dd7c6f07aa6e8",
+      "name": "06 - Mineurs & conformité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0035f6d65d4de893ee",
+    "name": "[QA-01] Obtenir un build TypeScript propre",
+    "url": "https://trello.com/c/kpb6iMIS/52-qa-01-obtenir-un-build-typescript-propre",
+    "description": "QA-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : ENV-04\n\nOBJECTIF\nCorriger les erreurs qui empêchent une compilation fiable et supprimer les contournements non maîtrisés.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCOMMANDE\n`npm run build` avec la version actuelle (Next 16.3 / React 19.2.8).\n\nPROCÉDURE\n1. Partir d'un `npm ci` propre si besoin.\n2. Lancer build avec `.env.local` de test valide.\n3. Corriger les erreurs TypeScript/Next une par une sans `any` ou `@ts-ignore` de confort.\n4. Si l'erreur vient d'une API Next 16, suivre `AGENTS.md` : lire la documentation locale dans `node_modules/next/dist/docs/` avant d'appliquer un ancien pattern.\n5. Relancer jusqu'au build complet.\n\nPOINTS DE VIGILANCE\nServer/client boundaries, `cookies()`/headers async, Server Actions, routes dynamiques, types Supabase et modules browser-only (`window`, MediaRecorder).\n\nFINITION\nAucun contournement du type `ignoreBuildErrors`. Vérifier aussi que le build ne tente pas de contacter une ressource de prod.\n\nTERMINÉ QUAND\nnpm run build termine sans erreur.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:36.384Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a00d17592047b2e2797",
+    "name": "[QA-02] Obtenir un lint propre",
+    "url": "https://trello.com/c/8bnndDFF/53-qa-02-obtenir-un-lint-propre",
+    "description": "QA-02\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nCorriger les erreurs ESLint bloquantes et clarifier les éventuelles règles volontairement désactivées.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCOMMANDE\n`npm run lint` avec `eslint.config.mjs` (Next core-web-vitals + TypeScript).\n\nMÉTHODE\n- Corriger d'abord erreurs pouvant cacher un bug : hooks, dépendances, promesses, types dangereux, variables incohérentes.\n- Pour un warning volontaire, commenter localement pourquoi une règle est désactivée ; éviter les disables globaux.\n- Ne pas “nettoyer” massivement du code métier sans test : petits commits par domaine.\n\nAPRÈS LINT\nRelancer `npm run build` car certains changements de types/imports peuvent casser la compilation.\n\nFINITION\n0 erreur lint. Les warnings restants doivent être explicitement acceptés et documentés si la politique d'équipe les tolère.\n\nTERMINÉ QUAND\nnpm run lint termine sans erreur bloquante.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:37.164Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0128840d340207ed41",
+    "name": "[QA-03] Rejouer l’audit des dépendances et corriger les vulnérabilités",
+    "url": "https://trello.com/c/TMOYefob/54-qa-03-rejouer-laudit-des-d%C3%A9pendances-et-corriger-les-vuln%C3%A9rabilit%C3%A9s",
+    "description": "QA-03\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nRelancer l'audit npm sur l'état actuel, traiter en priorité les vulnérabilités critiques/hautes et vérifier Next.js.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCOMMANDES\n`npm audit` puis analyser le graphe réel (`npm ls <package>` pour une dépendance vulnérable). Ne pas lancer aveuglément `npm audit fix --force`.\n\nPRIORITÉ\nCritique/High exploitable dans le contexte serveur/web d'abord. Vérifier en particulier Next.js et dépendances manipulant email, parsing, média, PDF.\n\nMISE À JOUR\n- Patch/minor compatible : update + lint/build/smoke.\n- Major : lire changelog/migration et ouvrir ticket séparé si impact large.\n- Vulnérabilité transitive sans correctif : documenter package parent, exposition réelle et mitigation.\n\nVALIDATION\n`npm audit` sauvegardé dans la PR/description, aucune vulnérabilité critique non traitée. Après mise à jour : `npm run lint`, `npm run build`, smoke test auth/uploads/documents.\n\nTERMINÉ QUAND\nAucune vulnérabilité critique connue non justifiée avant production.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:37.882Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a02f563bc30be521753",
+    "name": "[QA-04] Ajouter des tests automatisés sur les parcours critiques",
+    "url": "https://trello.com/c/btyaVtxy/55-qa-04-ajouter-des-tests-automatis%C3%A9s-sur-les-parcours-critiques",
+    "description": "QA-04\n\nPRIORITÉ : P1\nCHARGE RELATIVE : XL\nDÉPEND DE : SEC-01; MET-04\n\nOBJECTIF\nAutomatiser au minimum authentification, séparation des équipes, candidature, passage en booking et liens publics.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nSTACK DE TEST À METTRE EN PLACE\nLe repo n'a pas actuellement de script/test runner dans `package.json`. Choisir une stack simple : tests unitaires/intégration avec Vitest (ou Node test) + E2E navigateur avec Playwright pour les parcours critiques. Ajouter scripts `test`, `test:e2e`.\n\nCAS AUTOMATISÉS PRIORITAIRES\n1. Auth candidate : mauvais mot de passe/session expirée/isolation A-B.\n2. RLS multi-équipe : A ne lit/modifie pas B.\n3. Candidature publique nouvelle personne.\n4. CAN-08 candidature bookée ne réapparaît pas.\n5. Candidature → booking multi-jours.\n6. Token partage invalide/révoqué.\n\nDB DE TEST\nUtiliser Supabase local reset + seed dédié. Les tests doivent pouvoir repartir d'un état connu, ne jamais viser prod.\n\nORGANISATION\nTests unitaires pour fonctions pures (âge, normalisation, calculs), intégration pour actions/DB, E2E seulement pour parcours utilisateurs clés afin d'éviter une suite lente et fragile.\n\nFINITION\nUne régression volontaire sur un de ces cas doit faire échouer la suite.\n\nTERMINÉ QUAND\nLes régressions critiques sont détectées automatiquement.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:38.476Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a039eccc5bf38194341",
+    "name": "[QA-05] Ajouter une CI GitHub sur chaque pull request",
+    "url": "https://trello.com/c/XgTiCpwG/56-qa-05-ajouter-une-ci-github-sur-chaque-pull-request",
+    "description": "QA-05\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : QA-01; QA-02\n\nOBJECTIF\nLancer automatiquement lint, build et tests avant fusion.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nFICHIER À CRÉER\n`.github/workflows/ci.yml`.\n\nPIPELINE MINIMAL\n- checkout.\n- setup Node (version documentée, cache npm).\n- `npm ci`.\n- `npm run lint`.\n- `npm run build`.\n- tests unitaires.\n- E2E si QA-04 est prêt et si Supabase local peut être lancé de façon fiable dans CI.\n\nSECRETS\nNe pas injecter les secrets prod. Pour build, utiliser valeurs de test/non sensibles ou secrets GitHub dédiés préprod si absolument nécessaires.\n\nGIT\nConfigurer branch protection ensuite pour exiger le check CI avant merge sur `main` si les permissions GitHub le permettent.\n\nFINITION\nCréer une PR volontairement cassée : le check doit échouer et indiquer clairement quelle étape bloque.\n\nTERMINÉ QUAND\nUne PR qui casse le projet échoue avant d'être fusionnée.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:39.176Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a03f45d25f4ce9de6ef",
+    "name": "[QA-06] Recette mobile et responsive",
+    "url": "https://trello.com/c/or4JdBYX/57-qa-06-recette-mobile-et-responsive",
+    "description": "QA-06\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : ENV-04\n\nOBJECTIF\nTester les écrans importants sur petit mobile, grand mobile et desktop, en particulier tableaux, formulaires, uploads et documents.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nÉCRANS PRIORITAIRES\nCandidature publique, compte candidate, figurants, candidatures, planning bookings, casting upload, essayages, documents, équipe.\n\nMATRICE\nAu minimum ~320–375 px mobile, grand mobile, tablette si utile, desktop. Safari iPhone particulièrement pour upload vidéo.\n\nÀ CONTRÔLER\n- Pas de scroll horizontal empêchant action.\n- Tableaux : stratégie responsive (scroll contrôlé/cartes) plutôt que colonnes illisibles.\n- Modales/popups et boutons sticky.\n- Claviers mobiles sur inputs date/tel/email.\n- Upload/progression/annulation.\n- Impression/PDF séparée du responsive écran.\n\nDEVTOOLS\nTester aussi zoom 200% desktop. Corriger dans composants partagés quand le problème est systémique, pas écran par écran avec hacks différents.\n\nTERMINÉ QUAND\nAucun parcours critique n'est bloqué par la taille d'écran.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:39.786Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a041595afff12de803e",
+    "name": "[QA-07] Passage accessibilité de base",
+    "url": "https://trello.com/c/Ew7dHfZc/58-qa-07-passage-accessibilit%C3%A9-de-base",
+    "description": "QA-07\n\nPRIORITÉ : P2\nCHARGE RELATIVE : M\nDÉPEND DE : QA-06\n\nOBJECTIF\nVérifier clavier, labels de formulaires, contrastes, focus, boutons et messages d'erreur.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCHECK TECHNIQUE\n- Chaque input a label associé (`htmlFor/id`) ou nom accessible.\n- Boutons icône ont `aria-label`.\n- Focus visible et ordre clavier logique.\n- Modales : focus initial, confinement raisonnable, Escape, retour focus.\n- Messages d'erreur reliés au champ et compréhensibles.\n- Contraste suffisant ; information pas portée uniquement par couleur.\n- Images utiles avec alt, décoratives masquées.\n\nOUTILS\nAudit navigateur/Lighthouse ou axe en complément, mais faire un parcours réel au clavier sans souris.\n\nPRIORITÉ\nCandidature, connexion, création/modification figurant, booking, casting upload. Ne pas viser une conformité exhaustive dans cette carte : éliminer les blocages évidents et créer des tickets pour le reste.\n\nTERMINÉ QUAND\nLes principaux formulaires et actions sont utilisables sans pièges évidents.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:40.488Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a05aa517fef5f46168e",
+    "name": "[QA-08] Ajouter un suivi minimal des erreurs en production",
+    "url": "https://trello.com/c/ss87kvYZ/59-qa-08-ajouter-un-suivi-minimal-des-erreurs-en-production",
+    "description": "QA-08\n\nPRIORITÉ : P2\nCHARGE RELATIVE : M\nDÉPEND DE : REL-01\n\nOBJECTIF\nPrévoir un moyen de repérer rapidement les erreurs serveur/client après mise en ligne sans dépendre des retours utilisateurs.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nOBJECTIF\nPouvoir retrouver une erreur client/serveur avec environnement, release/commit, route et stack sans collecter inutilement de données sensibles.\n\nIMPLÉMENTATION\nChoisir une solution (ex. Sentry ou logs structurés Vercel) et l'intégrer séparément client/serveur. Ajouter `release` basé sur commit SHA si possible.\n\nRÈGLES DE CONFIDENTIALITÉ\nNe jamais envoyer mots de passe, tokens, cookies, secrets SMTP, pièces/médias, contenu complet de messages. Filtrer URL/query si token public présent.\n\nÀ CAPTURER\nErreur non gérée, route, navigateur, version app, contexte fonctionnel minimal (ID technique éventuellement pseudonymisé).\n\nTEST\nDéclencher une erreur contrôlée en préprod et vérifier qu'elle apparaît avec stack exploitable. Vérifier aussi qu'un secret placé dans un objet d'erreur de test n'est pas envoyé.\n\nTERMINÉ QUAND\nUne erreur significative peut être retrouvée avec contexte suffisant pour la diagnostiquer.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:41.113Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aef78bf563e7308664",
+      "name": "07 - Qualité & maintenabilité"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0589a106fb095c7c51",
+    "name": "[REL-01] Créer un environnement de préproduction isolé",
+    "url": "https://trello.com/c/LDsXf4k7/60-rel-01-cr%C3%A9er-un-environnement-de-pr%C3%A9production-isol%C3%A9",
+    "description": "REL-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : SEC-06; QA-01\n\nOBJECTIF\nMettre en place un Vercel/Supabase de test séparé de la production pour faire la recette finale avec des données non sensibles.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nARCHITECTURE\nCréer un projet Supabase préprod séparé + projet/environnement Vercel séparé (ou Preview correctement isolée). Aucune clé/bucket/base prod réutilisée.\n\nCONFIG\n- Variables préprod propres.\n- `NEXT_PUBLIC_SITE_URL` = URL préprod.\n- Clé chiffrement/VAPID préprod.\n- SMTP de test ou désactivé.\n- Storage préprod.\n\nDB\nAppliquer toutes les migrations dans l'ordre. Injecter un seed de recette non sensible ; ne pas importer de vraies données personnelles sans nécessité/traitement adapté.\n\nVÉRIFICATIONS\nLogin staff, candidate, uploads, emails test, push si activé, liens publics absolus, PDFs/exports.\n\nDÉPLOIEMENT\nDocumenter quelle branche déploie la préprod et empêcher qu'un push de feature ne pointe accidentellement vers Supabase prod.\n\nTERMINÉ QUAND\nLa préprod fonctionne avec ses propres clés, base et stockage.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:41.738Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a06f0964fd1b49885b3",
+    "name": "[REL-02] Tester les migrations sur une copie avant production",
+    "url": "https://trello.com/c/tacHH6fK/61-rel-02-tester-les-migrations-sur-une-copie-avant-production",
+    "description": "REL-02\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nDÉPEND DE : REL-01\n\nOBJECTIF\nRejouer toutes les migrations dans l'ordre sur une base de préprod/copieuse et vérifier sauvegarde + possibilité de retour arrière.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nMÉTHODE MIGRATIONS\nSur une base préprod/copie contrôlée, appliquer l'ensemble des migrations depuis zéro puis, si possible, simuler un upgrade depuis l'état de prod actuel.\n\nCOMMANDES/CONTRÔLES\n- Local : `npx supabase db reset` valide l'historique complet.\n- Distant préprod : utiliser le workflow Supabase officiel retenu par l'équipe pour push migrations, jamais exécuter un lot SQL manuel non versionné.\n\nAVANT MIGRATION PROD\nLister migrations nouvelles, opérations destructives, backfills, index, contraintes et temps potentiel. Sauvegarde vérifiée.\n\nROLLBACK\nSQL n'a pas toujours un rollback automatique. Écrire pour chaque migration risquée comment revenir : restauration backup ou migration corrective. Ne jamais promettre un rollback si la migration détruit des données sans sauvegarde.\n\nVALIDATION\nComparer schéma attendu + smoke test + comptages clés avant/après.\n\nTERMINÉ QUAND\nLes migrations passent sans perte et un plan de rollback existe.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:42.414Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0797d9ac88e70bea15",
+    "name": "[REL-03] Faire la recette métier finale avec les deux comparses",
+    "url": "https://trello.com/c/1qHEIjNs/62-rel-03-faire-la-recette-m%C3%A9tier-finale-avec-les-deux-comparses",
+    "description": "REL-03\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nDÉPEND DE : REL-01; MET-08; LEG-04; QA-03\n\nOBJECTIF\nFaire jouer des scénarios réalistes par les deux utilisateurs non-dev : publier une annonce, recevoir une candidature, booker, convoquer, préparer documents/casting/essayage.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nPRÉPARATION DEV\nCréer en préprod des données de recette nommées clairement : projet, annonce à plusieurs dates, candidats majeur/mineur si prêt, booking, casting, essayage. Fournir aux deux testeurs uniquement des scénarios métier, pas des instructions techniques.\n\nPENDANT RECETTE\nLe dev garde DevTools/logs disponibles mais n'oriente pas le testeur vers la “bonne” façon si l'interface est ambiguë : l'hésitation est un signal UX.\n\nPOUR CHAQUE ANOMALIE\nNoter compte, URL, données, étapes, attendu/obtenu, capture, sévérité. Vérifier si reproductible après refresh et avec autre compte.\n\nCRITÈRES BLOQUANTS\nFuite de données, perte/corruption de données, impossibilité de candidater/booker/convoquer, mauvais document critique, auth cassée, migration instable.\n\nAucun déploiement prod tant que les P0 issus de cette recette restent ouverts.\n\nTERMINÉ QUAND\nLes scénarios prioritaires sont signés « OK » ou génèrent des bugs clairement listés.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:43.109Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a07b9a49daaf24fc0e4",
+    "name": "[REL-04] Préparer la checklist de mise en production",
+    "url": "https://trello.com/c/sbHycwJS/63-rel-04-pr%C3%A9parer-la-checklist-de-mise-en-production",
+    "description": "REL-04\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nDÉPEND DE : REL-02; REL-03\n\nOBJECTIF\nLister sauvegarde, variables, migrations, build, déploiement, smoke test, responsables et marche arrière.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nCHECKLIST TECHNIQUE À VERSIONNER\n1. SHA/tag à déployer.\n2. CI verte : lint/build/tests.\n3. Backup DB vérifié.\n4. Liste exacte migrations à appliquer.\n5. Variables Vercel/Supabase contrôlées sans copier leurs valeurs.\n6. Domaine/`NEXT_PUBLIC_SITE_URL`.\n7. SMTP/VAPID/Storage.\n8. Déploiement Vercel.\n9. Smoke tests post-deploy.\n10. Personne responsable et condition de rollback.\n\nROLLBACK\nDéfinir séparément rollback application (redeploy SHA précédent) et rollback DB. Si migration non réversible, préciser restauration backup/forward fix.\n\nINTERDICTION\nNe pas faire de modification manuelle de schéma en prod pendant la mise en ligne sans migration versionnée.\n\nTERMINÉ QUAND\nLa mise en ligne peut être exécutée sans improvisation.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:43.786Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a0840ea83c31794bc79",
+    "name": "[REL-05] Déployer puis faire un smoke test production",
+    "url": "https://trello.com/c/MW6QvA5j/64-rel-05-d%C3%A9ployer-puis-faire-un-smoke-test-production",
+    "description": "REL-05\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nDÉPEND DE : REL-04\n\nOBJECTIF\nAprès validation de la préprod seulement, déployer et vérifier connexion, annonce publique, candidature, booking, documents et emails.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nDÉPLOIEMENT\nDéployer uniquement le SHA validé en REL-03/04. Appliquer migrations prévues puis déployer app selon l'ordre défini (important si code et schéma sont interdépendants).\n\nSMOKE PROD MINIMAL AVEC DONNÉES NON SENSIBLES\n- Login staff.\n- Ouverture d'une annonce publique.\n- Candidature test si possible et nettoyage ensuite.\n- Création/consultation booking test si autorisé.\n- Génération document/export.\n- Email test vers adresse interne.\n- Vérification erreurs monitoring.\n\nSURVEILLANCE IMMÉDIATE\nLogs Vercel/Supabase, erreurs auth, 5xx, Storage, SMTP.\n\nEN CAS D'ÉCHEC\nStopper les tests destructifs, appliquer le plan de rollback de REL-04 et documenter exactement ce qui s'est passé avant toute nouvelle tentative.\n\nTERMINÉ QUAND\nLes parcours vitaux sont confirmés fonctionnels sur la production.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:44.460Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac49a09ab09e964cca38416",
+    "name": "[REL-06] Clore la reprise avec une documentation des limites connues",
+    "url": "https://trello.com/c/oCPgIemc/65-rel-06-clore-la-reprise-avec-une-documentation-des-limites-connues",
+    "description": "REL-06\n\nPRIORITÉ : P2\nCHARGE RELATIVE : S\nDÉPEND DE : REL-05\n\nOBJECTIF\nDocumenter les fonctions validées, les limitations acceptées, les bugs non bloquants et les prochaines évolutions.\n\nPARTIE TECHNIQUE DEV — MODE D’EMPLOI\nDOCUMENT DE CLÔTURE DEV\nCréer `docs/etat-projet.md` ou section README avec : version/SHA validé, environnement, fonctionnalités recettées, limites connues, bugs acceptés, dette technique, décisions métier non encore implémentées, procédure de support.\n\nPOUR CHAQUE LIMITE\nIndiquer impact utilisateur, contournement éventuel, priorité et carte future. Ne pas écrire “fonctionne” si seulement testé localement ; préciser local/préprod/prod.\n\nMAINTENANCE\nAjouter où regarder en cas de bug : logs/monitoring, Supabase, modules clés, comptes de test locaux. Vérifier que la doc ne contient aucun secret/token.\n\nTERMINÉ QUAND\nL'équipe sait ce qui est fiable aujourd'hui et ce qui reste volontairement hors périmètre.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T06:49:45.145Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac499aeb93b64c7662f2bb6",
+      "name": "08 - Préproduction & mise en ligne"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4be9f2ed00e63b7de3ecf",
+    "name": "Créer nouveau logo.",
+    "url": "https://trello.com/c/9N4fXJXZ/66-cr%C3%A9er-nouveau-logo",
+    "description": "",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T09:25:51.296Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7a70946e48696682e98",
+      "name": "09 - Améliorations"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ad62a11caa6eb8d39305054",
+    "name": "BASE DE PROFILS : améliorer la recherche de profils.",
+    "url": "https://trello.com/c/ntmQG8oX/97-base-de-profils-am%C3%A9liorer-la-recherche-de-profils",
+    "description": "Les profils n’apparaissent plus en libre service. Il faut faire une recherche par type, genre, nom, taille, âge, etc…\nPour l’instant, ça ne marche pas car le site demande une recherche complète (il faut le nom ET la taille, etc). Exemple : je veux chercher des hommes entre 30 et 45 ans habitant à Paris (je filtre avec ces infos).",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-19T14:35:13.462Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7a70946e48696682e98",
+      "name": "09 - Améliorations"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c78073ca84d1500ecd16",
+    "name": "Mails automatiques qui disent que lea candidat.e a été ajouté à une date après avoir postulé.",
+    "url": "https://trello.com/c/UtUFqNyi/67-mails-automatiques-qui-disent-que-lea-candidate-a-%C3%A9t%C3%A9-ajout%C3%A9-%C3%A0-une-date-apr%C3%A8s-avoir-postul%C3%A9",
+    "description": "",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6ac4c7920bdc41e7e6e2fdfe",
+        "text": "![Capture\\_d%E2%80%99e%CC%81cran\\_2026-10-06\\_a%CC%80\\_12.03.02.webp](https://trello.com/1/cards/6ac4c78073ca84d1500ecd16/attachments/6ac4c78fb85be2faeb1d3c63/previews/6ac4c78fb85be2faeb1d3d02/download/Capture_d%E2%80%99e%CC%81cran_2026-10-06_a%CC%80_12.03.02.webp)",
+        "date": "2026-10-06T10:04:02.904Z",
+        "author": {
+          "id": "ari:cloud:trello::user/6ac4a73ac219ab8c5843bc71",
+          "fullName": "Mathieu Manson",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/6ac4a73ac219ab8c5843bc71/5253a297b12b948c2ae61f8c03d5632c"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:04:02.926Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9920372a940366f3748",
+    "name": "[BUG-01] Bloquer l’escalade de privilèges via profiles",
+    "url": "https://trello.com/c/UQQwiDF7/68-bug-01-bloquer-lescalade-de-privil%C3%A8ges-via-profiles",
+    "description": "BUG-01\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : DEC-02 ; SEC-03 ; SEC-04\nSTATUT AUDIT : BUG CONFIRMÉ DANS LE CODE\n\nOBJECTIF\nEmpêcher un utilisateur authentifié de modifier lui-même ses champs de privilège et de devenir chef/owner.\n\nPROBLÈME CONSTATÉ\nLes policies RLS de `profiles` autorisent un utilisateur à mettre à jour sa propre ligne entière avec `id = auth.uid()`. Or cette ligne contient notamment `role`, `is_owner`, `sections_autorisees` et `comedien_pool_id`. La fonction `public.is_owner()` s’appuie ensuite sur `profiles.is_owner`.\n\nIMPACT\nEscalade potentielle de privilèges complète : accès owner, projets d’autres équipes, administration et données privées.\n\nFICHIERS / ZONES\n- `supabase/migrations/20260901000001_multi_chef_isolation.sql`\n- `supabase/migrations/20260911000022_comedien_pool_isolation.sql`\n- `src/lib/auth/profile-actions.ts`\n\nCORRECTION RECOMMANDÉE\n1. Interdire au rôle `authenticated` la modification directe des colonnes de privilège.\n2. Autoriser en self-update uniquement les champs personnels nécessaires.\n3. Réserver `role`, `is_owner`, `sections_autorisees`, `comedien_pool_id` à des opérations serveur/admin contrôlées.\n4. Ajouter des tests négatifs avec compte assistant.\n\nTESTS\n- Assistant tente `role=chef` via client Supabase → refus DB.\n- Assistant tente `is_owner=true` → refus DB.\n- Assistant peut toujours modifier prénom/nom/téléphone.\n- Owner peut gérer les champs administratifs prévus.\n\nTERMINÉ QUAND\nAucun utilisateur non-owner ne peut augmenter ses propres privilèges, même par appel Supabase direct.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:34.592Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9934f9d54f88d834386",
+    "name": "[BUG-02] Protéger les Server Actions utilisant service_role",
+    "url": "https://trello.com/c/wKVq9kR6/69-bug-02-prot%C3%A9ger-les-server-actions-utilisant-servicerole",
+    "description": "BUG-02\n\nPRIORITÉ : P0\nCHARGE RELATIVE : XL\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-03\nSTATUT AUDIT : BUG SYSTÉMIQUE CONFIRMÉ\n\nOBJECTIF\nGarantir qu’aucune mutation utilisant `createAdminClient()` ne puisse être appelée sans contrôle d’identité et d’autorisation adapté.\n\nPROBLÈME CONSTATÉ\nPlusieurs Server Actions utilisent le client `service_role`, qui contourne RLS, sans guard suffisamment explicite avant lecture/mutation.\n\nEXEMPLES CONFIRMÉS\n- `src/lib/templates/actions.ts`\n- plusieurs actions de `src/lib/figurants/actions.ts`\n- `src/lib/figurants/messages-actions.ts`\n- fonctions partagées de `src/lib/agents/actions.ts`\n\nIMPACT\nUne action serveur appelable hors du parcours UI peut contourner la protection de la base ou modifier une ressource non autorisée.\n\nCORRECTION RECOMMANDÉE\nCréer et imposer une famille de guards communs :\n- `requireStaff()`\n- `requireChef()`\n- `requireOwner()`\n- `requireProjetAccess()`\n- `requireSectionAccess()`\n- `requireFigurantAccess()`\n\nFaire une recherche globale de `createAdminClient()` dans toutes les Server Actions et documenter le guard appliqué à chaque action.\n\nTESTS\nAppeler directement les actions sensibles avec :\n- aucune session ;\n- assistant hors projet ;\n- chef d’une autre équipe ;\n- utilisateur autorisé.\n\nTERMINÉ QUAND\nChaque Server Action admin possède un contrôle serveur explicite avant accès aux données et les appels non autorisés sont refusés.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:35.164Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9939bf98a7d118f5a04",
+    "name": "[BUG-03] Fermer les contournements du vivier comédien privé",
+    "url": "https://trello.com/c/KJRrbCJ4/70-bug-03-fermer-les-contournements-du-vivier-com%C3%A9dien-priv%C3%A9",
+    "description": "BUG-03\n\nPRIORITÉ : P0\nCHARGE RELATIVE : L\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-04 ; SEC-03\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nAppliquer l’isolation `comedien_pool_id` à tous les chemins d’accès, pas seulement à la liste principale.\n\nPROBLÈME CONSTATÉ\nLa liste `/figurants` applique `comedienPoolClause()`, mais certaines routes/actions utilisant `createAdminClient()` chargent un figurant par ID sans vérifier que le comédien appartient au pool accessible. La recherche globale doit également respecter exactement la même règle.\n\nZONES À VÉRIFIER / CORRIGER\n- `/figurants/[id]`\n- `/figurants/[id]/modifier`\n- recherche globale\n- photos/liens/agent\n- actions modifier/supprimer/fusionner\n- pickers figurants dans les autres modules\n\nIMPACT\nUne cheffe peut potentiellement accéder à un comédien privé d’une autre équipe par URL directe, recherche ou action serveur.\n\nCORRECTION RECOMMANDÉE\nCréer `requireFigurantAccess(figurantId)` puis l’utiliser partout. Aligner également la RLS des tables enfants sur le même périmètre.\n\nTESTS\nCheffe A / cheffe B / owner / assistante :\n- liste ;\n- URL directe ;\n- recherche ;\n- édition ;\n- médias ;\n- exports.\n\nTERMINÉ QUAND\nUn comédien privé n’est récupérable par aucune route, action ou relation depuis une équipe non autorisée.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:35.768Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9943bf7c7d43251f39a",
+    "name": "[BUG-04] La révocation de l’accès candidat n’empêche pas la connexion",
+    "url": "https://trello.com/c/dTq3LVXS/71-bug-04-la-r%C3%A9vocation-de-lacc%C3%A8s-candidat-nemp%C3%AAche-pas-la-connexion",
+    "description": "BUG-04\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-02 ; SEC-07 ; SEC-01\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nFaire de `acces_compte=false` une vraie révocation d’accès immédiatement effective.\n\nPROBLÈME CONSTATÉ\nLa désactivation met `acces_compte` à false, mais le login par mot de passe et la lecture de session ne vérifient pas systématiquement cette valeur. Une session déjà créée peut également rester valide.\n\nFICHIERS\n- `src/lib/candidats/actions.ts`\n- `src/lib/candidats/session.ts`\n- tables `figurant_sessions` / `figurants`\n\nCORRECTION\n1. `loginWithPassword()` refuse si `acces_compte !== true`.\n2. `getCurrentFigurant()` invalide/refuse une session si l’accès a été révoqué.\n3. Lors de la révocation, supprimer les sessions actives du figurant.\n4. Prévoir un message utilisateur neutre.\n\nTESTS\n- Compte actif → connexion OK.\n- Révocation → nouvelle connexion impossible.\n- Session déjà ouverte → accès refusé après révocation.\n- Réactivation → fonctionnement normal.\n\nTERMINÉ QUAND\nUne révocation coupe réellement l’accès, y compris pour les sessions déjà existantes.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:36.432Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99422d942b9e473ca70",
+    "name": "[BUG-05] Le Service Worker met en cache des pages privées",
+    "url": "https://trello.com/c/lc7ibsQp/72-bug-05-le-service-worker-met-en-cache-des-pages-priv%C3%A9es",
+    "description": "BUG-05\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-07 ; QA-06\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nÉviter que des données privées staff/candidat restent dans Cache Storage et soient consultables après changement ou expiration de session.\n\nPROBLÈME CONSTATÉ\n`public/sw.js` intercepte toutes les navigations et stocke la réponse de chaque URL visitée. Le cache n’est pas séparé par utilisateur et n’est pas vidé à la déconnexion.\n\nRISQUE\nDes fiches figurants, bookings, coordonnées, casting ou documents déjà visités peuvent rester disponibles hors ligne sur un poste partagé.\n\nFICHIER\n- `public/sw.js`\n- `src/components/register-service-worker.tsx`\n\nCORRECTION IMMÉDIATE\nNe plus mettre en cache les routes authentifiées/données personnelles. Limiter le cache aux assets/shell non sensibles et à `/offline` tant qu’une vraie stratégie offline sécurisée n’est pas définie.\n\nTESTS\n1. Staff A ouvre une fiche privée.\n2. Déconnexion.\n3. Passage hors ligne / session B.\n4. La fiche privée ne doit jamais ressortir du cache.\n\nTERMINÉ QUAND\nAucune navigation privée n’est servie depuis un cache persistant hors session.",
+    "comments": [
+      {
+        "id": "ari:cloud:trello::action/6acbb05492bba7105843f0d8",
+        "text": "Compte rendu technique (11/10/2026) — BUG-05 / P0\n\nDiagnostic confirmé dans main : public/sw.js pré-cache « / » (potentiellement personnalisé), met en cache toutes les réponses aux navigations et peut resservir une page privée après changement de session.\n\nCorrectif préparé et testé hors dépôt : conserver uniquement /offline dans Cache Storage ; ne jamais mettre en cache les navigations ; purger à l’activation les anciens caches booking-extras-* ; conserver le comportement push existant.\n\nTests locaux simulés via Node.js (5/5 PASS) : installation /offline seulement ; nettoyage caches obsolètes ; navigation privée sans cache ; hors-ligne sans réponse privée ; non-navigation ignorée.\n\nBLOCAGE : création de la branche GitHub refusée par l’intégration (403 Resource not accessible by integration). Aucun fichier n’a été poussé dans GitHub, aucun build ni test navigateur/Supabase exécuté et aucun déploiement réalisé. Carte NON TERMINÉE.\n\nProchaines étapes : donner l’accès GitHub à l’intégration sur loicmaldonado-ship-it/Booking-Extras, appliquer le patch, exécuter lint/build et scénario réel staff A → déconnexion → hors ligne/session B, puis PR/recette.",
+        "date": "2026-10-11T15:50:44.591Z",
+        "author": {
+          "id": "ari:cloud:trello::user/622084c9be13877125811681",
+          "fullName": "Elea Gravagna",
+          "avatarUrl": "https://trello-members.s3.amazonaws.com/622084c9be13877125811681/6199e30a91dabc80621d6e7e43406a10"
+        }
+      }
+    ],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-11T15:50:44.628Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99508b82aef2dda6efb",
+    "name": "[BUG-06] Sécuriser la suppression destructive d’un profil",
+    "url": "https://trello.com/c/PbLEsfag/73-bug-06-s%C3%A9curiser-la-suppression-destructive-dun-profil",
+    "description": "BUG-06\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : aucune carte précise identifiée\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nEmpêcher une suppression accidentelle d’un figurant et de tout son historique lié.\n\nPROBLÈME CONSTATÉ\nSur `/figurants/[id]`, l’action “Supprimer” est un submit direct sans confirmation visible. `deleteFigurant(id)` supprime la ligne, alors que plusieurs relations utilisent `ON DELETE CASCADE`.\n\nIMPACT POTENTIEL\nPerte de candidatures, bookings, essayages, photos, messages et autres données liées.\n\nFICHIERS\n- `src/app/figurants/[id]/page.tsx`\n- `src/lib/figurants/actions.ts`\n- migrations contenant les FK du figurant\n\nCORRECTION\n1. Vérifier l’historique avant suppression.\n2. Privilégier archivage/anonymisation.\n3. Si suppression réelle autorisée : modale explicite avec résumé des impacts.\n4. Confirmation renforcée pour un profil avec historique.\n5. Réserver l’action au rôle prévu.\n\nTESTS\n- Profil neuf sans historique.\n- Profil avec candidature.\n- Profil avec booking/essayage.\n- Annulation de la modale.\n- Action non autorisée.\n\nTERMINÉ QUAND\nAucune suppression destructive ne peut se produire en un clic ni sans information claire sur les conséquences.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:37.865Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c996d835d4a65e142874",
+    "name": "[BUG-07] Corriger la RLS du casting présentiel",
+    "url": "https://trello.com/c/39TaW5mR/74-bug-07-corriger-la-rls-du-casting-pr%C3%A9sentiel",
+    "description": "BUG-07\n\nPRIORITÉ : P0\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-03\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nIsoler les créneaux et entrées de casting présentiel par projet/équipe.\n\nPROBLÈME CONSTATÉ\n`casting_presentiel_journees` est correctement protégé par `has_projet_access(projet_id)`, mais `casting_presentiel_creneaux` et `casting_presentiel_entries` conservent des policies `authenticated full access`.\n\nFICHIER\n- `supabase/migrations/20260911000008_casting_presentiel.sql`\n\nCORRECTION\n- `casting_presentiel_entries` : policy basée sur `projet_id`.\n- `casting_presentiel_creneaux` : vérifier l’accès via `journee_id -> casting_presentiel_journees.projet_id`.\n- Créer une nouvelle migration, ne pas réécrire une migration déjà déployée.\n\nTESTS\nCheffe A et B sur deux projets :\nSELECT / INSERT / UPDATE / DELETE croisés doivent être refusés en DB.\n\nTERMINÉ QUAND\nLa base refuse elle-même tout accès croisé au casting présentiel.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:38.529Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9975cb780fedc12efc7",
+    "name": "[BUG-08] Protéger la lecture des tokens de partage",
+    "url": "https://trello.com/c/IXyhjJ65/75-bug-08-prot%C3%A9ger-la-lecture-des-tokens-de-partage",
+    "description": "BUG-08\n\nPRIORITÉ : P0\nCHARGE RELATIVE : S\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-05\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nEmpêcher un utilisateur sans accès projet de récupérer le token secret d’un lien de partage public.\n\nPROBLÈME CONSTATÉ\nLes mutations de `src/lib/partage/actions.ts` utilisent `requireAccessOrThrow()`, mais certains getters internes utilisant le client admin ne font pas cette vérification :\n- `getPartageToken()`\n- `getPartageTitre()`\n- `getJourneePartageLien()`\n\nIMPACT\nLe token donne accès à une page publique sans authentification : sa lecture doit donc être protégée comme un secret de partage.\n\nCORRECTION\nAppliquer le même contrôle `checkProjetAccess` aux getters internes. Vérifier aussi les autres fonctions de lecture admin de ce module.\n\nTESTS\n- membre du projet → token retourné ;\n- assistant hors projet → refus ;\n- aucune session → refus ;\n- owner → comportement prévu.\n\nTERMINÉ QUAND\nUn token de partage existant ne peut être récupéré que par une personne autorisée sur le projet.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:39.141Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9975905a3c7d3669102",
+    "name": "[BUG-09] Ajouter rate limiting et neutraliser l’énumération des comptes candidats",
+    "url": "https://trello.com/c/sV5sGjYh/76-bug-09-ajouter-rate-limiting-et-neutraliser-l%C3%A9num%C3%A9ration-des-comptes-candidats",
+    "description": "BUG-09\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-02 ; SEC-01\nSTATUT AUDIT : FAILLE / DURCISSEMENT PRIORITAIRE CONFIRMÉ\n\nOBJECTIF\nLimiter les tentatives de connexion/magic link et ne pas révéler publiquement si une adresse possède un compte.\n\nPROBLÈMES CONSTATÉS\n- Pas de rate limit visible sur login mot de passe.\n- Pas de rate limit visible sur demande de magic link.\n- La demande de lien peut répondre qu’aucun compte ne correspond à l’email.\n\nRISQUES\nBrute-force mot de passe, spam email, consommation CPU liée à scrypt et énumération des comptes.\n\nCORRECTION\n1. Rate limit IP + email + fenêtre temporelle.\n2. Message public neutre : “Si un compte existe, un email a été envoyé.”\n3. Journaliser uniquement les métadonnées nécessaires, sans secret.\n\nTESTS\nTentatives répétées, email inexistant, email existant, changement d’IP selon politique retenue.\n\nTERMINÉ QUAND\nLes tentatives abusives sont limitées et la réponse ne permet plus de confirmer l’existence d’un compte.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:39.891Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9984573c78bea9d32f1",
+    "name": "[BUG-10] Fermer l’open redirect sur le paramètre next",
+    "url": "https://trello.com/c/OdQcdTf0/77-bug-10-fermer-lopen-redirect-sur-le-param%C3%A8tre-next",
+    "description": "BUG-10\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-02\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nN’autoriser après authentification que des redirections internes same-origin.\n\nPROBLÈME CONSTATÉ\nLa validation actuelle repose sur `next.startsWith(\"/\")`. Une valeur de type `//example.com` commence également par `/` et peut être interprétée comme URL externe par le navigateur.\n\nFICHIERS\n- actions / pages d’auth staff et candidat utilisant `next`\n\nCORRECTION\nCréer un helper central `safeInternalPath()` :\n- doit commencer par `/`\n- ne doit pas commencer par `//`\n- ne doit pas contenir de schéma externe\n- fallback vers une route interne connue.\n\nTESTS\n`/projets` accepté.\n`//evil.example` refusé.\n`https://evil.example` refusé.\nvaleur vide → fallback.\n\nTERMINÉ QUAND\nAucun paramètre de redirection utilisateur ne peut sortir du domaine de l’application.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:40.519Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c999eeaf0deacc05557a",
+    "name": "[BUG-11] Valider réellement les images côté serveur",
+    "url": "https://trello.com/c/8mEzNVgz/78-bug-11-valider-r%C3%A9ellement-les-images-c%C3%B4t%C3%A9-serveur",
+    "description": "BUG-11\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : aucune carte précise identifiée\nSTATUT AUDIT : RISQUE CONFIRMÉ DANS LE CODE\n\nOBJECTIF\nNe pas se fier uniquement à `accept=\"image/*\"` et au MIME fourni par le navigateur pour les uploads.\n\nPROBLÈME CONSTATÉ\nPlusieurs uploads reprennent extension/MIME du `File` puis l’envoient au Storage sans whitelist serveur stricte ni taille maximale homogène.\n\nZONES\n- `src/lib/figurants/photos.ts`\n- moodboard annonces\n- uploads figurants et autres images\n\nCORRECTION\n- whitelist JPEG/PNG/WebP ;\n- taille maximale ;\n- contrôle MIME côté serveur ;\n- idéalement décodage/réencodage pour les parcours sensibles ;\n- supprimer du Storage le fichier si l’insert DB échoue.\n\nTESTS\nImage valide, fichier trop lourd, faux MIME, extension trompeuse, upload DB échoué.\n\nTERMINÉ QUAND\nLe backend refuse les fichiers non autorisés indépendamment du navigateur.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:41.357Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c999d0267f05f14962ef",
+    "name": "[BUG-12] Rendre la fusion de profils transactionnelle",
+    "url": "https://trello.com/c/9ro08hh9/79-bug-12-rendre-la-fusion-de-profils-transactionnelle",
+    "description": "BUG-12\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nCARTES TRELLO DÉJÀ CONCERNÉES : QA-04 partiellement\nSTATUT AUDIT : RISQUE DATA CONFIRMÉ\n\nOBJECTIF\nÉviter un profil partiellement fusionné si une des nombreuses écritures échoue.\n\nPROBLÈME CONSTATÉ\n`mergeFigurants()` déplace/modifie plusieurs familles de données puis supprime l’autre profil sans transaction globale.\n\nRISQUE\nSi une étape intermédiaire échoue, certaines données sont déjà déplacées et d’autres non.\n\nCORRECTION\nDéplacer la fusion critique dans une fonction PostgreSQL/RPC transactionnelle. Retourner une erreur unique et rollback complet en cas d’échec.\n\nTESTS\n- fusion simple ;\n- candidatures en conflit ;\n- bookings ;\n- photos/messages/liens ;\n- provoquer volontairement une erreur intermédiaire → aucune modification persistée.\n\nTERMINÉ QUAND\nUne fusion réussit complètement ou ne modifie rien.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:41.985Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99a0d097c8adfa8809a",
+    "name": "[BUG-13] Ne plus ignorer les erreurs Supabase lors des mutations",
+    "url": "https://trello.com/c/q9F64Rhk/80-bug-13-ne-plus-ignorer-les-erreurs-supabase-lors-des-mutations",
+    "description": "BUG-13\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nCARTES TRELLO DÉJÀ CONCERNÉES : QA-08 partiellement\nSTATUT AUDIT : BUG SYSTÉMIQUE CONFIRMÉ\n\nOBJECTIF\nÉviter qu’une action poursuive le parcours ou affiche un succès après une écriture Supabase échouée.\n\nPROBLÈME CONSTATÉ\nPlusieurs mutations font `await supabase...` sans tester systématiquement la propriété `error`.\n\nEXEMPLE\nCertaines branches de `src/lib/candidatures/actions.ts` et d’autres modules métier.\n\nCORRECTION\n1. Standardiser un helper de résultat DB.\n2. Toute mutation critique vérifie `error`.\n3. Messages utilisateurs compréhensibles.\n4. Logs techniques sans données sensibles.\n5. Pas de revalidation/étape suivante si la mutation a échoué.\n\nTESTS\nForcer violations de contrainte/RLS et vérifier que l’UI reçoit une erreur réelle, sans faux succès.\n\nTERMINÉ QUAND\nAucune mutation métier importante n’ignore silencieusement une erreur DB.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:42.622Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99b98118b8ecbc8fb5c",
+    "name": "[BUG-14] Verrouiller un self-tape déjà finalisé",
+    "url": "https://trello.com/c/crD3TZeI/81-bug-14-verrouiller-un-self-tape-d%C3%A9j%C3%A0-finalis%C3%A9",
+    "description": "BUG-14\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-05 partiellement\nSTATUT AUDIT : BUG CONFIRMÉ\n\nOBJECTIF\nEmpêcher un candidat de continuer à envoyer/remplacer des fichiers après finalisation, sauf réouverture explicite par le staff.\n\nPROBLÈME CONSTATÉ\nLa page affiche “Déjà envoyé” si `submitted_at` existe, mais `createCastingUploadSlot()` et `finalizeCastingUpload()` ne refusent pas explicitement une entrée déjà soumise.\n\nFICHIERS\n- `src/app/casting/upload/[token]/page.tsx`\n- `src/lib/casting/upload-actions.ts`\n\nCORRECTION\nAjouter un contrôle serveur `submitted_at` dans chaque étape d’upload/finalisation. Prévoir plus tard une action staff “Rouvrir l’envoi” si nécessaire.\n\nTESTS\n- première soumission → OK ;\n- seconde tentative avec même token → refus ;\n- page restée ouverte avant validation puis envoi après finalisation → refus.\n\nTERMINÉ QUAND\nL’état finalisé est réellement appliqué par le backend et pas seulement par l’écran.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:43.316Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99b349bc1c3f7b29e74",
+    "name": "[BUG-15] Vérifier les chemins Storage à la finalisation du casting",
+    "url": "https://trello.com/c/ghlpnQig/82-bug-15-v%C3%A9rifier-les-chemins-storage-%C3%A0-la-finalisation-du-casting",
+    "description": "BUG-15\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : SEC-05 ; SEC-03\nSTATUT AUDIT : RISQUE CONFIRMÉ\n\nOBJECTIF\nGarantir que `finalizeCastingUpload()` n’enregistre que des fichiers réellement créés pour cette entrée et les slots autorisés.\n\nPROBLÈME CONSTATÉ\nLe navigateur envoie `videoPaths` et `photos[].path`. La finalisation doit vérifier que chaque chemin correspond au préfixe attendu de l’entrée/figurant et à un slot demandé.\n\nRISQUE\nAssociation volontaire ou accidentelle d’un objet Storage ne correspondant pas à cette candidature.\n\nCORRECTION\n- valider préfixe/entry id/figurant id ;\n- vérifier nombre de vidéos ;\n- vérifier labels photo autorisés ;\n- vérifier existence des objets ;\n- rejeter tout chemin externe au périmètre.\n\nTESTS\nChemin valide, chemin d’une autre entrée, label inexistant, trop de vidéos, fichier absent.\n\nTERMINÉ QUAND\nUn payload bricolé ne peut pas rattacher des médias d’une autre entrée.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:43.958Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99df6c43312a4a1891d",
+    "name": "[BUG-16] Corriger l’email envoyé juste après une candidature",
+    "url": "https://trello.com/c/umSEtKt8/83-bug-16-corriger-lemail-envoy%C3%A9-juste-apr%C3%A8s-une-candidature",
+    "description": "BUG-16\n\nPRIORITÉ : P1\nCHARGE RELATIVE : S\nCARTES TRELLO DÉJÀ CONCERNÉES : COM-01 ; DEC-01 ; SEC-02\nSTATUT AUDIT : BUG UX/MÉTIER CONFIRMÉ\n\nOBJECTIF\nNe jamais faire croire à une candidate qu’elle est déjà ajoutée à une date de tournage alors qu’elle vient seulement de postuler.\n\nPROBLÈME CONSTATÉ\nAprès `postulerAnnonce()`, l’activation/création d’accès peut déclencher un email formulé comme un ajout à une date de tournage, alors que l’écran de succès dit correctement que la candidature sera étudiée.\n\nIMPACT\nConfusion importante : la candidate peut croire qu’elle est retenue/bookée.\n\nCORRECTION\nSéparer les messages :\n1. après candidature : “Votre candidature a bien été reçue / votre espace est disponible” ;\n2. après booking réel : message lié au tournage/date.\n\nTESTS\nNouvelle candidate, candidate existante, compte déjà actif, booking ultérieur.\n\nTERMINÉ QUAND\nAucun email de candidature ne sous-entend une sélection ou un booking non encore réalisé.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:45.146Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99ddf0e8cfc49442c3e",
+    "name": "[BUG-17] Corriger les tableaux non utilisables sur mobile",
+    "url": "https://trello.com/c/bE9sflKC/84-bug-17-corriger-les-tableaux-non-utilisables-sur-mobile",
+    "description": "BUG-17\n\nPRIORITÉ : P1\nCHARGE RELATIVE : L\nCARTES TRELLO DÉJÀ CONCERNÉES : QA-06\nSTATUT AUDIT : BUG RESPONSIVE CONFIRMÉ\n\nOBJECTIF\nRendre les listes critiques réellement utilisables sur téléphone sans tableau desktop qui déborde.\n\nÉCRANS CONFIRMÉS\n- `/projets`\n- `/annonces`\n- `/figurants?vue=liste`\n- `/rgpd`\n- certaines vues casting présentiel\n- partage essayages avec tableau large\n\nPROBLÈME\nPlusieurs `<table className=\"w-full\">` ne sont ni encapsulées dans un overflow contrôlé ni remplacées par une vue mobile.\n\nCORRECTION\nPour les écrans de gestion :\n- desktop : table ;\n- mobile : cards/liste condensée avec informations essentielles.\n\nPour les documents destinés à l’impression :\n- scroll horizontal d’aperçu ou message “optimisé PDF/impression”.\n\nTESTS\n320 px, 375 px, tablette, zoom desktop 200 %.\n\nTERMINÉ QUAND\nAucune action critique ni donnée essentielle ne devient inaccessible sur petit écran.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:45.939Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  },
+  {
+    "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99eec0aad135e28d4fb",
+    "name": "[BUG-18] Relier correctement les labels et rendre les uploads clavier-accessibles",
+    "url": "https://trello.com/c/BxLbwaNB/85-bug-18-relier-correctement-les-labels-et-rendre-les-uploads-clavier-accessibles",
+    "description": "BUG-18\n\nPRIORITÉ : P1\nCHARGE RELATIVE : M\nCARTES TRELLO DÉJÀ CONCERNÉES : QA-06 partiellement\nSTATUT AUDIT : BUG ACCESSIBILITÉ CONFIRMÉ\n\nOBJECTIF\nCorriger les défauts structurels d’accessibilité présents dans les composants de formulaire/upload.\n\nPROBLÈMES CONFIRMÉS\n1. `Field` rend un `<label>` sans association `htmlFor/id` systématique avec l’input.\n2. Plusieurs zones upload utilisent un `<div onClick>` comme contrôle interactif, sans sémantique bouton/label clavier.\n\nFICHIERS\n- `src/components/ui/field.tsx`\n- `src/components/candidatures/postuler-form.tsx`\n- `src/components/figurants/photo-dropzones.tsx`\n- autres composants upload utilisant le même pattern\n\nCORRECTION\n- générer/propager les `id` ;\n- `label htmlFor` ;\n- erreurs via `aria-describedby` ;\n- zones upload en `<button>` ou `<label for>` ;\n- focus visible.\n\nTESTS\nNavigation clavier seule + lecteur d’écran sur quelques formulaires représentatifs.\n\nTERMINÉ QUAND\nLes champs ont un nom accessible fiable et tous les uploads sont utilisables sans souris.",
+    "comments": [],
+    "checklists": [],
+    "commentsHasMore": false,
+    "checklistsHasMore": false,
+    "lastActivityAt": "2026-10-06T10:12:46.517Z",
+    "list": {
+      "id": "ari:cloud:trello::list/workspace/6ad78a20e6a07b1936988574/6ac4b7cb9d425bb51450dc1f",
+      "name": "10 - Bug"
+    }
+  }
+]

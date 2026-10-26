@@ -1,3 +1,5 @@
+> **Note historique.** Pour les corrections et preuves réellement vérifiées le 26 octobre, voir [le bilan actuel](bilan-trello-2026-10-26.md) et [les droits Supabase du 30 octobre](supabase-30-octobre-2026.md). La liste ci-dessous contient aussi des constats antérieurs désormais corrigés et ne constitue pas un audit final.
+
 # Sécurité — mesures et limites
 
 ## Mesures ajoutées localement

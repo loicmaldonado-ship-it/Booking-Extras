@@ -1,0 +1,1476 @@
+{
+  "branch": "tests/integration-main-elea-2026-10-22",
+  "code_commit": "5644d59bbc49727b0c17c5c88a3d8c96d67c0194",
+  "total": 86,
+  "counts": {
+    "terminée et vérifiée": 9,
+    "partiellement réalisée": 45,
+    "développée mais à tester": 26,
+    "non commencée": 4,
+    "bloquée": 1,
+    "hors périmètre selon une décision documentée": 1
+  },
+  "cards": [
+    {
+      "id": "DEC-01",
+      "trello_id": "6ac499dd2faf63ee341711c6",
+      "title": "[DEC-01] Trancher : peut-on postuler sans compte ?",
+      "url": "https://trello.com/c/hlHTJ1Ju/1-dec-01-trancher-peut-on-postuler-sans-compte",
+      "list": "00 - Décisions à trancher",
+      "status": "terminée et vérifiée",
+      "done": "Règle unique documentée : compte obligatoire ; création du compte possible à la candidature.",
+      "proof": "Commentaire Elea du 11/10 : « non » ; précision CAN-02 du 19/10 relue. Décision vérifiée dans la source Trello.",
+      "missing": "La validation de la décision ne valide pas tous les scénarios CAN-01/02.",
+      "dependencies": "—",
+      "next": "Appliquer cette règle dans les derniers cas de reprise ; aucune nouvelle décision utilisateur nécessaire.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "DEC-02",
+      "trello_id": "6ac499de61659e31eb445ae9",
+      "title": "[DEC-02] Valider qui peut voir quoi entre cheffes et assistantes",
+      "url": "https://trello.com/c/nUW5pRQb/2-dec-02-valider-qui-peut-voir-quoi-entre-cheffes-et-assistantes",
+      "list": "00 - Décisions à trancher",
+      "status": "partiellement réalisée",
+      "done": "Permissions de sections, propriétaire, appartenance projet et pool comédien implémentés.",
+      "proof": "Commentaire Mathieu du 19/10 ; SQL S1 : projet membre visible, projet étranger invisible, escalade refusée ; REST A1 : cheffe et assistante connectées.",
+      "missing": "Matrice lecture/création/modification/suppression/export/partage complète à formaliser et tester sur toutes les ressources ; exceptions historiques des propriétaires.",
+      "dependencies": "—",
+      "next": "Poursuivre la matrice technique ; Loïc/Mathieu interviennent seulement sur les exceptions produit à confirmer.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "DEC-03",
+      "trello_id": "6ac499df725b57dedf8a8a1d",
+      "title": "[DEC-03] Valider les règles métier pour les mineurs et les dossiers DRIEETS",
+      "url": "https://trello.com/c/FyvaKghw/3-dec-03-valider-les-r%C3%A8gles-m%C3%A9tier-pour-les-mineurs-et-les-dossiers-drieets",
+      "list": "00 - Décisions à trancher",
+      "status": "terminée et vérifiée",
+      "done": "Décision métier détaillée disponible : deux représentants, trois emails distincts, exception second représentant, pièces configurables, lien upload/production et dossier complet avant booking.",
+      "proof": "Commentaire Mathieu du 19/10 lu intégralement, y compris règles moins de 16 ans et 16–18 ans.",
+      "missing": "Les développements LEG-01/02/03 ne sont pas réalisés ; cette carte valide la spécification, pas le produit.",
+      "dependencies": "—",
+      "next": "Développer les trois cartes LEG à partir de cette décision ; pas besoin de redemander la décision déjà fournie.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "DEC-04",
+      "trello_id": "6ac499dfad3ee897314f69a0",
+      "title": "[DEC-04] Définir la recette : qui valide chaque grande fonctionnalité ?",
+      "url": "https://trello.com/c/ctPcehBU/4-dec-04-d%C3%A9finir-la-recette-qui-valide-chaque-grande-fonctionnalit%C3%A9",
+      "list": "00 - Décisions à trancher",
+      "status": "terminée et vérifiée",
+      "done": "Loïc et Mathieu désignés pour les décisions produit ; Elea pour les décisions de code ; répartition reproduite dans ce bilan.",
+      "proof": "Commentaire Mathieu du 19/10 lu. Responsables et scénarios de recette sont explicités dans le bilan.",
+      "missing": "Aucune recette finale par ces personnes n’a été obtenue pendant cette session.",
+      "dependencies": "—",
+      "next": "Faire valider les scénarios métier finaux à Loïc/Mathieu ; leur intervention est nécessaire pour REL-03.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "ENV-01",
+      "trello_id": "6ac499e07e4e83cd3bab0565",
+      "title": "[ENV-01] Débloquer Supabase en local sur le Mac d’Elea",
+      "url": "https://trello.com/c/PXiBHS3u/5-env-01-d%C3%A9bloquer-supabase-en-local-sur-le-mac-delea",
+      "list": "01 - Reprise & environnement",
+      "status": "partiellement réalisée",
+      "done": "Docker démarré ; pile locale isolée utilisable ; Next.js et API locale accessibles.",
+      "proof": "Navigateur U1/U2/U3 et REST A1 réussis sur 127.0.0.1:27194 ; erreur de port des images corrigée.",
+      "missing": "Redémarrage complet du Mac et procédure après redémarrage non rejoués. La CLI locale utilise la gestion de piles v2.122.0.",
+      "dependencies": "—",
+      "next": "Vérifier la reprise après redémarrage lors d’un créneau adapté ; pas de manipulation utilisateur requise maintenant.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-02",
+      "trello_id": "6ac499e1569bf65fd77c758c",
+      "title": "[ENV-02] Recréer la base locale avec migrations + seed",
+      "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
+      "list": "01 - Reprise & environnement",
+      "status": "partiellement réalisée",
+      "done": "Base locale avec migrations jusqu’au 24/10 et seed des trois comptes présente ; nouvelles migrations testées sur cette base.",
+      "proof": "Inventaire SQL réel ; un projet, une candidate ; nouveaux droits et activation testés en transaction.",
+      "missing": "Deux resets complets successifs de toute l’historique non exécutés ; ne pas confondre la simulation des droits avec un reset complet.",
+      "dependencies": "ENV-01",
+      "next": "Rejouer migrations et seed deux fois sur une seconde base jetable ; travail technique autonome restant.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-03",
+      "trello_id": "6ac499e15f1e69f005f423d4",
+      "title": "[ENV-03] Vérifier les trois profils de test",
+      "url": "https://trello.com/c/WE4obZ2A/7-env-03-v%C3%A9rifier-les-trois-profils-de-test",
+      "list": "01 - Reprise & environnement",
+      "status": "terminée et vérifiée",
+      "done": "Connexion cheffe, assistante et candidate fonctionnelle avec les comptes du seed.",
+      "proof": "U1 : cheffe et tableau de bord ; U2 : assistante et projet membre ; U3 : espace Sacha ; accès /projets depuis session candidate redirigé vers login. A1 confirme les connexions staff et le refus de lecture des secrets.",
+      "missing": "Les cas avancés de durée de session restent sur SEC-07, hors critère des trois connexions.",
+      "dependencies": "ENV-02",
+      "next": "Aucune répétition manuelle des trois connexions demandée ; poursuivre les expirations automatisées sur SEC-07.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-04",
+      "trello_id": "6ac499e2bd5515f2d65c9ff0",
+      "title": "[ENV-04] Faire un smoke test des écrans principaux",
+      "url": "https://trello.com/c/4fMnpo6t/8-env-04-faire-un-smoke-test-des-%C3%A9crans-principaux",
+      "list": "01 - Reprise & environnement",
+      "status": "partiellement réalisée",
+      "done": "Accueil, login, tableau de bord, projets, candidatures, sélection projet casting, essayages et espace candidate ouverts.",
+      "proof": "U1/U2/U3 : affichage réel sans erreur bloquante après correction next/image ; transfert candidature → booking réussi.",
+      "missing": "Création/modification projet et annonce, planning, documents, équipe et tous les cas de casting non parcourus intégralement.",
+      "dependencies": "ENV-03",
+      "next": "Compléter le smoke fonctionnel de chaque écran sur la base locale ; développement/QA autonome.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-05",
+      "trello_id": "6ac499e389a106fb095c5389",
+      "title": "[ENV-05] Créer le registre des bugs de reprise",
+      "url": "https://trello.com/c/EWqEz40G/9-env-05-cr%C3%A9er-le-registre-des-bugs-de-reprise",
+      "list": "01 - Reprise & environnement",
+      "status": "partiellement réalisée",
+      "done": "Anomalies réelles consignées : port image local, accès globaux aux profils, activation non atomique, droits API et RGPD.",
+      "proof": "Diffs correctifs et journal de preuves du 26/10 ; ce bilan décrit reproduction et résultat des cas exécutés.",
+      "missing": "Registre historique dédupliqué de toutes les anomalies encore à consolider ; tous les bugs n’ont pas un scénario reproductible.",
+      "dependencies": "ENV-04",
+      "next": "Consolider le registre depuis les lignes non terminées ; aucune intervention nécessaire.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-06",
+      "trello_id": "6ac499e3bd2d0adcdb7d7f1a",
+      "title": "[ENV-06] Remplacer le README générique par une vraie passation développeur",
+      "url": "https://trello.com/c/GUXlpZw6/10-env-06-remplacer-le-readme-g%C3%A9n%C3%A9rique-par-une-vraie-passation-d%C3%A9veloppeur",
+      "list": "01 - Reprise & environnement",
+      "status": "partiellement réalisée",
+      "done": "README de passation existant ; chemins locaux, sécurité et démarrage documentés dans le bilan du 26/10.",
+      "proof": "Lecture README/docs ; commandes actuelles et endpoint local contrôlés.",
+      "missing": "Procédure complète sur installation vierge et après reboot non vérifiée ; plusieurs documents anciens restent datés du 11/10.",
+      "dependencies": "ENV-03",
+      "next": "Réconcilier toute la documentation ancienne après validation d’un démarrage neuf ; aucune intervention métier.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "ENV-07",
+      "trello_id": "6ac499e4de0bda4e991e31ba",
+      "title": "[ENV-07] Fixer la méthode Git de l’équipe",
+      "url": "https://trello.com/c/lrbA93xT/11-env-07-fixer-la-m%C3%A9thode-git-de-l%C3%A9quipe",
+      "list": "01 - Reprise & environnement",
+      "status": "terminée et vérifiée",
+      "done": "Travail isolé sur la branche tests, sauvegarde des changements initiaux et fusion enregistrée.",
+      "proof": "G1 : fetch réalisé ; ancêtres main et elea vérifiés ; commit de fusion 01996d0 ; aucun push.",
+      "missing": "Aucune publication distante ou modification des branches sources.",
+      "dependencies": "—",
+      "next": "Conserver cette méthode pour la revue ; pas d’action utilisateur requise.",
+      "references": [
+        "supabase/seed.sql",
+        "scripts/check-api-local.mjs",
+        "README.md"
+      ]
+    },
+    {
+      "id": "SEC-01",
+      "trello_id": "6ac499e53337d7c85d2cb12c",
+      "title": "[SEC-01] Sécuriser le rapprochement entre une candidate et sa session",
+      "url": "https://trello.com/c/7dYGAn5L/12-sec-01-s%C3%A9curiser-le-rapprochement-entre-une-candidate-et-sa-session",
+      "list": "02 - Sécurité & accès",
+      "status": "développée mais à tester",
+      "done": "Création/récupération candidate distingue session, compte existant et invitation ; reprise d’un profil existant exige une preuve d’accès.",
+      "proof": "Tests Node existants sur frontières des actions et choix de candidature ; login candidate réel U3.",
+      "missing": "Scénarios complets homonymes, email connu sans compte, téléphone familial, lien reçu par un tiers et panne à chaque étape non exécutés.",
+      "dependencies": "ENV-04",
+      "next": "Automatiser ces scénarios contre une base isolée ; pas de décision métier nouvelle.",
+      "references": [
+        "src/lib/auth/session.ts",
+        "src/lib/candidats/session.ts",
+        "tests/rls-integration-local.sql"
+      ]
+    },
+    {
+      "id": "SEC-02",
+      "trello_id": "6ac499e569916145ca987976",
+      "title": "[SEC-02] Finaliser une authentification candidate robuste",
+      "url": "https://trello.com/c/lwz1ges2/13-sec-02-finaliser-une-authentification-candidate-robuste",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "Mot de passe scrypt, session DB, révocation, messages de lien neutres ; activation invitation désormais transactionnelle.",
+      "proof": "S2 : activation, mot de passe, consommation des invitations et réutilisation refusée ; U3 connexion réelle ; tests Node auth réussis.",
+      "missing": "Rate limit seulement par email, pas IP+email ; test complet récupération/reset, concurrence et invalidation de toutes les sessions après reset manquant.",
+      "dependencies": "DEC-01; SEC-01",
+      "next": "Compléter anti-abus et invalidation, puis tests de récupération en capture locale ; tâche technique autonome.",
+      "references": [
+        "src/lib/auth/session.ts",
+        "src/lib/candidats/session.ts",
+        "tests/rls-integration-local.sql"
+      ]
+    },
+    {
+      "id": "SEC-03",
+      "trello_id": "6ac499e6370f172333d5a664",
+      "title": "[SEC-03] Auditer les règles RLS sur toutes les données sensibles",
+      "url": "https://trello.com/c/qRHibEjJ/14-sec-03-auditer-les-r%C3%A8gles-rls-sur-toutes-les-donn%C3%A9es-sensibles",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "69 tables publiques inventoriées, toutes avec RLS ; privilèges explicites réconciliés ; 39 tables serveur seulement.",
+      "proof": "S1 : isolation projet/vivier et escalade ; S3 : matrice des 69 tables après révocation des droits ; A1 : API réelle ; conseiller sécurité local sans signalement.",
+      "missing": "Audit exhaustif CRUD croisé de chaque table, fonction, vue et bucket non réalisé. Un conseiller sans résultat ne prouve pas l’absence de faille.",
+      "dependencies": "DEC-02; ENV-04",
+      "next": "Priorité P0 : étendre les scénarios à deux équipes pour toutes les ressources et Storage ; aucune intervention utilisateur nécessaire.",
+      "references": [
+        "tests/rls-integration-local.sql",
+        "tests/grants-october30-local.sql",
+        "docs/preuves-2026-10-26/api-rights-matrix.json"
+      ]
+    },
+    {
+      "id": "SEC-04",
+      "trello_id": "6ac499e7e57d25ad275bbdf1",
+      "title": "[SEC-04] Finaliser l’isolation des fiches et viviers par cheffe/équipe",
+      "url": "https://trello.com/c/dmukruOV/15-sec-04-finaliser-lisolation-des-fiches-et-viviers-par-cheffe-%C3%A9quipe",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "Recherche globale authentifiée et cloisonnée ; accès RLS sur détail/édition/fiches imprimables ; profils sans compte exclus des listes partagées ; pools sans propriétaire masqués hors propriétaire.",
+      "proof": "S1 : autre équipe, comédien étranger et comédien sans pool invisibles ; ajout rapide du projet membre visible ; tests Node recherche anonymes/sections réussis.",
+      "missing": "Tous les pickers, exports et Server Actions de centaines d’appels admin non revus de bout en bout ; effets des comptes propriétaires à recetter.",
+      "dependencies": "DEC-02; SEC-03",
+      "next": "Priorité P0 : terminer l’inventaire de toutes les lectures et mutations privilégiées ; pas d’action utilisateur immédiate.",
+      "references": [
+        "src/lib/figurants/query.ts",
+        "src/lib/figurants/preview.ts",
+        "src/lib/search/actions.ts"
+      ]
+    },
+    {
+      "id": "SEC-05",
+      "trello_id": "6ac499e7ae2dedbc32b96745",
+      "title": "[SEC-05] Tester et sécuriser tous les liens de partage par token",
+      "url": "https://trello.com/c/FUS87PS0/16-sec-05-tester-et-s%C3%A9curiser-tous-les-liens-de-partage-par-token",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "Contrôles de projet sur tokens staff, garde de finalisation self-tape, validation des chemins ; options partage échouent explicitement sur erreur.",
+      "proof": "Tests Node partage/casting/upload/chemins et cron réussis ; erreurs Supabase simulées sur les options de lien.",
+      "missing": "Chaque famille de token, rotation/révocation, projet archivé, exports publics et substitution entre familles non testés au navigateur.",
+      "dependencies": "SEC-03",
+      "next": "Construire la matrice de liens publics et ses tests négatifs ; intervention métier seulement si durée/visibilité doit changer.",
+      "references": [
+        "src/lib/partage/actions.ts",
+        "src/lib/casting/upload-actions.ts"
+      ]
+    },
+    {
+      "id": "SEC-06",
+      "trello_id": "6ac499e80bfabe6f9415f952",
+      "title": "[SEC-06] Revoir la gestion des secrets et des variables d’environnement",
+      "url": "https://trello.com/c/OvabMIAV/17-sec-06-revoir-la-gestion-des-secrets-et-des-variables-denvironnement",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "Clients serveur séparés, versions Supabase verrouillées ; .env.local loopback ; mode test bloque email/Gmail/push/SMS ; droits du 30/10 documentés.",
+      "proof": "A1 refuse une URL non locale ; tests de transports sans réseau réussis ; clés serveur absentes de .env.example ; fichier local ignoré par Git à vérifier dans G1.",
+      "missing": "Audit complet de l’historique Git, rotation de secrets et paramètres hébergés non vérifiés ; clé de chiffrement/VAPID non nécessaire aux cas testés.",
+      "dependencies": "ENV-04",
+      "next": "Terminer le scan historique et la procédure de rotation ; accès hébergés nécessaires seulement pour une intervention distante autorisée séparément.",
+      "references": [
+        ".env.example",
+        "src/lib/communications-test.ts",
+        "docs/supabase-30-octobre-2026.md"
+      ]
+    },
+    {
+      "id": "SEC-07",
+      "trello_id": "6ac499e9834c56c10293e875",
+      "title": "[SEC-07] Tester session, expiration et déconnexion",
+      "url": "https://trello.com/c/vYfzpdgJ/18-sec-07-tester-session-expiration-et-d%C3%A9connexion",
+      "list": "02 - Sécurité & accès",
+      "status": "partiellement réalisée",
+      "done": "Session candidate 7 jours avec recontrôle accès ; timeout staff et déconnexion codés.",
+      "proof": "U1/U2 : déconnexion staff ; U3 : candidate ne donne pas accès staff ; tests statiques cookie/session du dépôt réussis.",
+      "missing": "Expiration forcée, actions directes après timeout, révocation en session active et changements de mot de passe multi-appareils non exécutés.",
+      "dependencies": "SEC-02",
+      "next": "Ajouter tests à horloge contrôlée et sessions multiples ; pas d’intervention utilisateur.",
+      "references": [
+        "src/middleware.ts",
+        "src/lib/candidats/session.ts"
+      ]
+    },
+    {
+      "id": "CAN-01",
+      "trello_id": "6ac499ea1e4b458951b7833c",
+      "title": "[CAN-01] Permettre à une nouvelle candidate de créer son accès sans lien magique",
+      "url": "https://trello.com/c/MrWZWx3h/19-can-01-permettre-%C3%A0-une-nouvelle-candidate-de-cr%C3%A9er-son-acc%C3%A8s-sans-lien-magique",
+      "list": "03 - Candidats & candidatures",
+      "status": "développée mais à tester",
+      "done": "Inscription et candidature créent un compte avec mot de passe ; profil existant redirigé vers connexion/invitation.",
+      "proof": "Commentaire métier « c’est good » relu mais non utilisé comme preuve E2E ; tests Node des garde-fous réussis ; connexion candidate existante U3.",
+      "missing": "Nouvelle adresse → upload → candidature → déconnexion → reconnexion non testé intégralement, ni rollback après panne média.",
+      "dependencies": "SEC-02",
+      "next": "Automatiser le parcours nouveau compte avec médias fictifs ; intervention humaine seulement pour la recette ergonomique finale.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-02",
+      "trello_id": "6ac499eac84073608d25c3a7",
+      "title": "[CAN-02] Implémenter le choix « postuler sans compte »",
+      "url": "https://trello.com/c/RwGpy5Gn/20-can-02-impl%C3%A9menter-le-choix-postuler-sans-compte",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Compte obligatoire à la candidature ; ajout rapide sans accès ; invitation ; profils sans compte cachés de la recherche partagée ; activation atomique.",
+      "proof": "Commentaire CAN-02 du 19/10 prioritaire sur le titre ; S1/S2 ; tests recherche/communications réussis.",
+      "missing": "Conservation du formulaire lors d’une connexion/reprise, abandon, profil existant sans compte et invitation au navigateur non recettés.",
+      "dependencies": "DEC-01; CAN-01",
+      "next": "Recetter les quatre états inconnue/sans accès/compte existant/session ; ne pas implémenter un parcours public sans compte.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-03",
+      "trello_id": "6ac499eb2d0b3c85489092c0",
+      "title": "[CAN-03] Fiabiliser la détection et le traitement des doublons",
+      "url": "https://trello.com/c/F67dimvq/21-can-03-fiabiliser-la-d%C3%A9tection-et-le-traitement-des-doublons",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Normalisation de recherche/doublons, avertissements et fusion RPC transactionnelle présents.",
+      "proof": "Tests Node de normalisation et structure transactionnelle réussis ; aucun scénario SQL complet de fusion exécuté ici.",
+      "missing": "Homonymes, jumeaux, téléphone familial, conflits de candidatures et rollback intermédiaire de fusion non testés réellement.",
+      "dependencies": "SEC-01",
+      "next": "Étendre tests métier et SQL ; aucune fusion ambiguë automatique, validation humaine uniquement des doublons réels.",
+      "references": [
+        "src/lib/figurants/duplicates.ts",
+        "src/lib/figurants/actions.ts",
+        "tests/figurant-duplicate-normalization.test.mjs"
+      ]
+    },
+    {
+      "id": "CAN-04",
+      "trello_id": "6ac499ebad71e299d3fe8504",
+      "title": "[CAN-04] Afficher/envoyer une confirmation « candidature bien reçue »",
+      "url": "https://trello.com/c/FO6dzCGj/22-can-04-afficher-envoyer-une-confirmation-candidature-bien-re%C3%A7ue",
+      "list": "03 - Candidats & candidatures",
+      "status": "développée mais à tester",
+      "done": "Succès candidature explicite et historique « Candidature reçue » ; formulation distincte du booking.",
+      "proof": "U3 montre la confirmation de la candidature seedée ; tests Node confirmation/double soumission réussis.",
+      "missing": "Nouvelle candidature complète, double clic réel et panne SMTP après persistance non exécutés.",
+      "dependencies": "CAN-01",
+      "next": "Vérifier la confirmation sur un nouvel envoi et un SMTP de capture ; aucune intervention nécessaire.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-05",
+      "trello_id": "6ac499ec45bd23372eeaa21d",
+      "title": "[CAN-05] Recetter le formulaire de candidature complet",
+      "url": "https://trello.com/c/TlE7lhOf/23-can-05-recetter-le-formulaire-de-candidature-complet",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Formulaire avec dates/questions/médias/cachets et validations serveur.",
+      "proof": "Tests Node sur choix/dates/uploads et autorisation onglets réussis ; candidature existante lue au navigateur.",
+      "missing": "Matrice complète ouverte/fermée/limite/mineurs/démo obligatoire, champs absents et pannes DB non exécutée ; règles mineurs encore incomplètes.",
+      "dependencies": "CAN-01",
+      "next": "Compléter d’abord LEG, puis la matrice fonctionnelle automatisée ; pas de nouvelle décision sur DEC-03.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-06",
+      "trello_id": "6ac499edc7788171599f260d",
+      "title": "[CAN-06] Recetter l’espace personnel candidate par projet",
+      "url": "https://trello.com/c/eX5Zs5fp/24-can-06-recetter-lespace-personnel-candidate-par-projet",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Fiche, photos, indisponibilités, candidatures et messages visibles dans l’espace connecté.",
+      "proof": "U3 : fiche Sacha et historique de candidature affichés ; séparation staff/candidate vérifiée.",
+      "missing": "Même candidate sur deux projets, manipulation d’IDs, photos et informations spécifiques à chaque projet non recettées.",
+      "dependencies": "SEC-04",
+      "next": "Créer deux projets fictifs et vérifier toutes les lectures/écritures ; tâche technique autonome.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-07",
+      "trello_id": "6ac499edc2590bf3f9b9faa4",
+      "title": "[CAN-07] Recetter les échanges candidate ↔ équipe",
+      "url": "https://trello.com/c/y7JdCAsB/25-can-07-recetter-les-%C3%A9changes-candidate-%E2%86%94-%C3%A9quipe",
+      "list": "03 - Candidats & candidatures",
+      "status": "développée mais à tester",
+      "done": "Messagerie candidate/équipe, catégories, rattachement projet et garde booking présents.",
+      "proof": "Tests Node autorisation message/booking et actions staff réussis ; écran candidate vide observé.",
+      "missing": "Aller-retour réel équipe → candidate → équipe, état lu/revu et erreur email/push non testés.",
+      "dependencies": "CAN-06",
+      "next": "Recetter avec messages fictifs et transports bloqués/capturés ; intervention métier seulement sur la présentation.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "src/lib/candidats/actions.ts",
+        "src/components/candidatures/postuler-form.tsx"
+      ]
+    },
+    {
+      "id": "CAN-08",
+      "trello_id": "6ac499eea040e90bd65ae6f6",
+      "title": "[CAN-08] Test de non-régression : candidature déjà bookée",
+      "url": "https://trello.com/c/x2LZcyzm/26-can-08-test-de-non-r%C3%A9gression-candidature-d%C3%A9j%C3%A0-book%C3%A9e",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Transfert d’un premier jour masque la candidate des onglets actifs sans supprimer sa candidature.",
+      "proof": "U1 : affectation 07/11 puis transfert ; écran « 1 envoyé en booking », Tous=0 ; DB : un booking et candidature conservée.",
+      "missing": "Le seed n’avait pas deux lignes candidature_jours : maintien/exploitation d’un second jour réellement prévu non démontré.",
+      "dependencies": "ENV-04",
+      "next": "Ajouter exactement le scénario deux jours prévus puis transfert du premier ; ne pas répéter le seul smoke déjà réussi.",
+      "references": [
+        "tests/bookings-transfer-integrity.test.mjs",
+        "src/lib/candidatures/jours.ts"
+      ]
+    },
+    {
+      "id": "CAN-09",
+      "trello_id": "6ac499ef15ca1e3fc9f92295",
+      "title": "[CAN-09] Recetter création, activation et récupération d’accès candidate",
+      "url": "https://trello.com/c/yxO1KgGn/27-can-09-recetter-cr%C3%A9ation-activation-et-r%C3%A9cup%C3%A9ration-dacc%C3%A8s-candidate",
+      "list": "03 - Candidats & candidatures",
+      "status": "partiellement réalisée",
+      "done": "Connexion, lien de récupération, révocation et activation sur invitation présents.",
+      "proof": "U3 login ; S2 activation atomique/consommation et réutilisation refusée ; tests auth existants réussis.",
+      "missing": "Mot de passe oublié/reset complet, désactivation/réactivation en session, échec mail et récupération après activation partielle non recettés.",
+      "dependencies": "SEC-02",
+      "next": "Tester les scénarios avec mail de capture et sessions simultanées ; aucune boîte réelle à utiliser.",
+      "references": [
+        "src/lib/candidats/creer-compte.ts",
+        "tests/invitation-integration-local.sql"
+      ]
+    },
+    {
+      "id": "MED-01",
+      "trello_id": "6ac499f042b104306dcb2e1d",
+      "title": "[MED-01] Qualifier la compression des images sur mobile",
+      "url": "https://trello.com/c/SIZ3Hmb5/28-med-01-qualifier-la-compression-des-images-sur-mobile",
+      "list": "04 - Médias & communications",
+      "status": "développée mais à tester",
+      "done": "Compression image côté client, formats et upload disponibles.",
+      "proof": "Tests Node de signatures JPEG/PNG/WebP et limites réussis ; pas de capture mobile réelle.",
+      "missing": "iPhone/Android, EXIF/orientation, HEIC, très grandes dimensions, poids/qualité comparés non vérifiés.",
+      "dependencies": "ENV-04",
+      "next": "Recette appareils réels après tests automatisés ; appareils utilisateur utiles uniquement pour cette matrice physique.",
+      "references": [
+        "src/lib/media/compress-image.ts",
+        "tests/validate-upload.test.mjs"
+      ]
+    },
+    {
+      "id": "MED-02",
+      "trello_id": "6ac499f13c902376816e69fa",
+      "title": "[MED-02] Qualifier la compression vidéo sur Safari, Chrome et Firefox",
+      "url": "https://trello.com/c/ZOSGq249/29-med-02-qualifier-la-compression-vid%C3%A9o-sur-safari-chrome-et-firefox",
+      "list": "04 - Médias & communications",
+      "status": "partiellement réalisée",
+      "done": "Upload vidéo direct avec progression/reprise/annulation ; allègement serveur ffmpeg après envoi.",
+      "proof": "Code upload-video/allegement relu ; tests Node des erreurs upload réussis ; aucune grosse vidéo réellement envoyée.",
+      "missing": "Safari/Chrome/Firefox, son/durée/orientation, reprise réseau et allègement réel non vérifiés ; au-delà de 300 Mo l’allègement serveur ignore l’original malgré limite upload 2 Go.",
+      "dependencies": "ENV-04",
+      "next": "Qualifier les vrais fichiers et documenter cette différence de limites ; validation appareils/navigateurs requise en recette.",
+      "references": [
+        "src/lib/media/upload-video.ts",
+        "src/lib/casting/allegement.ts"
+      ]
+    },
+    {
+      "id": "MED-03",
+      "trello_id": "6ac499f1e23ce296a3443b6e",
+      "title": "[MED-03] Améliorer les erreurs et limites d’upload",
+      "url": "https://trello.com/c/iWVHTHZO/30-med-03-am%C3%A9liorer-les-erreurs-et-limites-dupload",
+      "list": "04 - Médias & communications",
+      "status": "développée mais à tester",
+      "done": "Messages d’erreurs média, limites serveur, whitelist MIME/signatures et chemins casting présents.",
+      "proof": "Tests Node validate-upload et media-upload-user-errors réussis sur fichiers valides, faux MIME, PDF invalide, vide/trop lourd.",
+      "missing": "Pannes réseau/Storage/DB, annulation et nettoyage d’orphelins non testés bout en bout.",
+      "dependencies": "MED-01; MED-02",
+      "next": "Forcer ces pannes dans le harnais local ; aucune intervention métier nécessaire.",
+      "references": [
+        "src/lib/media/validate-upload.ts",
+        "src/lib/media/upload-video.ts",
+        "tests/validate-upload.test.mjs"
+      ]
+    },
+    {
+      "id": "COM-01",
+      "trello_id": "6ac499f2c504463011d8ebdf",
+      "title": "[COM-01] Recetter les emails sans utiliser les secrets de prod en local",
+      "url": "https://trello.com/c/7Gubb3Nq/31-com-01-recetter-les-emails-sans-utiliser-les-secrets-de-prod-en-local",
+      "list": "04 - Médias & communications",
+      "status": "partiellement réalisée",
+      "done": "Mode test explicite bloque même les credentials projet, Gmail IMAP, push et relais SMS ; erreurs d’envoi propagées.",
+      "proof": "Tests de transports : aucune ouverture SMTP, push ni lecture des destinataires en mode test ; A1 local ; Gmail réel jamais utilisé pour envoyer.",
+      "missing": "Rendu et contenu de chaque email/convocation, expéditeur, pièces jointes et erreurs SMTP via boîte de capture non recettés.",
+      "dependencies": "SEC-06",
+      "next": "Ajouter un transport de capture local puis vérifier chaque modèle ; ne pas demander de secrets de production.",
+      "references": [
+        "src/lib/email/send.ts",
+        "src/lib/push/send.ts",
+        "src/lib/notifications/actions.ts"
+      ]
+    },
+    {
+      "id": "COM-02",
+      "trello_id": "6ac499f31d04bf4149994ccf",
+      "title": "[COM-02] Recetter les notifications et leur isolation par équipe/projet",
+      "url": "https://trello.com/c/hfeMyDHZ/32-com-02-recetter-les-notifications-et-leur-isolation-par-%C3%A9quipe-projet",
+      "list": "04 - Médias & communications",
+      "status": "développée mais à tester",
+      "done": "Notifications rattachées aux projets et filtrées selon accès ; état lu par équipe.",
+      "proof": "Tests statiques isolation existants réussis ; aucune campagne réelle à deux équipes.",
+      "missing": "Création/réception/lu croisés, événements sans projet et abonnements concurrents non testés.",
+      "dependencies": "SEC-03",
+      "next": "Tester deux équipes sur base locale ; aucune intervention utilisateur nécessaire.",
+      "references": [
+        "src/lib/email/send.ts",
+        "src/lib/push/send.ts",
+        "src/lib/notifications/actions.ts"
+      ]
+    },
+    {
+      "id": "COM-03",
+      "trello_id": "6ac499f3bde984801c84f23f",
+      "title": "[COM-03] Recetter les notifications push candidate",
+      "url": "https://trello.com/c/yomIvsdk/33-com-03-recetter-les-notifications-push-candidate",
+      "list": "04 - Médias & communications",
+      "status": "développée mais à tester",
+      "done": "Abonnement et envoi Web Push implémentés ; bouton visible dans le compte candidat.",
+      "proof": "U3 observe le bouton Activer ; test mode empêche l’envoi réel.",
+      "missing": "Permission acceptée/refusée, VAPID, iOS installé, changement d’appareil, abonnement expiré et livraison réelle non vérifiés.",
+      "dependencies": "SEC-06",
+      "next": "Recetter sur appareils dédiés avec clés de test ; accord utilisateur seulement avant l’activation de notifications sur son appareil.",
+      "references": [
+        "src/lib/push/send.ts"
+      ]
+    },
+    {
+      "id": "COM-04",
+      "trello_id": "6ac499f4c24f23349103a9c6",
+      "title": "[COM-04] Valider signatures et modèles de messages",
+      "url": "https://trello.com/c/5n96Vo8x/34-com-04-valider-signatures-et-mod%C3%A8les-de-messages",
+      "list": "04 - Médias & communications",
+      "status": "développée mais à tester",
+      "done": "Modèles par équipe/projet, signatures et sélection de credentials présents.",
+      "proof": "Code templates/projets/signature relu ; build et tests de frontières réussis, sans validation de chaque texte.",
+      "missing": "Inventaire et rendu de tous les modèles, substitutions, isolation entre projets et validation éditoriale non effectués.",
+      "dependencies": "COM-01",
+      "next": "Capturer les rendus puis faire valider les formulations à Loïc/Mathieu ; aucune diffusion réelle.",
+      "references": [
+        "src/lib/templates/actions.ts",
+        "src/lib/projets/signature.ts"
+      ]
+    },
+    {
+      "id": "MET-01",
+      "trello_id": "6ac499f5a8bdf10250d4f355",
+      "title": "[MET-01] Recetter le cycle de vie d’un projet",
+      "url": "https://trello.com/c/jawAKYlC/35-met-01-recetter-le-cycle-de-vie-dun-projet",
+      "list": "05 - Parcours métier",
+      "status": "développée mais à tester",
+      "done": "Création/modification/archivage projet et paramètres existants ; liste lisible en assistante.",
+      "proof": "U2 : un projet membre visible ; S1/A1 : isolation projet.",
+      "missing": "Cycle création → modification → archivage → reprise et cohérence modèles/indemnités non exécuté.",
+      "dependencies": "ENV-04",
+      "next": "Recette technique complète sur projet fictif ; validation métier finale ensuite.",
+      "references": [
+        "src/lib/projets/actions.ts"
+      ]
+    },
+    {
+      "id": "MET-02",
+      "trello_id": "6ac499f5ca72e25c3e940a63",
+      "title": "[MET-02] Recetter le cycle de vie d’une annonce",
+      "url": "https://trello.com/c/KwFippSF/36-met-02-recetter-le-cycle-de-vie-dune-annonce",
+      "list": "05 - Parcours métier",
+      "status": "développée mais à tester",
+      "done": "Annonce avec dates, questions, visuels, statut, lien et export affiche/QR implémentée.",
+      "proof": "Annonce seedée et deux dates lues au navigateur ; tests Node choix de candidature réussis.",
+      "missing": "Cycle complet, plafond, fermeture, affiche/QR et restrictions de médias non testés fonctionnellement.",
+      "dependencies": "MET-01",
+      "next": "Automatiser un cycle annonce puis contrôler le rendu affiche avec le métier.",
+      "references": [
+        "src/lib/annonces/actions.ts"
+      ]
+    },
+    {
+      "id": "MET-03",
+      "trello_id": "6ac499f6d8920a6f81f90e9b",
+      "title": "[MET-03] Recetter tri et gestion des candidatures",
+      "url": "https://trello.com/c/R72I6GCW/37-met-03-recetter-tri-et-gestion-des-candidatures",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Onglets, filtres, étiquettes, réserve et transfert conservés de main et adaptés à elea.",
+      "proof": "U1 : tri dans la journée, sélection et transfert ; tests Node onglets/erreurs/choix réussis.",
+      "missing": "Toutes combinaisons filtres, étiquettes et réserve, import/export et erreurs de mutations non recettées.",
+      "dependencies": "MET-02",
+      "next": "Compléter les interactions combinées ; aucune décision métier supplémentaire.",
+      "references": [
+        "src/components/candidatures/candidatures-table.tsx",
+        "src/lib/reserve/actions.ts"
+      ]
+    },
+    {
+      "id": "MET-04",
+      "trello_id": "6ac499f7d1d028650bf81dc9",
+      "title": "[MET-04] Recetter le passage candidature → booking",
+      "url": "https://trello.com/c/X0xiQR5a/38-met-04-recetter-le-passage-candidature-%E2%86%92-booking",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Transfert candidat vers booking avec contrôle cachet et gestion de jours implémenté.",
+      "proof": "U1 : bouton Envoyer désactivé sans cachet, Figurant choisi, booking 07/11 créé ; confirmation DB.",
+      "missing": "Plusieurs jours, déjà booké, changement de date, suppression et liens croisés en échec non testés E2E.",
+      "dependencies": "MET-03; CAN-08",
+      "next": "Étendre le scénario existant aux transferts multiples et erreurs ; pas de répétition du cas simple.",
+      "references": [
+        "src/lib/candidatures/actions.ts",
+        "tests/bookings-transfer-integrity.test.mjs"
+      ]
+    },
+    {
+      "id": "MET-05",
+      "trello_id": "6ac499f798118b8ecb7e6236",
+      "title": "[MET-05] Recetter une journée de booking de bout en bout",
+      "url": "https://trello.com/c/bLBuY9xm/39-met-05-recetter-une-journ%C3%A9e-de-booking-de-bout-en-bout",
+      "list": "05 - Parcours métier",
+      "status": "développée mais à tester",
+      "done": "Journées, besoins, heures, lieux, covoiturage, convocations et réponses implémentés.",
+      "proof": "U1 crée un booking ; tests statiques intégrité transfert et bulk permissions réussis.",
+      "missing": "Cycle journée complet, calculs, documents, réponses et suppression non joué.",
+      "dependencies": "MET-04",
+      "next": "Recette bout en bout avec messages capturés ; Loïc/Mathieu pour validation métier seulement.",
+      "references": [
+        "src/lib/bookings/actions.ts"
+      ]
+    },
+    {
+      "id": "MET-06",
+      "trello_id": "6ac499f808908c4f842e59dd",
+      "title": "[MET-06] Recetter les essayages de bout en bout",
+      "url": "https://trello.com/c/OmtFVOYR/40-met-06-recetter-les-essayages-de-bout-en-bout",
+      "list": "05 - Parcours métier",
+      "status": "développée mais à tester",
+      "done": "Journées/créneaux, lieux, affectations, documents et liens essayages présents.",
+      "proof": "U2 : sélection projet et écran essayages chargé avec calendrier et partage ; tests Node responsive/permissions réussis.",
+      "missing": "Création d’une journée/créneau, affectations, conflit horaire, message, planning et partage réel non exécutés.",
+      "dependencies": "MET-01",
+      "next": "Compléter une journée fictive entière puis valider le planning avec le métier.",
+      "references": [
+        "src/components/essayages/essayage-planning-board.tsx"
+      ]
+    },
+    {
+      "id": "MET-07",
+      "trello_id": "6ac499f9150ecc2570b48feb",
+      "title": "[MET-07] Recetter le casting de bout en bout",
+      "url": "https://trello.com/c/mRHXggEK/41-met-07-recetter-le-casting-de-bout-en-bout",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Rôles/catégories, présentiel, ajout rapide, upload, avis, distribution et liens réal conservés.",
+      "proof": "U2 : sélection du projet casting affichée ; tests Node PDF, chemins, événements, bulk statuts et autorisations réussis.",
+      "missing": "Cycle complet avec fichiers réels et variantes de partage non joué ; parcours casting sans compte à distinguer des annonces CAN-02.",
+      "dependencies": "MET-01",
+      "next": "Tester un rôle avec self-tape et un présentiel ; confirmer seulement les différences produit qui ne sont pas déjà documentées.",
+      "references": [
+        "src/lib/casting/actions.ts",
+        "src/lib/casting/upload-actions.ts"
+      ]
+    },
+    {
+      "id": "MET-08",
+      "trello_id": "6ac499f934d2a4750551bec5",
+      "title": "[MET-08] Recetter tous les documents et exports",
+      "url": "https://trello.com/c/A0lTfSbF/42-met-08-recetter-tous-les-documents-et-exports",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Fiches, trombis, listes, bordereaux et XLSX/PDF présents ; fiches privées désormais soumises aux RLS.",
+      "proof": "X1 : génération et relecture XLSX réelle, y compris règle dataBar utilisant uuid corrigé ; tests PDF access statiques réussis.",
+      "missing": "Chaque document, impression A4, sauts de page, vCard, accents, sélection et données de liens publics non recettés visuellement.",
+      "dependencies": "MET-05; MET-06; MET-07",
+      "next": "Rendre un jeu de documents fictifs et vérifier leurs pages ; validation lisibilité métier ensuite.",
+      "references": [
+        "src/lib/documents/data.ts"
+      ]
+    },
+    {
+      "id": "MET-09",
+      "trello_id": "6ac499fa39170b53121a7327",
+      "title": "[MET-09] Recetter barème, cachets, majorations et indemnités",
+      "url": "https://trello.com/c/7p3Y9F37/43-met-09-recetter-bar%C3%A8me-cachets-majorations-et-indemnit%C3%A9s",
+      "list": "05 - Parcours métier",
+      "status": "développée mais à tester",
+      "done": "Barèmes/cachets/majorations/indemnités et interfaces présents.",
+      "proof": "Code et migrations existants, build réussi ; aucune comparaison métier chiffrée exécutée.",
+      "missing": "Valeurs attendues, cas limites de calcul et cumuls non vérifiés.",
+      "dependencies": "MET-05",
+      "next": "Construire des exemples de référence ; Loïc/Mathieu doivent confirmer les résultats métier attendus, puis tests automatisés.",
+      "references": [
+        "src/components/bareme/bareme-cachets-editor.tsx"
+      ]
+    },
+    {
+      "id": "MET-10",
+      "trello_id": "6ac499fa7e4e83cd3bab284b",
+      "title": "[MET-10] Recetter invitations et permissions de l’équipe",
+      "url": "https://trello.com/c/4qVRAihP/44-met-10-recetter-invitations-et-permissions-de-l%C3%A9quipe",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Invitations staff, membership et permissions de sections présents.",
+      "proof": "U2/A1 : assistante connectée à son projet ; test recherche respecte les sections masquées ; S1 droits projet vérifiés.",
+      "missing": "Invitation reçue, acceptation, retrait en session active et toutes les actions de sections refusées non testés bout en bout.",
+      "dependencies": "SEC-04",
+      "next": "Recette avec captures d’invitation et sessions actives ; pas d’email réel.",
+      "references": [
+        "src/lib/equipe/actions.ts",
+        "src/lib/auth/sections.ts"
+      ]
+    },
+    {
+      "id": "MET-11",
+      "trello_id": "6ac499fb2e39c052b6694c7b",
+      "title": "[MET-11] Recetter toutes les pages publiques de partage",
+      "url": "https://trello.com/c/gDPvF658/45-met-11-recetter-toutes-les-pages-publiques-de-partage",
+      "list": "05 - Parcours métier",
+      "status": "partiellement réalisée",
+      "done": "Pages publiques documents, essayages, casting, validation et disponibilités existent avec tokens.",
+      "proof": "Tests statiques partage/casting et erreurs simulées réussis ; aucune validation complète des liens publics réels.",
+      "missing": "Toutes langues, révocation, navigation privée/mobile et téléchargement non vérifiés.",
+      "dependencies": "SEC-05",
+      "next": "Créer chaque lien sur données fictives et contrôler ses seules données autorisées ; pas d’intervention immédiate.",
+      "references": [
+        "src/lib/partage/data.ts"
+      ]
+    },
+    {
+      "id": "LEG-01",
+      "trello_id": "6ac499fc44d7d053fe253dfc",
+      "title": "[LEG-01] Ajouter le représentant légal au dossier d’un mineur",
+      "url": "https://trello.com/c/8GkvF3Tx/46-leg-01-ajouter-le-repr%C3%A9sentant-l%C3%A9gal-au-dossier-dun-mineur",
+      "list": "06 - Mineurs & conformité",
+      "status": "non commencée",
+      "done": "Aucun modèle ni formulaire des deux représentants légaux identifié dans le code inspecté.",
+      "proof": "Recherche dans src et migrations : pas de module représentant légal ; décision DEC-03 disponible.",
+      "missing": "Schéma, champs, validations trois emails distincts et exception du second représentant entièrement à développer.",
+      "dependencies": "DEC-03",
+      "next": "Développer depuis DEC-03 ; aucune nouvelle décision métier n’est nécessaire pour démarrer.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "LEG-02",
+      "trello_id": "6ac499fdb7873cbc5e060fcd",
+      "title": "[LEG-02] Gérer les autorisations nécessaires pour un mineur",
+      "url": "https://trello.com/c/C4M51gSS/47-leg-02-g%C3%A9rer-les-autorisations-n%C3%A9cessaires-pour-un-mineur",
+      "list": "06 - Mineurs & conformité",
+      "status": "non commencée",
+      "done": "Aucun suivi dédié des autorisations de mineur identifié.",
+      "proof": "Recherche code/migrations et décision DEC-03 ; aucune preuve fonctionnelle.",
+      "missing": "Documents requis, upload privé, statuts de complétude, signatures et droits d’accès manquants.",
+      "dependencies": "LEG-01",
+      "next": "Développer après LEG-01, avec Storage privé et tests ; validation finale métier nécessaire.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "LEG-03",
+      "trello_id": "6ac499fd22d942b9e4297313",
+      "title": "[LEG-03] Créer le dossier DRIEETS attendu par le métier",
+      "url": "https://trello.com/c/lm7ksfFN/48-leg-03-cr%C3%A9er-le-dossier-drieets-attendu-par-le-m%C3%A9tier",
+      "list": "06 - Mineurs & conformité",
+      "status": "non commencée",
+      "done": "Aucun dossier DRIEETS opérationnel identifié.",
+      "proof": "Recherche code/migrations ; aucun parcours DRIEETS testé.",
+      "missing": "Période tournage, date commission, liste de pièces configurable, liens représentants/production, complétude et verrou booking manquants.",
+      "dependencies": "DEC-03; LEG-01; LEG-02",
+      "next": "Développer le module complet à partir de DEC-03 ; il bloque le parcours métier des moins de 16 ans.",
+      "references": [
+        "docs/trello-source-2026-10-26.json"
+      ]
+    },
+    {
+      "id": "LEG-04",
+      "trello_id": "6ac499fe4931958ef766f9e9",
+      "title": "[LEG-04] Recetter les règles d’âge dans annonces et candidatures",
+      "url": "https://trello.com/c/vrTF7vv7/49-leg-04-recetter-les-r%C3%A8gles-d%C3%A2ge-dans-annonces-et-candidatures",
+      "list": "06 - Mineurs & conformité",
+      "status": "partiellement réalisée",
+      "done": "Calcul d’âge et option annonce mineurs présents ; inscription autonome refuse les moins de 16 ans.",
+      "proof": "Lecture inscription.ts/actions.ts ; tests de candidature existants ne couvrent pas toute la matrice d’âges.",
+      "missing": "Règles détaillées DEC-03, 16–18 ans, anniversaires et changement de naissance non implémentés/recettés complètement.",
+      "dependencies": "DEC-03; CAN-05",
+      "next": "Aligner code avec LEG-01/02/03 puis tester les dates frontières ; pas de décision à réinventer.",
+      "references": [
+        "src/lib/candidats/inscription.ts",
+        "src/lib/candidatures/actions.ts"
+      ]
+    },
+    {
+      "id": "LEG-05",
+      "trello_id": "6ac499fe203d610c9ec444ae",
+      "title": "[LEG-05] Recetter l’anonymisation RGPD",
+      "url": "https://trello.com/c/F8qqNw75/50-leg-05-recetter-lanonymisation-rgpd",
+      "list": "06 - Mineurs & conformité",
+      "status": "partiellement réalisée",
+      "done": "Anonymisation manuelle existante durcie : propriétaire seul, erreurs médias/liens remontées, accès révoqué et authentifiants supprimés.",
+      "proof": "Test comportemental nouveau : cheffe non propriétaire refusée avant client admin. Aucune anonymisation destructive exécutée.",
+      "missing": "Traitement complet messages/pièces/casting, conservation légitime, transaction et reprise après échec partiel non garantis.",
+      "dependencies": "SEC-03",
+      "next": "Priorité sécurité : concevoir nettoyage exhaustif et tests rollback ; métier doit valider conservation et périmètre, pas exécuter des commandes.",
+      "references": [
+        "src/lib/rgpd/actions.ts"
+      ]
+    },
+    {
+      "id": "LEG-06",
+      "trello_id": "6ac499ffc84073608d2623ec",
+      "title": "[LEG-06] Relire les pages confidentialité / RGPD / contacts",
+      "url": "https://trello.com/c/tnYeZGJF/51-leg-06-relire-les-pages-confidentialit%C3%A9-rgpd-contacts",
+      "list": "06 - Mineurs & conformité",
+      "status": "partiellement réalisée",
+      "done": "Pages confidentialité/RGPD/contact et email support présents.",
+      "proof": "Contact et lien confidentialité vus au navigateur ; lecture du code des pages, sans validation de conformité.",
+      "missing": "Contenu à réconcilier avec données réellement collectées, mineurs, durée de conservation et sous-traitants ; validation métier/juridique non obtenue.",
+      "dependencies": "DEC-03",
+      "next": "Préparer une version cohérente après LEG ; responsable métier doit valider le texte avant publication.",
+      "references": [
+        "src/app/confidentialite/page.tsx",
+        "src/app/rgpd/page.tsx"
+      ]
+    },
+    {
+      "id": "QA-01",
+      "trello_id": "6ac49a0035f6d65d4de893ee",
+      "title": "[QA-01] Obtenir un build TypeScript propre",
+      "url": "https://trello.com/c/kpb6iMIS/52-qa-01-obtenir-un-build-typescript-propre",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "terminée et vérifiée",
+      "done": "TypeScript et build Next.js de la branche intégrée passent.",
+      "proof": "T1 et B1 finaux : succès ; pas de ignoreBuildErrors ajouté ; compilation vérifiée après les derniers changements de code.",
+      "missing": "Les avertissements de convention middleware et module Node ne sont pas des tests fonctionnels.",
+      "dependencies": "ENV-04",
+      "next": "Aucune action manuelle requise sur compilation ; préserver la CI.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "QA-02",
+      "trello_id": "6ac49a00d17592047b2e2797",
+      "title": "[QA-02] Obtenir un lint propre",
+      "url": "https://trello.com/c/8bnndDFF/53-qa-02-obtenir-un-lint-propre",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "terminée et vérifiée",
+      "done": "ESLint propre après correction des imports, directives et libellés de formulaires.",
+      "proof": "L1 final : 0 erreur, 0 avertissement ; erreur intermédiaire react-hooks/immutability corrigée avant validation.",
+      "missing": "Aucune exception silencieuse supplémentaire introduite pour masquer une erreur.",
+      "dependencies": "ENV-04",
+      "next": "Aucune nouvelle recette lint demandée à l’utilisateur.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "QA-03",
+      "trello_id": "6ac49a0128840d340207ed41",
+      "title": "[QA-03] Rejouer l’audit des dépendances et corriger les vulnérabilités",
+      "url": "https://trello.com/c/TMOYefob/54-qa-03-rejouer-laudit-des-d%C3%A9pendances-et-corriger-les-vuln%C3%A9rabilit%C3%A9s",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "terminée et vérifiée",
+      "done": "Dépendances indirectes uuid et zod corrigées, versions Supabase verrouillées et lockfile mis à jour.",
+      "proof": "NPM1 final : zéro vulnérabilité ; X1 : export/relecture XLSX réussi ; build et tests après mise à jour.",
+      "missing": "Audit valable au 26/10, à rejouer lors d’une mise à jour ; pas une garantie future.",
+      "dependencies": "ENV-04",
+      "next": "Conserver audit en CI et suivre les avis ; aucune intervention utilisateur.",
+      "references": [
+        "package.json",
+        "docs/preuves-2026-10-26/dependencies-final.json"
+      ]
+    },
+    {
+      "id": "QA-04",
+      "trello_id": "6ac49a02f563bc30be521753",
+      "title": "[QA-04] Ajouter des tests automatisés sur les parcours critiques",
+      "url": "https://trello.com/c/btyaVtxy/55-qa-04-ajouter-des-tests-automatis%C3%A9s-sur-les-parcours-critiques",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "partiellement réalisée",
+      "done": "125 tests Node, scénarios SQL locaux et script REST sécurisés disponibles.",
+      "proof": "N1 : 125/125 ; S1/S2/S3 et A1 réussis. Une part importante des anciens tests vérifie statiquement le source, ce n’est pas une suite E2E complète.",
+      "missing": "Automatisation du nouveau compte, cycle booking complet, toutes RLS, liens publics et médias encore insuffisante.",
+      "dependencies": "SEC-01; MET-04",
+      "next": "Étendre la couverture comportementale plutôt que multiplier les assertions de texte ; travail autonome.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "QA-05",
+      "trello_id": "6ac49a039eccc5bf38194341",
+      "title": "[QA-05] Ajouter une CI GitHub sur chaque pull request",
+      "url": "https://trello.com/c/XgTiCpwG/56-qa-05-ajouter-une-ci-github-sur-chaque-pull-request",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "développée mais à tester",
+      "done": "Workflow GitHub PR : installation, audit prod, tests, lint, typecheck et build.",
+      "proof": "Fichier .github/workflows/ci.yml inspecté ; les mêmes contrôles ont été exécutés localement.",
+      "missing": "Aucun run GitHub de cette branche, aucun statut requis/protection distante vérifiés, puisque push interdit.",
+      "dependencies": "QA-01; QA-02",
+      "next": "Valider la CI sur une future PR autorisée ; cela nécessite une autorisation de publication séparée.",
+      "references": [
+        ".github/workflows/ci.yml"
+      ]
+    },
+    {
+      "id": "QA-06",
+      "trello_id": "6ac49a03f45d25f4ce9de6ef",
+      "title": "[QA-06] Recette mobile et responsive",
+      "url": "https://trello.com/c/or4JdBYX/57-qa-06-recette-mobile-et-responsive",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "partiellement réalisée",
+      "done": "Listes mobiles projets/annonces/figurants/RGPD et contrôles essayages/casting adaptés.",
+      "proof": "Tests Node BUG-17 réussis ; captures navigateur à largeur réduite lisibles sur accueil/compte et modal de transfert.",
+      "missing": "Matrice 320/375/tablette, zoom 200 %, tous formulaires et appareils physiques non effectuée.",
+      "dependencies": "ENV-04",
+      "next": "Compléter tailles et navigation clavier automatisées ; recette sur les appareils réels de l’équipe ensuite.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "QA-07",
+      "trello_id": "6ac49a041595afff12de803e",
+      "title": "[QA-07] Passage accessibilité de base",
+      "url": "https://trello.com/c/Ew7dHfZc/58-qa-07-passage-accessibilit%C3%A9-de-base",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "partiellement réalisée",
+      "done": "Field relie les contrôles directs à leur label ; uploads clavier améliorés.",
+      "proof": "Test React SSR vérifie ID généré et ID fourni ; login staff/candidate affiche désormais les noms de champs dans l’arbre accessible.",
+      "missing": "Champs imbriqués/custom, messages aria-describedby, lecteur d’écran, contrastes et parcours clavier complet non audités.",
+      "dependencies": "QA-06",
+      "next": "Compléter audit d’accessibilité ; utilisateur intervient seulement pour retours ergonomiques, pas pour corriger le code.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "QA-08",
+      "trello_id": "6ac49a05aa517fef5f46168e",
+      "title": "[QA-08] Ajouter un suivi minimal des erreurs en production",
+      "url": "https://trello.com/c/ss87kvYZ/59-qa-08-ajouter-un-suivi-minimal-des-erreurs-en-production",
+      "list": "07 - Qualité & maintenabilité",
+      "status": "partiellement réalisée",
+      "done": "Erreurs DB mieux remontées sur plusieurs mutations ; logs serveur et erreurs utilisateur présents.",
+      "proof": "Tests Node erreurs partage et refus de faux succès réussis ; logs de recette conservés.",
+      "missing": "Suivi centralisé, collecte client, alertes, corrélation et politique de données sensibles non configurés.",
+      "dependencies": "REL-01",
+      "next": "Ajouter un suivi minimal testé sur environnement isolé ; choix/service externe seulement si accès indispensable.",
+      "references": [
+        "package.json",
+        "tests/integration-security.test.mjs"
+      ]
+    },
+    {
+      "id": "REL-01",
+      "trello_id": "6ac49a0589a106fb095c7c51",
+      "title": "[REL-01] Créer un environnement de préproduction isolé",
+      "url": "https://trello.com/c/LDsXf4k7/60-rel-01-cr%C3%A9er-un-environnement-de-pr%C3%A9production-isol%C3%A9",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "partiellement réalisée",
+      "done": "Environnement local isolé disponible avec mode communications bloquées.",
+      "proof": "URL loopback contrôlée, projet Supabase local distinct et données fictives vérifiés.",
+      "missing": "Préproduction Vercel/Supabase hébergée demandée par la carte non créée ; aucune dépense ni publication autorisée dans cette mission.",
+      "dependencies": "SEC-06; QA-01",
+      "next": "Préparer la configuration ; hébergement à traiter dans une intervention autorisée séparée.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "REL-02",
+      "trello_id": "6ac49a06f0964fd1b49885b3",
+      "title": "[REL-02] Tester les migrations sur une copie avant production",
+      "url": "https://trello.com/c/tacHH6fK/61-rel-02-tester-les-migrations-sur-une-copie-avant-production",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "partiellement réalisée",
+      "done": "Migrations de durcissement, activation et droits explicites appliquées sur la base isolée.",
+      "proof": "S1/S2/S3 et A1 réussis après application ; historique jusqu’au 24/10 inventorié.",
+      "missing": "Rejeu intégral depuis zéro, double reset, sauvegarde/restauration et retour arrière non exécutés.",
+      "dependencies": "REL-01",
+      "next": "Faire une seconde base jetable et rejouer l’historique ; ne pas présenter S3 comme un reset complet.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "REL-03",
+      "trello_id": "6ac49a0797d9ac88e70bea15",
+      "title": "[REL-03] Faire la recette métier finale avec les deux comparses",
+      "url": "https://trello.com/c/1qHEIjNs/62-rel-03-faire-la-recette-m%C3%A9tier-finale-avec-les-deux-comparses",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "bloquée",
+      "done": "Scénarios et responsables identifiés ; base de recette locale utilisable.",
+      "proof": "Aucune validation finale Loïc/Mathieu reçue pendant cette session.",
+      "missing": "Recette métier des deux utilisateurs nécessaire après correction des blocages techniques, notamment mineurs.",
+      "dependencies": "REL-01; MET-08; LEG-04; QA-03",
+      "next": "Intervention de Loïc/Mathieu nécessaire pour le verdict métier ; ne pas leur déléguer les tests techniques restants.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "REL-04",
+      "trello_id": "6ac49a07b9a49daaf24fc0e4",
+      "title": "[REL-04] Préparer la checklist de mise en production",
+      "url": "https://trello.com/c/sbHycwJS/63-rel-04-pr%C3%A9parer-la-checklist-de-mise-en-production",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "partiellement réalisée",
+      "done": "Checklist de déploiement, sauvegarde et environnement existante ; bilan ajoute critères de non-publication.",
+      "proof": "docs/deployment.md et recette inspectés ; aucune exécution production.",
+      "missing": "Responsables, restauration chronométrée, vérification variables hébergées et plan de bascule encore à valider.",
+      "dependencies": "REL-02; REL-03",
+      "next": "Compléter la checklist avant toute demande de déploiement ; intervention métier/accès seulement à la décision de mise en ligne.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "REL-05",
+      "trello_id": "6ac49a0840ea83c31794bc79",
+      "title": "[REL-05] Déployer puis faire un smoke test production",
+      "url": "https://trello.com/c/MW6QvA5j/64-rel-05-d%C3%A9ployer-puis-faire-un-smoke-test-production",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "hors périmètre selon une décision documentée",
+      "done": "Aucun déploiement ni smoke production effectué.",
+      "proof": "Instruction utilisateur explicite : aucun push, aucun déploiement ; respectée.",
+      "missing": "Production volontairement exclue, même si la carte reste active dans Trello.",
+      "dependencies": "REL-04",
+      "next": "Ne pas reporter « terminée » ; attendre une mission de déploiement explicitement autorisée.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "REL-06",
+      "trello_id": "6ac49a09ab09e964cca38416",
+      "title": "[REL-06] Clore la reprise avec une documentation des limites connues",
+      "url": "https://trello.com/c/oCPgIemc/65-rel-06-clore-la-reprise-avec-une-documentation-des-limites-connues",
+      "list": "08 - Préproduction & mise en ligne",
+      "status": "partiellement réalisée",
+      "done": "Bilan exhaustif des cartes, preuves, SHA et limites remis ; documentation Supabase du 30/10 et démarrage local ajoutés.",
+      "proof": "86 cartes accessibles examinées, totaux calculés ; preuves distinctes des parties non vérifiées.",
+      "missing": "Clôture de la reprise impossible tant que les blocages et validations métier restent ouverts.",
+      "dependencies": "REL-05",
+      "next": "Poursuivre le travail priorisé puis mettre à jour le bilan ; pas de clôture Trello automatique.",
+      "references": [
+        "docs/deployment.md",
+        "docs/recette.md"
+      ]
+    },
+    {
+      "id": "6ac4be9f2ed00e63b7de3ecf",
+      "trello_id": "6ac4be9f2ed00e63b7de3ecf",
+      "title": "Créer nouveau logo.",
+      "url": "https://trello.com/c/9N4fXJXZ/66-cr%C3%A9er-nouveau-logo",
+      "list": "09 - Améliorations",
+      "status": "non commencée",
+      "done": "Logo actuel existant ; aucun nouveau logo produit ni validé dans cette intervention.",
+      "proof": "Carte active sans description ni checklist ; aucun critère graphique défini.",
+      "missing": "Brief et proposition graphique, choix métier et intégration du nouveau logo manquants.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Préparer des propositions ; Loïc/Mathieu doivent valider le changement d’identité visuelle.",
+      "references": [
+        "src/components/ui/logo.tsx"
+      ]
+    },
+    {
+      "id": "6ad62a11caa6eb8d39305054",
+      "trello_id": "6ad62a11caa6eb8d39305054",
+      "title": "BASE DE PROFILS : améliorer la recherche de profils.",
+      "url": "https://trello.com/c/ntmQG8oX/97-base-de-profils-am%C3%A9liorer-la-recherche-de-profils",
+      "list": "09 - Améliorations",
+      "status": "partiellement réalisée",
+      "done": "Filtres indépendants genre/âge/ville/mensurations et recherche normalisée ; aucun nom obligatoire dans le constructeur de requête.",
+      "proof": "Tests comportementaux recherche texte/normalisation réussis ; code query.ts applique chaque filtre indépendamment.",
+      "missing": "Scénario exact hommes 30–45 ans Paris avec plusieurs profils et test visuel des combinaisons non exécutés ; viviers encore à auditer.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Créer les fixtures correspondant à la description puis tester ce cas exact ; aucune décision utilisateur requise.",
+      "references": [
+        "src/lib/figurants/query.ts"
+      ]
+    },
+    {
+      "id": "6ac4c78073ca84d1500ecd16",
+      "trello_id": "6ac4c78073ca84d1500ecd16",
+      "title": "Mails automatiques qui disent que lea candidat.e a été ajouté à une date après avoir postulé.",
+      "url": "https://trello.com/c/UtUFqNyi/67-mails-automatiques-qui-disent-que-lea-candidate-a-%C3%A9t%C3%A9-ajout%C3%A9-%C3%A0-une-date-apr%C3%A8s-avoir-postul%C3%A9",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Correction de formulation préparée dans les parcours d’accès/candidature ; doublon fonctionnel de BUG-16.",
+      "proof": "Même preuve que BUG-16 : tests confirmation et historique U3 ; commentaire contenant une capture inventorié, image non analysée.",
+      "missing": "Rendu email réel capturé avant/après sur les trois parcours manquant.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Recetter une seule fois avec BUG-16 puis reporter les résultats sur les deux cartes ; validation éditoriale métier.",
+      "references": [
+        "src/lib/candidats/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-01",
+      "trello_id": "6ac4c9920372a940366f3748",
+      "title": "[BUG-01] Bloquer l’escalade de privilèges via profiles",
+      "url": "https://trello.com/c/UQQwiDF7/68-bug-01-bloquer-lescalade-de-privil%C3%A8ges-via-profiles",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Colonnes de privilèges profiles protégées par trigger SQL ; droits de table réconciliés.",
+      "proof": "S1 : modification is_owner depuis assistante refusée ; tests statiques colonnes protégées réussis.",
+      "missing": "Rôle, pool, accès complet, sections, email et tous chemins insert/update/metadata non testés séparément en REST.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Étendre le test d’escalade à toutes colonnes ; aucune intervention métier.",
+      "references": [
+        "supabase/migrations/20261011000001_profiles_protected_columns.sql"
+      ]
+    },
+    {
+      "id": "BUG-02",
+      "trello_id": "6ac4c9934f9d54f88d834386",
+      "title": "[BUG-02] Protéger les Server Actions utilisant service_role",
+      "url": "https://trello.com/c/wKVq9kR6/69-bug-02-prot%C3%A9ger-les-server-actions-utilisant-servicerole",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Authentification et contrôles projet ajoutés à plusieurs actions admin ; recherche globale corrigée ; fiches directes sous RLS.",
+      "proof": "Tests Node frontières/actions/messages et refus recherche anonyme réussis ; RLS et REST ciblés réussis.",
+      "missing": "Inventaire exhaustif de tous les exports use server et appels admin toujours incomplet.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Priorité P0 : auditer chaque action publique et tester identifiants forgés ; tâche technique autonome.",
+      "references": [
+        "tests/server-action-boundaries.test.mjs",
+        "src/lib/search/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-03",
+      "trello_id": "6ac4c9939bf98a7d118f5a04",
+      "title": "[BUG-03] Fermer les contournements du vivier comédien privé",
+      "url": "https://trello.com/c/KJRrbCJ4/70-bug-03-fermer-les-contournements-du-vivier-com%C3%A9dien-priv%C3%A9",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Pools privés filtrés ; fiche, édition et fiches imprimables utilisent RLS ; null pool privé hors propriétaire.",
+      "proof": "S1 : comédien autre pool et null pool invisibles ; tests Node permissions ciblés réussis.",
+      "missing": "Tous pickers/doublons/documents/exports et mutations indirectes pas encore couverts.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Priorité P0 : fermer et tester chaque accès indirect ; aucune intervention requise.",
+      "references": [
+        "src/lib/figurants/comedien-privacy.ts",
+        "src/app/figurants/[id]/page.tsx"
+      ]
+    },
+    {
+      "id": "BUG-04",
+      "trello_id": "6ac4c9943bf7c7d43251f39a",
+      "title": "[BUG-04] La révocation de l’accès candidat n’empêche pas la connexion",
+      "url": "https://trello.com/c/dTq3LVXS/71-bug-04-la-r%C3%A9vocation-de-lacc%C3%A8s-candidat-nemp%C3%AAche-pas-la-connexion",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Connexion et session candidate revérifient acces_compte ; révocation nettoie sessions/tokens.",
+      "proof": "Tests Node candidate access/revocation réussis ; connexion normale U3.",
+      "missing": "Désactivation pendant une session active, ancien magic link et réactivation non joués au navigateur.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Automatiser le cas de révocation live ; aucune intervention utilisateur.",
+      "references": [
+        "src/lib/candidats/session.ts",
+        "src/lib/candidats/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-05",
+      "trello_id": "6ac4c99422d942b9e473ca70",
+      "title": "[BUG-05] Le Service Worker met en cache des pages privées",
+      "url": "https://trello.com/c/lc7ibsQp/72-bug-05-le-service-worker-met-en-cache-des-pages-priv%C3%A9es",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Service Worker ne cache que la page offline statique et purge anciens caches privés.",
+      "proof": "Tests Node Service Worker : installation, purge, navigation privée sans cache, fallback et requêtes ignorées réussis.",
+      "missing": "Staff A → logout → hors ligne → staff B non effectué dans un vrai navigateur avec cache préexistant.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Exécuter le scénario réel hors ligne dans un profil de test ; pas besoin de refaire les tests simulés.",
+      "references": [
+        "public/sw.js",
+        "tests/service-worker.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-06",
+      "trello_id": "6ac4c99508b82aef2dda6efb",
+      "title": "[BUG-06] Sécuriser la suppression destructive d’un profil",
+      "url": "https://trello.com/c/PbLEsfag/73-bug-06-s%C3%A9curiser-la-suppression-destructive-dun-profil",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Suppression globale réservée propriétaire, confirmation explicite et RPC atomique refusant les références restantes.",
+      "proof": "Tests Node structure/autorisation suppression réussis ; aucune suppression réelle effectuée.",
+      "missing": "Cas DB avec toutes familles de références et erreur intermédiaire, médias orphelins non recettés.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Tester uniquement des profils jetables en transaction ; aucune suppression d’une donnée réelle.",
+      "references": [
+        "src/lib/figurants/actions.ts",
+        "tests/access-and-deletion-guards.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-07",
+      "trello_id": "6ac4c996d835d4a65e142874",
+      "title": "[BUG-07] Corriger la RLS du casting présentiel",
+      "url": "https://trello.com/c/39TaW5mR/74-bug-07-corriger-la-rls-du-casting-pr%C3%A9sentiel",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Policies présentiel limitées au projet, à la journée et au créneau correspondant.",
+      "proof": "Tests Node migration casting présentiel réussis ; conseiller local sans signalement.",
+      "missing": "CRUD croisé effectif de deux projets présentiel et créneau étranger pas exécuté.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Ajouter scénario SQL négatif complet ; aucune intervention métier.",
+      "references": [
+        "supabase/migrations/20261011000003_casting_presentiel_rls.sql"
+      ]
+    },
+    {
+      "id": "BUG-08",
+      "trello_id": "6ac4c9975cb780fedc12efc7",
+      "title": "[BUG-08] Protéger la lecture des tokens de partage",
+      "url": "https://trello.com/c/IXyhjJ65/75-bug-08-prot%C3%A9ger-la-lecture-des-tokens-de-partage",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Getters de tokens staff vérifient l’accès projet avant lecture privilégiée.",
+      "proof": "Tests statiques access-and-deletion-guards et partage réussis.",
+      "missing": "Essais REST/actions réels pour chaque famille de liens et rôle non membre encore manquants.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Étendre matrice token et révocation ; travail technique autonome.",
+      "references": [
+        "src/lib/partage/actions.ts",
+        "tests/access-and-deletion-guards.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-09",
+      "trello_id": "6ac4c9975905a3c7d3669102",
+      "title": "[BUG-09] Ajouter rate limiting et neutraliser l’énumération des comptes candidats",
+      "url": "https://trello.com/c/sV5sGjYh/76-bug-09-ajouter-rate-limiting-et-neutraliser-l%C3%A9num%C3%A9ration-des-comptes-candidats",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Compteur DB par email et réponses neutres lors de demande de lien ; refus en cas d’erreur compteur.",
+      "proof": "Tests de source auth/rate-limit existants réussis ; connexion normale candidate U3.",
+      "missing": "Dimension IP/réseau demandée absente ; tests charge, changement IP et égalité des réponses/timings non effectués.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Priorité sécurité : compteur IP+compte et tests abus ; aucune décision métier nécessaire pour limiter les tentatives.",
+      "references": [
+        "src/lib/candidats/rate-limit.ts",
+        "src/lib/candidats/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-10",
+      "trello_id": "6ac4c9984573c78bea9d32f1",
+      "title": "[BUG-10] Fermer l’open redirect sur le paramètre next",
+      "url": "https://trello.com/c/OdQcdTf0/77-bug-10-fermer-lopen-redirect-sur-le-param%C3%A8tre-next",
+      "list": "10 - Bug",
+      "status": "terminée et vérifiée",
+      "done": "Helper central safeInternalPath bloque redirections externes, doubles slash et chemins normalisés dangereux.",
+      "proof": "Tests comportementaux safe-next réussis : interne autorisé, // externe et URL absolue refusés, fallback et variantes de normalisation ; appels auth inspectés.",
+      "missing": "Pas de scénario externe exécuté sur un compte réel ; couverture du helper et des appels suffisante pour la correction ciblée.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Préserver les tests lors de nouveaux écrans auth ; aucune action utilisateur.",
+      "references": [
+        "tests/safe-next.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-11",
+      "trello_id": "6ac4c999eeaf0deacc05557a",
+      "title": "[BUG-11] Valider réellement les images côté serveur",
+      "url": "https://trello.com/c/8mEzNVgz/78-bug-11-valider-r%C3%A9ellement-les-images-c%C3%B4t%C3%A9-serveur",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "JPEG/PNG/WebP/PDF contrôlés côté serveur par MIME, signature et taille ; extensions canoniques.",
+      "proof": "Tests comportementaux validate-upload réussis sur fichiers normaux/faux MIME/vides/trop lourds/PDF.",
+      "missing": "Décodage/réencodage des images sensibles, limites de dimensions et nettoyage de chaque parcours en cas de DB KO non garantis.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Compléter uploads oubliés, décodage et tests Storage/DB ; tâche technique autonome.",
+      "references": [
+        "src/lib/media/validate-upload.ts",
+        "tests/validate-upload.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-12",
+      "trello_id": "6ac4c999d0267f05f14962ef",
+      "title": "[BUG-12] Rendre la fusion de profils transactionnelle",
+      "url": "https://trello.com/c/9ro08hh9/79-bug-12-rendre-la-fusion-de-profils-transactionnelle",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Fusion de profils déplacée dans RPC transactionnelle avec droits propriétaire et traitement FK.",
+      "proof": "Tests Node vérifient appel RPC/transaction/guards ; aucun scénario réel de fusion exécuté ici.",
+      "missing": "Fusion simple, conflits, photos/messages/liens et erreur forcée avec rollback à tester réellement.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Créer fixtures et tests SQL transactionnels de fusion ; pas de fusion réelle demandée au métier.",
+      "references": [
+        "supabase/migrations/20261011000004_merge_figurants_atomique.sql",
+        "src/lib/figurants/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-13",
+      "trello_id": "6ac4c99a0d097c8adfa8809a",
+      "title": "[BUG-13] Ne plus ignorer les erreurs Supabase lors des mutations",
+      "url": "https://trello.com/c/q9F64Rhk/80-bug-13-ne-plus-ignorer-les-erreurs-supabase-lors-des-mutations",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Mutations ciblées partages/cron/SMS/activation/RGPD remontent les erreurs ; activation sans demi-création.",
+      "proof": "Tests Node erreurs partage, transports et S2 activation réussis.",
+      "missing": "Revue systémique de toutes les mutations métier incomplète ; anonymisation et autres workflows restent à étapes multiples.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Priorité sécurité/intégrité : auditer puis tester chaque chemin de panne ; aucune intervention utilisateur.",
+      "references": [
+        "tests/partage-error-handling.test.mjs",
+        "src/lib/partage/actions.ts"
+      ]
+    },
+    {
+      "id": "BUG-14",
+      "trello_id": "6ac4c99b98118b8ecbc8fb5c",
+      "title": "[BUG-14] Verrouiller un self-tape déjà finalisé",
+      "url": "https://trello.com/c/crD3TZeI/81-bug-14-verrouiller-un-self-tape-d%C3%A9j%C3%A0-finalis%C3%A9",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Création de slots et finalisation refusent self-tape déjà soumis ; compare-and-set final.",
+      "proof": "Tests Node casting-upload-paths et structure de finalisation réussis.",
+      "missing": "Page restée ouverte et double envoi concurrent avec vrais fichiers non reproduits.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Ajouter test concurrent de finalisation ; aucune intervention métier.",
+      "references": [
+        "src/lib/casting/upload-actions.ts",
+        "tests/casting-upload-paths.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-15",
+      "trello_id": "6ac4c99b349bc1c3f7b29e74",
+      "title": "[BUG-15] Vérifier les chemins Storage à la finalisation du casting",
+      "url": "https://trello.com/c/ghlpnQig/82-bug-15-v%C3%A9rifier-les-chemins-storage-%C3%A0-la-finalisation-du-casting",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Chemins liés à entrée/figurant/slot, labels/nombres et existence Storage contrôlés.",
+      "proof": "Tests comportementaux de chemins et tests statiques de contrôle Storage réussis.",
+      "missing": "Association frauduleuse avec objets réels, suppression entre vérification/finalisation et trop de slots non testés en intégration.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Tester les payloads forgés contre un bucket local ; aucune intervention utilisateur.",
+      "references": [
+        "src/lib/casting/upload-paths.ts",
+        "tests/casting-upload-paths.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-16",
+      "trello_id": "6ac4c99df6c43312a4a1891d",
+      "title": "[BUG-16] Corriger l’email envoyé juste après une candidature",
+      "url": "https://trello.com/c/umSEtKt8/83-bug-16-corriger-lemail-envoy%C3%A9-juste-apr%C3%A8s-une-candidature",
+      "list": "10 - Bug",
+      "status": "développée mais à tester",
+      "done": "Messages d’accès et confirmation candidature distingués de l’ajout à une journée.",
+      "proof": "Tests Node de garde confirmation et lecture historique U3 ; ancien commentaire capture lu comme référence, capture jointe non analysée visuellement ici.",
+      "missing": "Rendu exact des emails nouvelle candidate/compte existant/bookée non capturé.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Vérifier les trois messages via transport de capture et validation du texte métier.",
+      "references": [
+        "src/lib/candidats/actions.ts",
+        "tests/candidature-confirmation-guard.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-17",
+      "trello_id": "6ac4c99ddf0e8cfc49442c3e",
+      "title": "[BUG-17] Corriger les tableaux non utilisables sur mobile",
+      "url": "https://trello.com/c/bE9sflKC/84-bug-17-corriger-les-tableaux-non-utilisables-sur-mobile",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Vues listes mobiles et scroll d’aperçu documents présents sur les zones identifiées.",
+      "proof": "Tests Node BUG-17 réussis ; UI modal de transfert et espace candidate observées en largeur réduite.",
+      "missing": "320/375/tablette, zoom 200 %, toutes actions de présentiel/essayages et documents non vérifiées.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Compléter matrice responsive sans faire répéter les vues déjà observées ; appareils réels utiles en recette.",
+      "references": [
+        "tests/bug-17-mobile-lists.test.mjs",
+        "tests/bug-17-essayages-casting-mobile.test.mjs"
+      ]
+    },
+    {
+      "id": "BUG-18",
+      "trello_id": "6ac4c99eec0aad135e28d4fb",
+      "title": "[BUG-18] Relier correctement les labels et rendre les uploads clavier-accessibles",
+      "url": "https://trello.com/c/BxLbwaNB/85-bug-18-relier-correctement-les-labels-et-rendre-les-uploads-clavier-accessibles",
+      "list": "10 - Bug",
+      "status": "partiellement réalisée",
+      "done": "Labels directs Field associés par ID, champs login correctement nommés ; plusieurs uploads utilisables au clavier.",
+      "proof": "Test React SSR IDs généré/explicite réussi ; arbre accessible navigateur staff/candidate confirme les noms de champs.",
+      "missing": "Champs imbriqués, composants custom, aria-describedby des erreurs et lecteur d’écran non couverts.",
+      "dependencies": "Aucune dépendance formalisée dans la description",
+      "next": "Terminer audit clavier et lecteur d’écran ; pas de changement visuel majeur sans validation métier.",
+      "references": [
+        "src/components/ui/field.tsx",
+        "tests/integration-security.test.mjs"
+      ]
+    }
+  ]
+}

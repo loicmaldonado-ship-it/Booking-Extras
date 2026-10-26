@@ -1,3 +1,5 @@
+> **Recette intégrée du 26/10/2026** : [bilan exhaustif des 86 cartes](docs/bilan-trello-2026-10-26.md), [compatibilité Supabase du 30 octobre](docs/supabase-30-octobre-2026.md). Cette version reste une branche de tests, sans push ni déploiement. Les limites et le démarrage de la pile isolée sont décrits dans le bilan.
+
 # Booking Extras — Guide d'installation et de développement local
 
 Application de casting et de gestion de figurant·es : projets, annonces, candidatures, bookings, essayages, photos, vidéos, documents et exports.

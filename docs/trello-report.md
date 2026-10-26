@@ -1,3 +1,5 @@
+> **Archive du 11 octobre.** Le bilan actuel, fondé sur les 86 cartes et les commentaires du tableau du 26 octobre, est [bilan-trello-2026-10-26.md](bilan-trello-2026-10-26.md). Les constats ci-dessous ne décrivent pas tous l’état actuel.
+
 # Suivi intégral des cartes BOOKING-SITE
 
 Photographie locale du 11/10/2026 — **aucune écriture Trello, GitHub ni production**.

@@ -1,0 +1,210 @@
+{
+  "agents": [],
+  "annonce_dates": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "annonce_photos": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "annonce_questions": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "annonces": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "bareme_cachets": [],
+  "bareme_majorations": [],
+  "boites_mail_releve": [],
+  "booking_indemnites": [],
+  "booking_majorations": [],
+  "bookings": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidate_auth_attempts": [],
+  "candidature_disponibilites": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidature_etiquette_liens": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidature_etiquettes": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidature_jours": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidature_onglets": [],
+  "candidature_photos": [],
+  "candidature_reponses": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "candidatures": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_avis": [],
+  "casting_entries": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_invitations": [],
+  "casting_presentiel_creneaux": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_presentiel_entries": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_presentiel_journees": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_roles": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_upload_events": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "casting_videos_allegees": [],
+  "derniers_messages": [],
+  "document_templates": [],
+  "envoi_destinataires": [],
+  "envois": [],
+  "essayage_creneaux": [],
+  "essayage_journees": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "essayage_lieux": [],
+  "essayages": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "figurant_auth_tokens": [],
+  "figurant_comptes": [],
+  "figurant_indisponibilites": [],
+  "figurant_liens": [
+    "select"
+  ],
+  "figurant_messages": [],
+  "figurant_photos": [
+    "select"
+  ],
+  "figurant_sessions": [],
+  "figurants": [
+    "select"
+  ],
+  "journee_besoins": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "journees": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "lien_validation_profils": [],
+  "lien_validation_votes": [],
+  "liens_validation": [],
+  "message_templates": [],
+  "notifications": [],
+  "partage_commentaires": [],
+  "partage_journee_liens": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "partage_liens": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "partage_visites": [],
+  "profiles": [
+    "delete",
+    "select",
+    "update"
+  ],
+  "projet_fonctions": [],
+  "projet_indemnites": [],
+  "projet_membres": [
+    "delete",
+    "insert",
+    "select"
+  ],
+  "projet_photos_choisies": [],
+  "projets": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "push_subscriptions": [],
+  "question_templates": [],
+  "references_accueil": [],
+  "relais_textos": [],
+  "reserve_profils": [
+    "delete",
+    "insert",
+    "select",
+    "update"
+  ],
+  "sauvegarde_onglets_avant_journees": [],
+  "textos_file": []
+}
