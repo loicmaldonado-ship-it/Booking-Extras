@@ -1,5 +1,11 @@
 # Booking Extras — méthode Git de l'équipe (`ENV-07`)
 
+## Règle de la mission en cours — 26 octobre 2026
+
+L’instruction actuelle d’Éléa prime sur le workflow général ci-dessous : seul le dépôt de tests et la branche `tests/integration-main-elea-2026-10-22` sont modifiés. Commits locaux autorisés ; aucun push, aucune modification de `main` ou `elea`, aucun déploiement. Préserver les changements préexistants, vérifier les ancêtres intégrés et les destinations de base avant toute écriture. Les migrations neuves et les tests utilisent uniquement les piles locales isolées.
+
+Le workflow général suivant concerne une reprise ultérieure autorisée par l’équipe ; il n’autorise pas de PR/push vers elea ou main pendant cette mission.
+
 `main` est la branche de production. **Aucun correctif n'est poussé directement vers `main`** lors de la reprise. `elea` est la branche d'intégration et de validation technique. Une carte assez large peut être développée sur `feat/CAN-05-description` ou `fix/BUG-02-description`, toujours créée **à partir de `elea`**, puis proposée en PR vers `elea`.
 
 ## Pour chaque carte Trello
