@@ -215,6 +215,7 @@ export async function desarchiverProjet(id: string) {
 }
 
 export async function countProjetTemporaires(id: string): Promise<number> {
+  if (await checkProjetAccess(id)) return 0;
   const supabase = createAdminClient();
   const { count } = await supabase
     .from("figurants")

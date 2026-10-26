@@ -28,13 +28,13 @@ async function checkCandidatureAccess(candidatureId: string): Promise<string | n
     .select("annonce_id")
     .eq("id", candidatureId)
     .maybeSingle();
-  if (!candidature) return null;
+  if (!candidature) return "Élément introuvable.";
   const { data: annonce } = await supabase
     .from("annonces")
     .select("projet_id")
     .eq("id", candidature.annonce_id)
     .maybeSingle();
-  if (!annonce) return null;
+  if (!annonce) return "Annonce introuvable.";
   return checkProjetAccess(annonce.projet_id);
 }
 

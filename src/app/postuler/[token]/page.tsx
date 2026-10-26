@@ -7,8 +7,8 @@ import { PostulerForm, type PhotoDuCompte } from "@/components/candidatures/post
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
-import { getAnnonceQuestions } from "@/lib/annonces/questions";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceQuestions } from "@/lib/annonces/data";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { getCurrentFigurant } from "@/lib/candidats/session";

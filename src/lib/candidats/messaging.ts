@@ -1,8 +1,9 @@
 import "server-only";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPushToFigurant } from "@/lib/push/send";
 import { sendEmail } from "@/lib/email/send";
-import { getProjetEmailCredentials } from "@/lib/projets/email";
+import { getOwnerEmailCredentials, getProjetEmailCredentials } from "@/lib/projets/email";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import type { FigurantMessageCategorie } from "./types";
 
@@ -21,49 +22,46 @@ export async function recordFigurantMessage(params: {
   attachments?: { filename: string; content: Buffer }[];
   html?: string;
 }) {
-  // projetId ne sert qu'à choisir la boîte Gmail d'envoi — sans cette
-  // vérification, n'importe quel appelant pourrait faire envoyer un message
-  // "depuis" la boîte d'un projet auquel il n'a pas accès.
-  if (params.projetId) {
-    const accessError = await checkProjetAccess(params.projetId);
-    if (accessError) return { error: accessError };
-  }
-
+  const actor = await getCurrentProfile();
+  if (!actor) return { error: "Non autorisé." };
+  if (typeof params.corps !== "string" || !params.corps.trim() || params.corps.length > 10000) return { error: "Message invalide." };
   const supabase = createAdminClient();
-
-  // Sans email du/de la figurant·e mais avec un agent (cc), on envoie
-  // directement à l'agent au lieu de rester silencieux — un cc sans
-  // destinataire principal ne part nulle part chez la plupart des clients
-  // mail. Le cc n'est alors plus utile puisqu'il devient le destinataire.
-  const to = params.email || params.cc;
-  const cc = params.email ? params.cc : undefined;
-
-  if (to) {
-    const { credentials, error } = await getProjetEmailCredentials(supabase, params.projetId);
-    if (error) return { error };
-    const result = await sendEmail(to, params.subject ?? "Booking Extras", params.corps, credentials, {
-      cc,
-      attachments: params.attachments,
-      html: params.html,
-    });
-    if (result.error) return { error: result.error };
+  let projetId = params.projetId ?? null;
+  if (params.bookingId) {
+    const { data: booking, error } = await supabase.from("bookings").select("projet_id, figurant_id").eq("id", params.bookingId).maybeSingle();
+    if (error || !booking || booking.figurant_id !== params.figurantId || (projetId && projetId !== booking.projet_id)) return { error: "Booking introuvable." };
+    projetId = booking.projet_id;
   }
-
-  await supabase.from("figurant_messages").insert({
-    figurant_id: params.figurantId,
-    booking_id: params.bookingId ?? null,
-    projet_id: params.projetId ?? null,
-    sender: "staff",
-    envoye_par: (await getCurrentProfile())?.id ?? null,
-    corps: params.corps,
-    categorie: params.categorie,
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied };
+  }
+  const scoped = await createServerSupabaseClient();
+  const { data: person, error: personError } = await scoped.from("figurants").select("id, email, agent_email").eq("id", params.figurantId).maybeSingle();
+  if (personError || !person) return { error: "Profil introuvable." };
+  const allowed = new Set([person.email, person.agent_email].filter(Boolean).map((x: string) => x.trim().toLowerCase()));
+  const targets = [params.email, params.cc].filter(Boolean).flatMap(x => String(x).split(/[,;]/)).map(x => x.trim().toLowerCase()).filter(Boolean);
+  if (targets.some(x => !allowed.has(x))) return { error: "Le destinataire doit correspondre au profil ou à son agent." };
+  // Le message existe avant tout envoi : une panne DB ne déclenche pas d'email,
+  // une panne SMTP ne détruit pas le message de l'espace candidat.
+  const { error: insertError } = await supabase.from("figurant_messages").insert({
+    figurant_id: params.figurantId, booking_id: params.bookingId ?? null,
+    projet_id: projetId, sender: "staff", envoye_par: actor.id,
+    corps: params.corps, categorie: params.categorie,
   });
-
+  if (insertError) return { error: "Enregistrement du message impossible. Aucun envoi effectué." };
   await sendPushToFigurant(params.figurantId, {
     title: "Booking Extras — Vous avez un message",
-    body: "Vous avez un nouveau message, merci de vous connecter pour en prendre connaissance.",
-    url: "/compte",
+    body: "Vous avez un nouveau message, merci de vous connecter pour en prendre connaissance.", url: "/compte",
   });
-
+  const to = params.email || params.cc;
+  if (to) {
+    const credentials = projetId ? await getProjetEmailCredentials(supabase, projetId) : await getOwnerEmailCredentials(supabase, actor.id);
+    if (credentials.error) return { error: "Message enregistré ; " + credentials.error, messageEnregistre: true };
+    const sent = await sendEmail(to, params.subject ?? "Booking Extras", params.corps, credentials.credentials, {
+      cc: params.email ? params.cc : undefined, attachments: params.attachments, html: params.html,
+    });
+    if (sent.error) return { error: "Message enregistré ; email non envoyé : " + sent.error, messageEnregistre: true };
+  }
   return {};
 }

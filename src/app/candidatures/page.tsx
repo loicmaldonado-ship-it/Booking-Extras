@@ -30,8 +30,8 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { formatDateLong, formatDateShort, formatDayMonth } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
-import { getAnnonceQuestions } from "@/lib/annonces/questions";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceQuestions } from "@/lib/annonces/data";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getProjetSignaturesOrOwnerNames } from "@/lib/projets/signature";
 import { FileText } from "lucide-react";
 

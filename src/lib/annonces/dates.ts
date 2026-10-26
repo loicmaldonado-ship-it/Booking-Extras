@@ -6,15 +6,6 @@ import { checkAnnonceAccess } from "./access";
 
 export type AnnonceDate = { id: string; annonce_id: string; date: string };
 
-export async function getAnnonceDates(annonceId: string): Promise<AnnonceDate[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("annonce_dates")
-    .select("id, annonce_id, date")
-    .eq("annonce_id", annonceId)
-    .order("date");
-  return data ?? [];
-}
 
 export async function addAnnonceDate(annonceId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkAnnonceAccess(annonceId);

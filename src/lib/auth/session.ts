@@ -55,6 +55,8 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile | null> 
   } = await supabase.auth.getUser();
 
   if (!user) return null;
+  const { data: active, error: sessionError } = await supabase.rpc("staff_session_is_current");
+  if (sessionError || active !== true) return null;
 
   const { data: profile } = await supabase
     .from("profiles")

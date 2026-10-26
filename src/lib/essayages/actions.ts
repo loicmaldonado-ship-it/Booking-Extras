@@ -13,7 +13,7 @@ import type { EssayageStatut } from "./types";
 async function checkEssayageAccess(essayageId: string): Promise<string | null> {
   const supabase = createAdminClient();
   const { data } = await supabase.from("essayages").select("projet_id").eq("id", essayageId).maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 
@@ -24,7 +24,7 @@ async function checkEssayageJourneeAccess(essayageJourneeId: string): Promise<st
     .select("projet_id")
     .eq("id", essayageJourneeId)
     .maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 

@@ -13,7 +13,8 @@ begin
   insert into public.figurants(id,prenom,nom,confirme,acces_compte,est_comedien,comedien_pool_id) values
    ('00000000-0000-4000-8000-00000000b006','Comédien','Pool étranger',true,true,true,'00000000-0000-4000-8000-00000000b002'),
    ('00000000-0000-4000-8000-00000000b007','Comédien','Sans pool',true,true,true,null);
-  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000a551","role":"authenticated"}',true);
+  insert into auth.sessions(id,user_id,created_at) values ('00000000-0000-4000-8000-00000000b008','00000000-0000-4000-8000-00000000a551',now());
+  perform set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000a551","role":"authenticated","session_id":"00000000-0000-4000-8000-00000000b008"}',true);
   perform set_config('request.jwt.claim.role','authenticated',true);
   set local role authenticated;
   select count(*) into n from public.projets where id='00000000-0000-4000-8000-0000000070e0';

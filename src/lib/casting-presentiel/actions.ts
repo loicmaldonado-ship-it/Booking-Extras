@@ -15,7 +15,7 @@ function str(fd: FormData, key: string): string | null {
 async function checkEntryAccess(entryId: string): Promise<string | null> {
   const supabase = createAdminClient();
   const { data } = await supabase.from("casting_presentiel_entries").select("projet_id").eq("id", entryId).maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 
@@ -26,7 +26,7 @@ async function checkJourneeAccess(journeeId: string): Promise<string | null> {
     .select("projet_id")
     .eq("id", journeeId)
     .maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 

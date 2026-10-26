@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getProjetOwnerNames } from "@/lib/projets/signature";
 import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";

@@ -38,15 +38,6 @@ export async function getQuestionTemplates(annonceId: string): Promise<QuestionT
     .map((q) => ({ id: q.id, label: q.label }));
 }
 
-export async function getAnnonceQuestions(annonceId: string): Promise<AnnonceQuestion[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("annonce_questions")
-    .select("id, annonce_id, label, ordre")
-    .eq("annonce_id", annonceId)
-    .order("ordre");
-  return data ?? [];
-}
 
 export async function addAnnonceQuestion(annonceId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkAnnonceAccess(annonceId);

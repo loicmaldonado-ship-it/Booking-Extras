@@ -16,7 +16,7 @@ import { IndisponibilitesPanel } from "@/components/candidats/indisponibilites-p
 import { MesPhotosPanel } from "@/components/candidats/mes-photos-panel";
 import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getProjetOwnerNames } from "@/lib/projets/signature";
 import type { FigurantMessage } from "@/lib/candidats/types";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, type Figurant, type FigurantPhoto } from "@/lib/figurants/types";

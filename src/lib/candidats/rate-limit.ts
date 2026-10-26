@@ -1,12 +1,13 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { authAttemptKeys, trustedAuthIp } from "./auth-attempt-keys";
 
-/** A shared DB counter works across Vercel instances; deny when DB is unavailable. */
+/** Shared DB limits; missing configuration or database failure denies the attempt. */
 export async function consumeCandidateLoginAttempt(email: string): Promise<boolean> {
-  const keyHash = createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
-  const { data, error } = await createAdminClient().rpc("consume_candidate_auth_attempt", {
-    p_key_hash: keyHash,
-  });
+  const secret = process.env.AUTH_RATE_LIMIT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret || email.length > 254) return false;
+  const ip = trustedAuthIp(await headers(), process.env.VERCEL === "1");
+  const { data, error } = await createAdminClient().rpc("consume_candidate_auth_limits", authAttemptKeys(email, ip, secret));
   return !error && data === true;
 }

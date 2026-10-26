@@ -800,6 +800,18 @@ export async function setCastingVideoPosition(
   return { success: true };
 }
 
+async function roleAttachment(path: string, projetId?: string | null): Promise<{ error?: string; attachments?: { filename: string; content: Buffer }[] }> {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
+  const supabase = createAdminClient();
+  const { data: role, error } = await supabase.from("casting_roles").select("id, projet_id, pdf_storage_path, pdf_filename").eq("pdf_storage_path", path).maybeSingle();
+  if (error || !role || (projetId && role.projet_id !== projetId) || !path.startsWith(`${role.id}/`) || !path.endsWith(".pdf")) return { error: "Document de rôle introuvable." };
+  const denied = await checkProjetAccess(role.projet_id);
+  if (denied) return { error: denied };
+  const { data: file, error: downloadError } = await supabase.storage.from("casting-role-documents").download(role.pdf_storage_path);
+  if (downloadError || !file) return { error: "Téléchargement du document impossible." };
+  return { attachments: [{ filename: role.pdf_filename || "document.pdf", content: Buffer.from(await file.arrayBuffer()) }] };
+}
+
 export async function recordCastingMessage(
   figurantId: string,
   corps: string,
@@ -808,14 +820,10 @@ export async function recordCastingMessage(
   projetId: string | null | undefined,
   opts?: { agentEmail?: string | null; rolePdfPath?: string | null; rolePdfFilename?: string | null; html?: string }
 ) {
-  let attachments: { filename: string; content: Buffer }[] | undefined;
-  if (opts?.rolePdfPath) {
-    const supabase = createAdminClient();
-    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
-    if (data) {
-      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
-    }
-  }
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
+  const attachment = opts?.rolePdfPath ? await roleAttachment(opts.rolePdfPath, projetId) : {};
+  if (attachment.error) return { error: attachment.error };
+  const attachments = attachment.attachments;
 
   return recordFigurantMessage({
     figurantId,
@@ -845,14 +853,10 @@ export async function recordCastingMessagesBulk(
   projetId: string | null | undefined,
   opts?: { rolePdfPath?: string | null; rolePdfFilename?: string | null }
 ): Promise<{ results: { figurantId: string; error?: string }[] }> {
-  let attachments: { filename: string; content: Buffer }[] | undefined;
-  if (opts?.rolePdfPath) {
-    const supabase = createAdminClient();
-    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
-    if (data) {
-      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
-    }
-  }
+  if (!(await getCurrentProfile())) return { results: entries.map(e => ({ figurantId: e.figurantId, error: "Non autorisé." })) };
+  const attachment = opts?.rolePdfPath ? await roleAttachment(opts.rolePdfPath, projetId) : {};
+  if (attachment.error) return { results: entries.map(e => ({ figurantId: e.figurantId, error: attachment.error })) };
+  const attachments = attachment.attachments;
 
   const results: { figurantId: string; error?: string }[] = [];
   for (const e of entries) {

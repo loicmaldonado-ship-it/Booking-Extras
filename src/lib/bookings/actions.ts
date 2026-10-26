@@ -693,12 +693,17 @@ export async function sendBulkConvocations(
   rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
   projetId?: string | null
 ) {
+  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0 };
+  const actor = await getCurrentProfile();
+  if (!actor || !Array.isArray(rows) || !rows.length || rows.length > 500 || new Set(rows.map(r => r.bookingId)).size !== rows.length) return failedResult;
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
-    .from("bookings")
-    .select("id, convocation_envoyee")
-    .in("id", rows.map((r) => r.bookingId));
-  const dejaEnvoyees = new Set((existing ?? []).filter((b) => b.convocation_envoyee).map((b) => b.id));
+  const { data: existing, error: lookupError } = await supabase.from("bookings")
+    .select("id, projet_id, figurant_id, convocation_envoyee").in("id", rows.map(r => r.bookingId));
+  if (lookupError || !existing || existing.length !== rows.length) return failedResult;
+  for (const booking of existing) {
+    if ((projetId && booking.projet_id !== projetId) || rows.find(r => r.bookingId === booking.id)?.figurantId !== booking.figurant_id || await checkProjetAccess(booking.projet_id)) return failedResult;
+  }
+  const dejaEnvoyees = new Set(existing.filter(b => b.convocation_envoyee).map(b => b.id));
 
   let sent = 0;
   let failed = 0;

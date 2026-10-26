@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNextPath } from "@/lib/auth/safe-next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 // Échange le `code` PKCE reçu par email CÔTÉ SERVEUR, jamais côté
@@ -10,7 +11,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 // AuthPKCECodeVerifierMissingError, quel que soit le contenu du lien.
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
-  const redirectTo = request.nextUrl.searchParams.get("redirect_to") ?? "/auth/reset-password";
+  const redirectTo = safeNextPath(request.nextUrl.searchParams.get("redirect_to") ?? "/auth/reset-password");
 
   if (code) {
     const supabase = await createServerSupabaseClient();

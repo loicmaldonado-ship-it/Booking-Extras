@@ -2,6 +2,7 @@
 
 import { aAccesComplet } from "@/lib/auth/owner";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retourAutorise } from "@/lib/candidats/retour";
@@ -10,7 +11,7 @@ import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
-import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant } from "./session";
+import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant, setFigurantSessionCookie } from "./session";
 import { getCurrentProfile, checkProjetAccess } from "@/lib/auth/session";
 import { consumeCandidateLoginAttempt } from "@/lib/candidats/rate-limit";
 import { MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
@@ -31,7 +32,7 @@ export async function requestMagicLink(
   const { data: figurant, error: lookupError } = await supabase
     .from("figurants")
     .select("id, prenom, email, acces_compte")
-    .ilike("email", email)
+    .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
     .eq("est_comedien", false)
     .maybeSingle();
 
@@ -57,7 +58,7 @@ export async function loginWithPassword(
 ): Promise<{ error?: string } | void> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Email et mot de passe requis." };
+  if (!email || !password || email.length > 254 || password.length > 1024) return { error: "Email ou mot de passe incorrect." };
   if (!(await consumeCandidateLoginAttempt(email))) {
     return { error: "Trop de tentatives. Réessayez dans 15 minutes." };
   }
@@ -66,11 +67,12 @@ export async function loginWithPassword(
   const { data: figurant } = await supabase
     .from("figurants")
     .select("id, acces_compte")
-    .ilike("email", email)
+    .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
     .eq("est_comedien", false)
     .maybeSingle();
 
-  if (!figurant?.acces_compte || !(await motDePasseCorrect(figurant.id, password))) {
+  const correct = await motDePasseCorrect(figurant?.id ?? "00000000-0000-0000-0000-000000000000", password);
+  if (!figurant?.acces_compte || !correct) {
     return { error: "Email ou mot de passe incorrect." };
   }
 
@@ -94,9 +96,11 @@ export async function setMaPassword(
     return { error: `Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.` };
   }
 
-  const { error } = await definirMotDePasse(session.id, password);
+  const { error, session: renewed } = await definirMotDePasse(session.id, password, true, (await cookies()).get("figurant_session")?.value);
   if (error) return { error };
-
+  if (!renewed) return { error: "Session non créée. Reconnecte-toi." };
+  // Nouvelle session créée sous le même verrou que la révocation des anciennes.
+  await setFigurantSessionCookie(renewed.token, new Date(renewed.expiresAt));
   return { success: true };
 }
 
