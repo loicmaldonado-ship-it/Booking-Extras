@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { cn } from "@/lib/cn";
 import { formatDateLong, formatDayMonth } from "@/lib/format-date";
 import { envoyerJourAuTournage } from "@/lib/candidatures/jours";

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { cn } from "@/lib/cn";
 import { uploadFigurantPhoto, deletePhoto } from "@/lib/figurants/actions";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";

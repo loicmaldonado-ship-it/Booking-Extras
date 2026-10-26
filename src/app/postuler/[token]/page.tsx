@@ -1,5 +1,5 @@
 import { getGuardiansForVerifiedCandidate } from "@/lib/minors/data";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";

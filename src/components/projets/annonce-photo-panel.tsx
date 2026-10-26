@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { updateProjetAnnoncePhoto, removeProjetAnnoncePhoto } from "@/lib/projets/annonce-photo-actions";

@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { pickPortrait, type FigurantPhotoWithUrl } from "@/lib/documents/data";
 import { computeAge, type DocumentField } from "@/lib/documents/fields";
 import type { TrombiItem } from "@/lib/documents/trombi";

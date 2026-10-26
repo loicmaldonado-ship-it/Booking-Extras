@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";

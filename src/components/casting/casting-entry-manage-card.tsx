@@ -4,7 +4,7 @@ import { nomComplet } from "@/lib/noms";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";

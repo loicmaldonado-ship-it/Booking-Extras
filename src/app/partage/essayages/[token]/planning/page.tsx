@@ -1,7 +1,7 @@
 import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolvePartageToken } from "@/lib/partage/data";
 import {

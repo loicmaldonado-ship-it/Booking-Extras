@@ -2,7 +2,7 @@
 
 import { CalendrierIndispos } from "@/components/candidatures/calendrier-indispos";
 import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

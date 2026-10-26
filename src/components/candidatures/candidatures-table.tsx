@@ -2,7 +2,7 @@
 
 import { nomComplet } from "@/lib/noms";
 import { useState, useTransition, type ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";

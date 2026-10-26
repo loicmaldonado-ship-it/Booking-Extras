@@ -1,6 +1,6 @@
 import { nomComplet, trierParNom } from "@/lib/noms";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";

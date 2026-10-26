@@ -3,7 +3,7 @@
 import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/card";
 import { ContactIcons } from "@/components/ui/contact-icons";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition, startTransition } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";

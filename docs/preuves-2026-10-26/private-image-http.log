@@ -1,0 +1,4 @@
+PASS HTTP: photo privée accessible par son lien signé, refusée par le proxy public Next
+PASS HTTP: image publique toujours optimisée et décodable
+PASS HTTP: après suppression, le lien signé ne rend plus la photo privée
+PASS nettoyage: seules les deux images fictives du test ont été supprimées

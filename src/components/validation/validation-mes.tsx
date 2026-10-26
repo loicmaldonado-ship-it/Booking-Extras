@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";

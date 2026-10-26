@@ -5,7 +5,7 @@ import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { ZoomableImage, ZoomButton } from "@/components/ui/zoomable-image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";

@@ -3,7 +3,7 @@
 import { nomComplet } from "@/lib/noms";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { cn } from "@/lib/cn";
 import { AddToJourneeBar } from "@/components/bookings/add-to-journee-bar";
 import { AddToCastingBar } from "@/components/casting/add-to-casting-bar";

@@ -1,7 +1,7 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
 import { Fragment } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";

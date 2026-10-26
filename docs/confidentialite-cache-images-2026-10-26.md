@@ -1,0 +1,9 @@
+# Cache des images privées — contrôle du 26 octobre 2026
+
+Le cache public de l’optimiseur Next pouvait servir une image privée à partir d’une URL signée, avec une durée indépendante de son expiration. La documentation installée de Next 16.4.3 indique un minimum de quatre heures et l’absence d’invalidation automatique ; le code du serveur valide les paramètres avant de lire ce cache.
+
+Correction : les règles de l’optimiseur acceptent uniquement les chemins Supabase `/storage/v1/object/public/**`. Un composant commun conserve les propriétés des images et force les URLs privées signées/authentifiées à être chargées directement. Les images publiques restent optimisées. Les 40 écrans existants utilisant next/image emploient ce composant ; aucun changement de formulaire, de hook ou de structure visuelle n’est introduit. Les aperçus locaux et les propriétés d’accessibilité sont conservés.
+
+Preuves : trois tests de classification/rendu et du véritable matcher Next ; test HTTP avec deux PNG fictifs dans la base isolée : URL privée signée 200, tentative de passage par `_next/image` 400, image publique optimisée 200 et décodable, URL privée refusée après suppression physique. Seuls les objets du test ont été supprimés. Suite globale : 172 tests passants, types et compilation OK, ESLint sans erreur ni avertissement.
+
+Les signatures existantes des photos/vidéos restent sur leur durée de treize heures avec renouvellement par fenêtres de six heures ; ce lot ne modifie pas ce comportement. Il ne peut pas retirer une copie déjà téléchargée par un destinataire. La compression et les performances sur appareils mobiles doivent encore être recettées dans MED-01/02 ; le chargement direct des images privées peut consommer davantage de bande passante qu’une miniature optimisée. Les fichiers légaux utilisent un mécanisme séparé de signatures de 60 secondes.

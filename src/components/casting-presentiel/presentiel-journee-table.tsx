@@ -3,7 +3,7 @@
 import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Select, Input } from "@/components/ui/field";
 import { Modale } from "@/components/ui/modale";

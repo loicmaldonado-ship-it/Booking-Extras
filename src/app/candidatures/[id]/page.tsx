@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";

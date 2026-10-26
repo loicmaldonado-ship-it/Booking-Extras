@@ -1,7 +1,7 @@
 import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Select } from "@/components/ui/field";
 import { BackLink } from "@/components/ui/back-link";

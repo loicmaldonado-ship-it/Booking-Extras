@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/ui/image";
 
 function initials(nom: string | null, email: string | null): string {
   const label = (nom || email || "?").trim();

@@ -2,7 +2,7 @@ import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { getConfirmedBookings, pickPortrait, type ConfirmedBooking } from "@/lib/documents/data";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";

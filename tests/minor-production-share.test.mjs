@@ -13,7 +13,7 @@ function page({valid=true}={}){
   '@/lib/minors/model':{todayInParis:()=> '2026-10-26'},
   '@/lib/minors/dossiers':{bearerDossier:async()=>valid?{dossier:{id:'dossier',projet_id:'project',figurant_id:'child',tournage_debut:'2026-11-05'},age:14,child:{prenom:'Zoé',nom:'Test',email:'child-private@example.test'}}:null,signedMinorFile:async path=>{signed.push(path);return 'https://download.example.test/'+path;}},
   '@/lib/supabase/admin':{createAdminClient:()=>{admins++;return{
-   from:table=>({select(){return this;},eq(){return this;},returns:async()=>({data:[
+   from:()=>({select(){return this;},eq(){return this;},returns:async()=>({data:[
     {id:'allowed-parent',source_key:'guardian_1',state:'validated',storage_path:'current-parent.pdf',guardian_fingerprint:'current',valid_until:null,internal_note:'NE JAMAIS PARTAGER NOTE INTERNE'},
     {id:'stale-parent',source_key:'guardian_2',state:'validated',storage_path:'stale-parent.pdf',guardian_fingerprint:null,valid_until:null},
     {id:'expired',source_key:'extra_expired',state:'validated',storage_path:'expired.pdf',valid_until:'2026-10-30'},

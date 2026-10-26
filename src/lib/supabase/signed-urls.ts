@@ -1,3 +1,6 @@
+// Les médias privés signés contournent désormais le cache public de next/image.
+// Ce cache de signatures conserve leur stabilité et limite les appels au Storage ;
+// il ne leur donne aucun accès via le proxy public d’optimisation.
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 

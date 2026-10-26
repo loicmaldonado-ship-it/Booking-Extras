@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 
 export type GalleryPhoto = { src: string; alt?: string };
 

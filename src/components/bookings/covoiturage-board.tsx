@@ -3,7 +3,7 @@
 import { nomComplet, formatPrenom, comparerNoms } from "@/lib/noms";
 import { useMemo, useState, useTransition, type DragEvent } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import { bulkUpdateBookings, copyCovoiturageToDate, recordCovoiturageMessage } from "@/lib/bookings/actions";
