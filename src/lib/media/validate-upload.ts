@@ -1,3 +1,5 @@
+import sharp from "sharp";
+
 /** Verify file bytes on the server: browser-provided MIME types and extensions are untrusted. */
 export type SafeImageType = "image/jpeg" | "image/png" | "image/webp";
 export type ValidatedFile = { error?: string; mimeType?: SafeImageType; extension?: "jpg" | "png" | "webp" };
@@ -18,6 +20,20 @@ export async function validateImageUpload(file: File, maxBytes = 20 * 1024 * 102
   const mimeType = detectedImageType(header);
   if (!mimeType || file.type !== mimeType) {
     return { error: "Image invalide : seuls les vrais fichiers JPEG, PNG ou WebP sont autorisés." };
+  }
+  try {
+    // Lire la signature ne prouve pas que les pixels sont une image décodable.
+    // La limite s'applique avant décompression pour limiter les bombes mémoire.
+    const image = sharp(Buffer.from(await file.arrayBuffer()), { failOn: "warning", limitInputPixels: 40_000_000, limitInputChannels: 4 });
+    const metadata = await image.metadata();
+    const expectedFormat = mimeType === "image/jpeg" ? "jpeg" : mimeType === "image/png" ? "png" : "webp";
+    if (metadata.format !== expectedFormat || !metadata.width || !metadata.height || (metadata.pages ?? 1) > 1) {
+      return { error: "Image invalide : utilise une photo fixe JPEG, PNG ou WebP." };
+    }
+    // stats force le décodage complet : metadata seule accepterait un fichier tronqué.
+    await image.stats();
+  } catch {
+    return { error: "Image invalide, endommagée ou trop grande (40 millions de pixels maximum)." };
   }
   return { mimeType, extension: mimeType === "image/jpeg" ? "jpg" : mimeType === "image/png" ? "png" : "webp" };
 }

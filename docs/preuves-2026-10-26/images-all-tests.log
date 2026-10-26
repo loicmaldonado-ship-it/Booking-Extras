@@ -1,0 +1,215 @@
+
+> booking-extras@0.1.0 test
+> node --experimental-strip-types --test tests/*.test.mjs
+
+✔ each admin getter exposing share tokens checks project membership first (static guard) (106.70078ms)
+✔ casting présentiel migration drops unscoped access and checks project and day (static guard) (1.393475ms)
+✔ global figurant deletion requires owner rights, explicit confirmation and atomic database protection (4.249122ms)
+✔ profile merge is a single atomic RPC with authenticated actor and FK-safe rollback (5.421726ms)
+✔ October 30 reconciliation explicitly covers every historical public table (551.056964ms)
+✔ future table migrations must include explicit grants and RLS (7.053422ms)
+(node:29034) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/candidats/auth-attempt-keys.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ auth keys normalize the account and separate account, IP and pair without storing their values (375.844975ms)
+✔ client supplied proxy headers cannot bypass a local or unknown proxy quota (284.27887ms)
+✔ staff auth confirmation rejects external redirect_to after a valid exchange (765.21879ms)
+✔ unknown candidate password still performs a scrypt comparison (29.040844ms)
+(node:29035) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/bookings/types.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ bulk edits reject invalid IDs, duplicate IDs, unknown fields and forged status (2.054975ms)
+✔ service_role bulk edit aborts on incomplete selection, read failure or denied project (103.744741ms)
+✔ bulk update reports write errors and partial update counts (3.39252ms)
+✔ valid bulk edit updates only allowlisted columns, then refreshes booking pages (9.611425ms)
+✔ never delete a journée if booking count is unavailable or positive (0.715767ms)
+✔ booking bulk UI preserves selection and displays server errors (1.320442ms)
+(node:29036) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/bookings/drop-guard.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ booking dates reject calendar overflow, forged ids, huge or duplicate selections (176.293702ms)
+✔ bulk transfer denies forged candidate ownership or project before all writes (10.472302ms)
+✔ bulk transfer fails closed on lookup, day upsert and booking insert errors (5.380509ms)
+✔ bulk transfer reports duplicate/no-op accurately and successful writes (3.648053ms)
+✔ partial post-booking profile confirmation is not reported as full success (2.83973ms)
+✔ single drop prevents mismatched candidate and existing booking (14.240408ms)
+✔ UI preserves selection on transfer failure and exposes errors (1.342983ms)
+✔ cross-project staff booking omits old candidature reference while preserving selected candidates (1.806887ms)
+✔ BUG-17: essayages shared link keeps a responsive mobile view and all published columns (3.133288ms)
+✔ BUG-17: public share still displays only confirmed or completed fittings (0.568186ms)
+✔ BUG-17: both print/PDF toolbar areas wrap on smaller viewports (12.880097ms)
+✔ BUG-17: casting candidate cards are one-column on very narrow screens (4.279232ms)
+✔ BUG-17: projets has a compact list and a desktop table (11.224324ms)
+✔ BUG-17: annonces has a compact list and a desktop table (1.017407ms)
+✔ BUG-17: rgpd has a compact list and a desktop table (1.122198ms)
+✔ BUG-17: both list filters remain usable on small screens (2.938325ms)
+✔ candidate session cookies are HttpOnly, SameSite=Lax and Secure over production HTTPS (static guard) (4.023689ms)
+✔ local seed uses the protected candidate password table, not figurants.password_hash (static guard) (1.342792ms)
+✔ rejects unauthenticated message acknowledgement before database access (3.45675ms)
+✔ acknowledges matching candidate's booking and revalidates paths (53.049687ms)
+✔ never updates another candidate's booking even if referenced by own message (1.778703ms)
+✔ does not claim success on absent booking or database error (7.735019ms)
+(node:29047) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/candidatures/validation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ accepte uniquement les réponses et dates de l'annonce et préserve non=false (1013.487222ms)
+✔ rejette toute réponse manquante, falsifiée ou répétée (0.8407ms)
+✔ accepte les annonces sans question ni date (1.255834ms)
+✔ l'action de candidature échoue si la lecture échoue et vérifie les erreurs d'insertion (3.562025ms)
+✔ CAN-04: success screen appears only after server-confirmed candidature (1.636084ms)
+✔ CAN-04: synchronous guard prevents double submit before pending is rendered (0.396289ms)
+(node:29049) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/candidatures/bulk-guard.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ bulk selection validates UUIDs, duplicates, malformed inputs and limit (2.5681ms)
+✔ bulk rejects absent rows and database errors before any mutation (10.57279ms)
+✔ bulk checks every distinct project, rejects another team's candidature (6.124134ms)
+✔ bulk persists valid selection, but never reports success on write failure (15.667465ms)
+✔ cannot delete fixed/shared tabs or another team's tab (4.565219ms)
+✔ owner/member can delete own tab and receives a result (166.503309ms)
+✔ bulk UI preserves selected candidates and alerts on a failed operation (17.098327ms)
+✔ chaque photo utilise un vrai bouton accessible au clavier (2.162038ms)
+✔ supprimer une photo est possible au clavier avec un nom accessible (3.573152ms)
+✔ la sélection de photos existantes traite Escape, Tab et le retour de focus (0.367611ms)
+✔ les URL blob des aperçus sont libérées et les erreurs préparation ne bloquent pas le formulaire (0.536072ms)
+✔ la confirmation n'est affichée que pour un succès serveur (0.351897ms)
+✔ creating a role keeps the PDF outside of the create Server Action (3.801828ms)
+✔ PDF upload requires project access and validates actual PDF content (0.922524ms)
+✔ the Casting page guides new users and hides irrelevant empty-state controls (1.440011ms)
+✔ candidate history belongs to the signed-in candidate and hides staff tri (1.075305ms)
+(node:29052) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/casting/bulk-status.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ refuse les sélections absentes, malformées ou trop grandes (242.372505ms)
+✔ refuse les statuts forgés par l'appelant et les identifiants répétés (1.054952ms)
+✔ accepte plusieurs entrées distinctes et normalise leurs UUID (3.791318ms)
+✔ la mutation vérifie la lecture complète et les droits AVANT l'écriture service_role (4.477262ms)
+✔ role PDF route checks session and project access before downloading private document (static guard) (1.559047ms)
+✔ role calibration has an authenticated document preview link distinct from delete (static guard) (0.278016ms)
+✔ casting upload event logging checks staff project membership before service-role insert (343.31935ms)
+✔ candidate event logs require a valid token, not a client-provided entry ID (0.917966ms)
+✔ upload event logging validates categories and limits arbitrary input sizes (2.762826ms)
+(node:29055) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/casting/upload-paths.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ restricts videos to the correct candidate, casting and configured slot (11.900645ms)
+✔ restricts photos to a configured label and exact entry (0.421363ms)
+✔ submitted or accepted self-tapes cannot be reopened by a public token (9.669938ms)
+✔ CI checks high-severity production dependencies without force upgrades (1.400271ms)
+✔ CI runs automatically for elea pushes without enabling push triggers on main (1.740031ms)
+✔ CI checks tests, lint, TypeScript and production build (137.068814ms)
+(node:29058) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/figurants/duplicate-normalization.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ les formats français équivalents signalent le même téléphone (2.525216ms)
+✔ les numéros internationaux ne sont pas confondus avec les français (0.734152ms)
+✔ les numéros incomplets ou factices ne déclenchent pas d'alertes (0.385803ms)
+✔ le rapprochement des profils reste une suggestion humaine (4.52967ms)
+✔ figurant photos are readable only through visible profiles and their project (94.736748ms)
+✔ figurant links are readable only for a visible figurant (0.345632ms)
+✔ old unscoped authenticated Storage policies are removed (0.440414ms)
+(node:29060) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/figurants/search-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ searches across first name, last name, email and phone (8.368689ms)
+✔ full-name query requires all terms in any name/contact column (0.544021ms)
+✔ forged PostgREST control symbols cannot create extra predicates (0.362236ms)
+✔ ignores empty/malformed input and limits term count (0.267816ms)
+✔ query builder relies on safe filter instead of raw user input (1.02533ms)
+✔ global search does not create a privileged client for an anonymous caller (663.759288ms)
+✔ restricted assistants cannot search hidden sections (403.319828ms)
+✔ test-mode email refuses even explicit project credentials without opening a transport (23.603802ms)
+✔ test-mode blocks push and SMS relay before reading recipients (320.843505ms)
+✔ Field associates its label with generated or explicit input IDs (221.882208ms)
+✔ global anonymisation refuses a non-owner before any privileged mutation (18.129334ms)
+✔ all reviewed form-upload actions invoke server-side byte validation (static check) (15.263903ms)
+✔ all reviewed figurant mutations check staff/pool and bind deletions to candidate id (static check) (0.849559ms)
+(node:29063) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/media/upload-error.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ traduit les erreurs Storage en messages utilisateur exploitables (2.77822ms)
+✔ ne renvoie jamais un chemin, token ou détail interne brut (0.424534ms)
+✔ ne confond pas une annulation avec une confirmation réussie (0.336147ms)
+✔ anonymous message wrappers cannot reach a privileged client or transporter (859.1304ms)
+✔ foreign project, foreign booking, invisible profile and forged recipient cannot send or persist (410.476376ms)
+✔ failed database insert never sends an email or push (14.894338ms)
+✔ SMTP failure preserves the candidate message and reports that partial result (233.933917ms)
+✔ agent fallback and internal-only messages preserve existing supported flows (215.613028ms)
+✔ casting attachment resolves its stored role and project before Storage download (766.15628ms)
+(node:29065) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/minors/model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ candidate identity update refuses anonymous access and incomplete minor representatives before a privileged write (449.970748ms)
+✔ a forged candidate id cannot modify another identity or profile (4.913369ms)
+✔ a failed atomic identity save cannot continue into profile writes (2.763639ms)
+(node:29066) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/minors/model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ minor age uses real dates, birthdays and the Paris calendar (288.763807ms)
+✔ minor application requires both complete guardians with three distinct emails (249.453894ms)
+✔ only documented second-guardian exceptions are accepted and stale contact fields are omitted (3.321921ms)
+✔ invalid contact formats are refused and adults do not submit guardian PII (0.769323ms)
+✔ une erreur Supabase bloque chaque mutation et n'annonce aucun rafraîchissement réussi (19.43935ms)
+✔ chaque mutation refuse l'absence de droits avant l'accès Supabase (24.567481ms)
+✔ les mutations autorisées réussies rafraîchissent le contenu (115.246605ms)
+✔ les lectures de tokens/titres distinguent erreur SQL et absence de ligne (41.400345ms)
+✔ les paramètres falsifiés ne modifient pas la visibilité casting (35.72948ms)
+✔ le lien réal échoue fermé si sa catégorie ou ses options ne sont pas lisibles (28.775735ms)
+✔ le smoke automatisé refuse les destinations distantes (2.266354ms)
+✔ le smoke n'effectue que des GET, sans transmettre d'identifiants (0.703492ms)
+(node:29069) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/auth/safe-next.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ keeps ordinary internal destinations (1.604171ms)
+✔ rejects absolute and protocol-relative URLs (0.266149ms)
+✔ rejects encoded slash, backslash, and injection attempts (0.386157ms)
+✔ assignFigurantToCreneau: foreign day and failed lookups cannot write; same day and clearing remain supported (1480.887626ms)
+✔ assignPresentielEntryToCreneau: foreign day and failed lookups cannot write; same day and clearing remain supported (153.742683ms)
+✔ bulk fitting move rejects foreign, missing and duplicate IDs before creating a target day (158.519457ms)
+✔ les deux CRON refusent toute requête si CRON_SECRET manque (929.276003ms)
+✔ les deux CRON refusent un jeton incorrect (136.693168ms)
+✔ les deux CRON acceptent le jeton correct (74.204297ms)
+✔ sensitive candidate login-email methods are server-only helpers, not public Server Actions (6.124882ms)
+✔ full candidate edit action checks the signed-in staff member (0.813688ms)
+✔ schema denies role changes by ordinary authenticated users (2.533437ms)
+✔ figurant preview refuses anonymous calls before service-role reads (19.435516ms)
+✔ privileged messaging actions check staff and project access (3.020458ms)
+✔ install caches only the public offline page (222.212106ms)
+✔ activation purges legacy Booking Extras caches but not other applications (3.008073ms)
+✔ private navigations are never cached, even when the network succeeds (1.385232ms)
+✔ offline navigation never returns a previously cached private page (1.603942ms)
+✔ non-navigation requests are left alone (1.849848ms)
+✔ direct authenticated Storage permissions are dropped for each sensitive bucket (202.618013ms)
+✔ public read policies are preserved and no broad replacement policy is introduced (0.883946ms)
+✔ migration runs atomically (1.372069ms)
+(node:29076) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/media/validate-upload.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ fully decodes real JPEG, PNG, WebP images and sets a canonical extension (166.787947ms)
+✔ rejects MIME spoofing and disguised executables or SVG (1.093205ms)
+✔ rejects empty and oversized image payloads (0.479363ms)
+✔ validates PDF bytes and declared MIME rather than extension (0.870052ms)
+✔ rejects valid signatures without decodable pixels and truncated images (12.361334ms)
+✔ rejects a small compressed image whose dimensions exceed the decompression limit (168.680387ms)
+ℹ tests 147
+ℹ suites 0
+ℹ pass 147
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13686.420594
