@@ -3,9 +3,9 @@
   "code_commit": "f4961bb8742b0dc3c68f43b3b02639975afd11eb",
   "total": 86,
   "counts": {
-    "terminée et vérifiée": 12,
+    "terminée et vérifiée": 13,
     "partiellement réalisée": 44,
-    "développée mais à tester": 27,
+    "développée mais à tester": 26,
     "bloquée": 1,
     "hors périmètre selon une décision documentée": 1,
     "non commencée": 1
@@ -1296,12 +1296,12 @@
       "title": "[BUG-07] Corriger la RLS du casting présentiel",
       "url": "https://trello.com/c/39TaW5mR/74-bug-07-corriger-la-rls-du-casting-pr%C3%A9sentiel",
       "list": "10 - Bug",
-      "status": "développée mais à tester",
-      "done": "Policies présentiel limitées au projet, à la journée et au créneau correspondant.",
-      "proof": "Tests Node migration casting présentiel réussis ; conseiller local sans signalement.",
-      "missing": "CRUD croisé effectif de deux projets présentiel et créneau étranger pas exécuté.",
+      "status": "terminée et vérifiée",
+      "done": "Policies existantes isolant créneaux et entrées par journée/projet ; ancienne policy globale absente. Matrice CRUD exécutée dans les deux sens pour deux cheffes non propriétaires globales.",
+      "proof": "SQL et API authentifiée réels : CRUD locaux autorisés ; SELECT/INSERT/UPDATE/DELETE étrangers refusés ou zéro ligne, transferts étrangers refusés, données conservées. Intégrité de créneaux réexécutée. Voir recette-casting-rls-2026-10-26.md et scripts associés.",
+      "missing": "Aucun critère BUG-07 restant. Ne clôt pas tout MET-07 ni les actions privilégiées de BUG-02/SEC-03.",
       "dependencies": "Aucune dépendance formalisée dans la description",
-      "next": "Ajouter scénario SQL négatif complet ; aucune intervention métier.",
+      "next": "Coche verte et commentaire de preuves à publier immédiatement ; aucune intervention requise.",
       "references": [
         "supabase/migrations/20261011000003_casting_presentiel_rls.sql"
       ]

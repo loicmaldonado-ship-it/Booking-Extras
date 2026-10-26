@@ -1,0 +1,2 @@
+PASS casting-presentiel-rls-local.sql : DO, fixtures annulées
+PASS slots-integrity-local.sql : DO, fixtures annulées
