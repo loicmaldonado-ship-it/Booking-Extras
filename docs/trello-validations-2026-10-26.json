@@ -2,10 +2,10 @@
   "date": "2026-10-27",
   "authorization": "Éléa autorise coche verte et commentaire après développement, tests et contrôles de sécurité réussis.",
   "branch": "tests/integration-main-elea-2026-10-22",
-  "codeCommit": "447c51b",
+  "codeCommit": "aa92115",
   "documentationCommit": "e9d2b13",
-  "total": 16,
-  "newlyChecked": 12,
+  "total": 17,
+  "newlyChecked": 13,
   "records": [
     {
       "key": "BUG-04",
@@ -185,6 +185,19 @@
       "commentText": "[RECETTE 2026-10-27 — ENV-02]\nTerminée et vérifiée sur la branche tests/integration-main-elea-2026-10-22, preuves commit bdc4862 ; lanceur f028fc1 et schéma 447c51b.\nDeux db reset --local successifs ont rejoué les 180 migrations et le seed sur une base jetable indépendante (booking-casting-180-20261026), exit0 à chaque fois, sans réparation manuelle. SQL : 180 migrations, comptes équipe/profils/projet/annonce/candidature/compte candidat présents. Connexions Auth cheffe et assistante puis lecture REST du projet réussies. Mot de passe candidat scrypt vérifié. Contrôle par SQL/API plutôt que Studio, exclu du démarrage minimal.\nCopie propre du projet extraite sans .git/.env/node_modules : npm ci réussi ; lanceur et sa propre base API29194 démarrés ; navigateur localhost3100, connexion avec le compte du README, tableau de bord et annonce du seed lus avec succès. 186/186 tests automatisés réussis.\nPreuves : docs/recette-installation-2026-10-27.md, tests/seed-local-verification.sql, logs et capture docs/preuves-2026-10-27.\nLa coche existait historiquement ; sa validation est désormais démontrée. Windows et recette métier sur postes destinataires restent à vérifier séparément. La sauvegarde/restauration SQL locale a été éprouvée ; elle ne clôt pas REL-02 (fichiers Storage et upgrade depuis production non qualifiés). Aucun reset de la base principale, aucune production, push ni communication réelle.",
       "verified": true,
       "codeCommit": "bdc4862"
+    },
+    {
+      "key": "BUG-01",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c9920372a940366f3748",
+      "title": "[BUG-01] Bloquer l’escalade de privilèges via profiles",
+      "url": "https://trello.com/c/UQQwiDF7/68-bug-01-bloquer-lescalade-de-privil%C3%A8ges-via-profiles",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6ae048e63357445075e17bb6",
+      "commentText": "[RECETTE 2026-10-27 — BUG-01]\nTerminée et vérifiée. Correction 3a437d1, preuve navigateur propriétaire aa92115 ; branche tests/integration-main-elea-2026-10-22.\nFaille réellement reproduite : un assistant pouvait s’attribuer acces_complet malgré le garde antérieur. Migration181 : protection de ce champ et de l’identité id, en complément des autres privilèges.\nTests SQL et API HTTP avec vraie session assistant : 11 PATCH distincts refusés 403/42501 (rôle, propriétaire, accès complet, vivier, sections, email, paramètres SMTP/modèles sensibles, identité) ; INSERT privilégié refusé. Métadonnées utilisateur forgées à la création puis modifiées : aucun privilège accordé. Nom/prénom/téléphone restent modifiables ; gestion service administrative conservée.\nNavigateur propriétaire : attribution du rôle cheffe à un compte fictif déjà existant réussie ; écran confirme aucun nouvel email envoyé ; DB role=chef contrôlé, fixture nettoyée.\nMigration/test profil/isolation/auth réussis sur les trois bases locales identifiées. Deux resets complets181+seed exit0 ; après reconstruction, seed/profil/casting/isolation/auth réussis. Conseiller sécurité local sans avertissement ;186/186 tests Node réussis. Types/lint/build applicatifs restent ceux du lot447c51b (aucun changement TypeScript dans ce correctif SQL).\nPreuves : docs/recette-privileges-2026-10-27.md, tests/profile-privileges-local.sql, docs/preuves-2026-10-27.\nLa coche valide cette escalade directe et ses critères ; l’audit exhaustif des autres actions service_role (BUG-02) et des données (SEC-03/04) reste ouvert. Aucun accès production, push, déploiement ou message réel.",
+      "verified": true,
+      "codeCommit": "3a437d1",
+      "browserCommit": "aa92115"
     }
   ]
 }

@@ -1,11 +1,11 @@
 {
   "branch": "tests/integration-main-elea-2026-10-22",
-  "code_commit": "bdc486255a36a08666488ae441201101b04934f3",
+  "code_commit": "aa921159c044120d59dff8356b93ebc69bd7d355",
   "total": 86,
   "counts": {
-    "terminée et vérifiée": 16,
+    "terminée et vérifiée": 17,
     "partiellement réalisée": 43,
-    "développée mais à tester": 24,
+    "développée mais à tester": 23,
     "bloquée": 1,
     "hors périmètre selon une décision documentée": 1,
     "non commencée": 1
@@ -106,11 +106,11 @@
       "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
       "list": "01 - Reprise & environnement",
       "status": "terminée et vérifiée",
-      "done": "Deux reconstructions complètes à 180 migrations + seed, connexions et lecture projet ; copie indépendante démarrée au navigateur.",
-      "proof": "Deux resets exit0 ; SQL seed, Auth cheffe/assistante et REST réussis ; navigateur localhost3100, compte README, projet/annonce/candidature affichés. Commit bdc4862 ; recette-installation-2026-10-27.md.",
-      "missing": "Nouvelle migration 181 de protection des privilèges : double replay en cours. Windows et recette métier sont des exigences distinctes.",
+      "done": "Deux reconstructions complètes180 puis deux181+seed ; connexions et lecture projet ; copie indépendante démarrée au navigateur.",
+      "proof": "Deux resets exit0 ; SQL seed, Auth cheffe/assistante et REST réussis ; navigateur localhost3100, compte README, projet/annonce/candidature affichés. Commit bdc4862 ; recette-installation-2026-10-27.md. Complément181 : deux resets exit0 et SQL seed/profil/casting/isolation/auth DO, conseiller sans avertissement ;3a437d1.",
+      "missing": "Aucun critère de reconstruction restant. Windows et recette métier sont distincts.",
       "dependencies": "ENV-01",
-      "next": "Commentaire de preuves et coche relus ; poursuivre non-régression du schéma 181, sans intervention humaine.",
+      "next": "Coche et preuves publiées ; aucune intervention nécessaire.",
       "references": [
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
@@ -184,7 +184,7 @@
       "status": "développée mais à tester",
       "done": "README débutant, passation technique, lanceurs Mac/Windows de démarrage et arrêt, protection des configurations personnelles et des données de recette.",
       "proof": "Installation indépendante antérieure via lanceur + npm ci + connexion navigateur ; 7 tests de protection du lanceur réussis. Nouvelle copie du code actuel en cours.",
-      "missing": "Double-clic Finder, Windows réel et lecture/exécution par une personne non préparatrice non vérifiés ; archive finale pas encore livrée.",
+      "missing": "Archive finale en cours de préparation ; Windows réel, double-clic Finder et exécution par une autre personne non vérifiés.",
       "dependencies": "ENV-03",
       "next": "Terminer le paquet courant et le tester ; ensuite Loïc/Mathieu suivent le README et signalent les étapes implicites.",
       "references": [
@@ -724,8 +724,8 @@
       "list": "05 - Parcours métier",
       "status": "partiellement réalisée",
       "done": "Rôles/catégories, présentiel, ajout rapide, upload, avis, distribution et liens réal conservés.",
-      "proof": "U2 : sélection du projet casting affichée ; tests Node PDF, chemins, événements, bulk statuts et autorisations réussis.",
-      "missing": "Cycle complet avec fichiers réels et variantes de partage non joué ; parcours casting sans compte à distinguer des annonces CAN-02.",
+      "proof": "U2 : sélection du projet casting affichée ; tests Node PDF, chemins, événements, bulk statuts et autorisations réussis. Casting public et ajouts équipe réellement exécutés avec JPEG/MP4, cinq courses, rollback et ancien dépôt signé refusé :447c51b.",
+      "missing": "Cycle complet de statuts, partage réal, commentaires et variantes de réouverture non recettés ; codecs sur vrais appareils et validation métier restent distincts.",
       "dependencies": "MET-01",
       "next": "Tester un rôle avec self-tape et un présentiel ; confirmer seulement les différences produit qui ne sont pas déjà documentées.",
       "references": [
@@ -1193,15 +1193,17 @@
       "title": "[BUG-01] Bloquer l’escalade de privilèges via profiles",
       "url": "https://trello.com/c/UQQwiDF7/68-bug-01-bloquer-lescalade-de-privil%C3%A8ges-via-profiles",
       "list": "10 - Bug",
-      "status": "développée mais à tester",
-      "done": "Colonnes de privilèges profiles protégées par trigger SQL ; droits de table réconciliés.",
-      "proof": "S1 : modification is_owner depuis assistante refusée ; tests statiques colonnes protégées réussis.",
-      "missing": "Rôle, pool, accès complet, sections, email et tous chemins insert/update/metadata non testés séparément en REST.",
+      "status": "terminée et vérifiée",
+      "done": "Auto-attribution accès complet et identité désormais bloquée ; onze champs protégés, édition personnelle et gestion administrative conservées.",
+      "proof": "SQL et API réelle 11PATCH403/42501, INSERTrefusé, métadonnéesforgéesignorées ; édition personnelle et service200. Navigateur propriétaire promotionchef réussie sans email et DBconfirmée ; deux resets181, 5SQL et conseiller sécurité réussis ;186/186tests. Commits3a437d1/aa92115 ; recette-privileges-2026-10-27.md.",
+      "missing": "Aucun critère restant de cette carte. Inventaire de toutes les actions privilégiées et autres données relève de BUG-02/SEC-03/04.",
       "dependencies": "Aucune dépendance formalisée dans la description",
-      "next": "Étendre le test d’escalade à toutes colonnes ; aucune intervention métier.",
+      "next": "Coche verte et commentaire publiés puis relus ; aucune intervention requise.",
       "references": [
         "supabase/migrations/20261011000001_profiles_protected_columns.sql"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6ae048e63357445075e17bb6"
     },
     {
       "id": "BUG-02",
