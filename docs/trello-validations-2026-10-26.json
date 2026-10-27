@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-26",
+  "date": "2026-10-27",
   "authorization": "Éléa autorise coche verte et commentaire après développement, tests et contrôles de sécurité réussis.",
   "branch": "tests/integration-main-elea-2026-10-22",
-  "codeCommit": "f4961bb",
+  "codeCommit": "447c51b",
   "documentationCommit": "e9d2b13",
-  "total": 13,
-  "newlyChecked": 10,
+  "total": 15,
+  "newlyChecked": 12,
   "records": [
     {
       "key": "BUG-04",
@@ -149,6 +149,30 @@
       "commentId": "ari:cloud:trello::action/6adf936458e6a71933413607",
       "commentText": "[RECETTE 2026-10-26 — BUG-07]\nOK — isolation du casting présentiel vérifiée.\n\nTests SQL et API authentifiée réellement exécutés avec deux cheffes non propriétaires globales, chacune sur son projet. Dans les deux sens : SELECT étranger vide ; INSERT étranger refusé ; UPDATE/DELETE étrangers zéro ligne ; transfert vers jour/projet étranger refusé. SELECT/INSERT/UPDATE/DELETE locaux réussissent sur créneaux et entrées. Données étrangères conservées ; ancienne policy authenticated full access absente.\n\nNon-régression : jour/créneau/rôle étrangers refusés même sous service_role dans le test d’intégrité casting/essayages. Fixtures SQL annulées ; comptes et données temporaires de l’API nettoyés, sans email réel.\n\nPreuves : tests/casting-presentiel-rls-local.sql, scripts/check-casting-rls-local.mjs, docs/recette-casting-rls-2026-10-26.md et logs associés. Commit de preuves ef849d0, branche tests/integration-main-elea-2026-10-22. Code applicatif inchangé depuis f4961bb (184 tests Node, types/lint/build réussis).\n\nCette coche concerne BUG-07 ; elle ne ferme pas tout MET-07 ni l’audit des Server Actions service_role de BUG-02/SEC-03. Le propriétaire global conserve son accès global prévu. Aucun push ni déploiement.",
       "verified": true
+    },
+    {
+      "key": "BUG-14",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99b98118b8ecbc8fb5c",
+      "title": "[BUG-14] Verrouiller un self-tape déjà finalisé",
+      "url": "https://trello.com/c/crD3TZeI/81-bug-14-verrouiller-un-self-tape-d%C3%A9j%C3%A0-finalis%C3%A9",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6ae044162d34bf07384b9032",
+      "commentText": "[RECETTE 2026-10-27 — BUG-14]\nCorrigé et vérifié sur tests/integration-main-elea-2026-10-22, commit 447c51b (avec garde Storage 197bcd5). La finalisation est transactionnelle ; serveur et Storage refusent les nouveaux dépôts/remplacements après transmission, clôture ou échéance. Les signatures obtenues avant transmission sont aussi refusées après celle-ci. Les ajouts autorisés de l’équipe restent fonctionnels.\nTests réellement réussis sur bases locales isolées : première transmission ; seconde tentative refusée ; anciens liens signés photo/vidéo refusés ; cinq courses simultanées (un seul succès et une seule photo) ; panne de notification injectée avec annulation complète. Parcours navigateur : photo + réponse, envoi, rechargement « Déjà envoyé », puis vérification DB (1 photo, 1 notification, réponse sauvegardée). Suite 185/185, types, lint et build réussis. Rejoué sur base neuve à 180 migrations.\nPreuves versionnées : docs/recette-casting-atomique-2026-10-27.md et docs/preuves-2026-10-27.\nPérimètre validé : verrou backend demandé par cette carte. Réouverture staff future, appareils mobiles réels et audit de toutes les familles de liens restent des sujets distincts ; pas de validation globale de SEC-05/MET-07. Aucun accès production, push ni message réel.",
+      "verified": true,
+      "codeCommit": "447c51b"
+    },
+    {
+      "key": "BUG-15",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac4c99b349bc1c3f7b29e74",
+      "title": "[BUG-15] Vérifier les chemins Storage à la finalisation du casting",
+      "url": "https://trello.com/c/ghlpnQig/82-bug-15-v%C3%A9rifier-les-chemins-storage-%C3%A0-la-finalisation-du-casting",
+      "complete": true,
+      "wasAlreadyComplete": false,
+      "commentId": "ari:cloud:trello::action/6ae0441a391272a238e5dc13",
+      "commentText": "[RECETTE 2026-10-27 — BUG-15]\nCorrigé et vérifié sur tests/integration-main-elea-2026-10-22, commit 447c51b. La finalisation contrôle figurant/entrée, préfixe exact, labels autorisés et encodés, indices et nombre des vidéos, doublons et existence des objets. Les photos sont réellement décodées côté serveur avant référencement. Photos, fiche, démo, réponses, statut et notification sont enregistrés dans une seule transaction.\nTests locaux réels réussis : JPEG valide et deux MP4 générés ; fichier réel d’une autre entrée refusé ; label inconnu, fichier absent, trop de vidéos, chemin/indice dupliqué, indice ambigu, faux MIME et image invalide refusés sans référencement partiel. Test SQL de panne après écritures : annulation complète. Ajouts équipe après transmission préservés ; association/retrait étranger refusés ; fichier partagé conservé. Base neuve à 180 migrations également testée. Suite 185/185, types, lint et build réussis. Parcours navigateur d’envoi réussi et DB contrôlée.\nPreuves : docs/recette-casting-atomique-2026-10-27.md et docs/preuves-2026-10-27.\nLimites distinctes : codecs sur vrais téléphones, purge des dépôts abandonnés, concurrence de tous les ajouts équipe et panne Storage/DB lors d’un retrait ne sont pas validés ici (BUG-13/SEC-05 restent ouverts). Aucun push, production ni envoi réel.",
+      "verified": true,
+      "codeCommit": "447c51b"
     }
   ]
 }

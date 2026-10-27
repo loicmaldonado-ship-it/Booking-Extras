@@ -50,3 +50,14 @@ posixTest('local app startup forces test mode and local credentials despite inhe
   assert.match(readFileSync(join(f.root,'.env.local'),'utf8'),/^BOOKING_TEST_MODE=1$/m);assert.equal(statSync(join(f.root,'.env.local')).mode&0o777,0o600);
  }finally{f.cleanup();}
 });
+
+posixTest('startup failure preserves safe JSON diagnostics without credentials and keeps health checks enabled',()=>{
+ const f=fixture();try{
+  const payload=JSON.stringify({error:{message:'Storage unhealthy\nSERVICE_ROLE_KEY=fixture-secret\npostgresql://private:password@localhost/db'}});
+  writeFileSync(join(f.root,'bin/npx'),`#!/bin/sh\nprintf '%s' '${payload}'\nexit 1\n`,{mode:0o755});
+  const r=f.run();assert.notEqual(r.status,0);
+  const diagnostic=readFileSync(join(f.root,'.recette/demarrage-base.log'),'utf8');
+  assert.match(diagnostic,/Storage unhealthy/);assert.doesNotMatch(diagnostic,/fixture-secret|private:password|postgresql/);
+  assert.doesNotMatch(launcher,/ignore-health-check/);
+ }finally{f.cleanup();}
+});

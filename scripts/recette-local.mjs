@@ -7,13 +7,17 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const cliVersion='2.122.0';
 const local=join(root,'.recette');
 const projectPrefix='BOOKING_EXTRAS_RECETTE';
+// Services absents des parcours de recette ; Auth, REST et Storage restent contrôlés.
+const startArgs=['--yes',`supabase@${cliVersion}`,'start','--exclude','studio,realtime,postgres-meta,edge-runtime,logflare,vector,supavisor,imgproxy'];
 function fail(message){console.error('\n'+message);process.exit(1);}
 function command(name,args,options={}){
  const program=process.platform==='win32'&&['npm','npx'].includes(name)?name+'.cmd':name;
  const result=spawnSync(program,args,{cwd:root,stdio:options.capture?'pipe':'inherit',encoding:'utf8',shell:process.platform==='win32'&&['npm','npx'].includes(name),...options});
  if(result.error||result.status!==0){
   if(options.diagnostic){
-   const message=String(result.stderr??result.error??'').split('\n').filter(line=>!/(key|token|secret|password|postgres(?:ql)?:\/\/)/i.test(line)).join('\n').replace(/eyJ[A-Za-z0-9_.-]+/g,'[clé masquée]');
+   let cliMessage='';
+   try{const payload=JSON.parse(result.stdout??'');cliMessage=typeof payload.message==='string'?payload.message:typeof payload.error?.message==='string'?payload.error.message:'';}catch{}
+   const message=[result.stderr,result.error?.message,cliMessage].filter(Boolean).join('\n').split('\n').filter(line=>!/(key|token|secret|password|postgres(?:ql)?:\/\/)/i.test(line)).join('\n').replace(/eyJ[A-Za-z0-9_.-]+/g,'[clé masquée]');
    writeFileSync(join(local,'demarrage-base.log'),message.slice(-12000),{mode:0o600});
   }
   if(options.allowFailure)return null;
@@ -50,10 +54,10 @@ let config=readFileSync(join(root,'supabase/config.toml'),'utf8').replace(/^proj
 for(const [a,b] of [['54321','29194'],['54322','29242'],['54320','29240'],['54323','29243'],['54324','29244'],['54327','29247'],['54329','29249']])config=config.replaceAll(a,b);
 writeFileSync(join(local,'supabase/config.toml'),config);
 console.log('Préparation de la base de démonstration. Le premier démarrage peut prendre plusieurs minutes.');
-const started=command('npx',['--yes',`supabase@${cliVersion}`,'start'],{cwd:local,capture:true,allowFailure:true,diagnostic:true});
+const started=command('npx',startArgs,{cwd:local,capture:true,allowFailure:true,diagnostic:true});
 if(started===null){
  console.log('Le premier démarrage n’a pas abouti ; une reprise locale est tentée.');
- command('npx',['--yes',`supabase@${cliVersion}`,'start'],{cwd:local,capture:true,diagnostic:true,failure:'La base locale ne démarre pas. Transmettez le fichier .recette/demarrage-base.log à Éléa.'});
+ command('npx',startArgs,{cwd:local,capture:true,diagnostic:true,failure:'La base locale ne démarre pas. Transmettez le fichier .recette/demarrage-base.log à Éléa.'});
 }
 const raw=command('npx',['--yes',`supabase@${cliVersion}`,'status','-o','json'],{cwd:local,capture:true});
 let status;try{status=JSON.parse(raw);}catch{fail('Impossible de lire la configuration de la base locale. Transmettez le message à Éléa ; ne renseignez aucune clé de production.');}

@@ -1,11 +1,11 @@
 {
   "branch": "tests/integration-main-elea-2026-10-22",
-  "code_commit": "f4961bb8742b0dc3c68f43b3b02639975afd11eb",
+  "code_commit": "447c51b5734825f72eb9c4b88eb28025b0987147",
   "total": 86,
   "counts": {
-    "terminée et vérifiée": 13,
+    "terminée et vérifiée": 15,
     "partiellement réalisée": 44,
-    "développée mais à tester": 26,
+    "développée mais à tester": 24,
     "bloquée": 1,
     "hors périmètre selon une décision documentée": 1,
     "non commencée": 1
@@ -1402,8 +1402,8 @@
       "list": "10 - Bug",
       "status": "partiellement réalisée",
       "done": "Mutations ciblées partages/cron/SMS/activation/RGPD remontent les erreurs ; activation sans demi-création.",
-      "proof": "Tests Node erreurs partage, transports et S2 activation réussis. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte.",
-      "missing": "Revue systémique de toutes les mutations métier incomplète ; anonymisation et autres workflows restent à étapes multiples.",
+      "proof": "Tests Node erreurs partage, transports et S2 activation réussis. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte. Casting : finalisation atomique, panne injectée annulant toutes écritures, cinq courses réelles réussies (447c51b).",
+      "missing": "Revue de toutes les mutations encore incomplète ; retrait Storage puis DB et concurrence des ajouts équipe restent notamment à traiter.",
       "dependencies": "Aucune dépendance formalisée dans la description",
       "next": "Priorité sécurité/intégrité : auditer puis tester chaque chemin de panne ; aucune intervention utilisateur.",
       "references": [
@@ -1417,16 +1417,17 @@
       "title": "[BUG-14] Verrouiller un self-tape déjà finalisé",
       "url": "https://trello.com/c/crD3TZeI/81-bug-14-verrouiller-un-self-tape-d%C3%A9j%C3%A0-finalis%C3%A9",
       "list": "10 - Bug",
-      "status": "développée mais à tester",
-      "done": "Création de slots et finalisation refusent self-tape déjà soumis ; compare-and-set final.",
-      "proof": "Tests Node casting-upload-paths et structure de finalisation réussis.",
-      "missing": "Page restée ouverte et double envoi concurrent avec vrais fichiers non reproduits.",
-      "dependencies": "Aucune dépendance formalisée dans la description",
-      "next": "Ajouter test concurrent de finalisation ; aucune intervention métier.",
+      "status": "terminée et vérifiée",
+      "done": "Finalisation transactionnelle, verrou serveur/Storage après transmission et contrôle strict des chemins, objets, slots et images. Ajouts équipe préservés.",
+      "proof": "185/185 tests, types/lint/build ; SQL rollback et permissions ; API réelle (fichiers étrangers/absents/invalides, anciens liens signés, cinq courses) ; navigateur et DB ; base neuve 180 migrations. Commit 447c51b. Voir recette-casting-atomique-2026-10-27.md.",
+      "missing": "Aucun critère restant de cette carte. Appareils réels, autres familles de liens et autres mutations restent des exigences distinctes.",
+      "dependencies": "—",
+      "next": "Coche verte et commentaire de preuves publiés et relus ; aucune intervention requise.",
       "references": [
-        "src/lib/casting/upload-actions.ts",
-        "tests/casting-upload-paths.test.mjs"
-      ]
+        "docs/recette-casting-atomique-2026-10-27.md"
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6ae044162d34bf07384b9032"
     },
     {
       "id": "BUG-15",
@@ -1434,16 +1435,17 @@
       "title": "[BUG-15] Vérifier les chemins Storage à la finalisation du casting",
       "url": "https://trello.com/c/ghlpnQig/82-bug-15-v%C3%A9rifier-les-chemins-storage-%C3%A0-la-finalisation-du-casting",
       "list": "10 - Bug",
-      "status": "développée mais à tester",
-      "done": "Chemins liés à entrée/figurant/slot, labels/nombres et existence Storage contrôlés.",
-      "proof": "Tests comportementaux de chemins et tests statiques de contrôle Storage réussis.",
-      "missing": "Association frauduleuse avec objets réels, suppression entre vérification/finalisation et trop de slots non testés en intégration.",
-      "dependencies": "Aucune dépendance formalisée dans la description",
-      "next": "Tester les payloads forgés contre un bucket local ; aucune intervention utilisateur.",
+      "status": "terminée et vérifiée",
+      "done": "Finalisation transactionnelle, verrou serveur/Storage après transmission et contrôle strict des chemins, objets, slots et images. Ajouts équipe préservés.",
+      "proof": "185/185 tests, types/lint/build ; SQL rollback et permissions ; API réelle (fichiers étrangers/absents/invalides, anciens liens signés, cinq courses) ; navigateur et DB ; base neuve 180 migrations. Commit 447c51b. Voir recette-casting-atomique-2026-10-27.md.",
+      "missing": "Aucun critère restant de cette carte. Appareils réels, autres familles de liens et autres mutations restent des exigences distinctes.",
+      "dependencies": "—",
+      "next": "Coche verte et commentaire de preuves publiés et relus ; aucune intervention requise.",
       "references": [
-        "src/lib/casting/upload-paths.ts",
-        "tests/casting-upload-paths.test.mjs"
-      ]
+        "docs/recette-casting-atomique-2026-10-27.md"
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6ae0441a391272a238e5dc13"
     },
     {
       "id": "BUG-16",
@@ -1505,5 +1507,6 @@
     "verified": 12,
     "newly_checked": 9,
     "already_checked": 3
-  }
+  },
+  "updated_at": "2026-10-27"
 }
