@@ -1,10 +1,10 @@
 {
   "branch": "tests/integration-main-elea-2026-10-22",
-  "code_commit": "447c51b5734825f72eb9c4b88eb28025b0987147",
+  "code_commit": "bdc486255a36a08666488ae441201101b04934f3",
   "total": 86,
   "counts": {
-    "terminée et vérifiée": 15,
-    "partiellement réalisée": 44,
+    "terminée et vérifiée": 16,
+    "partiellement réalisée": 43,
     "développée mais à tester": 24,
     "bloquée": 1,
     "hors périmètre selon une décision documentée": 1,
@@ -105,17 +105,19 @@
       "title": "[ENV-02] Recréer la base locale avec migrations + seed",
       "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
       "list": "01 - Reprise & environnement",
-      "status": "partiellement réalisée",
-      "done": "Reconstruction indépendante complète jusqu’à 173 migrations ; migrations 174 et 175 ajoutées et testées séparément sur base isolée. Seed disponible.",
-      "proof": "Reset complet réussi de la seconde base à 173 ; tests SQL et API réels. Nouvelle installation autonome à 175 en cours de vérification.",
-      "missing": "Deux resets successifs du dernier schéma à 175 non encore démontrés ; installation finale en cours.",
+      "status": "terminée et vérifiée",
+      "done": "Deux reconstructions complètes à 180 migrations + seed, connexions et lecture projet ; copie indépendante démarrée au navigateur.",
+      "proof": "Deux resets exit0 ; SQL seed, Auth cheffe/assistante et REST réussis ; navigateur localhost3100, compte README, projet/annonce/candidature affichés. Commit bdc4862 ; recette-installation-2026-10-27.md.",
+      "missing": "Nouvelle migration 181 de protection des privilèges : double replay en cours. Windows et recette métier sont des exigences distinctes.",
       "dependencies": "ENV-01",
-      "next": "Terminer les deux reconstructions du schéma final et contrôler seed/connexion ; aucune intervention utilisateur.",
+      "next": "Commentaire de preuves et coche relus ; poursuivre non-régression du schéma 181, sans intervention humaine.",
       "references": [
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
         "README.md"
-      ]
+      ],
+      "trelloCompleteVerified": true,
+      "trelloCommentId": "ari:cloud:trello::action/6ae04613558939922b3e19ea"
     },
     {
       "id": "ENV-03",
@@ -1059,9 +1061,9 @@
       "url": "https://trello.com/c/tacHH6fK/61-rel-02-tester-les-migrations-sur-une-copie-avant-production",
       "list": "08 - Préproduction & mise en ligne",
       "status": "partiellement réalisée",
-      "done": "Base jetable reconstruite à 173 migrations ; mises à jour ultérieures contrôlées localement. Nouvelle copie indépendante à 175 migrations préparée.",
-      "proof": "Logs de reset complet, SQL de données liées et contrôle de sécurité local sans alertes. Aucune base distante ni base principale de test réinitialisée.",
-      "missing": "Double replay du dernier schéma, restauration de sauvegarde et simulation depuis état réel de production non démontrés.",
+      "done": "Double replay 180 et restauration complète SQL sur base distincte locale, comptages identiques et plan de retour documenté.",
+      "proof": "pg_dump/pg_restore local exit0 avec rôle administrateur Supabase ; 180 migrations, 2 users/profils, 1 projet/candidature, 72 policies, 75 tables RLS identiques. Voir recette-installation-2026-10-27.md.",
+      "missing": "Sauvegarde/restauration des octets Storage, simulation upgrade depuis schéma réellement déployé, inventaire final des migrations risquées non réalisés.",
       "dependencies": "REL-01",
       "next": "Rejouer le dernier schéma, tester sauvegarde/restauration sur copie ; toute action distante exige autorisation distincte.",
       "references": [

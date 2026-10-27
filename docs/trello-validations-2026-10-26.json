@@ -4,7 +4,7 @@
   "branch": "tests/integration-main-elea-2026-10-22",
   "codeCommit": "447c51b",
   "documentationCommit": "e9d2b13",
-  "total": 15,
+  "total": 16,
   "newlyChecked": 12,
   "records": [
     {
@@ -173,6 +173,18 @@
       "commentText": "[RECETTE 2026-10-27 — BUG-15]\nCorrigé et vérifié sur tests/integration-main-elea-2026-10-22, commit 447c51b. La finalisation contrôle figurant/entrée, préfixe exact, labels autorisés et encodés, indices et nombre des vidéos, doublons et existence des objets. Les photos sont réellement décodées côté serveur avant référencement. Photos, fiche, démo, réponses, statut et notification sont enregistrés dans une seule transaction.\nTests locaux réels réussis : JPEG valide et deux MP4 générés ; fichier réel d’une autre entrée refusé ; label inconnu, fichier absent, trop de vidéos, chemin/indice dupliqué, indice ambigu, faux MIME et image invalide refusés sans référencement partiel. Test SQL de panne après écritures : annulation complète. Ajouts équipe après transmission préservés ; association/retrait étranger refusés ; fichier partagé conservé. Base neuve à 180 migrations également testée. Suite 185/185, types, lint et build réussis. Parcours navigateur d’envoi réussi et DB contrôlée.\nPreuves : docs/recette-casting-atomique-2026-10-27.md et docs/preuves-2026-10-27.\nLimites distinctes : codecs sur vrais téléphones, purge des dépôts abandonnés, concurrence de tous les ajouts équipe et panne Storage/DB lors d’un retrait ne sont pas validés ici (BUG-13/SEC-05 restent ouverts). Aucun push, production ni envoi réel.",
       "verified": true,
       "codeCommit": "447c51b"
+    },
+    {
+      "key": "ENV-02",
+      "id": "ari:cloud:trello::card/workspace/6ad78a20e6a07b1936988574/6ac499e1569bf65fd77c758c",
+      "title": "[ENV-02] Recréer la base locale avec migrations + seed",
+      "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
+      "complete": true,
+      "wasAlreadyComplete": true,
+      "commentId": "ari:cloud:trello::action/6ae04613558939922b3e19ea",
+      "commentText": "[RECETTE 2026-10-27 — ENV-02]\nTerminée et vérifiée sur la branche tests/integration-main-elea-2026-10-22, preuves commit bdc4862 ; lanceur f028fc1 et schéma 447c51b.\nDeux db reset --local successifs ont rejoué les 180 migrations et le seed sur une base jetable indépendante (booking-casting-180-20261026), exit0 à chaque fois, sans réparation manuelle. SQL : 180 migrations, comptes équipe/profils/projet/annonce/candidature/compte candidat présents. Connexions Auth cheffe et assistante puis lecture REST du projet réussies. Mot de passe candidat scrypt vérifié. Contrôle par SQL/API plutôt que Studio, exclu du démarrage minimal.\nCopie propre du projet extraite sans .git/.env/node_modules : npm ci réussi ; lanceur et sa propre base API29194 démarrés ; navigateur localhost3100, connexion avec le compte du README, tableau de bord et annonce du seed lus avec succès. 186/186 tests automatisés réussis.\nPreuves : docs/recette-installation-2026-10-27.md, tests/seed-local-verification.sql, logs et capture docs/preuves-2026-10-27.\nLa coche existait historiquement ; sa validation est désormais démontrée. Windows et recette métier sur postes destinataires restent à vérifier séparément. La sauvegarde/restauration SQL locale a été éprouvée ; elle ne clôt pas REL-02 (fichiers Storage et upgrade depuis production non qualifiés). Aucun reset de la base principale, aucune production, push ni communication réelle.",
+      "verified": true,
+      "codeCommit": "bdc4862"
     }
   ]
 }
