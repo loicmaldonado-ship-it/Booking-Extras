@@ -1,6 +1,6 @@
 {
   "branch": "tests/integration-main-elea-2026-10-22",
-  "code_commit": "c01c092b6f04aa3e1f8263756dcb9bc1e38ecfa5",
+  "code_commit": "bf56cdeaca10e2da3e659fde1066a350217f5fa8",
   "total": 86,
   "counts": {
     "terminée et vérifiée": 17,
@@ -106,15 +106,16 @@
       "url": "https://trello.com/c/IOFAzT2t/6-env-02-recr%C3%A9er-la-base-locale-avec-migrations-seed",
       "list": "01 - Reprise & environnement",
       "status": "terminée et vérifiée",
-      "done": "Deux reconstructions complètes180 puis deux181+seed ; connexions et lecture projet ; copie indépendante démarrée au navigateur.",
-      "proof": "Deux resets exit0 ; SQL seed, Auth cheffe/assistante et REST réussis ; navigateur localhost3100, compte README, projet/annonce/candidature affichés. Commit bdc4862 ; recette-installation-2026-10-27.md. Complément181 : deux resets exit0 et SQL seed/profil/casting/isolation/auth DO, conseiller sans avertissement ;3a437d1.",
-      "missing": "Aucun critère de reconstruction restant. Windows et recette métier sont distincts.",
+      "done": "Deux reconstructions complètes à180, puis181, puis182migrations+seed ; contrôles SQL/API réussis ; copie indépendante déjà démarrée au navigateur.",
+      "proof": "Deux resets exit0 ; SQL seed, Auth cheffe/assistante et REST réussis ; navigateur localhost3100, compte README, projet/annonce/candidature affichés. Commit bdc4862 ; recette-installation-2026-10-27.md. Complément181 : deux resets exit0 et SQL seed/profil/casting/isolation/auth DO, conseiller sans avertissement ;3a437d1. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
+      "missing": "Aucun critère de reconstruction restant. Nouvelle archive182 à éprouver séparément ; Windows et recette métier sont distincts.",
       "dependencies": "ENV-01",
       "next": "Coche et preuves publiées ; aucune intervention nécessaire.",
       "references": [
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
-        "README.md"
+        "README.md",
+        "docs/recette-viviers-2026-10-27.md"
       ],
       "trelloCompleteVerified": true,
       "trelloCommentId": "ari:cloud:trello::action/6ae04613558939922b3e19ea"
@@ -183,14 +184,15 @@
       "list": "01 - Reprise & environnement",
       "status": "développée mais à tester",
       "done": "README débutant, passation technique, lanceurs Mac/Windows de démarrage et arrêt, protection des configurations personnelles et des données de recette. Archive corrigée c01c092 créée avec VERSION-RECETTE et README débutant, extraction et lancement dans nouveau dossier réussis.",
-      "proof": "Installation indépendante antérieure via lanceur + npm ci + connexion navigateur ; 7 tests de protection du lanceur réussis. Nouvelle copie du code actuel en cours. ZIP sourcec01c092,181migrations+seed et installation via lanceur, connexion navigateur, troisSQL de contrôle réussis. Voir livraison-recette-2026-10-27.md.",
-      "missing": "Lecture/exécution par une personne non préparatrice exigée par la carte non obtenue ; Windows réel et double-clic Finder non testés.",
+      "proof": "Installation indépendante antérieure via lanceur + npm ci + connexion navigateur ; 7 tests de protection du lanceur réussis. Nouvelle copie du code actuel en cours. ZIP sourcec01c092,181migrations+seed et installation via lanceur, connexion navigateur, troisSQL de contrôle réussis. Voir livraison-recette-2026-10-27.md. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
+      "missing": "Nouvelle archive intégrant182 et les derniers contrôles serveur à générer et éprouver ; relecture/exécution par une personne non préparatrice, Windows réel et double-clic Finder toujours attendus.",
       "dependencies": "ENV-03",
       "next": "Transmettre la copie pour recette et faire suivre le README sur le poste destinataire ; intervention d’un autre testeur nécessaire pour ce critère précis.",
       "references": [
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",
-        "README.md"
+        "README.md",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -256,15 +258,16 @@
       "url": "https://trello.com/c/qRHibEjJ/14-sec-03-auditer-les-r%C3%A8gles-rls-sur-toutes-les-donn%C3%A9es-sensibles",
       "list": "02 - Sécurité & accès",
       "status": "partiellement réalisée",
-      "done": "69 tables publiques inventoriées, toutes avec RLS ; privilèges explicites réconciliés ; 39 tables serveur seulement.",
-      "proof": "S1 : isolation projet/vivier et escalade ; S3 : matrice des 69 tables après révocation des droits ; A1 : API réelle ; conseiller sécurité local sans signalement. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte.",
+      "done": "69 tables publiques inventoriées, toutes avec RLS ; privilèges explicites réconciliés ; 39 tables serveur seulement. Garde invoker de références avant insertion/modification sur cinq tables métier ;19scénariosSQL rejoués sur182.",
+      "proof": "S1 : isolation projet/vivier et escalade ; S3 : matrice des 69 tables après révocation des droits ; A1 : API réelle ; conseiller sécurité local sans signalement. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Audit exhaustif CRUD croisé de chaque table, fonction, vue et bucket non réalisé. Un conseiller sans résultat ne prouve pas l’absence de faille.",
       "dependencies": "DEC-02; ENV-04",
       "next": "Priorité P0 : étendre les scénarios à deux équipes pour toutes les ressources et Storage ; aucune intervention utilisateur nécessaire.",
       "references": [
         "tests/rls-integration-local.sql",
         "tests/grants-october30-local.sql",
-        "docs/preuves-2026-10-26/api-rights-matrix.json"
+        "docs/preuves-2026-10-26/api-rights-matrix.json",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -275,14 +278,15 @@
       "list": "02 - Sécurité & accès",
       "status": "partiellement réalisée",
       "done": "Recherche globale authentifiée et cloisonnée ; accès RLS sur détail/édition/fiches imprimables ; profils sans compte exclus des listes partagées ; pools sans propriétaire masqués hors propriétaire.",
-      "proof": "S1 : autre équipe, comédien étranger et comédien sans pool invisibles ; ajout rapide du projet membre visible ; tests Node recherche anonymes/sections réussis.",
+      "proof": "S1 : autre équipe, comédien étranger et comédien sans pool invisibles ; ajout rapide du projet membre visible ; tests Node recherche anonymes/sections réussis. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Tous les pickers, exports et Server Actions de centaines d’appels admin non revus de bout en bout ; effets des comptes propriétaires à recetter.",
       "dependencies": "DEC-02; SEC-03",
       "next": "Priorité P0 : terminer l’inventaire de toutes les lectures et mutations privilégiées ; pas d’action utilisateur immédiate.",
       "references": [
         "src/lib/figurants/query.ts",
         "src/lib/figurants/preview.ts",
-        "src/lib/search/actions.ts"
+        "src/lib/search/actions.ts",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -675,13 +679,14 @@
       "list": "05 - Parcours métier",
       "status": "partiellement réalisée",
       "done": "Transfert candidat vers booking avec contrôle cachet et gestion de jours implémenté.",
-      "proof": "U1 : bouton Envoyer désactivé sans cachet, Figurant choisi, booking 07/11 créé ; confirmation DB. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte.",
+      "proof": "U1 : bouton Envoyer désactivé sans cachet, Figurant choisi, booking 07/11 créé ; confirmation DB. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Plusieurs jours, déjà booké, changement de date, suppression et liens croisés en échec non testés E2E.",
       "dependencies": "MET-03; CAN-08",
       "next": "Étendre le scénario existant aux transferts multiples et erreurs ; pas de répétition du cas simple.",
       "references": [
         "src/lib/candidatures/actions.ts",
-        "tests/bookings-transfer-integrity.test.mjs"
+        "tests/bookings-transfer-integrity.test.mjs",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -708,12 +713,13 @@
       "list": "05 - Parcours métier",
       "status": "développée mais à tester",
       "done": "Journées/créneaux, lieux, affectations, documents et liens essayages présents.",
-      "proof": "U2 : sélection projet et écran essayages chargé avec calendrier et partage ; tests Node responsive/permissions réussis.",
+      "proof": "U2 : sélection projet et écran essayages chargé avec calendrier et partage ; tests Node responsive/permissions réussis. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Création d’une journée/créneau, affectations, conflit horaire, message, planning et partage réel non exécutés.",
       "dependencies": "MET-01",
       "next": "Compléter une journée fictive entière puis valider le planning avec le métier.",
       "references": [
-        "src/components/essayages/essayage-planning-board.tsx"
+        "src/components/essayages/essayage-planning-board.tsx",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -724,13 +730,14 @@
       "list": "05 - Parcours métier",
       "status": "partiellement réalisée",
       "done": "Rôles/catégories, présentiel, ajout rapide, upload, avis, distribution et liens réal conservés.",
-      "proof": "U2 : sélection du projet casting affichée ; tests Node PDF, chemins, événements, bulk statuts et autorisations réussis. Casting public et ajouts équipe réellement exécutés avec JPEG/MP4, cinq courses, rollback et ancien dépôt signé refusé :447c51b.",
+      "proof": "U2 : sélection du projet casting affichée ; tests Node PDF, chemins, événements, bulk statuts et autorisations réussis. Casting public et ajouts équipe réellement exécutés avec JPEG/MP4, cinq courses, rollback et ancien dépôt signé refusé :447c51b. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Cycle complet de statuts, partage réal, commentaires et variantes de réouverture non recettés ; codecs sur vrais appareils et validation métier restent distincts.",
       "dependencies": "MET-01",
       "next": "Tester un rôle avec self-tape et un présentiel ; confirmer seulement les différences produit qui ne sont pas déjà documentées.",
       "references": [
         "src/lib/casting/actions.ts",
-        "src/lib/casting/upload-actions.ts"
+        "src/lib/casting/upload-actions.ts",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -961,13 +968,14 @@
       "list": "07 - Qualité & maintenabilité",
       "status": "partiellement réalisée",
       "done": "179 tests Node plus scénarios SQL, API/Storage réelles, concurrence auth et parcours navigateur ciblés ; couverture comportementale étendue.",
-      "proof": "179/179 au commit ef34154 ; patch SQL seul suivant 2d180b5 vérifié par API. Compilation/types/lint passent. Preuves datées versionnées par lot.",
+      "proof": "179/179 au commit ef34154 ; patch SQL seul suivant 2d180b5 vérifié par API. Compilation/types/lint passent. Preuves datées versionnées par lot. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Toutes les cartes métier, toutes actions privilégiées et familles de tokens ne sont pas couvertes de bout en bout ; certains anciens tests restent statiques.",
       "dependencies": "SEC-01; MET-04",
       "next": "Continuer les scénarios comportementaux par priorité, sans assimiler assertions de texte et E2E.",
       "references": [
         "package.json",
-        "tests/integration-security.test.mjs"
+        "tests/integration-security.test.mjs",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -1061,14 +1069,15 @@
       "url": "https://trello.com/c/tacHH6fK/61-rel-02-tester-les-migrations-sur-une-copie-avant-production",
       "list": "08 - Préproduction & mise en ligne",
       "status": "partiellement réalisée",
-      "done": "Double replay 180 et restauration complète SQL sur base distincte locale, comptages identiques et plan de retour documenté.",
-      "proof": "pg_dump/pg_restore local exit0 avec rôle administrateur Supabase ; 180 migrations, 2 users/profils, 1 projet/candidature, 72 policies, 75 tables RLS identiques. Voir recette-installation-2026-10-27.md.",
+      "done": "Double replay 180 et restauration complète SQL sur base distincte locale, comptages identiques et plan de retour documenté. Double replay182 et19SQL réussis ; sauvegarde/restauration SQL précédente180 reste une preuve historique distincte.",
+      "proof": "pg_dump/pg_restore local exit0 avec rôle administrateur Supabase ; 180 migrations, 2 users/profils, 1 projet/candidature, 72 policies, 75 tables RLS identiques. Voir recette-installation-2026-10-27.md. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
       "missing": "Sauvegarde/restauration des octets Storage, simulation upgrade depuis schéma réellement déployé, inventaire final des migrations risquées non réalisés.",
       "dependencies": "REL-01",
       "next": "Rejouer le dernier schéma, tester sauvegarde/restauration sur copie ; toute action distante exige autorisation distincte.",
       "references": [
         "docs/deployment.md",
-        "docs/recette.md"
+        "docs/recette.md",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -1212,14 +1221,15 @@
       "url": "https://trello.com/c/wKVq9kR6/69-bug-02-prot%C3%A9ger-les-server-actions-utilisant-servicerole",
       "list": "10 - Bug",
       "status": "partiellement réalisée",
-      "done": "Authentification et contrôles projet ajoutés à plusieurs actions admin ; recherche globale corrigée ; fiches directes sous RLS.",
-      "proof": "Tests Node frontières/actions/messages et refus recherche anonyme réussis ; RLS et REST ciblés réussis. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte.",
-      "missing": "Inventaire exhaustif de tous les exports use server et appels admin toujours incomplet.",
+      "done": "Authentification et contrôles projet ajoutés à plusieurs actions admin ; recherche globale corrigée ; fiches directes sous RLS. Contrôles de personnes ajoutés aux mutations privilégiées booking/essayage/casting/présentiel et à l’activation depuis les bookings.",
+      "proof": "Tests Node frontières/actions/messages et refus recherche anonyme réussis ; RLS et REST ciblés réussis. Compléments réellement vérifiés : lots bcd4b0e (sessions/messages), ead742b (créneaux), 23d59c5 (mineurs), 15c9eed (cache privé), acdba5e (effacement), ef34154 (âge), 2d180b5 (remplacement Storage). Ils ne valident pas les critères restants de cette carte. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
+      "missing": "Inventaire statique286exports dont255accèsadmin directs disponible ; revue et tests exhaustifs de tous les exports, helpers transitifs, routes et actions inline non terminés. Les gardes lexicales détectées ne prouvent pas la sécurité.",
       "dependencies": "Aucune dépendance formalisée dans la description",
       "next": "Priorité P0 : auditer chaque action publique et tester identifiants forgés ; tâche technique autonome.",
       "references": [
         "tests/server-action-boundaries.test.mjs",
-        "src/lib/search/actions.ts"
+        "src/lib/search/actions.ts",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -1229,14 +1239,15 @@
       "url": "https://trello.com/c/KJRrbCJ4/70-bug-03-fermer-les-contournements-du-vivier-com%C3%A9dien-priv%C3%A9",
       "list": "10 - Bug",
       "status": "partiellement réalisée",
-      "done": "Pools privés filtrés ; fiche, édition et fiches imprimables utilisent RLS ; null pool privé hors propriétaire.",
-      "proof": "S1 : comédien autre pool et null pool invisibles ; tests Node permissions ciblés réussis.",
-      "missing": "Tous pickers/doublons/documents/exports et mutations indirectes pas encore couverts.",
+      "done": "Pools privés filtrés ; fiche, édition et fiches imprimables utilisent RLS ; null pool privé hors propriétaire. Recherches exactes/floues et reprises rapides respectent désormais la session/RLS ; associations métier et principaux ajouts privilégiés refusent les profils privés étrangers, comédiens du vivier propre conservés même sans compte.",
+      "proof": "S1 : comédien autre pool et null pool invisibles ; tests Node permissions ciblés réussis. Complément27/10 :1b2c7f7,4bf0383,bf56cde ;19SQL,3scriptsAuth/REST/Storage réels,191/191Node,types/lint/build. Doublons privés, références forgées booking/essayage/casting/présentiel, conducteurs et activation en masse testés ; profils autorisés et vraiJPEG préservés. Voir recette-viviers-2026-10-27.md.",
+      "missing": "Autres pickers, recherches, documents/exports et mutations indirectes non encore tous qualifiés. La recette navigateur de tous les écrans et tous les scénarios de concurrence restent à compléter.",
       "dependencies": "Aucune dépendance formalisée dans la description",
       "next": "Priorité P0 : fermer et tester chaque accès indirect ; aucune intervention requise.",
       "references": [
         "src/lib/figurants/comedien-privacy.ts",
-        "src/app/figurants/[id]/page.tsx"
+        "src/app/figurants/[id]/page.tsx",
+        "docs/recette-viviers-2026-10-27.md"
       ]
     },
     {
@@ -1504,7 +1515,7 @@
     }
   ],
   "state": "bilan de progression exhaustif, mission en cours",
-  "trello_rechecked": "2026-10-26 : 86 cartes actives, titres/descriptions/activité inchangés",
+  "trello_rechecked": "2026-10-27 :86cartes actives, titres/descriptions inchangés ; aucune activité nouvelle hors nos17validations détectée",
   "non_evaluees": 0,
   "trello_updates_authorized": true,
   "trello_sync": {

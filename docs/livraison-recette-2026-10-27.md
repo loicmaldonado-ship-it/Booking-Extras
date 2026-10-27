@@ -1,3 +1,5 @@
+> Snapshot historique c01c092 : ne contient pas les corrections de confidentialité des lots1b2c7f7/4bf0383/bf56cde. Une archive de remplacement est en préparation.
+
 # Copie transmissible pour la recette locale — 27 octobre 2026
 
 Archive : Booking-Extras-Recette-2026-10-27-c01c092.zip, dans le dossier de reprise local. Source : c01c092b6f04aa3e1f8263756dcb9bc1e38ecfa5 sur tests/integration-main-elea-2026-10-22. SHA256 :0e96564df36edbfe3576eb059c513e531f67371007f17d510153f041631f9250. Taille2899828octets,1146entréesZIP. VERSION-RECETTE.txt indique la version exacte ; README-RECETTE.md guide les débutants. Aucun envoi aux destinataires effectué.
