@@ -1,0 +1,149 @@
+
+> booking-extras@0.1.0 build
+> next build
+
+▲ Next.js 16.4.3 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 127ms
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.8s
+  Running TypeScript ...
+  Finished TypeScript in 10.1s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/39) ...
+  Generating static pages using 7 workers (9/39) 
+  Generating static pages using 7 workers (19/39) 
+  Generating static pages using 7 workers (29/39) 
+✓ Generating static pages using 7 workers (39/39) in 1080ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /admin
+├ ƒ /admin/agents
+├ ƒ /admin/references
+├ ƒ /admin/support
+├ ƒ /aide
+├ ƒ /annonces
+├ ƒ /annonces/[id]
+├ ƒ /annonces/[id]/modifier
+├ ƒ /annonces/[id]/poster
+├ ƒ /annonces/nouveau
+├ ƒ /api/cron/alleger-videos
+├ ƒ /api/cron/releve-mails
+├ ƒ /api/relais-textos/numeros
+├ ƒ /api/relais-textos/reponses
+├ ƒ /api/relais-textos/resultat
+├ ƒ /api/relais-textos/suivants
+├ ƒ /api/videos/alleger
+├ ○ /apple-icon
+├ ƒ /auth/confirm
+├ ƒ /auth/forgot-password
+├ ƒ /auth/invite
+├ ƒ /auth/reset-password
+├ ƒ /bareme
+├ ƒ /bookings
+├ ƒ /bookings/[id]
+├ ƒ /bookings/[id]/modifier
+├ ƒ /bookings/documents
+├ ƒ /bookings/documents/bordereau
+├ ƒ /bookings/documents/covoiturage
+├ ƒ /bookings/documents/fiches
+├ ƒ /bookings/documents/liste-appel
+├ ƒ /bookings/documents/silhouettes
+├ ƒ /bookings/documents/trombis
+├ ƒ /bookings/documents/trombis-hmc
+├ ƒ /bookings/documents/vcards
+├ ƒ /bookings/export
+├ ƒ /bookings/export-myrole
+├ ƒ /bookings/nouveau
+├ ƒ /bookings/reserve
+├ ƒ /bookings/resume
+├ ƒ /candidatures
+├ ƒ /candidatures/[id]
+├ ƒ /candidatures/documents/fiches
+├ ƒ /candidatures/documents/trombis
+├ ƒ /candidatures/export
+├ ƒ /casting
+├ ƒ /casting/distribution
+├ ƒ /casting/fiches-roles
+├ ƒ /casting/liste-artistique
+├ ƒ /casting/liste-artistique/export
+├ ƒ /casting/presentiel
+├ ƒ /casting/presentiel/journee
+├ ƒ /casting/presentiel/journee/planning
+├ ƒ /casting/rejoindre/[token]
+├ ƒ /casting/roles/[roleId]/pdf
+├ ƒ /casting/trombis
+├ ƒ /casting/upload/[token]
+├ ƒ /compte
+├ ƒ /compte/connexion
+├ ƒ /compte/creer
+├ ƒ /compte/inscription
+├ ƒ /compte/verifier
+├ ƒ /confidentialite
+├ ƒ /disponibilites/[token]
+├ ƒ /equipe
+├ ƒ /essayages
+├ ƒ /essayages/[id]
+├ ƒ /essayages/[id]/modifier
+├ ƒ /essayages/documents/suivi
+├ ƒ /essayages/journee
+├ ƒ /essayages/nouveau
+├ ƒ /figurants
+├ ƒ /figurants/[id]
+├ ƒ /figurants/[id]/fiche
+├ ƒ /figurants/[id]/modifier
+├ ƒ /figurants/fiches
+├ ƒ /figurants/nouveau
+├ ○ /icon
+├ ƒ /login
+├ ○ /manifest-icon/[size]
+├ ○ /manifest.webmanifest
+├ ƒ /mineurs
+├ ƒ /mineurs/depot/[token]
+├ ƒ /mineurs/partage/[token]
+├ ƒ /modeles
+├ ƒ /mon-compte
+├ ƒ /offline
+├ ƒ /partage
+├ ƒ /partage/casting/[token]
+├ ƒ /partage/casting/[token]/distribution
+├ ƒ /partage/casting/[token]/fiches-mensuration
+├ ƒ /partage/casting/[token]/fiches-roles
+├ ƒ /partage/casting/[token]/liste-artistique
+├ ƒ /partage/casting/[token]/liste-artistique/export
+├ ƒ /partage/documents/[token]
+├ ƒ /partage/documents/[token]/fiches
+├ ƒ /partage/documents/[token]/trombis
+├ ƒ /partage/essayages/[token]
+├ ƒ /partage/essayages/[token]/fiches
+├ ƒ /partage/essayages/[token]/planning
+├ ƒ /partage/validation/[token]
+├ ƒ /postuler/[token]
+├ ƒ /projets
+├ ƒ /projets/[id]
+├ ƒ /projets/[id]/mineurs
+├ ƒ /projets/[id]/mineurs/[dossierId]/autorisation
+├ ƒ /projets/[id]/mineurs/[dossierId]/dossier
+├ ƒ /projets/[id]/modifier
+├ ƒ /projets/nouveau
+├ ƒ /recu/[token]
+└ ƒ /rgpd
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

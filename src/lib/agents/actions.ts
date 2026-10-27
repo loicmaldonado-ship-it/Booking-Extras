@@ -12,6 +12,11 @@ function str(fd: FormData, key: string): string | null {
   return v.trim();
 }
 
+// Names and emails are literal values, never SQL LIKE patterns.
+function literalLike(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
 async function ownerAccessError(): Promise<string | null> {
   const profile = await getCurrentProfile();
   if (!isOwner(profile)) return "Réservé au compte propriétaire.";
@@ -32,7 +37,7 @@ export async function searchAgents(query: string): Promise<Agent[]> {
   const { data } = await supabase
     .from("agents")
     .select("*")
-    .ilike("nom", `%${trimmed}%`)
+    .ilike("nom", `%${literalLike(trimmed)}%`)
     .order("nom")
     .limit(8)
     .returns<Agent[]>();
@@ -57,11 +62,11 @@ export async function upsertAgent(agent: {
 
   let existing: { id: string } | null = null;
   if (agent.email) {
-    const { data } = await supabase.from("agents").select("id").ilike("email", agent.email).maybeSingle();
+    const { data } = await supabase.from("agents").select("id").ilike("email", literalLike(agent.email)).maybeSingle();
     existing = data;
   }
   if (!existing) {
-    const { data } = await supabase.from("agents").select("id").ilike("nom", agent.nom).maybeSingle();
+    const { data } = await supabase.from("agents").select("id").ilike("nom", literalLike(agent.nom)).maybeSingle();
     existing = data;
   }
 
