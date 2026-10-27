@@ -54,19 +54,21 @@ export async function upsertAgent(agent: {
   agence?: string | null;
   email?: string | null;
   telephone?: string | null;
-}): Promise<void> {
-  if (!agent.nom) return;
-  if (!(await getCurrentProfile())) return;
+}): Promise<{ error?: string }> {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
+  if (!agent.nom?.trim()) return { error: "Le nom de l'agent est obligatoire." };
 
   const supabase = createAdminClient();
 
   let existing: { id: string } | null = null;
   if (agent.email) {
-    const { data } = await supabase.from("agents").select("id").ilike("email", literalLike(agent.email)).maybeSingle();
+    const { data, error } = await supabase.from("agents").select("id").ilike("email", literalLike(agent.email)).maybeSingle();
+    if (error) return { error: "Impossible de vérifier l'agent par email." };
     existing = data;
   }
   if (!existing) {
-    const { data } = await supabase.from("agents").select("id").ilike("nom", literalLike(agent.nom)).maybeSingle();
+    const { data, error } = await supabase.from("agents").select("id").ilike("nom", literalLike(agent.nom)).maybeSingle();
+    if (error) return { error: "Impossible de vérifier l'agent par nom." };
     existing = data;
   }
 
@@ -79,10 +81,13 @@ export async function upsertAgent(agent: {
   };
 
   if (existing) {
-    await supabase.from("agents").update(payload).eq("id", existing.id);
+    const { data, error } = await supabase.from("agents").update(payload).eq("id", existing.id).select("id");
+    if (error || data?.length !== 1) return { error: "L'agent n'a pas pu être mis à jour." };
   } else {
-    await supabase.from("agents").insert(payload);
+    const { error } = await supabase.from("agents").insert(payload);
+    if (error) return { error: "L'agent n'a pas pu être enregistré." };
   }
+  return {};
 }
 
 export async function listAgents(): Promise<Agent[]> {
@@ -146,7 +151,8 @@ export async function deleteAgent(id: string) {
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("agents").delete().eq("id", id);
+  const { error } = await supabase.from("agents").delete().eq("id", id);
+  if (error) return { error: "L'agent n'a pas pu être supprimé." };
   revalidatePath("/admin/agents");
   return { success: true as const };
 }

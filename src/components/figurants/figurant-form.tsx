@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { AgentNomInput } from "@/components/agents/agent-nom-input";
+import Link from "next/link";
 import { CIVILITES, GENRES, PRONOMS, type Figurant, type FigurantLien } from "@/lib/figurants/types";
 import { addIndisponibilite } from "@/lib/figurants/disponibilites";
 
@@ -16,7 +17,7 @@ const AGENT_NOM_CLASS =
 type Action = (
   prevState: unknown,
   formData: FormData
-) => Promise<{ error?: string } | void>;
+) => Promise<{ error?: string; createdFigurantId?: string } | void>;
 
 export function FigurantForm({
   action,
@@ -53,10 +54,13 @@ export function FigurantForm({
 
   return (
     <div className="flex flex-col gap-6">
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} onSubmit={(event) => { if (state?.createdFigurantId) event.preventDefault(); }} className="flex flex-col gap-6">
       {state?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}
+          {state.createdFigurantId && (
+            <Link href={`/figurants/${state.createdFigurantId}`} className="mt-2 block font-medium underline">Ouvrir la fiche déjà créée</Link>
+          )}
         </div>
       )}
 
@@ -418,8 +422,8 @@ export function FigurantForm({
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le profil"}
+        <Button type="submit" disabled={pending || !!state?.createdFigurantId}>
+          {state?.createdFigurantId ? "Fiche déjà créée" : pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le profil"}
         </Button>
       </div>
     </form>

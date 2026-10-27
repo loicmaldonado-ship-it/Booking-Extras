@@ -175,12 +175,16 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   }
 
   if (payload.agent_nom) {
-    await upsertAgent({
+    const agentResult = await upsertAgent({
       nom: payload.agent_nom,
       agence: payload.agent_agence,
       email: payload.agent_email,
       telephone: payload.agent_telephone,
     });
+    if (agentResult.error) {
+      revalidatePath("/figurants");
+      return { error: "La fiche a été créée, mais l'agent n'a pas pu être enregistré dans le répertoire. Les liens n'ont pas encore été enregistrés. Ouvre la fiche pour reprendre.", createdFigurantId: data.id };
+    }
   }
 
   await handleLiens(formData, data.id);
@@ -223,12 +227,17 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
   }
 
   if (payload.agent_nom) {
-    await upsertAgent({
+    const agentResult = await upsertAgent({
       nom: payload.agent_nom,
       agence: payload.agent_agence,
       email: payload.agent_email,
       telephone: payload.agent_telephone,
     });
+    if (agentResult.error) {
+      revalidatePath("/figurants");
+      revalidatePath(`/figurants/${id}`);
+      return { error: "La fiche a été enregistrée, mais le répertoire des agents n'a pas pu être mis à jour. Les liens n'ont pas encore été enregistrés. Réessaie l'enregistrement." };
+    }
   }
 
   await handleLiens(formData, id);
@@ -287,7 +296,12 @@ export async function updateFigurantAgent(
   if (error) return { error: error.message };
 
   if (agentNom) {
-    await upsertAgent({ nom: agentNom, agence: agentAgence, email: agentEmail, telephone: agentTelephone });
+    const agentResult = await upsertAgent({ nom: agentNom, agence: agentAgence, email: agentEmail, telephone: agentTelephone });
+    if (agentResult.error) {
+      revalidatePath(`/figurants/${figurantId}`);
+      revalidatePath("/casting");
+      return { error: "Les coordonnées ont été enregistrées sur la fiche, mais le répertoire des agents n'a pas pu être mis à jour. Réessaie pour terminer." };
+    }
   }
 
   revalidatePath("/figurants");

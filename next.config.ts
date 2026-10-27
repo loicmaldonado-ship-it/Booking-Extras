@@ -5,6 +5,8 @@ const localStorage = storageUrl?.protocol === "http:" && ["localhost", "127.0.0.
   && (process.env.NODE_ENV !== "production" || process.env.BOOKING_TEST_MODE === "1");
 
 const nextConfig: NextConfig = {
+  // Deux adresses de boucle locale utilisées pour isoler les sessions de recette.
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [{ source: "/mineurs/:path*", headers: [
       { key: "Referrer-Policy", value: "no-referrer" },
