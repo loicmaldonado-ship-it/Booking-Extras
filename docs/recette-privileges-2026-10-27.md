@@ -15,3 +15,5 @@ La migration181 étend ce garde à acces_complet et à id. Aucun rôle, grant ni
 ## Portée
 
 BUG-01 vérifie les mutations directes du profil et leurs variantes de métadonnées. Le service_role possède légitimement les droits administratifs ; cette vérification ne remplace pas l’inventaire de toutes les actions privilégiées de BUG-02 ni la matrice complète des données de SEC-03/04. Pas de production, push, déploiement ou message réel. Les copies source antérieures à181 ne doivent pas être diffusées comme version corrigée ; la DB de la copie de recette actuellement lancée a été protégée également.
+
+Complément navigateur : connexion propriétaire, administration, attribution du rôle cheffe à un compte fictif existant. Écran de succès précisant aucun nouvel email envoyé ; DB role=chef contrôlé, fixture nettoyée. Capture et log versionnés.
