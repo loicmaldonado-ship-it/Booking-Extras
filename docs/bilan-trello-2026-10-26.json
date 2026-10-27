@@ -1,6 +1,6 @@
 {
   "branch": "tests/integration-main-elea-2026-10-22",
-  "code_commit": "aa921159c044120d59dff8356b93ebc69bd7d355",
+  "code_commit": "c01c092b6f04aa3e1f8263756dcb9bc1e38ecfa5",
   "total": 86,
   "counts": {
     "terminée et vérifiée": 17,
@@ -182,11 +182,11 @@
       "url": "https://trello.com/c/GUXlpZw6/10-env-06-remplacer-le-readme-g%C3%A9n%C3%A9rique-par-une-vraie-passation-d%C3%A9veloppeur",
       "list": "01 - Reprise & environnement",
       "status": "développée mais à tester",
-      "done": "README débutant, passation technique, lanceurs Mac/Windows de démarrage et arrêt, protection des configurations personnelles et des données de recette.",
-      "proof": "Installation indépendante antérieure via lanceur + npm ci + connexion navigateur ; 7 tests de protection du lanceur réussis. Nouvelle copie du code actuel en cours.",
-      "missing": "Archive finale en cours de préparation ; Windows réel, double-clic Finder et exécution par une autre personne non vérifiés.",
+      "done": "README débutant, passation technique, lanceurs Mac/Windows de démarrage et arrêt, protection des configurations personnelles et des données de recette. Archive corrigée c01c092 créée avec VERSION-RECETTE et README débutant, extraction et lancement dans nouveau dossier réussis.",
+      "proof": "Installation indépendante antérieure via lanceur + npm ci + connexion navigateur ; 7 tests de protection du lanceur réussis. Nouvelle copie du code actuel en cours. ZIP sourcec01c092,181migrations+seed et installation via lanceur, connexion navigateur, troisSQL de contrôle réussis. Voir livraison-recette-2026-10-27.md.",
+      "missing": "Lecture/exécution par une personne non préparatrice exigée par la carte non obtenue ; Windows réel et double-clic Finder non testés.",
       "dependencies": "ENV-03",
-      "next": "Terminer le paquet courant et le tester ; ensuite Loïc/Mathieu suivent le README et signalent les étapes implicites.",
+      "next": "Transmettre la copie pour recette et faire suivre le README sur le poste destinataire ; intervention d’un autre testeur nécessaire pour ce critère précis.",
       "references": [
         "supabase/seed.sql",
         "scripts/check-api-local.mjs",

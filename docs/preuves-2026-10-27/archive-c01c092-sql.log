@@ -1,0 +1,3 @@
+seed-local-verification.sql DO
+profile-privileges-local.sql DO
+casting-atomic-local.sql DO
