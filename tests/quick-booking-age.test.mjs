@@ -5,7 +5,7 @@ import ts from 'typescript';
 import {ageOnDate} from '../src/lib/minors/model.ts';
 function action(existing){
  const builder={select(){return this;},ilike(){return this;},eq(){return this;},limit(){return this;},maybeSingle:async()=>({data:existing?{id:'existing'}:null}),single:async()=>({data:existing?{prenom:'Fictif',nom:'Test',date_naissance:null}:null}),insert(){throw Error('aucune création avant validation âge');}};
- const mocks={'next/cache':{},'@/lib/minors/model':{ageOnDate},'@/lib/auth/session':{checkProjetAccess:async()=>null},'@/lib/supabase/admin':{createAdminClient:()=>({from:table=>table==='bookings'?{...builder,maybeSingle:async()=>({data:null})}:builder})},'@/lib/figurants/photos':{},'@/lib/candidats/invitation':{},'@/lib/candidatures/types':{CACHETS:['figuration']},'@/lib/figurants/doublons':{doublonsProbables:async()=>[]}};
+ const mocks={'@/lib/supabase/server':{createServerSupabaseClient:async()=>({from:()=>builder})},'next/cache':{},'@/lib/minors/model':{ageOnDate},'@/lib/auth/session':{checkProjetAccess:async()=>null},'@/lib/supabase/admin':{createAdminClient:()=>({from:table=>table==='bookings'?{...builder,maybeSingle:async()=>({data:null})}:builder})},'@/lib/figurants/photos':{},'@/lib/candidats/invitation':{},'@/lib/candidatures/types':{CACHETS:['figuration']},'@/lib/figurants/doublons':{doublonsProbables:async()=>[]}};
  const source=readFileSync(new URL('../src/lib/bookings/ajout-rapide-actions.ts',import.meta.url),'utf8');
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
  const exports={};new Function('require','exports',code)(name=>{assert.ok(name in mocks,name);return mocks[name];},exports);return exports.ajoutRapideBooking;

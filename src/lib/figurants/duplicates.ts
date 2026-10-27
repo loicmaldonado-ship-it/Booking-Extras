@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { normalizeTelephoneForDuplicate } from "./duplicate-normalization";
 
 export type PossibleDuplicate = {
@@ -42,7 +42,8 @@ function nomsProches(a: string, b: string): boolean {
 // automatiquement, contrairement au rapprochement par email/nom+tél exact
 // déjà fait à la candidature (voir postulerAnnonce).
 export async function findPossibleDuplicates(figurantId: string): Promise<PossibleDuplicate[]> {
-  const supabase = createAdminClient();
+  // Suggestions must obey the same row visibility as the current staff session.
+  const supabase = await createServerSupabaseClient();
   const { data: figurant } = await supabase
     .from("figurants")
     .select("id, prenom, nom, telephone, date_naissance")

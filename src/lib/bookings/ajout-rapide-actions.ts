@@ -3,6 +3,7 @@
 import { ageOnDate } from "@/lib/minors/model";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { envoyerInvitationCompte } from "@/lib/candidats/invitation";
@@ -54,12 +55,14 @@ export async function ajoutRapideBooking(
   if (!email && !telephone) return { error: "Indique au moins un email ou un téléphone." };
 
   const supabase = createAdminClient();
+  // A project membership does not grant access to every private person.
+  const visible = await createServerSupabaseClient();
 
   // Fiche déjà dans la base : même email, sinon même nom + même téléphone
   // (fiches comédien·nes exclues, privées à leur pool).
   let figurantId: string | null = null;
   if (email) {
-    const { data } = await supabase
+    const { data } = await visible
       .from("figurants")
       .select("id")
       .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
@@ -70,7 +73,7 @@ export async function ajoutRapideBooking(
   }
   if (!figurantId && telephone) {
     const tel = telephone.replace(/\s+/g, "");
-    const { data } = await supabase
+    const { data } = await visible
       .from("figurants")
       .select("id, telephone")
       .ilike("nom", nom.replace(/[\\%_]/g, "\\$&"))
@@ -83,7 +86,7 @@ export async function ajoutRapideBooking(
   // « nouvelle », renvoyé par le formulaire après la question.
   const choix = champ("choix");
   if (!figurantId && choix.startsWith("reprendre:")) {
-    const { data } = await supabase
+    const { data } = await visible
       .from("figurants")
       .select("id")
       .eq("id", choix.slice("reprendre:".length))
@@ -117,7 +120,7 @@ export async function ajoutRapideBooking(
       .maybeSingle();
     if (deja) return { error: "Cette personne est déjà dans cette journée." };
     // Fiche reprise : on complète l'email / le téléphone s'ils manquaient.
-    const { data: fiche } = await supabase
+    const { data: fiche } = await visible
       .from("figurants")
       .select("prenom, nom, email, telephone, date_naissance")
       .eq("id", figurantId)

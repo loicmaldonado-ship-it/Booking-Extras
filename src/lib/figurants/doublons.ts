@@ -1,5 +1,5 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { sansAccent } from "@/lib/candidatures/onglets-affichage";
 import { computeAge } from "@/lib/documents/fields";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
@@ -61,7 +61,8 @@ export async function doublonsProbables(personne: {
   nom: string;
   telephone: string;
 }): Promise<DoublonProbable[]> {
-  const supabase = createAdminClient();
+  // Suggestions must obey the same row visibility as the current staff session.
+  const supabase = await createServerSupabaseClient();
   const p = normaliser(personne.prenom);
   const n = normaliser(personne.nom);
   const tel = finTelephone(personne.telephone);
