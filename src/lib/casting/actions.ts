@@ -8,6 +8,7 @@ import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import type { CategorieCachet, CastingMode } from "./types";
 import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
+import { castingStaffVideoPathValid } from "./upload-paths";
 import { validateCastingBulkStatusRequest } from "./bulk-status";
 
 // Questions oui / non posées sur la page d'envoi : une par ligne.
@@ -629,7 +630,7 @@ export async function addCastingPhoto(
   const validated = await validateImageUpload(photo);
   if (validated.error) return { error: validated.error };
   const ext = validated.extension;
-  const path = `${entry.figurant_id}/casting-${label}-${crypto.randomUUID()}.${ext}`;
+  const path = `${entry.figurant_id}/staff-casting-${encodeURIComponent(label)}-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("figurant-photos")
     .upload(path, photo, { contentType: validated.mimeType, upsert: false });
@@ -665,16 +666,23 @@ export async function removeCastingVideo(entryId: string, path: string) {
   const accessError = await checkProjetAccess(entry.projet_id);
   if (accessError) throw new Error(accessError);
 
-  await supabase.storage.from("casting-videos").remove([path]);
   const paths: string[] = entry.video_storage_paths ?? [];
+  if (!paths.includes(path)) throw new Error("Cette vidéo n’appartient pas à cette entrée.");
+  const { data: otherReferences, error: referencesError } = await supabase.from("casting_entries")
+    .select("id").contains("video_storage_paths", [path]).neq("id", entryId).limit(1);
+  if (referencesError) throw new Error("Impossible de vérifier l’utilisation du fichier. Aucun retrait confirmé.");
+  if (!otherReferences?.length) {
+    const { error: storageError } = await supabase.storage.from("casting-videos").remove([path]);
+    if (storageError) throw new Error("La vidéo n’a pas pu être retirée du stockage.");
+  }
   const labels: string[] = entry.video_labels ?? [];
-  const index = paths.indexOf(path);
   const remainingPaths = paths.filter((p) => p !== path);
-  const remainingLabels = index === -1 ? labels : labels.filter((_, i) => i !== index);
-  await supabase
+  const remainingLabels = paths.flatMap((p, index) => p !== path ? [labels[index] || `Vidéo ${index + 1}`] : []);
+  const { error: updateError } = await supabase
     .from("casting_entries")
     .update({ video_storage_paths: remainingPaths, video_labels: remainingLabels })
     .eq("id", entryId);
+  if (updateError) throw new Error("Le fichier a été retiré, mais sa référence n’a pas pu être mise à jour. Recharge et réessaie.");
   revalidatePath("/casting");
 }
 
@@ -712,15 +720,20 @@ export async function addCastingVideo(
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
-    .select("projet_id, video_storage_paths, video_labels")
+    .select("projet_id, figurant_id, video_storage_paths, video_labels")
     .eq("id", entryId)
     .maybeSingle();
   if (!entry) return { error: "Introuvable." };
   const accessError = await checkProjetAccess(entry.projet_id);
   if (accessError) return { error: accessError };
 
+  if (!castingStaffVideoPathValid(path, entry.figurant_id, entryId)) return { error: "Chemin vidéo non autorisé pour cette entrée." };
+  if ((entry.video_storage_paths ?? []).includes(path)) { revalidatePath("/casting"); return { success: true }; }
+  const { error: storageError } = await supabase.storage.from("casting-videos").info(path);
+  if (storageError) return { error: "La vidéo n’a pas été retrouvée dans le stockage." };
   const paths = [...(entry.video_storage_paths ?? []), path];
-  const labels = [...(entry.video_labels ?? []), label?.trim() || `Vidéo ${paths.length}`];
+  const labels = (entry.video_storage_paths ?? []).map((_: string, index: number) => entry.video_labels?.[index] || `Vidéo ${index + 1}`);
+  labels.push(typeof label === "string" && label.trim() ? label.trim().slice(0, 200) : `Vidéo ${paths.length}`);
   const { error } = await supabase
     .from("casting_entries")
     .update({ video_storage_paths: paths, video_labels: labels })

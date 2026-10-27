@@ -20,3 +20,10 @@ export function castingPhotoPathValid(path: unknown, figurantId: string, entryId
 export function isCastingSubmissionLocked(entry: { submitted_at: string | null; statut: string }): boolean {
   return !!entry.submitted_at || ["attente_validation", "valide", "confirmé", "indisponible", "annulé"].includes(entry.statut);
 }
+
+/** Staff slots have no public slot number, and remain bound to one entry. */
+export function castingStaffVideoPathValid(path: unknown, figurantId: string, entryId: string): boolean {
+  if (typeof path !== "string") return false;
+  const prefix = `${figurantId}/${entryId}-video-`;
+  return path.startsWith(prefix) && new RegExp(`^${UUID}\\.mp4$`, "i").test(path.slice(prefix.length));
+}
