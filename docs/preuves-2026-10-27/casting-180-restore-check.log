@@ -1,0 +1,2 @@
+pg_dump exit0. Première restauration postgres refusée sur paramètre système log_min_messages. Restauration complète avec le rôle administrateur prévu du conteneur : exit0.
+Comptages identiques : {"migrations" : 180, "users" : 2, "profiles" : 2, "projects" : 1, "applications" : 1, "policies" : 72, "public_rls" : 75}
