@@ -2,10 +2,11 @@ import { nomComplet } from "@/lib/noms";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import { Card, Badge } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { CopyLink } from "@/components/annonces/copy-link";
 import { AvailabilityCalendar } from "@/components/figurants/availability-calendar";
 import { PhotoDropzones } from "@/components/figurants/photo-dropzones";
@@ -21,7 +22,8 @@ import { AddDatesPanel } from "@/components/figurants/add-dates-panel";
 import { smsConversationHref } from "@/lib/bookings/covoiturage-messages";
 import type { Figurant, FigurantLien, FigurantPhoto } from "@/lib/figurants/types";
 import type { FigurantMessage } from "@/lib/candidats/types";
-import { deleteFigurant, deleteLien } from "@/lib/figurants/actions";
+import { DeleteLienButton } from "@/components/figurants/delete-lien-button";
+import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";
 import { formatDateShort, formatDateTime } from "@/lib/format-date";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { aAccesComplet } from "@/lib/auth/owner";
@@ -43,10 +45,13 @@ export default async function FigurantDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const profile = await getCurrentProfile();
+  if (!profile) notFound();
+  const accessibleIds = await getAccessibleProjetIds(profile);
   const supabase = createAdminClient();
   const currentProjetId = await getCurrentProjetId();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
     .select("*")
     .eq("id", id)
@@ -54,7 +59,7 @@ export default async function FigurantDetailPage({
 
   if (!figurant) notFound();
 
-  const { data: photosRaw } = await supabase
+  const { data: photosRaw } = await (await createServerSupabaseClient())
     .from("figurant_photos")
     .select("*")
     .eq("figurant_id", id)
@@ -66,20 +71,19 @@ export default async function FigurantDetailPage({
     .eq("figurant_id", id)
     .returns<FigurantLien[]>();
 
-  const { data: bookings } = await supabase
+  let bookingsQuery = supabase
     .from("bookings")
     .select("id, date, heure_convocation, fonction, cachet, statut, projet_id, projets(nom, confidentiel, nom_code)")
     .eq("figurant_id", id)
-    .order("date", { ascending: true })
-    .returns<FigurantBookingRow[]>();
+    .order("date", { ascending: true });
+  if (accessibleIds !== null) bookingsQuery = bookingsQuery.in("projet_id", idsOrNone(accessibleIds));
+  const { data: bookings } = await bookingsQuery.returns<FigurantBookingRow[]>();
 
   const { data: indispos } = await supabase
     .from("figurant_indisponibilites")
     .select("date")
     .eq("figurant_id", id);
 
-  const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
 
   // La fiche figurant est partagée entre cheffes, mais la messagerie interne
   // ne doit montrer que les fils rattachés à un projet accessible à cette
@@ -95,12 +99,13 @@ export default async function FigurantDetailPage({
   }
   const { data: messages } = await messagesQuery.returns<FigurantMessage[]>();
 
-  const { data: costumes } = await supabase
+  let costumesQuery = supabase
     .from("essayages")
     .select("id, numero_costume, projets(nom)")
     .eq("figurant_id", id)
-    .not("numero_costume", "is", null)
-    .returns<{ id: string; numero_costume: string; projets: { nom: string } | null }[]>();
+    .not("numero_costume", "is", null);
+  if (accessibleIds !== null) costumesQuery = costumesQuery.in("projet_id", idsOrNone(accessibleIds));
+  const { data: costumes } = await costumesQuery.returns<{ id: string; numero_costume: string; projets: { nom: string } | null }[]>();
 
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");
@@ -116,7 +121,6 @@ export default async function FigurantDetailPage({
   const urlByPhotoPath = new Map(signedPhotoUrls.map((s) => [s.path, s.signedUrl ?? null]));
   const photos = (photosRaw ?? []).map((p) => ({ ...p, url: urlByPhotoPath.get(p.storage_path) ?? undefined }));
 
-  const boundDeleteFigurant = deleteFigurant.bind(null, id);
 
   // Rattache chaque message au projet de son booking (quand il en a un), et
   // prépare un résumé des dates confirmées par projet — affichés ensemble
@@ -171,11 +175,7 @@ export default async function FigurantDetailPage({
           <ButtonLink href={`/figurants/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>
-          <form action={boundDeleteFigurant}>
-            <Button type="submit" variant="ghost">
-              Supprimer
-            </Button>
-          </form>
+          {profile?.isOwner && <DeleteFigurantConfirm id={id} label={`${figurant.prenom} ${figurant.nom}`} />}
         </div>
       </div>
 
@@ -377,11 +377,7 @@ export default async function FigurantDetailPage({
                 <a href={l.url} target="_blank" rel="noreferrer" className="hover:text-coral">
                   {l.label} — {l.url}
                 </a>
-                <form action={deleteLien.bind(null, l.id, id)}>
-                  <button type="submit" className="text-text hover:text-coral">
-                    Suppr.
-                  </button>
-                </form>
+                <DeleteLienButton lienId={l.id} figurantId={id} />
               </li>
             ))}
           </ul>

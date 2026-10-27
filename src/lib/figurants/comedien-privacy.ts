@@ -12,12 +12,10 @@ export function comedienPoolIdFor(profile: Pick<CurrentProfile, "id" | "comedien
 // sans elle, les comédien·nes gérées par une autre chef·fe (hors du même
 // pool) apparaîtraient dans les listes/pickers. Retourne null pour le
 // compte propriétaire (voit tout) ou sans profil — rien à filtrer.
-// `comedien_pool_id.is.null` reste visible : filet de sécurité si une
-// fiche comédien·ne se retrouve sans pool plutôt que la masquer à tout le
-// monde. Sans effet sur les figurant·es (est_comedien = false), toujours
-// partagé·es.
+// Une fiche comédienne sans pool est réservée au propriétaire, qui peut
+// corriger son rattachement. Les profils ordinaires restent partagés après activation.
 export function comedienPoolClause(profile: CurrentProfile | null): string | null {
   if (!profile || profile.isOwner) return null;
   const poolId = comedienPoolIdFor(profile);
-  return `est_comedien.eq.false,comedien_pool_id.is.null,comedien_pool_id.eq.${poolId}`;
+  return `est_comedien.eq.false,comedien_pool_id.eq.${poolId}`;
 }

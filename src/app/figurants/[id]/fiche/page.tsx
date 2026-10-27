@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -15,7 +15,7 @@ export default async function FigurantFichePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: figurant } = await supabase
     .from("figurants")
@@ -27,8 +27,8 @@ export default async function FigurantFichePage({
 
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
-    getPhotosByFigurantId([id]),
-    getFutureBookingsByFigurant([id], today),
+    getPhotosByFigurantId([id], supabase),
+    getFutureBookingsByFigurant([id], today, supabase),
   ]);
   const photos = pickFichePhotos(photosByFigurant.get(id));
   const age = computeAge(figurant.date_naissance);

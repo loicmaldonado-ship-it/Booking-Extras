@@ -1,8 +1,10 @@
 "use server";
 
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrl } from "@/lib/supabase/signed-urls";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
+import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import type { FigurantMessage } from "@/lib/candidats/types";
 
 export type PreviewBooking = {
@@ -36,16 +38,23 @@ const BOOKINGS_LIMIT = 15;
 const MESSAGES_LIMIT = 30;
 
 export async function getFigurantPreview(figurantId: string): Promise<FigurantPreview | { error: string }> {
+  // Publicly callable Server Action: authenticate BEFORE any service-role read.
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "Non autorisé." };
   const supabase = createAdminClient();
 
-  const { data: figurant } = await supabase
+  const { data: figurant } = await (await createServerSupabaseClient())
     .from("figurants")
-    .select("id, prenom, nom, ville, telephone, email")
+    .select("id, prenom, nom, ville, telephone, email, est_comedien, comedien_pool_id")
     .eq("id", figurantId)
     .maybeSingle();
   if (!figurant) return { error: "Profil introuvable." };
+  if (figurant.est_comedien && !profile.isOwner &&
+      figurant.comedien_pool_id !== comedienPoolIdFor(profile)) {
+    return { error: "Profil introuvable." };
+  }
 
-  const { data: photos } = await supabase
+  const { data: photos } = await (await createServerSupabaseClient())
     .from("figurant_photos")
     .select("storage_path, type")
     .eq("figurant_id", figurantId)
@@ -54,8 +63,7 @@ export async function getFigurantPreview(figurantId: string): Promise<FigurantPr
   const portraitPath = photos?.[0]?.storage_path;
   const portraitUrl = portraitPath ? await getCachedSignedUrl("figurant-photos", portraitPath) : null;
 
-  const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  const accessibleIds = await getAccessibleProjetIds(profile);
 
   let bookingsQuery = supabase
     .from("bookings")

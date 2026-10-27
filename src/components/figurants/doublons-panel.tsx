@@ -1,12 +1,9 @@
 "use client";
 
-import { nomComplet } from "@/lib/noms";
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { supprimerFigurantDoublon } from "@/lib/figurants/actions";
+import { DeleteFigurantConfirm } from "@/components/figurants/delete-figurant-confirm";
 
 export type DoublonGroupe = {
   key: string;
@@ -15,25 +12,10 @@ export type DoublonGroupe = {
   profils: { id: string; prenom: string; email: string | null; created_at: string }[];
 };
 
-export function DoublonsPanel({ groupes }: { groupes: DoublonGroupe[] }) {
-  const router = useRouter();
+export function DoublonsPanel({ groupes, canDelete }: { groupes: DoublonGroupe[]; canDelete: boolean }) {
   const [open, setOpen] = useState(false);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
 
   if (groupes.length === 0) return null;
-
-  function supprimer(id: string) {
-    setError(null);
-    startTransition(async () => {
-      const result = await supprimerFigurantDoublon(id);
-      if (result?.error) {
-        setError(result.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
 
   return (
     <Card className="flex flex-col gap-3 border-danger/40">
@@ -46,7 +28,6 @@ export function DoublonsPanel({ groupes }: { groupes: DoublonGroupe[] }) {
       </button>
       {open && (
         <div className="flex flex-col gap-3">
-          {error && <p className="text-xs text-danger">{error}</p>}
           {groupes.map((g) => (
             <div key={g.key} className="flex flex-col gap-2 rounded-xl border border-border bg-ink px-4 py-3">
               <span className="text-xs font-medium text-text-muted">
@@ -56,18 +37,16 @@ export function DoublonsPanel({ groupes }: { groupes: DoublonGroupe[] }) {
                 {g.profils.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-2 text-sm">
                     <Link href={`/figurants/${p.id}`} className="hover:text-coral">
-                      {nomComplet({ prenom: p.prenom, nom: g.nom })} — {p.email ?? "sans email"}
+                      {p.prenom} {g.nom} — {p.email ?? "sans email"}
                     </Link>
-                    <Button type="button" variant="ghost" disabled={pending} onClick={() => supprimer(p.id)}>
-                      Supprimer ce doublon
-                    </Button>
+                    {canDelete && <DeleteFigurantConfirm id={p.id} label={`${p.prenom} ${g.nom}`} />}
                   </div>
                 ))}
               </div>
             </div>
           ))}
           <p className="text-xs text-text-muted">
-            La suppression est bloquée automatiquement si le profil a des candidatures, bookings ou essayages
+            La suppression définitive est réservée au compte propriétaire et bloquée si le profil possède des candidatures, bookings, photos, messages ou essayages
             associés — vérifie alors laquelle des fiches est la bonne avant d&apos;agir manuellement.
           </p>
         </div>

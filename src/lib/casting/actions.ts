@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
@@ -234,6 +235,9 @@ async function createCastingEntry(
   entryMode: CastingMode,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
 
   const { data: role } = await supabase.from("casting_roles").select("categorie_cachet").eq("id", roleId).maybeSingle();

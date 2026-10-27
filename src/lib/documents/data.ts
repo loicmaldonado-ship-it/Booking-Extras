@@ -80,8 +80,7 @@ export async function getCovoiturageByFigurant(
   return map;
 }
 
-export async function getPhotosByFigurantId(figurantIds: string[]) {
-  const supabase = createAdminClient();
+export async function getPhotosByFigurantId(figurantIds: string[], supabase = createAdminClient()) {
   if (figurantIds.length === 0) return new Map<string, FigurantPhotoWithUrl[]>();
 
   const { data: photos } = await supabase
@@ -112,8 +111,7 @@ export async function getPhotosByFigurantId(figurantIds: string[]) {
 
 export type FutureBooking = { id: string; date: string; projetNom: string };
 
-export async function getFutureBookingsByFigurant(figurantIds: string[], fromDate: string) {
-  const supabase = createAdminClient();
+export async function getFutureBookingsByFigurant(figurantIds: string[], fromDate: string, supabase = createAdminClient()) {
   if (figurantIds.length === 0) return new Map<string, FutureBooking[]>();
 
   const { data } = await supabase

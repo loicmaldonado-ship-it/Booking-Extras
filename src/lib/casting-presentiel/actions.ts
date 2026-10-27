@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "@/lib/bookings/types";
 
@@ -95,6 +96,9 @@ export async function addFigurantToPresentielJournee(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
 
   const { data: existing } = await supabase
@@ -152,6 +156,9 @@ export async function sendFigurantsToPresentiel(
   if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
   let ok = 0;

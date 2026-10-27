@@ -150,7 +150,7 @@ export default async function FigurantsPage({
         </div>
       </div>
 
-      {libreService && <DoublonsPanel groupes={doublons} />}
+      {libreService && <DoublonsPanel groupes={doublons} canDelete={!!profile?.isOwner} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Profil :</span>

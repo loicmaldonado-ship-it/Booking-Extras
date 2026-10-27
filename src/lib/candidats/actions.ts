@@ -1,114 +1,19 @@
 "use server";
 
-import { formatPrenom } from "@/lib/noms";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/email";
 import { aAccesComplet } from "@/lib/auth/owner";
-import { randomUUID } from "crypto";
+import { getCurrentProfile, checkProjetAccess } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { aCreeSonCompte, definirMotDePasse, motDePasseCorrect } from "@/lib/candidats/mot-de-passe";
 import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
-import { getSiteOrigin } from "@/lib/partage/data";
-import { sendEmail } from "@/lib/email/send";
-import { getProjetEmailCredentials } from "@/lib/projets/email";
-import { getEmailTemplate, applyEmailTemplate } from "@/lib/projets/email-templates";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
 import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant } from "./session";
-
-const TOKEN_TTL_MS = 30 * 60 * 1000;
-
-function genToken() {
-  return randomUUID().replace(/-/g, "");
-}
-
-async function createMagicLinkToken(figurantId: string, retour?: string | null) {
-  const supabase = createAdminClient();
-  const token = genToken();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-
-  const { error } = await supabase
-    .from("figurant_auth_tokens")
-    .insert({ figurant_id: figurantId, token, expires_at: expiresAt.toISOString() });
-  if (error) return { error: "Une erreur est survenue, réessayez." };
-
-  const origin = await getSiteOrigin();
-  const suite = retourAutorise(retour);
-  return { link: `${origin}/compte/verifier?token=${token}${suite ? `&retour=${encodeURIComponent(suite)}` : ""}` };
-}
-
-// Envoi réel (Gmail SMTP) du lien de connexion — utilisé pour une demande
-// volontaire du candidat déjà actif (/compte/connexion). projetId absent
-// (demande publique, sans contexte cheffe) => boîte partagée par défaut.
-export async function sendMagicLinkEmail(
-  figurant: { id: string; prenom: string; email: string },
-  projetId?: string | null,
-  retour?: string | null
-) {
-  const { link, error: linkError } = await createMagicLinkToken(figurant.id, retour);
-  if (linkError || !link) return { error: linkError };
-
-  const supabaseForTemplate = createAdminClient();
-  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "magic_link");
-
-  const subject = "Booking Extras — votre lien de connexion";
-  const body = customTemplate
-    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
-    : [
-        `Bonjour ${formatPrenom(figurant.prenom)},`,
-        "",
-        "Voici votre lien de connexion à votre espace Booking Extras (valable 30 minutes) :",
-        link,
-        "",
-        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-      ].join("\n");
-
-  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
-  if (credError) return { error: credError };
-  const result = await sendEmail(figurant.email, subject, body, credentials);
-  if (result.error) return { error: result.error };
-  return { success: true as const };
-}
-
-// Envoyé une seule fois, au moment où l'accès à l'espace personnel s'active
-// (candidature passée à "retenu", ou activation manuelle par le staff) —
-// texte différent du simple renvoi de lien : explique le statut "retenu"
-// et à quoi sert l'espace.
-export async function sendAccesCompteActiveEmail(
-  figurant: { id: string; prenom: string; email: string },
-  projetId?: string | null
-) {
-  const { link, error: linkError } = await createMagicLinkToken(figurant.id);
-  if (linkError || !link) return { error: linkError };
-
-  const supabaseForTemplate = createAdminClient();
-  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "espace_perso");
-
-  const subject = "Booking Extras — votre espace personnel est prêt";
-  const body = customTemplate
-    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
-    : [
-        `Bonjour ${formatPrenom(figurant.prenom)},`,
-        "",
-        "Vous avez été ajouté·e à une date de tournage.",
-        "",
-        "Merci d'accéder à votre espace personnel : vous y retrouverez vos dates et les échanges de messages avec nous.",
-        "",
-        `Voici votre lien de connexion (valable 30 minutes) :`,
-        link,
-        "",
-        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-      ].join("\n");
-
-  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
-  if (credError) return { error: credError };
-  const result = await sendEmail(figurant.email, subject, body, credentials);
-  if (result.error) return { error: result.error };
-  return { success: true as const };
-}
 
 export async function requestMagicLink(
   _prevState: unknown,
@@ -199,6 +104,13 @@ export async function setMaPassword(
 }
 
 export async function logoutFigurant() {
+  // Destroy the server-side session as well as the browser cookie.
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get("figurant_session")?.value;
+  if (token) {
+    const { error } = await createAdminClient().from("figurant_sessions").delete().eq("token", token);
+    if (error) throw new Error("Impossible de révoquer la session candidat.");
+  }
   await clearFigurantSessionCookie();
   redirect("/compte/connexion");
 }
@@ -268,6 +180,18 @@ export async function unsubscribeFromPush(endpoint: string) {
 // l'ancien comportement : idempotent une seule fois pour toute la vie du
 // profil.
 export async function activerAccesCompte(figurantId: string, projetId?: string | null) {
+  // Publicly callable Server Actions must never use service_role unauthenticated.
+  const staff = await getCurrentProfile();
+  if (!staff) return { error: "Non autorisé." };
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied };
+  } else if (staff.role !== "chef") {
+    return { error: "Réservé au·à la chef·fe." };
+  }
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
   const { data: figurant } = await supabase
     .from("figurants")
@@ -279,7 +203,14 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 
   const etaitDejaActif = figurant.acces_compte;
   if (!etaitDejaActif) {
-    await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+    const { error: activationError } = await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+    if (activationError) return { error: activationError.message };
+  }
+  // Compte créé par la personne elle-même : pas de lien « espace prêt »,
+  // réservé aux profils ajoutés à la main.
+  if (await aCreeSonCompte(figurantId)) {
+    revalidatePath(`/figurants/${figurantId}`);
+    return { success: true as const };
   }
   // Compte créé par la personne elle-même : pas de lien « espace prêt »,
   // réservé aux profils ajoutés à la main.
@@ -316,7 +247,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     }
   }
 
-  await supabase.from("figurant_messages").insert({
+  const { error: messageError } = await supabase.from("figurant_messages").insert({
     figurant_id: figurantId,
     projet_id: projetId ?? null,
     sender: "staff",
@@ -324,6 +255,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     corps: "Lien d'accès à l'espace personnel envoyé.",
     categorie: "espace_perso",
   });
+  if (messageError) return { error: "Accès activé, mais historique de l'envoi non enregistré." };
 
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const };
@@ -335,12 +267,28 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 // Gmail (et la même obligation de config pour les cheffes non-admin) que le
 // reste de la messagerie sur cette fiche partagée.
 export async function toggleAccesCompte(figurantId: string, value: boolean, projetId?: string | null) {
-  const supabase = createAdminClient();
+  const staff = await getCurrentProfile();
+  if (!staff) return { error: "Non autorisé." };
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied };
+  } else if (staff.role !== "chef") {
+    return { error: "Réservé au·à la chef·fe." };
+  }
   if (value) return activerAccesCompte(figurantId, projetId);
   // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
   if (!aAccesComplet(await getCurrentProfile())) return { error: "Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès." };
 
-  await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
+  const supabase = createAdminClient();
+  const { error: updateError } = await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
+  if (updateError) return { error: updateError.message };
+  // Invalidate both active sessions and unused login links upon revocation.
+  const { error: sessionsError } = await supabase.from("figurant_sessions").delete().eq("figurant_id", figurantId);
+  const { error: tokensError } = await supabase.from("figurant_auth_tokens").delete().eq("figurant_id", figurantId);
+  if (sessionsError || tokensError) return { error: "Accès désactivé, mais la révocation des sessions ou liens doit être vérifiée." };
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const };
 }

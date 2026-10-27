@@ -31,8 +31,9 @@ export async function resolvePartageToken(token: string, type: PartageType) {
 
 // Catégorie couverte par un lien casting : null = tout le casting.
 export async function getCategorieLienCasting(token: string): Promise<CategorieLien> {
-  const { data } = await createAdminClient().from("partage_liens").select("categorie").eq("token", token).eq("type", "casting").maybeSingle();
-  return (data?.categorie ?? null) as CategorieLien;
+  const { data, error } = await createAdminClient().from("partage_liens").select("categorie").eq("token", token).eq("type", "casting").maybeSingle();
+  if (error || !data) throw new Error("Lien de casting indisponible.");
+  return data.categorie as CategorieLien;
 }
 
 export async function getPartageTitreByToken(token: string, type: PartageType) {
@@ -122,8 +123,12 @@ export async function getReelOptions(filtre: { token: string } | { projetId: str
     q = q.eq("projet_id", filtre.projetId);
     q = filtre.categorie ? q.eq("categorie", filtre.categorie) : q.is("categorie", null);
   }
-  const { data } = await q.maybeSingle<Record<string, boolean>>();
-  if (!data) return OPTIONS_REEL_PAR_DEFAUT;
+  const { data, error } = await q.maybeSingle<Record<string, boolean>>();
+  if (error) throw new Error("Impossible de consulter les options du lien réal.");
+  if (!data) {
+    if ("token" in filtre) throw new Error("Lien de casting indisponible.");
+    return OPTIONS_REEL_PAR_DEFAUT;
+  }
   return Object.fromEntries(
     (Object.keys(COLONNES_OPTIONS_REEL) as (keyof OptionsReel)[]).map((k) => [k, data[COLONNES_OPTIONS_REEL[k]] ?? OPTIONS_REEL_PAR_DEFAUT[k]])
   ) as OptionsReel;
