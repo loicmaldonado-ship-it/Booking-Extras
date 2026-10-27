@@ -61,6 +61,7 @@ function harness({ rows, readError = null, deny = null, updateError = null, upda
   runInNewContext(src, {
     exports,
     require(name) {
+      if (name === "@/lib/figurants/access") return { checkVisibleFigurants: async () => null };
       if (name === "@/lib/supabase/admin") return { createAdminClient: () => db };
       if (name === "@/lib/auth/session") return { checkProjetAccess: async p => { checked.push(p); return deny; } };
       if (name === "./bulk-guard") return bulkExports;

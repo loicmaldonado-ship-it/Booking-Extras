@@ -13,7 +13,7 @@ const compiled = ts.transpileModule(readFileSync(new URL("../src/lib/bookings/ac
 const id = n => `11111111-1111-4111-8111-${String(n).padStart(12, "0")}`;
 const day = "2026-10-21";
 
-function mock({ denied = null, cRows, cError = null, existing = [], existingError = null, upsertError = null, insertError = null, confirmError = null } = {}) {
+function mock({ denied = null, personDenied = null, cRows, cError = null, existing = [], existingError = null, upsertError = null, insertError = null, confirmError = null } = {}) {
   const writes = [], reads = [], validated = [], revalidates = [];
   const rows = cRows ?? [{ id: id(10), figurant_id: id(1), annonces: { projet_id: id(100) } }];
   const db = {
@@ -49,6 +49,7 @@ function mock({ denied = null, cRows, cError = null, existing = [], existingErro
   runInNewContext(compiled, {
     exports,
     require(name) {
+      if (name === "@/lib/figurants/access") return { checkVisibleFigurants: async () => personDenied };
       if (name === "@/lib/supabase/admin") return { createAdminClient: () => db };
       if (name === "@/lib/auth/session") return { checkProjetAccess: async p => { validated.push(p); return denied; } };
       if (name === "./drop-guard") return { validateBookingDropSelection };
@@ -148,4 +149,9 @@ test("cross-project staff booking omits old candidature reference while preservi
   assert.match(bar, /candidatureProjectByFigurant\[id\] === projetId/);
   assert.match(bar, /referenceIds,\s*fonction/);
   assert.match(table, /candidatureProjectByFigurant=\{Object.fromEntries/);
+});
+
+test("booking transfer refuses a hidden person before any administrative write",async()=>{
+ const h=mock({personDenied:"Profil inaccessible"});const r=await bulk(h);assert.match(r.error,/inaccessible/);assert.equal(h.writes.length,0);
+ const one=await h.actions.createBookingFromDrop(id(1),id(100),day,undefined,"Figuration","Figurant");assert.match(one.error,/inaccessible/);assert.equal(h.writes.length,0);
 });

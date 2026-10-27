@@ -1,5 +1,5 @@
 DO $test$ BEGIN
-IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 181 THEN RAISE EXCEPTION 'migrations'; END IF;
+IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 182 THEN RAISE EXCEPTION 'migrations'; END IF;
 IF (SELECT count(*) FROM auth.users WHERE email IN ('cheffe.test@test-chat-charge.fr','assistante.test@test-chat-charge.fr')) <> 2 THEN RAISE EXCEPTION 'auth seed'; END IF;
 IF (SELECT count(*) FROM public.profiles WHERE id IN ('00000000-0000-4000-8000-00000000c0c0','00000000-0000-4000-8000-00000000a551')) <> 2 THEN RAISE EXCEPTION 'profiles'; END IF;
 IF NOT EXISTS (SELECT FROM public.projets WHERE id='00000000-0000-4000-8000-0000000070e0') THEN RAISE EXCEPTION 'project'; END IF;

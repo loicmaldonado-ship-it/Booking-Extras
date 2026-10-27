@@ -1,0 +1,11 @@
+PASS: réponses incomplètes refusées sans mutation métier
+PASS: chemin d’une autre entrée et fichier absent refusés sans mutation
+PASS: fausse image et MIME trompeur refusés après dépôt direct, sans référence métier
+PASS: première soumission complète, seconde et nouveau slot refusés sans duplication
+PASS: ancienne signature de dépôt refusée après finalisation
+PASS: média transmis toujours lisible et chemin de dépôt équipe toujours utilisable
+PASS: cinq courses de finalisations concurrentes, un seul succès et une seule photo à chaque fois
+PASS: deux MP4 réels déposés, vidéos étrangères/dupliquées/trop nombreuses/absentes et ancien dépôt tardif refusés
+PASS: ajout équipe après transmission préservé et idempotent ; rattachement/suppression de vidéo étrangère refusés, fichier étranger intact
+PASS: retrait d’une référence historique partagée préserve le fichier et l’autre entrée
+PASS nettoyage: seules les données et images fictives de cette recette retirées

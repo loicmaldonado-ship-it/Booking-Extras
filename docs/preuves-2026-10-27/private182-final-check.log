@@ -1,0 +1,23 @@
+auth-hardening-local.sql DO
+booking-age-local.sql DO
+candidate-revocation-local.sql DO
+casting-atomic-local.sql DO
+casting-presentiel-rls-local.sql DO
+casting-storage-state-local.sql DO
+delete-profile-local.sql DO
+grants-october30-local.sql DO
+guardians-local.sql DO
+invitation-integration-local.sql DO
+merge-profiles-local.sql DO
+minor-dossiers-local.sql DO
+minor-identity-local.sql DO
+private-booking-reference-local.sql DO
+profile-privileges-local.sql DO
+rgpd-transaction-local.sql DO
+rls-integration-local.sql DO
+seed-local-verification.sql DO
+slots-integrity-local.sql DO
+check-private-duplicates-local.mjs PASS
+check-casting-rls-local.mjs PASS
+check-casting-finalization-local.mjs PASS
+Security advisors {"results":[],"message":"db advisors"}

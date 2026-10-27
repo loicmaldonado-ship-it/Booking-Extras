@@ -9,3 +9,17 @@ Le script scripts/check-private-duplicates-local.mjs exécute les vrais modules 
 186/186 tests Node, types, ESLint et build réussis. Trois tests d’âge ont nécessité d’ajouter le client de session au banc d’essai ; leurs critères et assertions d’âge sont conservés.
 
 BUG-03/SEC-04/BUG-02 restent partiels : autres pickers, exports et actions à vérifier. Un test SQL additionnel a également reproduit la création directe d’un booking vers un profil caché ; sa protection plus générale est le lot suivant. Cette preuve ne signifie pas que l’audit global des viviers est terminé.
+
+## Références métier et voies privilégiées de booking
+
+Le test SQL a réellement permis l’insertion directe d’un booking vers une fiche cachée avant correction. La migration182 contrôle les références de personnes avant INSERT/UPDATE dans bookings, essayages, casting_entries, casting_presentiel_entries et candidatures. Une association ne peut donc pas créer elle-même le droit de voir une personne inconnue. Les conducteurs de covoiturage sont aussi contrôlés sur bookings. Le trigger est invoker, sans privilège ajouté, et applique la visibilité RLS au rôle authenticated ; les parcours administratifs service_role conservent leurs validations serveur distinctes.
+
+La RLS conserve explicitement les comédiens du pool propre même sans compte candidat : leur appartenance au vivier suffit, tandis que les profils ordinaires sans compte restent réservés aux projets liés. Les profils comédiens sans pool restent réservés au propriétaire.
+
+Les actions privilégiées de création/édition de booking et transfert simple/groupé vérifient la visibilité des personnes avant mutation. Le conducteur des éditions simples/groupées est vérifié. Le lot d’accès compte vérifie aussi que chaque personne figure dans les bookings du projet, avant toute activation ou transport. Les sélections sont bornées et découpées par400 pour conserver les grands transferts autorisés sans dépendre du plafond REST1000lignes.
+
+Preuves : script réel Auth/REST, deux personnes étrangères ordinaires/comédiennes refusées dans création/édition/drop/bulk, REST direct, conducteur simple/groupé, activation privée et invitation d’un profil partagé absent du projet. Booking initial conservé ; profil du projet courant et comédien propre sans compte acceptés. Aucun transport réel ; fixtures nettoyées. SQL : cinq tables, insertions/modifications cachées refusées, créations visibles réussies ; la règle compte obligatoire CAN-02 est conservée. Les fixtures de candidature utilisent un compte valide pour ne pas confondre ce refus avec la confidentialité.
+
+Double reconstruction182migrations+seed réussie. Après la seconde, **19scénariosSQL DO**, trois scripts API réels (viviers, deux cheffes casting RLS et casting avec JPEG/MP4/anciennes signatures/cinq courses) réussis ; conseiller sécurité sans avertissement. Application de182 et cinqSQL ciblés sur la principale locale27194 après vérification de connexion, sans reset. **191/191tests Node, types, ESLint et build réussis**.
+
+Limites : toutes les autres actions utilisant service_role ne sont pas encore couvertes ; en particulier les associations via certaines actions casting/essayage et tous les exports restent à auditer. Les gardes DB pour authenticated ne prétendent pas contrôler un service_role légitimement privilégié. BUG-02/03 et SEC-03/04 restent partiels ; aucune nouvelle coche Trello accordée pour ce lot. L’archive c01c092 est un snapshot antérieur : elle ne contient pas ces nouvelles corrections et doit être remplacée avant une nouvelle diffusion.

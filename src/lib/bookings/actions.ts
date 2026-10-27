@@ -4,6 +4,7 @@ import { nomComplet } from "@/lib/noms";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/email";
 import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
@@ -55,6 +56,9 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([payload.figurant_id, ...(payload.covoiturage_conducteur_id ? [payload.covoiturage_conducteur_id] : [])]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
   await supabase
     .from("journees")
@@ -79,6 +83,9 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   }
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants([payload.figurant_id, ...(payload.covoiturage_conducteur_id ? [payload.covoiturage_conducteur_id] : [])]);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
   const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
@@ -153,6 +160,9 @@ export async function createBookingFromDrop(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
   const candidatureError = await checkDropCandidatureReferences(
     supabase, projetId, candidatureId ? { [figurantId]: candidatureId } : {});
@@ -222,6 +232,9 @@ export async function createBookingsFromDropBulk(
   // Envoi dans une journée de booking : fonction et cachet obligatoires.
   if (!cachet) return { ok: 0, deja: 0, error: "Choisis un cachet." };
   if (!fonctionFacultative && !fonction.trim()) return { ok: 0, deja: 0, error: "Choisis une fonction." };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { ok: 0, deja: 0, error: personError };
 
   const supabase = createAdminClient();
   const candidatureError = await checkDropCandidatureReferences(
@@ -429,6 +442,10 @@ export async function bulkUpdateBookings(
   if (selection.ids.length === 0) return {};
   const update = validateBookingBulkChanges(changes);
   if (!update.ok) return { error: update.error };
+  if (changes.covoiturage_conducteur_id) {
+    const personError = await checkVisibleFigurants([changes.covoiturage_conducteur_id]);
+    if (personError) return { error: personError };
+  }
   const supabase = createAdminClient();
 
   const { data: targeted, error: lookupError } = await supabase.from("bookings")
@@ -744,7 +761,14 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
   const supabase = createAdminClient();
+  const { data: linked, error: linkError } = await supabase.from("bookings")
+    .select("figurant_id").eq("projet_id", projetId).in("figurant_id", figurantIds);
+  if (linkError || !linked || new Set(linked.map((row) => row.figurant_id)).size !== new Set(figurantIds).size) {
+    return { error: "La sélection contient un profil absent de ce projet." };
+  }
   let sent = 0;
   let failed = 0;
   let dejaCompte = 0;
