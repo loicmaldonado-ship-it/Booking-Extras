@@ -1,0 +1,3199 @@
+{
+  "date": "2026-10-27",
+  "total": 286,
+  "directAdmin": 255,
+  "method": "Fonctions exportées de modules use server et routes API ; ne couvre pas tous les helpers transitifs ni les actions inline. Gardes détectées lexicalement, pas une preuve de sécurité.",
+  "actions": [
+    {
+      "file": "src/app/api/cron/alleger-videos/route.ts",
+      "line": 11,
+      "name": "GET",
+      "entry": "route-or-api",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/cron/releve-mails/route.ts",
+      "line": 10,
+      "name": "GET",
+      "entry": "route-or-api",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/relais-textos/numeros/route.ts",
+      "line": 9,
+      "name": "POST",
+      "entry": "route-or-api",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/relais-textos/reponses/route.ts",
+      "line": 10,
+      "name": "POST",
+      "entry": "route-or-api",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/relais-textos/resultat/route.ts",
+      "line": 8,
+      "name": "POST",
+      "entry": "route-or-api",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/relais-textos/suivants/route.ts",
+      "line": 11,
+      "name": "POST",
+      "entry": "route-or-api",
+      "directAdmin": true,
+      "guards": [
+        "supabase\n    .from(\"textos_file\")\n    .update({ statut: \"en_attente\", pris_le: null })\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"envoi\")\n    .lt",
+        "supabase\n    .from(\"textos_file\")\n    .update({ statut: \"en_attente\", pris_le: null })\n    .eq(\"profile_id\", profileId)\n    .eq",
+        "supabase\n    .from(\"textos_file\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"en_attente\")\n    .order(\"created_at\")\n    .limit(1)\n    .maybeSingle",
+        "supabase\n    .from(\"textos_file\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"en_attente\")\n    .order(\"created_at\")\n    .limit",
+        "supabase\n    .from(\"textos_file\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"en_attente\")\n    .order",
+        "supabase\n    .from(\"textos_file\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .eq",
+        "supabase\n    .from(\"textos_file\")\n    .update({ statut: \"envoi\", pris_le: new Date().toISOString() })\n    .eq(\"id\", suivant.id)\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"en_attente\")\n    .select(\"id, telephone, message, destinataire\")\n    .maybeSingle",
+        "supabase\n    .from(\"textos_file\")\n    .update({ statut: \"envoi\", pris_le: new Date().toISOString() })\n    .eq(\"id\", suivant.id)\n    .eq(\"profile_id\", profileId)\n    .eq(\"statut\", \"en_attente\")\n    .select",
+        "supabase\n    .from(\"textos_file\")\n    .update({ statut: \"envoi\", pris_le: new Date().toISOString() })\n    .eq(\"id\", suivant.id)\n    .eq(\"profile_id\", profileId)\n    .eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/app/api/videos/alleger/route.ts",
+      "line": 13,
+      "name": "POST",
+      "entry": "route-or-api",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/admin/actions.ts",
+      "line": 19,
+      "name": "inviteChef",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireOwner",
+        "findOrInviteProfile",
+        "admin.from(\"profiles\").update({ role: \"chef\" }).eq",
+        "admin.from(\"profiles\").update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/admin/actions.ts",
+      "line": 39,
+      "name": "revokeChefAccess",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireOwner",
+        "admin.auth.admin.updateUserById"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/admin/actions.ts",
+      "line": 49,
+      "name": "restoreChefAccess",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireOwner",
+        "admin.auth.admin.updateUserById"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/admin/actions.ts",
+      "line": 65,
+      "name": "resendChefInvite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireOwner",
+        "admin.from(\"profiles\").select(\"email\").eq(\"id\", chefId).single",
+        "admin.from(\"profiles\").select(\"email\").eq",
+        "admin.from(\"profiles\").select",
+        "admin.auth.admin.inviteUserByEmail"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 26,
+      "name": "searchAgents",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 47,
+      "name": "upsertAgent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 83,
+      "name": "listAgents",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 92,
+      "name": "createAgent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 115,
+      "name": "updateAgent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/agents/actions.ts",
+      "line": 139,
+      "name": "deleteAgent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/actions.ts",
+      "line": 43,
+      "name": "createAnnonce",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/actions.ts",
+      "line": 66,
+      "name": "updateAnnonce",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/actions.ts",
+      "line": 95,
+      "name": "deleteAnnonce",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/actions.ts",
+      "line": 107,
+      "name": "toggleAnnonceStatut",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/dates.ts",
+      "line": 10,
+      "name": "addAnnonceDate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/dates.ts",
+      "line": 27,
+      "name": "removeAnnonceDate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/dates.ts",
+      "line": 42,
+      "name": "ajouterPeriodeAnnonce",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/dates.ts",
+      "line": 78,
+      "name": "setDisposParCalendrier",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/moodboard-actions.ts",
+      "line": 15,
+      "name": "addAnnoncePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/moodboard-actions.ts",
+      "line": 52,
+      "name": "removeAnnoncePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/questions.ts",
+      "line": 23,
+      "name": "getQuestionTemplates",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/questions.ts",
+      "line": 42,
+      "name": "addAnnonceQuestion",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/annonces/questions.ts",
+      "line": 74,
+      "name": "removeAnnonceQuestion",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkAnnonceAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/actions.ts",
+      "line": 9,
+      "name": "signIn",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "supabase.auth.signInWithPassword"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/actions.ts",
+      "line": 41,
+      "name": "requestPasswordReset",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "supabase.auth.resetPasswordForEmail"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/actions.ts",
+      "line": 56,
+      "name": "signOut",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "supabase.auth.signOut"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/avatar-actions.ts",
+      "line": 8,
+      "name": "updateMyAvatar",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase.storage\n    .from(\"profile-avatars\")\n    .upload",
+        "supabase.from(\"profiles\").update({ avatar_storage_path: path }).eq",
+        "supabase.from(\"profiles\").update",
+        "supabase.storage.from(\"profile-avatars\").remove"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/email-actions.ts",
+      "line": 17,
+      "name": "updateMyGmailSmtp",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase\n      .from(\"profiles\")\n      .select(\"gmail_smtp_app_password\")\n      .eq(\"id\", profile.id)\n      .maybeSingle",
+        "supabase\n      .from(\"profiles\")\n      .select(\"gmail_smtp_app_password\")\n      .eq",
+        "supabase\n      .from(\"profiles\")\n      .select",
+        "supabase\n    .from(\"profiles\")\n    .update({ gmail_smtp_user: gmailUser, gmail_smtp_app_password: gmailAppPasswordEncrypted })\n    .eq",
+        "supabase\n    .from(\"profiles\")\n    .update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/email-actions.ts",
+      "line": 60,
+      "name": "updateMyEmailTemplates",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase\n    .from(\"profiles\")\n    .update({\n      email_espace_perso_template: str(formData, \"email_espace_perso_template\"),\n      email_magic_link_template: str(formData, \"email_magic_link_template\"),\n    })\n    .eq",
+        "supabase\n    .from(\"profiles\")\n    .update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/profile-actions.ts",
+      "line": 16,
+      "name": "updateMyProfile",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase.from(\"profiles\").update({ prenom, nom, telephone }).eq",
+        "supabase.from(\"profiles\").update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/support.ts",
+      "line": 17,
+      "name": "entrerModeSupport",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "admin.from(\"profiles\").select(\"id, role\").eq(\"id\", chefId).maybeSingle",
+        "admin.from(\"profiles\").select(\"id, role\").eq",
+        "admin.from(\"profiles\").select"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/support.ts",
+      "line": 58,
+      "name": "quitterModeSupport",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/auth/team-presence-actions.ts",
+      "line": 9,
+      "name": "fetchMyTeamPresence",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 23,
+      "name": "createBaremeCachet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 47,
+      "name": "updateBaremeCachet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 61,
+      "name": "deleteBaremeCachet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 69,
+      "name": "createBaremeMajoration",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 96,
+      "name": "updateBaremeMajoration",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 107,
+      "name": "deleteBaremeMajoration",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 115,
+      "name": "applyMajorationToBookings",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bareme/actions.ts",
+      "line": 137,
+      "name": "removeMajorationFromBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 51,
+      "name": "createBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 79,
+      "name": "updateBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 112,
+      "name": "deleteBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 149,
+      "name": "createBookingFromDrop",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 217,
+      "name": "createBookingsFromDropBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 306,
+      "name": "createJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 320,
+      "name": "deleteJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 347,
+      "name": "updateTotalJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 367,
+      "name": "updateConvocationSettings",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 392,
+      "name": "retirerBookings",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 424,
+      "name": "bulkUpdateBookings",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkVisibleFigurants",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 493,
+      "name": "moveBookingsToDate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 569,
+      "name": "markConvocationEnvoyee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 587,
+      "name": "resetConvocationEnvoyee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 608,
+      "name": "recordConvocationMessage",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 622,
+      "name": "recordBookingMessage",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 641,
+      "name": "copyCovoiturageToDate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 695,
+      "name": "recordCovoiturageMessage",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 709,
+      "name": "sendBulkConvocations",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/actions.ts",
+      "line": 759,
+      "name": "sendEspacePersoLinkBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/ajout-rapide-actions.ts",
+      "line": 32,
+      "name": "ajoutRapideBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "envoyerInvitationCompte"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/besoins-actions.ts",
+      "line": 13,
+      "name": "addBesoin",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/besoins-actions.ts",
+      "line": 36,
+      "name": "deleteBesoin",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/besoins-actions.ts",
+      "line": 57,
+      "name": "updateBesoin",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/dupliquer-actions.ts",
+      "line": 30,
+      "name": "dupliquerJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/inbox-actions.ts",
+      "line": 18,
+      "name": "checkEmailReplies",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/inbox-actions.ts",
+      "line": 42,
+      "name": "releverReponsesAuto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/inbox-actions.ts",
+      "line": 61,
+      "name": "clearUnreviewedReplies",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/inbox-actions.ts",
+      "line": 74,
+      "name": "marquerReponseLueGmail",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/pdt-actions.ts",
+      "line": 106,
+      "name": "apercuModificationPdt",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/pdt-actions.ts",
+      "line": 136,
+      "name": "modifierPdt",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/pdt-actions.ts",
+      "line": 264,
+      "name": "prevenirProfilsPdt",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/pdt-actions.ts",
+      "line": 316,
+      "name": "supprimerJourneeBasculee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/photos-actions.ts",
+      "line": 21,
+      "name": "chargerChoixPhotos",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/bookings/photos-actions.ts",
+      "line": 41,
+      "name": "enregistrerChoixPhotos",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 21,
+      "name": "requestMagicLink",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "invitationPourFicheSansCompte"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 56,
+      "name": "loginWithPassword",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "createFigurantSession"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 88,
+      "name": "setMaPassword",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "setFigurantSessionCookie"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 108,
+      "name": "logoutFigurant",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "createAdminClient().from(\"figurant_sessions\").delete().eq",
+        "createAdminClient().from(\"figurant_sessions\").delete",
+        "clearFigurantSessionCookie"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 120,
+      "name": "markMessageBienRecu",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 154,
+      "name": "subscribeToPush",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 173,
+      "name": "unsubscribeFromPush",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 191,
+      "name": "activerAccesCompte",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 275,
+      "name": "toggleAccesCompte",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess",
+        "getCurrentProfile",
+        "supabase.from(\"figurant_sessions\").delete().eq",
+        "supabase.from(\"figurant_sessions\").delete",
+        "supabase.from(\"figurant_auth_tokens\").delete().eq",
+        "supabase.from(\"figurant_auth_tokens\").delete"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 327,
+      "name": "updateMaFiche",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 411,
+      "name": "addIndisponibiliteSelf",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 432,
+      "name": "removeIndisponibiliteSelf",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "supabase\n    .from(\"figurant_indisponibilites\")\n    .delete()\n    .eq(\"figurant_id\", session.id)\n    .eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 449,
+      "name": "uploadMaPhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/actions.ts",
+      "line": 473,
+      "name": "deleteMaPhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "supabase\n    .from(\"figurant_photos\")\n    .select(\"storage_path\")\n    .eq(\"id\", photoId)\n    .eq(\"figurant_id\", session.id)\n    .maybeSingle"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/creer-compte.ts",
+      "line": 14,
+      "name": "creerCompteDepuisInvitation",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "invitationValide",
+        "createFigurantSession"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidats/inscription.ts",
+      "line": 23,
+      "name": "inscrireCandidat",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "invitationPourFicheSansCompte",
+        "invitationPourFicheSansCompte",
+        "createFigurantSession"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 43,
+      "name": "recordCandidatureMessage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 89,
+      "name": "postulerAnnonce",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "createAdminClient().from(\"figurants\").select(\"date_naissance\").eq(\"id\", session.id).single",
+        "supabase\n    .from(\"annonces\")\n    .select(\"id, titre, projet_id, statut, ouverte_mineurs, limite_candidatures, bande_demo_obligatoire, types_cachet, dispos_par_calendrier\")\n    .eq(\"public_token\", publicToken)\n    .single",
+        "invitationPourFicheSansCompte",
+        "invitationPourFicheSansCompte",
+        "createFigurantSession"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 514,
+      "name": "updateCandidature",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkCandidatureAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 532,
+      "name": "setCandidatureOnglet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkCandidatureAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 549,
+      "name": "setCandidaturesOngletBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 615,
+      "name": "createCandidatureOnglet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 655,
+      "name": "getCandidatureTriData",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkCandidatureAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/actions.ts",
+      "line": 796,
+      "name": "deleteCandidatureOnglet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/etiquettes.ts",
+      "line": 18,
+      "name": "creerEtiquette",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/etiquettes.ts",
+      "line": 46,
+      "name": "setEtiquettesBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/etiquettes.ts",
+      "line": 83,
+      "name": "setEtiquette",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/jours.ts",
+      "line": 23,
+      "name": "setCandidatureJour",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/jours.ts",
+      "line": 33,
+      "name": "setCandidaturesJourBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/jours.ts",
+      "line": 76,
+      "name": "envoyerCandidaturesDansJour",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/candidatures/jours.ts",
+      "line": 144,
+      "name": "envoyerJourAuTournage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 71,
+      "name": "createCastingRole",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 136,
+      "name": "updateCastingRoleCalibration",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 206,
+      "name": "deleteCastingRole",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 287,
+      "name": "addFigurantToCastingRole",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 309,
+      "name": "listCastingRolesForProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 329,
+      "name": "addFigurantsToCastingRole",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 358,
+      "name": "updateCastingEntryMode",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 372,
+      "name": "updateCastingEntryNotes",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 389,
+      "name": "updateCastingEntryVisiblePartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 408,
+      "name": "choisirVignetteCasting",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 437,
+      "name": "updateCastingRoleVisiblePartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 458,
+      "name": "setCastingRolePosition",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 500,
+      "name": "updateAllCastingEntriesVisiblePartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 519,
+      "name": "updateCastingEntriesStatutBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 557,
+      "name": "updateCastingEntryStatut",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 572,
+      "name": "deleteCastingEntry",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 593,
+      "name": "deleteCastingPhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 619,
+      "name": "addCastingPhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 665,
+      "name": "removeCastingVideo",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 700,
+      "name": "createStaffCastingVideoSlot",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 722,
+      "name": "addCastingVideo",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 756,
+      "name": "updateCastingVideoLabel",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 786,
+      "name": "setCastingVideoPosition",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 835,
+      "name": "recordCastingMessage",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/actions.ts",
+      "line": 864,
+      "name": "recordCastingMessagesBulk",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/ajout-rapide-actions.ts",
+      "line": 15,
+      "name": "ajoutRapideCasting",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/reel.ts",
+      "line": 54,
+      "name": "lireMesAvis",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/reel.ts",
+      "line": 67,
+      "name": "donnerAvis",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/reel.ts",
+      "line": 97,
+      "name": "commentairesProfil",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/reel.ts",
+      "line": 111,
+      "name": "commenterProfil",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/rejoindre-actions.ts",
+      "line": 11,
+      "name": "rejoindreCasting",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "supabase\n    .from(\"casting_roles\")\n    .select(\"id, projet_id, mode, categorie_cachet, lien_public_actif, date_limite_envoi, projets(owner_id)\")\n    .eq(\"public_token\", token)\n    .maybeSingle",
+        "supabase\n    .from(\"figurants\")\n    .select(\"prenom, nom, email, telephone, genre\")\n    .eq(\"id\", session.id)\n    .maybeSingle",
+        "supabase\n      .from(\"profiles\")\n      .select(\"id, comedien_pool_id\")\n      .eq(\"id\", role.projets.owner_id)\n      .maybeSingle",
+        "supabase\n      .from(\"profiles\")\n      .select(\"id, comedien_pool_id\")\n      .eq",
+        "supabase\n      .from(\"profiles\")\n      .select",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq(\"role_id\", role.id)\n    .eq(\"figurant_id\", figurantId)\n    .maybeSingle",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq(\"role_id\", role.id)\n    .eq",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq",
+        "supabase\n      .from(\"casting_entries\")\n      .insert({ projet_id: role.projet_id, role_id: role.id, figurant_id: figurantId, mode: role.mode })\n      .select(\"request_token\")\n      .single"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/rejoindre-actions.ts",
+      "line": 87,
+      "name": "postulerCastingSansCompte",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "supabase\n    .from(\"casting_roles\")\n    .select(\"id, projet_id, mode, lien_public_actif, date_limite_envoi, projets(owner_id)\")\n    .eq(\"public_token\", token)\n    .maybeSingle",
+        "supabase.from(\"profiles\").select(\"id, comedien_pool_id\").eq(\"id\", role.projets.owner_id).maybeSingle",
+        "supabase.from(\"profiles\").select(\"id, comedien_pool_id\").eq",
+        "supabase.from(\"profiles\").select",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq(\"role_id\", role.id)\n    .eq(\"figurant_id\", figurantId)\n    .maybeSingle",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq(\"role_id\", role.id)\n    .eq",
+        "supabase\n    .from(\"casting_entries\")\n    .select(\"request_token\")\n    .eq",
+        "supabase\n      .from(\"casting_entries\")\n      .insert({ projet_id: role.projet_id, role_id: role.id, figurant_id: figurantId, mode: role.mode })\n      .select(\"request_token\")\n      .single"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/upload-actions.ts",
+      "line": 57,
+      "name": "logCastingUploadEvent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/upload-actions.ts",
+      "line": 127,
+      "name": "createCastingUploadSlot",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting/upload-actions.ts",
+      "line": 167,
+      "name": "finalizeCastingUpload",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 34,
+      "name": "createPresentielJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 56,
+      "name": "deletePresentielJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 78,
+      "name": "updatePresentielLieu",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 90,
+      "name": "addFigurantToPresentielJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 125,
+      "name": "updatePresentielEntryRole",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEntryAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 135,
+      "name": "updatePresentielEntryNotes",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEntryAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 149,
+      "name": "sendFigurantsToPresentiel",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 193,
+      "name": "removePresentielEntry",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEntryAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 202,
+      "name": "updatePresentielStatut",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEntryAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 213,
+      "name": "updatePresentielStatutBulk",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 234,
+      "name": "addPresentielCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 258,
+      "name": "generatePresentielCreneaux",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 314,
+      "name": "removePresentielCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/casting-presentiel/actions.ts",
+      "line": 330,
+      "name": "assignPresentielEntryToCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEntryAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/documents/template-actions.ts",
+      "line": 16,
+      "name": "updateDocumentTemplate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/documents/template-actions.ts",
+      "line": 54,
+      "name": "removeDocumentTemplateLogo",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/equipe/actions.ts",
+      "line": 20,
+      "name": "inviteAssistant",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChefOnProjet",
+        "findOrInviteProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/equipe/actions.ts",
+      "line": 51,
+      "name": "revokeAccess",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChefOnProjet",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/equipe/actions.ts",
+      "line": 74,
+      "name": "updateAssistantSections",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "admin\n    .from(\"projet_membres\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .in(\"projet_id\", idsOrNone(accessibleProjetIds ?? []))\n    .limit(1)\n    .maybeSingle",
+        "admin\n    .from(\"projet_membres\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .in(\"projet_id\", idsOrNone(accessibleProjetIds ?? []))\n    .limit",
+        "admin\n    .from(\"projet_membres\")\n    .select(\"id\")\n    .eq(\"profile_id\", profileId)\n    .in",
+        "admin.from(\"profiles\").update({ sections_autorisees: sections }).eq",
+        "admin.from(\"profiles\").update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 35,
+      "name": "uploadTenuePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 69,
+      "name": "recordEssayageMessage",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 97,
+      "name": "createEssayage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 123,
+      "name": "updateEssayage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 151,
+      "name": "deleteEssayage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 168,
+      "name": "createEssayageJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 196,
+      "name": "updateEssayageLieuProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 213,
+      "name": "updateEssayageLieu",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 225,
+      "name": "addFigurantToEssayageJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 266,
+      "name": "sendFigurantsToEssayage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "checkVisibleFigurants"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 348,
+      "name": "updateEssayageStatutInline",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 378,
+      "name": "updateEssayageReponseRecue",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 387,
+      "name": "removeEssayageFromJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 399,
+      "name": "moveEssayagesToJournee",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 454,
+      "name": "addCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 478,
+      "name": "generateCreneaux",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 535,
+      "name": "removeCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageJourneeAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/essayages/actions.ts",
+      "line": 551,
+      "name": "assignFigurantToCreneau",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkEssayageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 130,
+      "name": "createFigurant",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffFigurantAccess",
+        "requireBaseFields",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 241,
+      "name": "updateFigurant",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 254,
+      "name": "updateFigurantInline",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 266,
+      "name": "updateFigurantAgent",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffFigurantAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 316,
+      "name": "deleteFigurant",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 323,
+      "name": "supprimerFigurantDoublon",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 332,
+      "name": "uploadFigurantPhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffFigurantAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 378,
+      "name": "deletePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffFigurantAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 399,
+      "name": "deleteLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffFigurantAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/actions.ts",
+      "line": 413,
+      "name": "mergeFigurants",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/disponibilites.ts",
+      "line": 12,
+      "name": "addIndisponibilite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getFigurantIdByToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/disponibilites.ts",
+      "line": 30,
+      "name": "getIndisponibilitesForFigurants",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/disponibilites.ts",
+      "line": 72,
+      "name": "removeIndisponibilite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getFigurantIdByToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/edit.ts",
+      "line": 12,
+      "name": "getFigurantForEdit",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/messages-actions.ts",
+      "line": 50,
+      "name": "sendStaffMessageToFigurant",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffMessageAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/messages-actions.ts",
+      "line": 91,
+      "name": "notifyFigurantByEmail",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireStaffMessageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/messages-actions.ts",
+      "line": 112,
+      "name": "toggleMessageRepondu",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "requireStaffMessageAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/figurants/preview.ts",
+      "line": 40,
+      "name": "getFigurantPreview",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/indemnites/actions.ts",
+      "line": 7,
+      "name": "createProjetIndemnite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/indemnites/actions.ts",
+      "line": 23,
+      "name": "deleteProjetIndemnite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/indemnites/actions.ts",
+      "line": 36,
+      "name": "applyIndemniteToBookings",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/indemnites/actions.ts",
+      "line": 58,
+      "name": "removeIndemniteFromBooking",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/derniers-actions.ts",
+      "line": 8,
+      "name": "lireDernierMessage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "createAdminClient()\n    .from(\"derniers_messages\")\n    .select(\"sujet, corps\")\n    .eq(\"profile_id\", profile.id)\n    .eq(\"contexte\", contexte.slice(0, 100))\n    .maybeSingle",
+        "createAdminClient()\n    .from(\"derniers_messages\")\n    .select(\"sujet, corps\")\n    .eq(\"profile_id\", profile.id)\n    .eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/derniers-actions.ts",
+      "line": 20,
+      "name": "enregistrerDernierMessage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 15,
+      "name": "creerEnvoi",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile",
+        "supabase\n    .from(\"envois\")\n    .insert({\n      projet_id: params.projetId,\n      date: params.date,\n      titre: titre.slice(0, 80),\n      sujet: params.sujet,\n      corps: params.corps,\n      canal: params.canal,\n      avec_accuse: params.avecAccuse,\n      created_by: profile?.id ?? null,\n    })\n    .select(\"id\")\n    .single",
+        "supabase\n    .from(\"envois\")\n    .insert({\n      projet_id: params.projetId,\n      date: params.date,\n      titre: titre.slice(0, 80),\n      sujet: params.sujet,\n      corps: params.corps,\n      canal: params.canal,\n      avec_accuse: params.avecAccuse,\n      created_by: profile?.id ?? null,\n    })\n    .select"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 67,
+      "name": "envoyerEnvoiEmail",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 123,
+      "name": "marquerEnvoiTextos",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 148,
+      "name": "marquerRecu",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 163,
+      "name": "supprimerEnvoi",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/messages/envois-actions.ts",
+      "line": 175,
+      "name": "confirmerReception",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "supabase.from(\"envoi_destinataires\").select(\"id, accuse_le\").eq(\"token\", token).maybeSingle"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 18,
+      "name": "createMinorDossier",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 30,
+      "name": "saveMinorDates",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 41,
+      "name": "saveMinorGuardians",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 50,
+      "name": "addMinorRequirement",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess",
+        "createAdminClient().from(\"minor_requirements\").insert"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 57,
+      "name": "deactivateMinorRequirement",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "checkProjetAccess",
+        "createAdminClient().from(\"minor_requirements\").update({ active: false }).eq(\"id\", id).eq(\"projet_id\", project).select(\"id\").maybeSingle",
+        "createAdminClient().from(\"minor_requirements\").update({ active: false }).eq(\"id\", id).eq(\"projet_id\", project).select",
+        "createAdminClient().from(\"minor_requirements\").update({ active: false }).eq(\"id\", id).eq",
+        "createAdminClient().from(\"minor_requirements\").update({ active: false }).eq",
+        "createAdminClient().from(\"minor_requirements\").update"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 63,
+      "name": "createMinorLink",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "tokenHash"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 74,
+      "name": "revokeMinorLinks",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 80,
+      "name": "reviewMinorDocument",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 92,
+      "name": "deleteMinorDocument",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/minors/actions.ts",
+      "line": 105,
+      "name": "uploadMinorDocument",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "tokenHash",
+        "tokenHash"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/notifications/actions.ts",
+      "line": 85,
+      "name": "getNotificationsPanel",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "visibleToProfileFilter"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/notifications/actions.ts",
+      "line": 160,
+      "name": "markNotificationsLues",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "visibleToProfileFilter"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/notifications/actions.ts",
+      "line": 176,
+      "name": "markAllNotificationsLues",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "visibleToProfileFilter"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 34,
+      "name": "getPartageToken",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow",
+        "dansCategorie(\n    supabase.from(\"partage_liens\").select(\"token\").eq(\"projet_id\", projetId).eq(\"type\", type),\n    categorie\n  ).maybeSingle",
+        "supabase.from(\"partage_liens\").select(\"token\").eq(\"projet_id\", projetId).eq",
+        "supabase.from(\"partage_liens\").select(\"token\").eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 48,
+      "name": "getPartageTitre",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 59,
+      "name": "updatePartageTitre",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 71,
+      "name": "createPartageLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow",
+        "genToken",
+        "supabase.from(\"partage_liens\").update({ token }).eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 95,
+      "name": "updateCastingDocVisible",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 124,
+      "name": "updateFichesRolesMasquerContact",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 136,
+      "name": "revokePartageLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 148,
+      "name": "getJourneePartageLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow",
+        "supabase\n    .from(\"partage_journee_liens\")\n    .select(\"token, show_contacts\")\n    .eq(\"projet_id\", projetId)\n    .eq(\"date\", date)\n    .maybeSingle",
+        "supabase\n    .from(\"partage_journee_liens\")\n    .select(\"token, show_contacts\")\n    .eq(\"projet_id\", projetId)\n    .eq",
+        "supabase\n    .from(\"partage_journee_liens\")\n    .select(\"token, show_contacts\")\n    .eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 161,
+      "name": "createJourneePartageLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow",
+        "genToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 175,
+      "name": "revokeJourneePartageLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/actions.ts",
+      "line": 188,
+      "name": "updateReelOption",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireAccessOrThrow"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/suivi.ts",
+      "line": 108,
+      "name": "signalerVisitePartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "lienParToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/suivi.ts",
+      "line": 121,
+      "name": "commentairesDuLien",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "lienParToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/suivi.ts",
+      "line": 126,
+      "name": "commenterPartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "lienParToken"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/suivi.ts",
+      "line": 159,
+      "name": "lireSuiviPartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/partage/suivi.ts",
+      "line": 180,
+      "name": "repondrePartage",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projet-context.ts",
+      "line": 10,
+      "name": "getCurrentProjetId",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projet-context.ts",
+      "line": 19,
+      "name": "setCurrentProjet",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projet-context.ts",
+      "line": 33,
+      "name": "clearCurrentProjet",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 57,
+      "name": "createProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef",
+        "supabase\n    .from(\"projets\")\n    .insert({ ...payload, owner_id: profile.id, gmail_smtp_app_password: gmailAppPasswordEncrypted })\n    .select(\"id\")\n    .single",
+        "supabase\n    .from(\"projets\")\n    .insert({ ...payload, owner_id: profile.id, gmail_smtp_app_password: gmailAppPasswordEncrypted })\n    .select"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 101,
+      "name": "updateProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 155,
+      "name": "deleteProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 174,
+      "name": "archiverProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 205,
+      "name": "desarchiverProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/actions.ts",
+      "line": 217,
+      "name": "countProjetTemporaires",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/annonce-photo-actions.ts",
+      "line": 8,
+      "name": "updateProjetAnnoncePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/annonce-photo-actions.ts",
+      "line": 41,
+      "name": "removeProjetAnnoncePhoto",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/fonctions.ts",
+      "line": 12,
+      "name": "listerFonctionsProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/fonctions.ts",
+      "line": 21,
+      "name": "oublierFonctionProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/tester-boite-actions.ts",
+      "line": 13,
+      "name": "testerBoiteEnvoiProjet",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/projets/tester-boite-actions.ts",
+      "line": 21,
+      "name": "testerMaBoiteEnvoi",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/references/actions.ts",
+      "line": 48,
+      "name": "ajouterReference",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/references/actions.ts",
+      "line": 74,
+      "name": "modifierReference",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/references/actions.ts",
+      "line": 103,
+      "name": "basculerReferenceVisible",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/references/actions.ts",
+      "line": 109,
+      "name": "supprimerReference",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/references/actions.ts",
+      "line": 119,
+      "name": "deplacerReference",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/reserve/actions.ts",
+      "line": 24,
+      "name": "mettreCandidaturesEnReserve",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/reserve/actions.ts",
+      "line": 55,
+      "name": "mettreBookingsEnReserve",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/reserve/actions.ts",
+      "line": 91,
+      "name": "retirerDeLaReserve",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/rgpd/actions.ts",
+      "line": 12,
+      "name": "anonymiserFigurant",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "requireChef"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/search/actions.ts",
+      "line": 21,
+      "name": "searchGlobal",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "buildProfileSearchFilter",
+        "(() => {\n      if (!hasSectionAccess(profile, \"/figurants\") || !profileFilter) return { data: [] };\n      let query = supabase.from(\"figurants\").select(\"id, prenom, nom, ville\")\n        .eq(\"confirme\", true).eq(\"acces_compte\", true).or(profileFilter).limit(RESULTS_PER_KIND);\n      if (poolClause) query = query.or(poolClause);\n      return query;\n    })",
+        "supabase.from(\"figurants\").select(\"id, prenom, nom, ville\")\n        .eq(\"confirme\", true).eq(\"acces_compte\", true).or(profileFilter).limit",
+        "(() => {\n      if (!hasSectionAccess(profile, \"/projets\")) return { data: [] };\n      let query = supabase.from(\"projets\").select(\"id, nom, lieu\").ilike(\"nom\", `%${q}%`).limit(RESULTS_PER_KIND);\n      if (accessibleIds !== null) query = query.in(\"id\", idsOrNone(accessibleIds));\n      return query;\n    })",
+        "(() => {\n      if (!hasSectionAccess(profile, \"/annonces\")) return { data: [] };\n      let query = supabase\n        .from(\"annonces\")\n        .select(\"id, titre, projets(nom)\")\n        .ilike(\"titre\", `%${q}%`)\n        .limit(RESULTS_PER_KIND);\n      if (accessibleIds !== null) query = query.in(\"projet_id\", idsOrNone(accessibleIds));\n      return query;\n    })"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/templates/actions.ts",
+      "line": 13,
+      "name": "createTemplate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/templates/actions.ts",
+      "line": 36,
+      "name": "updateTemplate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/templates/actions.ts",
+      "line": 65,
+      "name": "deleteTemplate",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/templates/actions.ts",
+      "line": 78,
+      "name": "copierModeleDeBase",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 13,
+      "name": "genererCleRelais",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 37,
+      "name": "statutRelais",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase.from(\"textos_file\").select(\"id\", { count: \"exact\", head: true }).eq(\"profile_id\", profile.id).eq",
+        "supabase.from(\"relais_textos\").select(\"derniere_activite, reponses_le, reponses_erreur\").eq(\"profile_id\", profile.id).maybeSingle"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 102,
+      "name": "noterTextosEnvoyesIphone",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 114,
+      "name": "mettreEnFileTextos",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "supabase.from(\"relais_textos\").select(\"profile_id\").eq(\"profile_id\", profile.id).maybeSingle",
+        "supabase.from(\"relais_textos\").select(\"profile_id\").eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 132,
+      "name": "annulerFileTextos",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile",
+        "createAdminClient()\n    .from(\"textos_file\")\n    .update({ statut: \"annule\" })\n    .eq(\"profile_id\", profile.id)\n    .eq(\"statut\", \"en_attente\")\n    .select",
+        "createAdminClient()\n    .from(\"textos_file\")\n    .update({ statut: \"annule\" })\n    .eq(\"profile_id\", profile.id)\n    .eq"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/textos/actions.ts",
+      "line": 146,
+      "name": "envoyerTextoTest",
+      "entry": "server-action",
+      "directAdmin": false,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 30,
+      "name": "creerLienValidation",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "checkProjetAccess",
+        "getCurrentProfile",
+        "supabase\n    .from(\"liens_validation\")\n    .insert({\n      annonce_id: annonceId,\n      projet_id: projetId,\n      source: annonceId ? \"candidatures\" : \"bookings\",\n      nom: nom.trim().slice(0, 120) || \"Validation\",\n      created_by: profile?.id ?? null,\n      toutes_journees: true,\n    })\n    .select(\"token\")\n    .single",
+        "supabase\n    .from(\"liens_validation\")\n    .insert({\n      annonce_id: annonceId,\n      projet_id: projetId,\n      source: annonceId ? \"candidatures\" : \"bookings\",\n      nom: nom.trim().slice(0, 120) || \"Validation\",\n      created_by: profile?.id ?? null,\n      toutes_journees: true,\n    })\n    .select"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 66,
+      "name": "supprimerLienValidation",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 79,
+      "name": "repondreSurLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [
+        "getCurrentProfile"
+      ],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 141,
+      "name": "signalerVisite",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 154,
+      "name": "voterProfil",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    },
+    {
+      "file": "src/lib/validation/actions.ts",
+      "line": 202,
+      "name": "commenterLien",
+      "entry": "server-action",
+      "directAdmin": true,
+      "guards": [],
+      "review": "inventaire statique seulement ; aucune validation automatique"
+    }
+  ]
+}

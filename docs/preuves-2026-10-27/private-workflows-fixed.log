@@ -1,0 +1,8 @@
+PASS exact/phone duplicate helper: foreign ordinary/actor private profiles excluded; own/shared profiles preserved
+PASS fuzzy duplicates: private foreign profile excluded; local/shared normal profiles preserved; actor exclusion preserved
+PASS create/edit/drop/bulk actions and direct REST refuse hidden people; original booking preserved
+PASS bulk private driver and hidden/unrelated account activation refused before transport
+PASS own-pool actor without account can be booked; hidden carpool driver refused
+PASS quick booking: forged foreign/private ids refused without booking/invitation, visible existing profile accepted
+PASS fitting/create/edit/drop/bulk/photo, presentiel single/bulk and casting single/bulk: hidden refused with no partial insertion; visible own/shared workflows and real JPEG preserved
+Cleanup fictional profiles/project/bookings only; no real invitations sent

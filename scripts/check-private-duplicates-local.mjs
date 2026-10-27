@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
+import sharp from 'sharp';
 import {createClient} from '@supabase/supabase-js';
 const url=new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);assert.equal(process.env.BOOKING_TEST_MODE,'1');assert.equal(url.protocol,'http:');assert.ok(['127.0.0.1','localhost'].includes(url.hostname));
 const options={auth:{persistSession:false,autoRefreshToken:false}};
@@ -10,7 +11,7 @@ const ok=r=>{assert.ifError(r.error);return r.data;};
 const auth=ok(await staff.auth.signInWithPassword({email:'assistante.test@test-chat-charge.fr',password:'booking-test'}));
 const ownProject='00000000-0000-4000-8000-0000000070e0',owner='00000000-0000-4000-8000-00000000c0c0',foreignProject=randomUUID();
 const people=Array.from({length:6},()=>randomUUID()), marker=randomUUID().slice(0,8),phone='0699'+String(Math.floor(Math.random()*1e6)).padStart(6,'0');
-const date='2030-06-01';let calls=0;
+const date='2030-06-01';let calls=0;const fittingDay=randomUUID(),presentielDay=randomUUID(),castRole=randomUUID();
 const dayExisted=ok(await admin.from('journees').select('id').eq('projet_id',ownProject).eq('date',date)).length>0;
 function load(file,mocks={}){const code=ts.transpileModule(readFileSync(new URL('../'+file,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;const exports={};new Function('require','exports',code)(name=>{if(name==='server-only')return {};assert.ok(name in mocks,'Unexpected import '+name);return mocks[name];},exports);return exports;}
 const shared={'@/lib/supabase/admin':{createAdminClient:()=>admin},'@/lib/supabase/server':{createServerSupabaseClient:async()=>staff}};
@@ -19,6 +20,10 @@ const fuzzy=load('src/lib/figurants/doublons.ts',{...shared,'@/lib/candidatures/
 const actions=load('src/lib/bookings/ajout-rapide-actions.ts',{...shared,'@/lib/minors/model':load('src/lib/minors/model.ts'),'next/cache':{revalidatePath:()=>{}},'@/lib/auth/session':{checkProjetAccess:async pid=>{const rows=ok(await staff.from('projets').select('id').eq('id',pid));return rows.length?null:'Accès refusé';}},'@/lib/figurants/photos':{insertFigurantPhoto:()=>{throw Error('Photo not used');}},'@/lib/candidats/invitation':{envoyerInvitationCompte:async()=>{calls++;return 'compte_existant';}},'@/lib/candidatures/types':load('src/lib/candidatures/types.ts'),'@/lib/figurants/doublons':fuzzy});
 const authContext={'@/lib/auth/session':{checkProjetAccess:async pid=>ok(await staff.from('projets').select('id').eq('id',pid)).length?null:'Acces refuse',getCurrentProfile:async()=>({id:auth.user.id,isOwner:false})}};
 const booking=load('src/lib/bookings/actions.ts',{...shared,...authContext,'@/lib/figurants/access':load('src/lib/figurants/access.ts',shared),'@/lib/noms':load('src/lib/noms.ts'),'next/cache':{revalidatePath:()=>{}},'next/navigation':{redirect:path=>{throw Object.assign(new Error('Redirect'),{redirect:path});}},'@/lib/candidats/messaging':{},'@/lib/candidats/email':{},'@/lib/candidats/mot-de-passe':{},'./drop-guard':load('src/lib/bookings/drop-guard.ts'),'./bulk-guard':load('src/lib/bookings/bulk-guard.ts',{'@/lib/candidatures/types':load('src/lib/candidatures/types.ts'),'./types':load('src/lib/bookings/types.ts')})});
+const workflowMocks={...shared,...authContext,'@/lib/figurants/access':load('src/lib/figurants/access.ts',shared),'next/cache':{revalidatePath:()=>{}},'next/navigation':{redirect:path=>{throw Object.assign(new Error('Redirect'),{redirect:path});}},'@/lib/candidats/messaging':{},'@/lib/media/validate-upload':load('src/lib/media/validate-upload.ts',{sharp})};
+const fitting=load('src/lib/essayages/actions.ts',workflowMocks);
+const presentiel=load('src/lib/casting-presentiel/actions.ts',workflowMocks);
+const casting=load('src/lib/casting/actions.ts',{...workflowMocks,'@/lib/figurants/comedien-twin':load('src/lib/figurants/comedien-twin.ts',{...shared,'@/lib/figurants/comedien-privacy':load('src/lib/figurants/comedien-privacy.ts')}),'@/lib/bookings/types':load('src/lib/bookings/types.ts'),'./upload-paths':load('src/lib/casting/upload-paths.ts'),'./bulk-status':load('src/lib/casting/bulk-status.ts')});
 const bookingForm=id=>{const f=new FormData();for(const [k,v] of Object.entries({figurant_id:id,projet_id:ownProject,date,fonction:'Figuration',cachet:'Figurant'}))f.set(k,v);return f;};
 const form=id=>{const f=new FormData();for(const [k,v] of Object.entries({prenom:'Autre',nom:'Choix',email:'unmatched-'+marker+'@example.test',telephone:'0600012345',choix:'reprendre:'+id}))f.set(k,v);return f;};
 try{
@@ -32,6 +37,9 @@ try{
   {...base,id:people[4],acces_compte:true},
   {...base,id:people[5],acces_compte:false,est_comedien:true,comedien_pool_id:auth.user.id},
  ]));
+ ok(await admin.from('essayage_journees').insert({id:fittingDay,projet_id:ownProject,date}));
+ ok(await admin.from('casting_presentiel_journees').insert({id:presentielDay,projet_id:ownProject,date}));
+ ok(await admin.from('casting_roles').insert({id:castRole,projet_id:ownProject,nom:'Private workflow fixture',nb_videos:0}));
  const visible=ok(await staff.from('figurants').select('id').in('id',people));assert.deepEqual(new Set(visible.map(x=>x.id)),new Set([people[0],people[3],people[4],people[5]]));
  if(!process.argv.includes('--probe-quick')){
  const duplicates=await duplicateModule.findPossibleDuplicates(people[0]);
@@ -66,10 +74,30 @@ try{
  assert.equal(calls,0,'Invitation attempted for inaccessible profile');
  const result=await actions.ajoutRapideBooking(ownProject,date,'Figuration','Figurant',form(people[3]));assert.ifError(result.error);assert.equal(ok(await admin.from('bookings').select('id').eq('figurant_id',people[3]).eq('projet_id',ownProject)).length,1);assert.equal(calls,1);
  console.log('PASS quick booking: forged foreign/private ids refused without booking/invitation, visible existing profile accepted');
+ const jpeg=await sharp({create:{width:24,height:24,channels:3,background:'#dbbb91'}}).jpeg().toBuffer();
+ const imageForm=()=>{const f=new FormData();f.set('photo',new File([jpeg],'fixture.jpg',{type:'image/jpeg'}));return f;};
+ for(const id of [people[1],people[2]]){
+  for(const run of [()=>fitting.createEssayage(null,bookingForm(id)),()=>fitting.addFigurantToEssayageJournee(fittingDay,id,ownProject,date,null),()=>fitting.sendFigurantsToEssayage([people[0],id],ownProject,date,null),()=>fitting.uploadTenuePhoto(id,ownProject,imageForm()),()=>presentiel.addFigurantToPresentielJournee(presentielDay,id,ownProject,null),()=>presentiel.sendFigurantsToPresentiel([people[0],id],ownProject,presentielDay,null,null),()=>casting.addFigurantToCastingRole(castRole,id),()=>casting.addFigurantsToCastingRole([people[5],id],castRole)])assert.ok((await run()).error,'Private workflow accepted hidden person');
+ }
+ for(const table of ['essayages','casting_entries','casting_presentiel_entries','figurant_photos'])assert.equal(ok(await admin.from(table).select('id').in('figurant_id',people)).length,0,'Mixed selection partially wrote '+table);
+ let redirected=false;try{await fitting.createEssayage(null,bookingForm(people[0]));}catch(error){assert.ok(error.redirect);redirected=true;}assert.equal(redirected,true);
+ const existingFitting=ok(await admin.from('essayages').select('id').eq('figurant_id',people[0]).single());assert.ok((await fitting.updateEssayage(existingFitting.id,null,bookingForm(people[1]))).error);
+ assert.equal(ok(await admin.from('essayages').select('figurant_id').eq('id',existingFitting.id).single()).figurant_id,people[0]);
+ assert.ifError((await fitting.addFigurantToEssayageJournee(fittingDay,people[3],ownProject,date,null)).error);
+ assert.ifError((await presentiel.addFigurantToPresentielJournee(presentielDay,people[3],ownProject,null)).error);
+ assert.ifError((await presentiel.sendFigurantsToPresentiel([people[5]],ownProject,presentielDay,null,null)).error);
+ assert.ifError((await casting.addFigurantToCastingRole(castRole,people[5])).error);
+ assert.ifError((await fitting.uploadTenuePhoto(people[3],ownProject,imageForm())).error);
+ assert.equal(ok(await admin.from('figurant_photos').select('id').eq('figurant_id',people[3])).length,1);
+ console.log('PASS fitting/create/edit/drop/bulk/photo, presentiel single/bulk and casting single/bulk: hidden refused with no partial insertion; visible own/shared workflows and real JPEG preserved');
 }finally{
  ok(await admin.from('bookings').delete().in('figurant_id',people));
  if(!dayExisted && ok(await admin.from('bookings').select('id').eq('projet_id',ownProject).eq('date',date)).length===0)ok(await admin.from('journees').delete().eq('projet_id',ownProject).eq('date',date));
+ const photoRows=ok(await admin.from('figurant_photos').select('storage_path').in('figurant_id',people));if(photoRows.length)ok(await admin.storage.from('figurant-photos').remove(photoRows.map(x=>x.storage_path)));
  ok(await admin.from('figurants').delete().in('id',people));
+ ok(await admin.from('essayage_journees').delete().eq('id',fittingDay));
+ ok(await admin.from('casting_presentiel_journees').delete().eq('id',presentielDay));
+ ok(await admin.from('casting_roles').delete().eq('id',castRole));
  ok(await admin.from('projets').delete().eq('id',foreignProject));
  await staff.auth.signOut();
  console.log('Cleanup fictional profiles/project/bookings only; no real invitations sent');

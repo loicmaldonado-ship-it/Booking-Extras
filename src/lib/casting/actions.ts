@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { validateImageUpload, validatePdfUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
@@ -232,6 +233,9 @@ async function createCastingEntry(
   entryMode: CastingMode,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
 
   const { data: role } = await supabase.from("casting_roles").select("categorie_cachet").eq("id", roleId).maybeSingle();
@@ -333,6 +337,9 @@ export async function addFigurantsToCastingRole(
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
 
   let ok = 0;
   let deja = 0;

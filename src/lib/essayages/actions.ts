@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { validateImageUpload } from "@/lib/media/validate-upload";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { checkProjetAccess } from "@/lib/auth/session";
@@ -37,6 +38,9 @@ export async function uploadTenuePhoto(figurantId: string, projetId: string, for
 
   const file = formData.get("photo");
   if (!(file instanceof File) || file.size === 0) return { error: "Aucune photo sélectionnée." };
+
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
   const validated = await validateImageUpload(file);
@@ -98,6 +102,9 @@ export async function createEssayage(_prevState: unknown, formData: FormData) {
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([payload.figurant_id]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("essayages")
@@ -120,6 +127,9 @@ export async function updateEssayage(id: string, _prevState: unknown, formData: 
   }
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants([payload.figurant_id]);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
   const { data: existing } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
@@ -223,6 +233,9 @@ export async function addFigurantToEssayageJournee(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
 
   const { data: existing } = await supabase
@@ -259,6 +272,9 @@ export async function sendFigurantsToEssayage(
   if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
 
