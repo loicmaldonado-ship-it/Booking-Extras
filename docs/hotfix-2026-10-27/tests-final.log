@@ -1,0 +1,69 @@
+
+> booking-extras@0.1.0 test
+> node --experimental-strip-types --test tests/*.test.mjs
+
+✔ each admin getter exposing share tokens checks project membership first (static guard) (287.646243ms)
+✔ casting présentiel migration drops unscoped access and checks project and day (static guard) (4.187574ms)
+✔ global figurant deletion requires owner rights, explicit confirmation and atomic database protection (40.234807ms)
+✔ profile merge is a single atomic RPC with authenticated actor and FK-safe rollback (7.413124ms)
+(node:63523) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/src/lib/figurants/duplicate-normalization.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ les formats français équivalents signalent le même téléphone (176.987591ms)
+✔ les numéros internationaux ne sont pas confondus avec les français (2.723916ms)
+✔ les numéros incomplets ou factices ne déclenchent pas d'alertes (0.596792ms)
+✔ le rapprochement des profils reste une suggestion humaine (5.33625ms)
+✔ figurant photos are readable only through visible profiles and their project (119.652061ms)
+✔ figurant links are readable only for a visible figurant (1.919408ms)
+✔ old unscoped authenticated Storage policies are removed (146.804291ms)
+✔ anonymous figurant mutations refuse before service-role access (5414.565203ms)
+✔ foreign figurant fails RLS visibility before privileged mutation (1186.185473ms)
+✔ candidate sessions deny missing, expired, revoked and database-error credentials (1361.652863ms)
+✔ candidate cookie is secure and session creation failure sets no cookie (107.858599ms)
+✔ logout revokes the server token before clearing the cookie; DB failure prevents false success (1433.855948ms)
+✔ all three privileged share readers deny non-members before admin reads (354.907844ms)
+✔ anonymous candidate activation and revocation deny before privileged writes (366.634112ms)
+✔ authenticated staff cannot activate or revoke an invisible private profile (765.846717ms)
+✔ une erreur Supabase bloque chaque mutation et n'annonce aucun rafraîchissement réussi (418.712778ms)
+✔ chaque mutation refuse l'absence de droits avant l'accès Supabase (15.636166ms)
+✔ les mutations autorisées réussies rafraîchissent le contenu (18.643955ms)
+✔ les lectures de tokens/titres distinguent erreur SQL et absence de ligne (17.249775ms)
+✔ les paramètres falsifiés ne modifient pas la visibilité casting (33.781779ms)
+✔ le lien réal échoue fermé si sa catégorie ou ses options ne sont pas lisibles (420.67054ms)
+✔ person access rejects malformed and oversized selections before touching a client (2256.56072ms)
+✔ person access fails closed on a missing row or database error (811.197982ms)
+✔ person access preserves large valid drops without relying on the API 1000-row cap (91.200839ms)
+✔ person access deduplicates case-insensitive ids and does not query empty selections (231.575642ms)
+✔ les deux CRON refusent toute requête si CRON_SECRET manque (2809.394889ms)
+✔ les deux CRON refusent un jeton incorrect (665.472738ms)
+✔ les deux CRON acceptent le jeton correct (50.369333ms)
+✔ sensitive candidate login-email methods are server-only helpers, not public Server Actions (416.270719ms)
+✔ full candidate edit action checks the signed-in staff member (8.872107ms)
+✔ schema denies role changes by ordinary authenticated users (5.212812ms)
+✔ install caches only the public offline page (321.142859ms)
+✔ activation purges legacy Booking Extras caches but not other applications (35.422546ms)
+✔ private navigations are never cached, even when the network succeeds (12.409214ms)
+✔ offline navigation never returns a previously cached private page (3.831154ms)
+✔ non-navigation requests are left alone (1.729102ms)
+✔ direct authenticated Storage permissions are dropped for each sensitive bucket (3.638952ms)
+✔ public read policies are preserved and no broad replacement policy is introduced (1.712121ms)
+✔ migration runs atomically (0.547979ms)
+(node:63539) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/src/lib/media/validate-upload.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ fully decodes real JPEG, PNG, WebP images and sets a canonical extension (671.461892ms)
+✔ rejects MIME spoofing and disguised executables or SVG (2.481581ms)
+✔ rejects empty and oversized image payloads (7.218662ms)
+✔ validates PDF bytes and declared MIME rather than extension (3.017947ms)
+✔ rejects valid signatures without decodable pixels and truncated images (262.272583ms)
+✔ rejects a small compressed image whose dimensions exceed the decompression limit (386.224465ms)
+ℹ tests 49
+ℹ suites 0
+ℹ pass 49
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21970.244202

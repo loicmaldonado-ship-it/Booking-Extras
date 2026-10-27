@@ -1,0 +1,923 @@
+NOTICE:  drop cascades to 127 other objects
+DETAIL:  drop cascades to function activer_compte_invitation(text,text,date,jsonb)
+drop cascades to function casting_path_component(text)
+drop cascades to function changer_mot_de_passe_candidat(uuid,text,boolean,text)
+drop cascades to function check_minor_identity_update()
+drop cascades to function commit_minor_upload(text,text,text,text,text)
+drop cascades to function compte_candidat_dans_base()
+drop cascades to function consume_candidate_auth_attempt(text)
+drop cascades to function consume_candidate_auth_limits(text,text,text)
+drop cascades to function consume_minor_upload(text,text)
+drop cascades to function delete_unused_figurant(uuid)
+drop cascades to function enforce_candidate_access_for_credentials()
+drop cascades to function enforce_minor_booking()
+drop cascades to function enforce_minor_convocation()
+drop cascades to function enforce_minor_representatives()
+drop cascades to function enforce_public_casting_storage_state()
+drop cascades to trigger zz_public_casting_storage_state on table storage.objects
+drop cascades to function enforce_staff_person_reference()
+drop cascades to function enregistrer_fonction_projet(uuid,text)
+drop cascades to function finaliser_casting_atomique(uuid,text[],jsonb,jsonb,text,jsonb)
+drop cascades to function finaliser_rebooking()
+drop cascades to function handle_new_auth_user()
+drop cascades to trigger on_auth_user_created on table users
+drop cascades to function has_projet_access(uuid)
+drop cascades to function is_chef()
+drop cascades to function is_owner()
+drop cascades to function marquer_candidature_envoyee_en_booking()
+drop cascades to function merge_figurants_atomique(uuid,uuid)
+drop cascades to function minor_dossier_complete(uuid,uuid,date)
+drop cascades to function minor_guardian_fingerprint(uuid,integer)
+drop cascades to function minor_guardians_complete(uuid)
+drop cascades to function nom_onglet_journee(date)
+drop cascades to function preparer_effacement_figurant(uuid,uuid)
+drop cascades to function prevent_profile_privilege_escalation()
+drop cascades to function protect_minor_dossier_files()
+drop cascades to function review_minor_document(uuid,text,date,uuid,text,text,text)
+drop cascades to function revoke_candidate_credentials()
+drop cascades to function rgpd_block_profile_change()
+drop cascades to function rgpd_block_storage_write()
+drop cascades to trigger rgpd_storage_subject on table storage.objects
+drop cascades to function rgpd_block_subject_write()
+drop cascades to function rgpd_media_paths(uuid)
+drop cascades to function rgpd_subjects_from_row(jsonb)
+drop cascades to function save_minor_guardians(uuid,jsonb)
+drop cascades to function set_updated_at()
+drop cascades to function staff_session_is_current()
+drop cascades to function sync_onglet_journee()
+drop cascades to function sync_onglets_journees_annonce()
+drop cascades to function terminer_effacement_figurant(uuid,uuid)
+drop cascades to function trg_besoins_fonction()
+drop cascades to function trg_bookings_fonction()
+drop cascades to function trg_candidatures_fonction()
+drop cascades to function update_candidate_identity(uuid,text,date,jsonb)
+drop cascades to table agents
+drop cascades to table annonce_dates
+drop cascades to table annonce_photos
+drop cascades to table annonce_questions
+drop cascades to table annonces
+drop cascades to table bareme_cachets
+drop cascades to table bareme_majorations
+drop cascades to table boites_mail_releve
+drop cascades to table booking_indemnites
+drop cascades to table booking_majorations
+drop cascades to table bookings
+drop cascades to table candidate_auth_attempts
+drop cascades to table candidature_disponibilites
+drop cascades to table candidature_etiquette_liens
+drop cascades to table candidature_etiquettes
+drop cascades to table candidature_jours
+drop cascades to table candidature_onglets
+drop cascades to table candidature_photos
+drop cascades to table candidature_reponses
+drop cascades to table candidatures
+drop cascades to table casting_avis
+drop cascades to table casting_entries
+drop cascades to table casting_invitations
+drop cascades to table casting_presentiel_creneaux
+drop cascades to table casting_presentiel_entries
+drop cascades to table casting_presentiel_journees
+drop cascades to table casting_roles
+drop cascades to table casting_upload_events
+drop cascades to table casting_videos_allegees
+drop cascades to table derniers_messages
+drop cascades to table document_templates
+drop cascades to table envoi_destinataires
+drop cascades to table envois
+drop cascades to table essayage_creneaux
+drop cascades to table essayage_journees
+drop cascades to table essayage_lieux
+drop cascades to table essayages
+drop cascades to table figurant_auth_tokens
+drop cascades to table figurant_comptes
+drop cascades to table figurant_indisponibilites
+drop cascades to table figurant_liens
+drop cascades to table figurant_messages
+drop cascades to table figurant_photos
+drop cascades to table figurant_sessions
+drop cascades to table figurants
+drop cascades to table journee_besoins
+drop cascades to table journees
+drop cascades to table lien_validation_profils
+and 27 other objects (see server log for list)
+DROP SCHEMA
+CREATE SCHEMA
+GRANT
+GRANT
+DO
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE FUNCTION
+NOTICE:  trigger "figurants_set_updated_at" for relation "public.figurants" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+GRANT
+GRANT
+GRANT
+GRANT
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "projets_set_updated_at" for relation "public.projets" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "annonces_set_updated_at" for relation "public.annonces" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "candidatures_set_updated_at" for relation "public.candidatures" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "bookings_set_updated_at" for relation "public.bookings" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+DROP TRIGGER
+NOTICE:  trigger "bareme_cachets_set_updated_at" for relation "public.bareme_cachets" does not exist, skipping
+CREATE TRIGGER
+CREATE TABLE
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+NOTICE:  trigger "bareme_majorations_set_updated_at" for relation "public.bareme_majorations" does not exist, skipping
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+GRANT
+GRANT
+INSERT 0 9
+INSERT 0 23
+INSERT 0 12
+CREATE TABLE
+NOTICE:  trigger "profiles_set_updated_at" for relation "public.profiles" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+NOTICE:  trigger "essayages_set_updated_at" for relation "public.essayages" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+DROP TRIGGER
+NOTICE:  trigger "bookings_present_requiert_confirme" for relation "public.bookings" does not exist, skipping
+CREATE TRIGGER
+DROP TRIGGER
+DROP FUNCTION
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE TABLE
+INSERT 0 0
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+NOTICE:  trigger "on_auth_user_created" for relation "auth.users" does not exist, skipping
+CREATE FUNCTION
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+DROP POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+GRANT
+GRANT
+ALTER TABLE
+CREATE FUNCTION
+CREATE TABLE
+DROP TRIGGER
+NOTICE:  trigger "message_templates_set_updated_at" for relation "public.message_templates" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+NOTICE:  policy "scoped by projet" for relation "public.journee_besoins" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+NOTICE:  policy "authenticated read/write" for relation "public.question_templates" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "scoped by projet" for relation "public.annonce_questions" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "scoped by projet" for relation "public.candidature_reponses" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+NOTICE:  policy "scoped by projet" for relation "public.annonce_dates" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "scoped by projet" for relation "public.candidature_disponibilites" does not exist, skipping
+CREATE POLICY
+GRANT
+GRANT
+GRANT
+GRANT
+GRANT
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+NOTICE:  policy "scoped by projet" for relation "public.partage_liens" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "scoped by projet" for relation "public.partage_journee_liens" does not exist, skipping
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+NOTICE:  policy "scoped by projet" for relation "public.essayage_journees" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+GRANT
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+ALTER TABLE
+CREATE INDEX
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+NOTICE:  policy "authenticated full access" for relation "public.candidature_onglets" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+GRANT
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+GRANT
+GRANT
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE POLICY
+GRANT
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+UPDATE 0
+CREATE FUNCTION
+GRANT
+CREATE FUNCTION
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+DROP TRIGGER
+NOTICE:  trigger "casting_presentiel_entries_set_updated_at" for relation "public.casting_presentiel_entries" does not exist, skipping
+CREATE TRIGGER
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+INSERT 0 0
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+UPDATE 0
+UPDATE 0
+UPDATE 0
+UPDATE 0
+CREATE FUNCTION
+DROP POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+DROP INDEX
+CREATE INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+UPDATE 1
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE POLICY
+GRANT
+UPDATE 1
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+UPDATE 0
+ALTER TABLE
+UPDATE 0
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+NOTICE:  policy "scoped by projet" for relation "public.candidature_jours" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+DROP TRIGGER
+NOTICE:  trigger "bookings_marquer_candidature" for relation "public.bookings" does not exist, skipping
+CREATE TRIGGER
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+UPDATE 0
+CREATE TABLE
+ALTER TABLE
+GRANT
+INSERT 0 0
+CREATE POLICY
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+CREATE TABLE
+ALTER TABLE
+GRANT
+INSERT 0 0
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+GRANT
+UPDATE 1
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+DROP TRIGGER
+NOTICE:  trigger "bookings_finaliser_rebooking" for relation "public.bookings" does not exist, skipping
+CREATE TRIGGER
+CREATE FUNCTION
+NOTICE:  trigger "figurant_comptes_dans_base" for relation "public.figurant_comptes" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+CREATE TABLE
+ALTER TABLE
+GRANT
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+UPDATE 3
+INSERT 0 0
+DROP POLICY
+REVOKE
+GRANT
+ALTER TABLE
+ALTER TABLE
+INSERT 0 0
+DELETE 0
+UPDATE 0
+CREATE INDEX
+DROP POLICY
+REVOKE
+GRANT
+DELETE 0
+UPDATE 3
+INSERT 0 14
+NOTICE:  constraint "question_templates_equipe_label_idx" of relation "question_templates" does not exist, skipping
+ALTER TABLE
+DROP INDEX
+CREATE INDEX
+INSERT 0 14
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+NOTICE:  trigger "bookings_fonction_projet" for relation "public.bookings" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+NOTICE:  trigger "besoins_fonction_projet" for relation "public.journee_besoins" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+NOTICE:  trigger "candidatures_fonction_projet" for relation "public.candidatures" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+INSERT 0 0
+ALTER TABLE
+UPDATE 0
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+GRANT
+GRANT
+CREATE TABLE
+ALTER TABLE
+GRANT
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+GRANT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+NOTICE:  constraint "figurant_auth_tokens_objet_check" of relation "figurant_auth_tokens" does not exist, skipping
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE FUNCTION
+CREATE FUNCTION
+NOTICE:  trigger "annonce_dates_onglet_journee" for relation "public.annonce_dates" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+NOTICE:  trigger "annonces_onglets_journees" for relation "public.annonces" does not exist, skipping
+DROP TRIGGER
+CREATE TRIGGER
+INSERT 0 0
+CREATE TABLE
+ALTER TABLE
+GRANT
+INSERT 0 0
+UPDATE 0
+UPDATE 0
+DELETE 1
+CREATE TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+DROP POLICY
+NOTICE:  policy "scoped by projet" for relation "public.candidature_etiquettes" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+NOTICE:  policy "scoped by projet" for relation "public.candidature_etiquette_liens" does not exist, skipping
+CREATE POLICY
+GRANT
+CREATE TABLE
+CREATE INDEX
+NOTICE:  policy "scoped by projet" for relation "public.reserve_profils" does not exist, skipping
+ALTER TABLE
+DROP POLICY
+CREATE POLICY
+GRANT
+UPDATE 1
+CREATE TABLE
+ALTER TABLE
+GRANT
+INSERT 0 0
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+GRANT
+ALTER TABLE
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+NOTICE:  constraint "partage_liens_categorie_casting_check" of relation "partage_liens" does not exist, skipping
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX

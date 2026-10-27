@@ -1,0 +1,249 @@
+src/app/admin/page.tsx-30-
+src/app/admin/page.tsx-31-  const supabase = createAdminClient();
+src/app/admin/page.tsx-32-  const [{ data: chefs }, { data: projets }, { data: tousLesProfils }, { data: usersList }] = await Promise.all([
+src/app/admin/page.tsx:33:    supabase.from("profiles").select("id, email, nom, prenom").eq("role", "chef").order("email"),
+src/app/admin/page.tsx-34-    supabase.from("projets").select("id, nom, owner_id").eq("archive", false),
+src/app/admin/page.tsx-35-    supabase
+src/app/admin/page.tsx:36:      .from("profiles")
+src/app/admin/page.tsx-37-      .select("id, email, nom, prenom, role, avatar_storage_path, last_seen_at")
+src/app/admin/page.tsx-38-      .order("role")
+src/app/admin/page.tsx-39-      .returns<
+src/app/admin/page.tsx-40-        { id: string; email: string | null; nom: string | null; prenom: string | null; role: "chef" | "assistant"; avatar_storage_path: string | null; last_seen_at: string | null }[]
+src/app/admin/page.tsx-41-      >(),
+--
+src/app/equipe/page.tsx-42-    membresQuery.returns<Membre[]>(),
+src/app/equipe/page.tsx-43-    getMyTeamPresence(profile),
+src/app/equipe/page.tsx-44-    supabase
+src/app/equipe/page.tsx:45:      .from("profiles")
+src/app/equipe/page.tsx-46-      .select("gmail_smtp_user, email_espace_perso_template, email_magic_link_template")
+src/app/equipe/page.tsx-47-      .eq("id", profile.id)
+src/app/equipe/page.tsx-48-      .maybeSingle(),
+src/app/equipe/page.tsx-49-  ]);
+src/app/equipe/page.tsx-50-
+--
+src/app/admin/support/page.tsx-31-
+src/app/admin/support/page.tsx-32-  const [{ data: chefsRaw }, { data: usersList }] = await Promise.all([
+src/app/admin/support/page.tsx-33-    supabase
+src/app/admin/support/page.tsx:34:      .from("profiles")
+src/app/admin/support/page.tsx-35-      .select("id, email, nom, prenom, last_seen_at")
+src/app/admin/support/page.tsx-36-      .eq("role", "chef")
+src/app/admin/support/page.tsx-37-      .neq("id", profile!.id)
+src/app/admin/support/page.tsx-38-      .returns<{ id: string; email: string | null; nom: string | null; prenom: string | null; last_seen_at: string | null }[]>(),
+src/app/admin/support/page.tsx-39-    supabase.auth.admin.listUsers({ perPage: 1000 }),
+--
+src/lib/auth/support.ts-19-  if (!isOwner(profile)) throw new Error("Réservé au compte propriétaire.");
+src/lib/auth/support.ts-20-
+src/lib/auth/support.ts-21-  const admin = createAdminClient();
+src/lib/auth/support.ts:22:  const { data: chef } = await admin.from("profiles").select("id, role").eq("id", chefId).maybeSingle();
+src/lib/auth/support.ts-23-  if (!chef || chef.role !== "chef" || chef.id === profile!.id) throw new Error("Cheffe introuvable.");
+src/lib/auth/support.ts-24-
+src/lib/auth/support.ts-25-  let projetActif = projetId ?? null;
+src/lib/auth/support.ts-26-  if (projetActif) {
+src/lib/auth/support.ts-27-    const { data: projet } = await admin.from("projets").select("owner_id").eq("id", projetActif).maybeSingle();
+--
+src/lib/auth/invite.ts-14-): Promise<{ id: string | null; invited: boolean; error: string | null }> {
+src/lib/auth/invite.ts-15-  const admin = createAdminClient();
+src/lib/auth/invite.ts-16-
+src/lib/auth/invite.ts:17:  const { data: profil } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
+src/lib/auth/invite.ts-18-  if (profil) return { id: profil.id, invited: false, error: null };
+src/lib/auth/invite.ts-19-
+src/lib/auth/invite.ts-20-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+src/lib/auth/invite.ts-21-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+src/lib/auth/invite.ts-22-    redirectTo: `${siteUrl}/auth/invite`,
+--
+src/lib/auth/avatar-actions.ts-29-    .upload(path, photo, { contentType: photo.type, upsert: false });
+src/lib/auth/avatar-actions.ts-30-  if (uploadError) return { error: uploadError.message };
+src/lib/auth/avatar-actions.ts-31-
+src/lib/auth/avatar-actions.ts:32:  const { error } = await supabase.from("profiles").update({ avatar_storage_path: path }).eq("id", profile.id);
+src/lib/auth/avatar-actions.ts-33-  if (error) return { error: error.message };
+src/lib/auth/avatar-actions.ts-34-
+src/lib/auth/avatar-actions.ts-35-  revalidatePath("/", "layout");
+src/lib/auth/avatar-actions.ts-36-  return { success: true as const };
+src/lib/auth/avatar-actions.ts-37-}
+--
+src/lib/auth/session.ts-57-  if (!user) return null;
+src/lib/auth/session.ts-58-
+src/lib/auth/session.ts-59-  const { data: profile } = await supabase
+src/lib/auth/session.ts:60:    .from("profiles")
+src/lib/auth/session.ts-61-    .select("id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees, is_owner, comedien_pool_id, acces_complet")
+src/lib/auth/session.ts-62-    .eq("id", user.id)
+src/lib/auth/session.ts-63-    .single();
+src/lib/auth/session.ts-64-
+src/lib/auth/session.ts-65-  if (!profile) return null;
+--
+src/lib/auth/session.ts-70-  // client dédié.
+src/lib/auth/session.ts-71-  const lastSeen = profile.last_seen_at ? new Date(profile.last_seen_at) : null;
+src/lib/auth/session.ts-72-  if (!lastSeen || Date.now() - lastSeen.getTime() > LAST_SEEN_THROTTLE_MS) {
+src/lib/auth/session.ts:73:    await supabase.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", profile.id);
+src/lib/auth/session.ts-74-  }
+src/lib/auth/session.ts-75-
+src/lib/auth/session.ts-76-  const avatarUrl = profile.avatar_storage_path
+src/lib/auth/session.ts-77-    ? supabase.storage.from("profile-avatars").getPublicUrl(profile.avatar_storage_path).data.publicUrl
+src/lib/auth/session.ts-78-    : null;
+--
+src/lib/auth/session.ts-119-  const id = await getSupportChefId(profile);
+src/lib/auth/session.ts-120-  if (!id) return null;
+src/lib/auth/session.ts-121-  const { data } = await createAdminClient()
+src/lib/auth/session.ts:122:    .from("profiles")
+src/lib/auth/session.ts-123-    .select("nom, prenom, email, role")
+src/lib/auth/session.ts-124-    .eq("id", id)
+src/lib/auth/session.ts-125-    .maybeSingle();
+src/lib/auth/session.ts-126-  if (!data || data.role !== "chef") return null;
+src/lib/auth/session.ts-127-  return { id, nom: profileDisplayName(data) ?? data.email ?? "cheffe" };
+--
+src/lib/admin/actions.ts-26-  if (!profileId) return { error };
+src/lib/admin/actions.ts-27-
+src/lib/admin/actions.ts-28-  const admin = createAdminClient();
+src/lib/admin/actions.ts:29:  const { error: updateError } = await admin.from("profiles").update({ role: "chef" }).eq("id", profileId);
+src/lib/admin/actions.ts-30-  if (updateError) return { error: updateError.message };
+src/lib/admin/actions.ts-31-
+src/lib/admin/actions.ts-32-  revalidatePath("/admin");
+src/lib/admin/actions.ts-33-  return { success: true, invited };
+src/lib/admin/actions.ts-34-}
+--
+src/lib/admin/actions.ts-65-export async function resendChefInvite(chefId: string) {
+src/lib/admin/actions.ts-66-  await requireOwner();
+src/lib/admin/actions.ts-67-  const admin = createAdminClient();
+src/lib/admin/actions.ts:68:  const { data: chef } = await admin.from("profiles").select("email").eq("id", chefId).single();
+src/lib/admin/actions.ts-69-  if (!chef?.email) return { error: "Email introuvable pour ce compte." };
+src/lib/admin/actions.ts-70-
+src/lib/admin/actions.ts-71-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+src/lib/admin/actions.ts-72-  const { error } = await admin.auth.admin.inviteUserByEmail(chef.email, {
+src/lib/admin/actions.ts-73-    redirectTo: `${siteUrl}/auth/invite`,
+--
+src/lib/auth/profile-actions.ts-26-  }
+src/lib/auth/profile-actions.ts-27-
+src/lib/auth/profile-actions.ts-28-  const supabase = createAdminClient();
+src/lib/auth/profile-actions.ts:29:  const { error } = await supabase.from("profiles").update({ prenom, nom, telephone }).eq("id", profile.id);
+src/lib/auth/profile-actions.ts-30-  if (error) return { error: error.message };
+src/lib/auth/profile-actions.ts-31-
+src/lib/auth/profile-actions.ts-32-  revalidatePath("/", "layout");
+src/lib/auth/profile-actions.ts-33-  return { success: true as const };
+src/lib/auth/profile-actions.ts-34-}
+--
+src/lib/projets/email-templates.ts-22-  if (!projet?.owner_id) return null;
+src/lib/projets/email-templates.ts-23-
+src/lib/projets/email-templates.ts-24-  const { data: owner } = await supabase
+src/lib/projets/email-templates.ts:25:    .from("profiles")
+src/lib/projets/email-templates.ts-26-    .select(COLUMN[key])
+src/lib/projets/email-templates.ts-27-    .eq("id", projet.owner_id)
+src/lib/projets/email-templates.ts-28-    .maybeSingle<Record<string, string | null>>();
+src/lib/projets/email-templates.ts-29-
+src/lib/projets/email-templates.ts-30-  return owner?.[COLUMN[key]] ?? null;
+--
+src/lib/auth/email-actions.ts-34-    gmailAppPasswordEncrypted = encryptSecret(motDePasseApp(gmailAppPasswordInput));
+src/lib/auth/email-actions.ts-35-  } else {
+src/lib/auth/email-actions.ts-36-    const { data: existing } = await supabase
+src/lib/auth/email-actions.ts:37:      .from("profiles")
+src/lib/auth/email-actions.ts-38-      .select("gmail_smtp_app_password")
+src/lib/auth/email-actions.ts-39-      .eq("id", profile.id)
+src/lib/auth/email-actions.ts-40-      .maybeSingle();
+src/lib/auth/email-actions.ts-41-    gmailAppPasswordEncrypted = existing?.gmail_smtp_app_password ?? null;
+src/lib/auth/email-actions.ts-42-  }
+--
+src/lib/auth/email-actions.ts-46-  }
+src/lib/auth/email-actions.ts-47-
+src/lib/auth/email-actions.ts-48-  const { error } = await supabase
+src/lib/auth/email-actions.ts:49:    .from("profiles")
+src/lib/auth/email-actions.ts-50-    .update({ gmail_smtp_user: gmailUser, gmail_smtp_app_password: gmailAppPasswordEncrypted })
+src/lib/auth/email-actions.ts-51-    .eq("id", profile.id);
+src/lib/auth/email-actions.ts-52-  if (error) return { error: error.message };
+src/lib/auth/email-actions.ts-53-
+src/lib/auth/email-actions.ts-54-  revalidatePath("/equipe");
+--
+src/lib/auth/email-actions.ts-63-
+src/lib/auth/email-actions.ts-64-  const supabase = createAdminClient();
+src/lib/auth/email-actions.ts-65-  const { error } = await supabase
+src/lib/auth/email-actions.ts:66:    .from("profiles")
+src/lib/auth/email-actions.ts-67-    .update({
+src/lib/auth/email-actions.ts-68-      email_espace_perso_template: str(formData, "email_espace_perso_template"),
+src/lib/auth/email-actions.ts-69-      email_magic_link_template: str(formData, "email_magic_link_template"),
+src/lib/auth/email-actions.ts-70-    })
+src/lib/auth/email-actions.ts-71-    .eq("id", profile.id);
+--
+src/lib/projets/email.ts-59-  if (!ownerId) return { credentials: null };
+src/lib/projets/email.ts-60-
+src/lib/projets/email.ts-61-  const { data: owner } = await supabase
+src/lib/projets/email.ts:62:    .from("profiles")
+src/lib/projets/email.ts-63-    .select("email, gmail_smtp_user, gmail_smtp_app_password, is_owner")
+src/lib/projets/email.ts-64-    .eq("id", ownerId)
+src/lib/projets/email.ts-65-    .maybeSingle();
+src/lib/projets/email.ts-66-  if (!owner) return { credentials: null };
+src/lib/projets/email.ts-67-
+--
+src/lib/projets/signature.ts-22-  if (!projet.owner_id) return "";
+src/lib/projets/signature.ts-23-
+src/lib/projets/signature.ts-24-  const { data: owner } = await supabase
+src/lib/projets/signature.ts:25:    .from("profiles")
+src/lib/projets/signature.ts-26-    .select("prenom, nom")
+src/lib/projets/signature.ts-27-    .eq("id", projet.owner_id)
+src/lib/projets/signature.ts-28-    .maybeSingle();
+src/lib/projets/signature.ts-29-  if (!owner) return "";
+src/lib/projets/signature.ts-30-  return owner.prenom && owner.nom ? nomComplet(owner) : owner.nom ?? "";
+--
+src/lib/projets/signature.ts-47-  );
+src/lib/projets/signature.ts-48-  const { data: owners } =
+src/lib/projets/signature.ts-49-    ownerIds.length > 0
+src/lib/projets/signature.ts:50:      ? await supabase.from("profiles").select("id, prenom, nom").in("id", ownerIds)
+src/lib/projets/signature.ts-51-      : { data: [] as { id: string; prenom: string | null; nom: string | null }[] };
+src/lib/projets/signature.ts-52-  const ownerNameById = new Map(
+src/lib/projets/signature.ts-53-    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? nomComplet(o) : o.nom ?? ""])
+src/lib/projets/signature.ts-54-  );
+src/lib/projets/signature.ts-55-
+--
+src/lib/projets/signature.ts-74-  const ownerIds = Array.from(new Set((projets ?? []).filter((p) => p.owner_id).map((p) => p.owner_id as string)));
+src/lib/projets/signature.ts-75-  const { data: owners } =
+src/lib/projets/signature.ts-76-    ownerIds.length > 0
+src/lib/projets/signature.ts:77:      ? await supabase.from("profiles").select("id, prenom, nom, email").in("id", ownerIds)
+src/lib/projets/signature.ts-78-      : { data: [] as { id: string; prenom: string | null; nom: string | null; email: string | null }[] };
+src/lib/projets/signature.ts-79-  const ownerNameById = new Map(
+src/lib/projets/signature.ts-80-    (owners ?? []).map((o) => [o.id, o.prenom && o.nom ? nomComplet(o) : o.nom || o.email || ""])
+src/lib/projets/signature.ts-81-  );
+src/lib/projets/signature.ts-82-
+--
+src/lib/casting/rejoindre-actions.ts-45-  let figurantId = session.id;
+src/lib/casting/rejoindre-actions.ts-46-  if (role.categorie_cachet === "role" && role.projets?.owner_id) {
+src/lib/casting/rejoindre-actions.ts-47-    const { data: owner } = await supabase
+src/lib/casting/rejoindre-actions.ts:48:      .from("profiles")
+src/lib/casting/rejoindre-actions.ts-49-      .select("id, comedien_pool_id")
+src/lib/casting/rejoindre-actions.ts-50-      .eq("id", role.projets.owner_id)
+src/lib/casting/rejoindre-actions.ts-51-      .maybeSingle();
+src/lib/casting/rejoindre-actions.ts-52-    const twinId = await findOrCreateComedienTwin(
+src/lib/casting/rejoindre-actions.ts-53-      figurant,
+--
+src/lib/casting/rejoindre-actions.ts-118-  }
+src/lib/casting/rejoindre-actions.ts-119-
+src/lib/casting/rejoindre-actions.ts-120-  const { data: owner } = role.projets?.owner_id
+src/lib/casting/rejoindre-actions.ts:121:    ? await supabase.from("profiles").select("id, comedien_pool_id").eq("id", role.projets.owner_id).maybeSingle()
+src/lib/casting/rejoindre-actions.ts-122-    : { data: null };
+src/lib/casting/rejoindre-actions.ts-123-  const poolId = owner ? (owner.comedien_pool_id ?? owner.id) : null;
+src/lib/casting/rejoindre-actions.ts-124-
+src/lib/casting/rejoindre-actions.ts-125-  // Même email déjà dans cette base : on reprend la fiche seulement si c'est
+src/lib/casting/rejoindre-actions.ts-126-  // bien la même personne (nom identique) — sinon n'importe qui pourrait
+--
+src/lib/templates/equipe.ts-15-
+src/lib/templates/equipe.ts-16-  const supportChefId = await getSupportChefId(profile);
+src/lib/templates/equipe.ts-17-  if (supportChefId) {
+src/lib/templates/equipe.ts:18:    const { data } = await admin.from("profiles").select("id, comedien_pool_id").eq("id", supportChefId).maybeSingle();
+src/lib/templates/equipe.ts-19-    const cle = data ? (data.comedien_pool_id ?? data.id) : null;
+src/lib/templates/equipe.ts-20-    return { lecture: cle ? [cle] : [], ecriture: cle };
+src/lib/templates/equipe.ts-21-  }
+src/lib/templates/equipe.ts-22-
+src/lib/templates/equipe.ts-23-  if (profile.role === "chef") {
+--
+src/lib/textos/reponses.ts-26-  };
+src/lib/textos/reponses.ts-27-
+src/lib/textos/reponses.ts-28-  const [{ data: equipe }, { data: envois }, { data: file }] = await Promise.all([
+src/lib/textos/reponses.ts:29:    supabase.from("profiles").select("telephone").not("telephone", "is", null),
+src/lib/textos/reponses.ts-30-    // 1. Envois texto suivis (onglet Messages) faits par cette personne.
+src/lib/textos/reponses.ts-31-    supabase
+src/lib/textos/reponses.ts-32-      .from("envois")
+src/lib/textos/reponses.ts-33-      .select("projet_id, envoi_destinataires(figurant_id, envoye_le, figurants(telephone))")
+src/lib/textos/reponses.ts-34-      .eq("created_by", profileId)
+--
+src/lib/equipe/actions.ts-86-    .maybeSingle();
+src/lib/equipe/actions.ts-87-  if (!membre) throw new Error("Cet assistant·e n'est rattaché·e à aucun de vos projets.");
+src/lib/equipe/actions.ts-88-
+src/lib/equipe/actions.ts:89:  await admin.from("profiles").update({ sections_autorisees: sections }).eq("id", profileId);
+src/lib/equipe/actions.ts-90-  revalidatePath("/equipe");
+src/lib/equipe/actions.ts-91-}
