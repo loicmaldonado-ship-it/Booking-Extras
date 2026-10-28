@@ -20,6 +20,7 @@ export type ResultatAjoutRapide = {
   // Ce qu'il s'est passé côté mail « Crée ton compte ».
   mail?: "envoye" | "compte_existant" | "pas_email" | "erreur";
   mailErreur?: string;
+  avertissements?: string[];
   // Rien n'a été créé : des fiches ressemblent à cette personne, à
   // l'équipe de choisir (reprendre l'une d'elles, ou nouvelle fiche).
   doublons?: (DoublonProbable & { dejaDansJournee: boolean })[];
@@ -115,6 +116,7 @@ export async function ajoutRapideBooking(
     }
   }
   const existant = !!figurantId;
+  const avertissements: string[] = [];
   let nomAffiche = `${prenom} ${nom}`;
 
   if (figurantId) {
@@ -141,7 +143,7 @@ export async function ajoutRapideBooking(
     };
     if (Object.keys(complement).length > 0) {
       const { error } = await supabase.from("figurants").update(complement).eq("id", figurantId);
-      if (error) console.error("[ajoutRapideBooking] complément de fiche :", error.message);
+      if (error) avertissements.push("Les coordonnées n’ont pas pu être complétées sur la fiche.");
     }
   } else {
     const age = ageOnDate(birth, date);
@@ -169,7 +171,7 @@ export async function ajoutRapideBooking(
     figurantId = creee.id;
     if (photo instanceof File && photo.size > 0) {
       const res = await insertFigurantPhoto(supabase, creee.id, "portrait", photo);
-      if (res.error) console.error("[ajoutRapideBooking] photo :", res.error);
+      if (res.error) avertissements.push("La photo n’a pas pu être ajoutée à la fiche.");
     }
   }
 
@@ -221,5 +223,6 @@ export async function ajoutRapideBooking(
     existant,
     mail,
     mailErreur: typeof invitation === "object" ? invitation.erreur : undefined,
+    avertissements,
   };
 }
