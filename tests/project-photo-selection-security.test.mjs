@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/bookings/photos-actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(mode){let writes=0,photoReads=0;const db={from(table){let op='select';return{select(){return this},eq(){return this},in(){return this},limit(){return this},delete(){op='delete';writes++;return this},upsert(){op='upsert';writes++;return this},maybeSingle(){return Promise.resolve(mode==='unlinked'?{data:null,error:null}:mode==='booking-error'?{data:null,error:{message:'offline'}}:{data:{id:'booking'},error:null})},then(ok,bad){return Promise.resolve({data:table==='figurant_photos'&&mode==='photo-error'?null:[{id:'photo1',projet_id:mode==='foreign-photo'?'other':null}],error:mode==='photo-error'?{message:'offline'}:mode==='delete-error'&&op==='delete'?{message:'offline'}:null}).then(ok,bad)}}}};const exports={};new Function('require','exports',code)(n=>n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='@/lib/auth/session'?{checkProjetAccess:async()=>null}:n==='@/lib/documents/photos-projet'?{PHOTOS_PAR_DOCUMENT:3,getPhotosProjet:async()=>{photoReads++;return new Map()}}:n==='next/cache'?{revalidatePath:()=>{}}:{},exports);return{actions:exports,get writes(){return writes},get photoReads(){return photoReads}}}
+test('unlinked person photos cannot be loaded through another project',async()=>{const f=fixture('unlinked');const r=await f.actions.chargerChoixPhotos('project','person');assert.ok(r.error);assert.equal(f.photoReads,0)});
+test('unlinked person photo selection cannot be changed',async()=>{const f=fixture('unlinked');const r=await f.actions.enregistrerChoixPhotos('project','person',null);assert.ok(r.error);assert.equal(f.writes,0)});
+test('failed photo lookup never saves a partial selection',async()=>{const f=fixture('photo-error');const r=await f.actions.enregistrerChoixPhotos('project','person',['photo1']);assert.ok(r.error);assert.equal(f.writes,0)});
+test('failed reset returns error rather than success',async()=>{const f=fixture('delete-error');const r=await f.actions.enregistrerChoixPhotos('project','person',null);assert.ok(r.error)});
+test('a selection containing a missing photo is rejected without a partial save',async()=>{const f=fixture('partial');const r=await f.actions.enregistrerChoixPhotos('project','person',['photo1','photo2']);assert.ok(r.error);assert.equal(f.writes,0)});
+
+test('booking lookup failure refuses photo access',async()=>{const f=fixture('booking-error');const r=await f.actions.chargerChoixPhotos('project','person');assert.ok(r.error);assert.equal(f.photoReads,0)});
+test('a valid photo selection for a linked person can be saved',async()=>{const f=fixture('valid');const r=await f.actions.enregistrerChoixPhotos('project','person',['photo1']);assert.equal(r.error,undefined);assert.equal(f.writes,1)});
+
+test('a photo belonging to a different project cannot be selected',async()=>{const f=fixture('foreign-photo');const r=await f.actions.enregistrerChoixPhotos('project','person',['photo1']);assert.ok(r.error);assert.equal(f.writes,0)});
