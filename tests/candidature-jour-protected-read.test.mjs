@@ -9,7 +9,7 @@ const source = readFileSync(new URL('../src/lib/candidatures/jours.ts', import.m
 const compiled = ts.transpileModule(source, {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 async function run(fail) {
   let writes=0, revalidated=0;
-  const db={from(table){let update=false; const q={select(){return this},eq(){return this},in(){return this},update(){update=true;writes++;return this},maybeSingle(){return Promise.resolve(table==='annonce_dates'?{data:{annonce_id:'a',annonces:{projet_id:'p'}}}: {data:{id:'tab',annonce_id:'a'}})},then(ok,bad){let r=update?{error:null}:table==='candidatures'?{data:[{id:'candidate',onglet_id:'out'}],error:null}:{data:null,error:fail?{message:'offline'}:null};return Promise.resolve(r).then(ok,bad)}};return q}};
+  const db={from(table){let update=false; const q={select(){return this},eq(){return this},in(){return this},update(){update=true;writes++;return this},maybeSingle(){return Promise.resolve(table==='annonce_dates'?{data:{annonce_id:'a',annonces:{projet_id:'p'}}}: {data:{id:'tab',annonce_id:'a'}})},then(ok,bad){let r=update?{error:null}:table==='candidatures'?(fail==='candidate'?{data:null,error:{message:'offline'}}:{data:[{id:'candidate',onglet_id:'out'}],error:null}):{data:null,error:fail?{message:'offline'}:null};return Promise.resolve(r).then(ok,bad)}};return q}};
   const exports={}; runInNewContext(compiled,{exports,require(n){if(n==='@/lib/supabase/admin')return{createAdminClient:()=>db};if(n==='@/lib/auth/session')return{checkProjetAccess:async()=>null};if(n==='next/cache')return{revalidatePath:()=>revalidated++};return {}}});
   const result=await exports.setCandidaturesJourBulk(['candidate'],'date',true);
   return {result,writes,revalidated};
@@ -19,4 +19,8 @@ test('failed protected-tab lookup never moves a candidature', async () => {
   assert.ok(result.error);
   assert.equal(writes, 0);
   assert.equal(revalidated, 0);
+});
+
+test('failed candidate lookup in day assignment is not treated as an empty result',async()=>{
+ const {result,writes,revalidated}=await run('candidate');assert.ok(result.error);assert.equal(writes,0);assert.equal(revalidated,0);
 });

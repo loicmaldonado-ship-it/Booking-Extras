@@ -48,11 +48,12 @@ export async function setCandidaturesJourBulk(
   const onglet = await ongletDeLaJournee(annonceDateId);
   if (!onglet) return { error: "Cette journée n'a pas d'onglet." };
 
-  const { data: candidatures } = await supabase
+  const { data: candidatures, error: candidaturesError } = await supabase
     .from("candidatures")
     .select("id, onglet_id")
     .eq("annonce_id", annonceDate.annonce_id)
     .in("id", candidatureIds.slice(0, 300));
+  if (candidaturesError) return { error: "Impossible de vérifier les candidatures. Réessaie." };
   const rows = candidatures ?? [];
   if (rows.length === 0) return { n: 0 };
   // Les profils rangés dans OUT n'en sortent pas par ici (OUT prévient la
