@@ -344,31 +344,44 @@ export async function supprimerJourneeBasculee(projetId: string, date: string): 
   if (accessError) return { error: accessError };
   const supabase = createAdminClient();
 
-  const { data: journee } = await supabase
+  const { data: journee, error: journeeError } = await supabase
     .from("journees")
     .select("id, pdt_vers")
     .eq("projet_id", projetId)
     .eq("date", date)
     .maybeSingle();
+  if (journeeError) return { error: "Impossible de vérifier la journée." };
   if (!journee?.pdt_vers) return { error: "Cette journée n'a pas été basculée." };
 
-  const { data: restants } = await fetchAll<{ id: string }>((from, to) =>
+  const { data: restants, error: restantsError } = await fetchAll<{ id: string }>((from, to) =>
     supabase.from("bookings").select("id").eq("projet_id", projetId).eq("date", date).order("id").range(from, to)
   );
+  if (restantsError) return { error: "Impossible de vérifier les bookings de la journée." };
   const ids = restants.map((b) => b.id);
   for (let i = 0; i < ids.length; i += PAQUET_IN) {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .in("rebook_depuis_booking_id", ids.slice(i, i + PAQUET_IN));
-    if (count && count > 0) return { error: "Des profils sont encore « À REBOOKER » sur la nouvelle date." };
+    if (countError || count === null) return { error: "Impossible de vérifier les profils à rebooker." };
+    if (count > 0) return { error: "Des profils sont encore « À REBOOKER » sur la nouvelle date." };
   }
+  let suppressions = false;
+  const erreurSuppression = () => {
+    if (suppressions) {
+      revalidatePath("/bookings");
+      revalidatePath("/bookings/planning");
+      return { error: "Des bookings ont été supprimés, mais la suppression est incomplète. Vérifie la journée avant de réessayer." };
+    }
+    return { error: "Impossible de supprimer la journée." };
+  };
   for (let i = 0; i < ids.length; i += PAQUET_IN) {
     const { error } = await supabase.from("bookings").delete().in("id", ids.slice(i, i + PAQUET_IN));
-    if (error) return { error: error.message };
+    if (error) return erreurSuppression();
+    suppressions = true;
   }
   const { error } = await supabase.from("journees").delete().eq("id", journee.id);
-  if (error) return { error: error.message };
+  if (error) return erreurSuppression();
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/planning");
