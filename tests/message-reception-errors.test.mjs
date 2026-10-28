@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/messages/envois-actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure,already=false){const writes=[];const db={from(){let op='read';const q={select(){return this},eq(){return this},update(){op='update';writes.push(true);return this},maybeSingle(){return Promise.resolve({data:failure==='read'?null:{id:'recipient',accuse_le:already?'2026-01-01':null},error:failure==='read'?{message:'offline'}:null})},then(ok,bad){return Promise.resolve({error:failure==='write'&&op==='update'?{message:'offline'}:null}).then(ok,bad)}};return q}};const exports={};new Function('require','exports',code)(n=>n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='next/cache'?{revalidatePath:()=>{}}:{},exports);return{action:exports.confirmerReception,writes}}
+const token='00000000-0000-4000-8000-000000000000';
+test('read failure does not claim confirmation',async()=>{const f=fixture('read');assert.ok((await f.action(token)).error);assert.equal(f.writes.length,0)});
+test('write failure does not claim confirmation',async()=>{const f=fixture('write');assert.ok((await f.action(token)).error)});
+test('already confirmed link requires no write',async()=>{const f=fixture(null,true);assert.equal((await f.action(token)).error,undefined);assert.equal(f.writes.length,0)});

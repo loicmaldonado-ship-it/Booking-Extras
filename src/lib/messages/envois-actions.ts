@@ -175,10 +175,12 @@ export async function supprimerEnvoi(envoiId: string): Promise<{ error?: string 
 export async function confirmerReception(token: string): Promise<{ error?: string }> {
   if (!/^[0-9a-f-]{36}$/i.test(token)) return { error: "Lien invalide." };
   const supabase = createAdminClient();
-  const { data: ligne } = await supabase.from("envoi_destinataires").select("id, accuse_le").eq("token", token).maybeSingle();
+  const { data: ligne, error: lookupError } = await supabase.from("envoi_destinataires").select("id, accuse_le").eq("token", token).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier le lien. Réessaie." };
   if (!ligne) return { error: "Lien invalide ou expiré." };
   if (!ligne.accuse_le) {
-    await supabase.from("envoi_destinataires").update({ accuse_le: new Date().toISOString() }).eq("id", ligne.id);
+    const { error } = await supabase.from("envoi_destinataires").update({ accuse_le: new Date().toISOString() }).eq("id", ligne.id);
+    if (error) return { error: "Impossible d’enregistrer la confirmation. Réessaie." };
   }
   return {};
 }
