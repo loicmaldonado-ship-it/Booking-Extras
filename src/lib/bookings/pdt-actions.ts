@@ -337,8 +337,11 @@ export async function prevenirProfilsPdt(
       email: parEmail ? b.figurants?.email : null,
       subject: `${nomProjet} — changement de date de tournage`,
     });
-    if (res.error) echecs.push(nomComplet(b.figurants).trim() || "?");
-    else envoyes += 1;
+    if (res.error) {
+      const nom = nomComplet(b.figurants).trim() || "?";
+      echecs.push(`${nom} : ${res.error}`);
+      if (res.messageEnregistre) envoyes += 1;
+    } else envoyes += 1;
   }
   return { envoyes, echecs };
 }
