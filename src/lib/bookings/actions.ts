@@ -60,9 +60,10 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   if (personError) return { error: personError };
 
   const supabase = createAdminClient();
-  await supabase
+  const { error: journeeError } = await supabase
     .from("journees")
     .upsert({ projet_id: payload.projet_id, date: payload.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { error: "Impossible de préparer la journée de booking." };
   const { data, error } = await supabase.from("bookings").insert(payload).select("id").single();
 
   if (error) {
@@ -88,16 +89,16 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   if (personError) return { error: personError };
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const existingAccessError = await checkProjetAccess(existing.projet_id);
-    if (existingAccessError) return { error: existingAccessError };
-  }
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier ce booking." };
+  const existingAccessError = await checkProjetAccess(existing.projet_id);
+  if (existingAccessError) return { error: existingAccessError };
   // Une date changée ici doit exister comme journée, sinon le booking
   // n'apparaît plus dans aucune vue par journée.
-  await supabase
+  const { error: journeeError } = await supabase
     .from("journees")
     .upsert({ projet_id: payload.projet_id, date: payload.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { error: "Impossible de préparer la journée de booking." };
   const { error } = await supabase.from("bookings").update(payload).eq("id", id);
 
   if (error) {
@@ -111,12 +112,12 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
 
 export async function deleteBooking(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) throw new Error(accessError);
-  }
-  await supabase.from("bookings").delete().eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) throw new Error("Impossible de vérifier ce booking.");
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("bookings").delete().eq("id", id);
+  if (error) throw new Error("Impossible de supprimer ce booking.");
   revalidatePath("/bookings");
   redirect("/bookings");
 }
