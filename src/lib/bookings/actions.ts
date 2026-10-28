@@ -70,10 +70,10 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
     return { error: friendlyError(error.message) };
   }
 
-  await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
+  const { error: profilError } = await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
   revalidatePath("/figurants");
-
   revalidatePath("/bookings");
+  if (profilError) return { error: "Le booking a été créé, mais le profil n’a pas pu être mis à jour. Vérifie le booking existant avant de réessayer." };
   redirect(`/bookings/${data.id}`);
 }
 
