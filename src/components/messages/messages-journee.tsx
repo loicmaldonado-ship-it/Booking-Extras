@@ -762,16 +762,16 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
       for (let i = 0; i < items.length; i += PAQUET) {
         setProgression(`Envoi… ${envoyes + echecs}/${items.length}`);
         const res = await envoyerEnvoiEmail(prep.envoiId, items.slice(i, i + PAQUET));
+        envoyes += res.envoyes;
+        echecs += res.echecs;
         if (res.error) {
           setErreur(res.error);
           break;
         }
-        envoyes += res.envoyes;
-        echecs += res.echecs;
       }
       setProgression(null);
       setBilan(
-        `✓ Parti à ${envoyes} personne${envoyes > 1 ? "s" : ""}${echecs ? ` · ⚠ ${echecs} non envoyé${echecs > 1 ? "s" : ""} (sans email)` : ""}. Le suivi est juste en dessous.`
+        `✓ Parti à ${envoyes} personne${envoyes > 1 ? "s" : ""}${echecs ? ` · ⚠ ${echecs} échec${echecs > 1 ? "s" : ""} : vérifie le suivi` : ""}. Le suivi est juste en dessous.`
       );
       setEtape("fait");
       router.refresh();

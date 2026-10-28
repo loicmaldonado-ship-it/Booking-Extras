@@ -93,8 +93,9 @@ export async function envoyerEnvoiEmail(
   let echecs = 0;
   for (const it of items) {
     if (!it.email) {
-      await supabase.from("envoi_destinataires").update({ erreur: "Pas d'email" }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      const { error: suiviError } = await supabase.from("envoi_destinataires").update({ erreur: "Pas d'email" }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
       echecs += 1;
+      if (suiviError) return { error: "Suivi impossible à enregistrer. Vérifie les envois avant de réessayer.", envoyes, echecs };
       continue;
     }
     const res = await recordFigurantMessage({
@@ -109,23 +110,27 @@ export async function envoyerEnvoiEmail(
     const maintenant = new Date().toISOString();
     if (res.error) {
       echecs += 1;
-      await supabase.from("envoi_destinataires").update({ erreur: res.error }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      const { error: suiviError } = await supabase.from("envoi_destinataires").update({ erreur: res.error }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Message possiblement enregistré, mais son suivi a échoué. Vérifie avant de réessayer.", envoyes, echecs };
       continue;
     }
     envoyes += 1;
     if (relance) {
-      const { data: ligne } = await supabase.from("envoi_destinataires").select("relances").eq("id", it.destinataireId).maybeSingle();
-      await supabase
+      const { data: ligne, error: lectureError } = await supabase.from("envoi_destinataires").select("relances").eq("id", it.destinataireId).eq("envoi_id", envoiId).maybeSingle();
+      if (lectureError || !ligne) return { error: "Email envoyé mais suivi impossible à vérifier. Vérifie avant de réessayer.", envoyes, echecs };
+      const { error: suiviError } = await supabase
         .from("envoi_destinataires")
         .update({ relances: (ligne?.relances ?? 0) + 1, derniere_relance_le: maintenant, erreur: null })
         .eq("id", it.destinataireId)
         .eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Email envoyé mais suivi non enregistré. Vérifie avant de réessayer.", envoyes, echecs };
     } else {
-      await supabase
+      const { error: suiviError } = await supabase
         .from("envoi_destinataires")
         .update({ envoye_le: maintenant, erreur: null })
         .eq("id", it.destinataireId)
         .eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Email envoyé mais suivi non enregistré. Vérifie avant de réessayer.", envoyes, echecs };
     }
   }
   revalidatePath("/bookings/documents");
