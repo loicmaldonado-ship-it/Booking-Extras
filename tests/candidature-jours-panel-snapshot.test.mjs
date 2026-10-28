@@ -12,3 +12,7 @@ test('a sent day is marked while other available days remain selectable',()=>{
  const result=exports.marquerJoursEnvoyes(selected,'d1',['one']);
  assert.equal(result[0].jours[0].dansLaJournee,true);assert.equal(result[0].jours[1].disponible,true);assert.equal(result[0].jours[1].dansLaJournee,false);assert.equal(selected[0].jours[0].dansLaJournee,false);
 });
+test('a previously booked candidate can reopen remaining dates with accurate availability',()=>{
+ const result=exports.construireJoursReprise([{id:'d1',date:'2026-11-11'},{id:'d2',date:'2026-11-12'}],new Set(['d1','d2']),new Set(['2026-11-11']));
+ assert.equal(result[0].dansLaJournee,true);assert.equal(result[1].dansLaJournee,false);assert.equal(result[1].disponible,true);
+});

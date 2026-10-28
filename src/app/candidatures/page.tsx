@@ -1,3 +1,5 @@
+import { ReprendreJours } from "@/components/candidatures/reprendre-jours";
+import { construireJoursReprise } from "@/lib/candidatures/jours-panel-snapshot";
 import { comparerNoms, nomComplet } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/card";
@@ -332,14 +334,14 @@ export default async function CandidaturesPage({
       ? fetchAll((from, to) =>
           supabase
             .from("candidatures")
-            .select("id, figurants(prenom, nom, email)")
+            .select("id, figurants(id, prenom, nom, email)")
             .eq("annonce_id", annonceId)
             .not("envoyee_en_booking_le", "is", null)
             .order("id")
             .range(from, to)
-            .returns<{ id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[]>()
+            .returns<{ id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null }[]>()
         )
-      : Promise.resolve({ data: [] as { id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[] }),
+      : Promise.resolve({ data: [] as { id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null }[] }),
   ]);
 
   // Une journée est un onglet du classeur : « prévu » = rangé dans l'onglet
@@ -848,24 +850,30 @@ export default async function CandidaturesPage({
       {pucesFiltres}
 
       {(ailleurs.length > 0 || envoyeesTrouvees.length > 0 || reserveesTrouvees.length > 0) && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
           <span className="font-medium">Aussi trouvé ailleurs :</span>
           {ailleurs.map((a) => (
             <Link key={a.id} href={a.href} className="font-medium text-coral hover:underline">
               {a.nom} → {a.onglet}
             </Link>
           ))}
-          {envoyeesTrouvees.map((c) => (
-            <span key={c.id}>
-              {nomComplet(c.figurants)} → déjà envoyé·e dans une journée
-            </span>
-          ))}
+          {envoyeesTrouvees.map((c) => c.figurants && annonce ? (
+            <ReprendreJours key={c.id} projetId={annonce.projet_id} jours={jours} personne={{
+              id: c.id,
+              nom: nomComplet(c.figurants),
+              jours: construireJoursReprise(
+                annonceDates,
+                datesDispoByCandidature.get(c.id) ?? new Set(),
+                new Set(annonceDates.filter((d) => estTransfere(c.figurants?.id, d.id)).map((d) => d.date))
+              ),
+            }} />
+          ) : null)}
           {reserveesTrouvees.slice(0, 8).map((c) => (
             <Link key={c.id} href={`/bookings/reserve?projet_id=${annonce?.projet_id ?? ""}`} className="font-medium text-coral hover:underline">
               {nomComplet(c.figurants)} → 🗄️ en réserve
             </Link>
           ))}
-        </p>
+        </div>
       )}
 
       {error && (

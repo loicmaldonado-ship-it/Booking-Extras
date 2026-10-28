@@ -8,3 +8,16 @@ export function marquerJoursEnvoyes(selection: SelectionJours[], jourId: string,
     ? { ...personne, jours: personne.jours.map((jour) => jour.id === jourId ? { ...jour, dansLaJournee: true } : jour) }
     : personne);
 }
+
+export function construireJoursReprise(
+  dates: { id: string; date: string }[],
+  disponibilites: ReadonlySet<string>,
+  datesBookees: ReadonlySet<string>
+): JourCandidature[] {
+  return dates.map((date) => ({
+    ...date,
+    disponible: disponibilites.has(date.id),
+    prevu: false,
+    dansLaJournee: datesBookees.has(date.date),
+  }));
+}
