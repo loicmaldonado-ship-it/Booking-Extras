@@ -52,7 +52,11 @@ export async function creerEnvoi(params: {
     .insert(params.destinataires.map((d) => ({ envoi_id: envoi.id, figurant_id: d.figurantId, booking_id: d.bookingId })))
     .select("id, figurant_id, token");
   if (errLignes) {
-    await supabase.from("envois").delete().eq("id", envoi.id);
+    const { error: cleanupError } = await supabase.from("envois").delete().eq("id", envoi.id);
+    if (cleanupError) {
+      revalidatePath("/bookings/documents");
+      return { error: "Le suivi a été créé, mais les destinataires et son nettoyage ont échoué. Vérifie le suivi avant de réessayer." };
+    }
     return { error: "Destinataires impossibles à enregistrer, réessaie." };
   }
 
