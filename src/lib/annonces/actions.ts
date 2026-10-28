@@ -76,11 +76,10 @@ export async function updateAnnonce(
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const existingAccessError = await checkProjetAccess(existing.projet_id);
-    if (existingAccessError) return { error: existingAccessError };
-  }
+  const { data: existing, error: lookupError } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier cette annonce." };
+  const existingAccessError = await checkProjetAccess(existing.projet_id);
+  if (existingAccessError) return { error: existingAccessError };
   const { error } = await supabase.from("annonces").update(payload).eq("id", id);
 
   if (error) {
@@ -94,24 +93,24 @@ export async function updateAnnonce(
 
 export async function deleteAnnonce(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) throw new Error(accessError);
-  }
-  await supabase.from("annonces").delete().eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) throw new Error("Impossible de vérifier cette annonce.");
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("annonces").delete().eq("id", id);
+  if (error) throw new Error("Impossible de supprimer cette annonce.");
   revalidatePath("/annonces");
   redirect("/annonces");
 }
 
 export async function toggleAnnonceStatut(id: string, statut: AnnonceStatut) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) throw new Error(accessError);
-  }
-  await supabase.from("annonces").update({ statut }).eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("annonces").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) throw new Error("Impossible de vérifier cette annonce.");
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("annonces").update({ statut }).eq("id", id);
+  if (error) throw new Error("Impossible de modifier le statut de cette annonce.");
   revalidatePath("/annonces");
   revalidatePath(`/annonces/${id}`);
 }
