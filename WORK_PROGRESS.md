@@ -16,3 +16,5 @@
 - Parcours local sur copie isolée `9a9ea1c` : candidature fictive passée en OUT puis remise à trier ; message OUT présent puis retiré (comptage SQL). Rangée au 11/11 puis envoyée en booking par le panneau : interface 1 envoyé, une ligne liée et statut `envoyé` (PER) vérifiés en SQL. Tests d’erreur du dernier correctif OUT automatisés ; ce correctif postérieur n’a pas encore été testé au navigateur. MET-04 et BUG-13 restent partiels.
 
 - Recette isolée (copie `9a9ea1c`) : connexion candidate fictive réussie ; espace personnel et candidature reçue visibles, sans tri interne affiché. TypeScript (`tsc --noEmit --incremental false`) réussi après restauration des dépendances.
+
+- ENV-04 recette partielle sur copie isolée `9a9ea1c` : pages projets, détail projet, annonces, profils, candidatures, bookings (journée 1 PER), casting, essayages et équipe chargées avec la cheffe fictive. Aucun test de modification complet de ces écrans ni relevé exhaustif réseau/console ; ne pas clore ENV-04. Site de recette 127.0.0.1:3100, base API 127.0.0.1:29194, copie temporaire : chemin enregistré dans `/private/tmp/booking-recette-directory`. Ne pas réinitialiser ni détruire la base.
