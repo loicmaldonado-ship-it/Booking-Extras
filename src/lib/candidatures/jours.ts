@@ -131,11 +131,12 @@ export async function envoyerCandidaturesDansJour(
   if (journeeError) return { ok: 0, deja, error: "Impossible de préparer la journée de tournage. Réessaie." };
   const { error } = await supabase.from("bookings").insert(payload);
   if (error) return { ok: 0, deja, error: error.message };
-  await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
+  const { error: profilsError } = await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
 
   revalidatePath("/candidatures");
   revalidatePath("/bookings/planning");
   revalidatePath("/figurants");
+  if (profilsError) return { ok: payload.length, deja, error: "Les bookings ont été créés, mais la mise à jour des profils a échoué. Vérifie les profils concernés avant de poursuivre." };
   return { ok: payload.length, deja };
 }
 

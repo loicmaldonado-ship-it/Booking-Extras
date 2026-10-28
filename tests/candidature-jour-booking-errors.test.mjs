@@ -31,3 +31,9 @@ test('successful booking preserves normal result',async()=>{
   const f=fixture(null);const result=await f.action('date',['candidate'],'','cachet');
   assert.equal(result.ok,1);assert.equal(result.error,undefined);assert.ok(f.writes.includes('bookings'));
 });
+
+test('profile failure reports bookings already created and refreshes affected views',async()=>{
+  const f=fixture('figurants:update');const result=await f.action('date',['candidate'],'','cachet');
+  assert.equal(result.ok,1);assert.match(result.error,/booking.*créé/i);
+  assert.ok(f.refresh.includes('/bookings/planning'));
+});
