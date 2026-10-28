@@ -18,7 +18,7 @@ export const INVITATION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 // 10 minutes (double clic, formulaire renvoyé).
 const ANTI_REPETITION_MS = 10 * 60 * 1000;
 
-export type ResultatInvitation = "envoyee" | "deja_envoyee" | "compte_existant" | "pas_email" | { erreur: string };
+export type ResultatInvitation = "envoyee" | "deja_envoyee" | "compte_existant" | "pas_email" | { erreur: string; emailEnvoye?: boolean };
 
 export async function envoyerInvitationCompte(
   figurantId: string,
@@ -80,13 +80,14 @@ export async function envoyerInvitationCompte(
     : await sendEmail(figurant.email, "Booking Extras — créez votre compte", corps, credentials);
   if (envoi.error) {
     // Mail pas parti : lien retiré, un nouvel essai en recréera un.
-    await supabase.from("figurant_auth_tokens").delete().eq("token", token);
+    const { error: retraitError } = await supabase.from("figurant_auth_tokens").delete().eq("token", token);
+    if (retraitError) return { erreur: "L’email n’a pas été envoyé et le lien n’a pas pu être retiré. Vérifie les invitations avant de réessayer." };
     return { erreur: envoi.error };
   }
 
   // Trace sur la fiche (rubrique « Espace perso ») : évite aussi que le mail
   // « votre espace est prêt » reparte pour ce projet.
-  await supabase.from("figurant_messages").insert({
+  const { error: traceError } = await supabase.from("figurant_messages").insert({
     figurant_id: figurantId,
     projet_id: projetId,
     sender: "staff",
@@ -94,6 +95,7 @@ export async function envoyerInvitationCompte(
     corps: "Invitation à créer son compte envoyée.",
     categorie: "espace_perso",
   });
+  if (traceError) return { erreur: "L’email a été envoyé, mais sa trace n’a pas pu être enregistrée. Vérifie avant de renvoyer.", emailEnvoye: true };
   return "envoyee";
 }
 
@@ -111,6 +113,9 @@ export async function invitationPourFicheSansCompte(
   if (!figurant?.email) return null;
   const res = await envoyerInvitationCompte(figurantId, projetId, retour);
   if (res === "compte_existant" || res === "pas_email") return null;
+  if (typeof res === "object" && res.emailEnvoye) {
+    return { invitationEnvoyee: true, error: `Un lien vient d’être envoyé à ${emailMasque(figurant.email)}. Ouvre-le pour créer ton compte.` };
+  }
   if (typeof res === "object") {
     console.error("[invitationPourFicheSansCompte]", res.erreur);
     return {

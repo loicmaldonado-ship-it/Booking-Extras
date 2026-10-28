@@ -207,7 +207,7 @@ export async function ajoutRapideBooking(
 
   const invitation = await envoyerInvitationCompte(figurantId!, projetId);
   const mail: ResultatAjoutRapide["mail"] =
-    invitation === "envoyee" || invitation === "deja_envoyee"
+    invitation === "envoyee" || invitation === "deja_envoyee" || (typeof invitation === "object" && invitation.emailEnvoye)
       ? "envoye"
       : invitation === "compte_existant" || invitation === "pas_email"
         ? invitation

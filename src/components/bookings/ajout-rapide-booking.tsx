@@ -24,7 +24,7 @@ function detailAjout(res: ResultatAjoutRapide): string {
         : res.mail === "pas_email"
           ? "pas d'email : pas de mail envoyé"
           : `mail non envoyé (${res.mailErreur ?? "erreur"})`;
-  return `${fiche}, ${mail}`;
+  return `${fiche}, ${mail}${res.mail === "envoye" && res.mailErreur ? ` — ${res.mailErreur}` : ""}`;
 }
 
 // Ajout express de personnes dans une journée de booking (photo, identité,
