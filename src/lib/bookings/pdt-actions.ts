@@ -150,6 +150,17 @@ export async function modifierPdt(
   const { error: lectureError, r } = await repartir(projetId, ancienneDate, nouvelleDate);
   if (lectureError || !r) return { error: lectureError ?? "Lecture impossible." };
 
+  let modifie = false;
+  const erreurPartielle = (detail: string) => {
+    if (modifie) {
+      revalidatePath("/bookings");
+      revalidatePath("/bookings/documents");
+      revalidatePath("/bookings/planning");
+      return { error: `Le plan de travail a été partiellement modifié : ${detail}. Vérifie les journées avant de réessayer.` };
+    }
+    return { error: `Impossible de modifier le plan de travail : ${detail}.` };
+  };
+
   // Nouvelle journée : si elle n'existe pas encore, elle reprend les infos de
   // l'ancienne (lieu, précisions de convocation, besoins).
   const { data: ancienneJournee, error: ancienneError } = await supabase
@@ -183,18 +194,24 @@ export async function modifierPdt(
       .select("id")
       .single();
     if (error) return { error: error.message };
+    modifie = true;
     if (ancienneJournee) {
-      const { data: besoins } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", ancienneJournee.id);
+      const { data: besoins, error: besoinsError } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", ancienneJournee.id);
+      if (besoinsError) return erreurPartielle("lecture des besoins impossible");
       if (besoins && besoins.length > 0) {
-        await supabase.from("journee_besoins").insert(besoins.map((b) => ({ ...b, journee_id: creee.id })));
+        const { error: copieError } = await supabase.from("journee_besoins").insert(besoins.map((b) => ({ ...b, journee_id: creee.id })));
+        if (copieError) return erreurPartielle("copie des besoins impossible");
       }
     }
   }
-  await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("date", ancienneDate);
+  const { error: lienError } = await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("date", ancienneDate);
+  if (lienError) return erreurPartielle("mise à jour de la journée source impossible");
+  modifie = true;
   // Bascules en chaîne (16 → 17 puis 17 → 18) : les journées d'origine
   // pointent désormais vers la nouvelle date.
   if (r.aDeplacer.length > 0) {
-    await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("pdt_vers", ancienneDate);
+    const { error: chaineError } = await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("pdt_vers", ancienneDate);
+    if (chaineError) return erreurPartielle("mise à jour des journées précédentes impossible");
   }
 
   const miroirIds: string[] = [];
@@ -219,20 +236,24 @@ export async function modifierPdt(
         }))
       )
       .select("id, rebook_depuis_booking_id");
-    if (error) return { error: error.message };
+    if (error) return erreurPartielle("création des bookings impossible");
     miroirIds.push(...(crees ?? []).map((c) => c.id));
 
     // Les indemnités (transport…) suivent la personne ; les majorations
     // dépendent du jour et sont à refaire.
     const miroirParAncien = new Map((crees ?? []).map((c) => [c.rebook_depuis_booking_id as string, c.id]));
-    const { data: indemnites } = await supabase
+    const { data: indemnites, error: indemnitesError } = await supabase
       .from("booking_indemnites")
       .select("booking_id, projet_indemnite_id")
       .in("booking_id", paquet.map((b) => b.id));
+    if (indemnitesError) return erreurPartielle("lecture des indemnités impossible");
     const copies = (indemnites ?? [])
       .filter((x) => miroirParAncien.has(x.booking_id))
       .map((x) => ({ booking_id: miroirParAncien.get(x.booking_id)!, projet_indemnite_id: x.projet_indemnite_id }));
-    if (copies.length > 0) await supabase.from("booking_indemnites").insert(copies);
+    if (copies.length > 0) {
+      const { error: copieError } = await supabase.from("booking_indemnites").insert(copies);
+      if (copieError) return erreurPartielle("copie des indemnités impossible");
+    }
   }
 
   if (r.aDeplacer.length > 0) {
@@ -242,13 +263,14 @@ export async function modifierPdt(
         .from("bookings")
         .update({ date: nouvelleDate, covoiturage_conducteur_id: null })
         .in("id", ids.slice(i, i + PAQUET_IN));
-      if (error) return { error: error.message };
+      if (error) return erreurPartielle("déplacement des bookings impossible");
     }
     miroirIds.push(...ids);
   }
 
   if (modeleMessage !== null) {
-    await supabase.from("projets").update({ modele_message_pdt: modeleMessage }).eq("id", projetId);
+    const { error: modeleError } = await supabase.from("projets").update({ modele_message_pdt: modeleMessage }).eq("id", projetId);
+    if (modeleError) return erreurPartielle("enregistrement du modèle de message impossible");
   }
 
   revalidatePath("/bookings");
