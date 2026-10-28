@@ -104,7 +104,8 @@ export function EssayageJourneeTable({
 
   function saveLieu(id: string) {
     startTransition(async () => {
-      await updateEssayageLieu(id, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      const result = await updateEssayageLieu(id, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      if (result?.error) { setSendError(result.error); return; }
       setLieuEditingId(null);
       router.refresh();
     });

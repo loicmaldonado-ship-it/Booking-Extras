@@ -20,11 +20,14 @@ export function EssayageLieuProjetPanel({
   const [open, setOpen] = useState(false);
   const [lieuDraft, setLieuDraft] = useState(lieu ?? "");
   const [adresseDraft, setAdresseDraft] = useState(adresse ?? "");
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function save() {
     startTransition(async () => {
-      await updateEssayageLieuProjet(projetId, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      setError(null);
+      const result = await updateEssayageLieuProjet(projetId, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      if (result?.error) { setError(result.error); return; }
       setOpen(false);
       router.refresh();
     });
@@ -54,6 +57,7 @@ export function EssayageLieuProjetPanel({
       {!open && !lieu && !adresse && <p className="text-sm text-text-muted">Aucun lieu calibré pour l&apos;instant.</p>}
       {open && (
         <div className="flex flex-col gap-3">
+          {error && <p role="alert" className="text-sm text-danger">{error}</p>}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nom du lieu">
               <Input
