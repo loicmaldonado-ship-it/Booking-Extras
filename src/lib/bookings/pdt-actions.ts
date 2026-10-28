@@ -297,18 +297,25 @@ export async function prevenirProfilsPdt(
 ): Promise<{ error?: string; envoyes: number; echecs: string[] }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError, envoyes: 0, echecs: [] };
+  if (!DATE_RE.test(ancienneDate) || !DATE_RE.test(nouvelleDate) || bookingIds.length === 0 || bookingIds.length > 50 || new Set(bookingIds).size !== bookingIds.length) {
+    return { error: "Sélection ou date invalide pour les messages.", envoyes: 0, echecs: [] };
+  }
   const supabase = createAdminClient();
 
-  const [{ data: projet }, signature, { data: bookings }] = await Promise.all([
+  const [{ data: projet, error: projetError }, signature, { data: bookings, error: bookingsError }] = await Promise.all([
     supabase.from("projets").select("nom, confidentiel, nom_code").eq("id", projetId).single(),
     getProjetSignatureOrOwnerName(supabase, projetId),
     supabase
       .from("bookings")
       .select("id, figurant_id, figurants!bookings_figurant_id_fkey(prenom, nom, email)")
       .eq("projet_id", projetId)
-      .in("id", bookingIds.slice(0, 50))
+      .eq("date", nouvelleDate)
+      .in("id", bookingIds)
       .returns<{ id: string; figurant_id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[]>(),
   ]);
+  if (projetError || !projet || bookingsError || !bookings || bookings.length !== bookingIds.length || new Set(bookings.map((b) => b.id)).size !== bookingIds.length || bookings.some((b) => !bookingIds.includes(b.id))) {
+    return { error: "Impossible de vérifier tous les destinataires ; aucun message envoyé pour ce lot.", envoyes: 0, echecs: [] };
+  }
   const nomProjet = projetNomPublic(projet);
 
   let envoyes = 0;
