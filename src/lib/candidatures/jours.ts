@@ -36,6 +36,9 @@ export async function setCandidaturesJourBulk(
   prevu: boolean
 ): Promise<{ error?: string; n?: number }> {
   if (candidatureIds.length === 0) return { n: 0 };
+  if (candidatureIds.length > 300 || new Set(candidatureIds).size !== candidatureIds.length) {
+    return { error: "Sélection invalide ou trop importante (300 candidatures maximum)." };
+  }
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")
@@ -55,7 +58,10 @@ export async function setCandidaturesJourBulk(
     .in("id", candidatureIds.slice(0, 300));
   if (candidaturesError) return { error: "Impossible de vérifier les candidatures. Réessaie." };
   const rows = candidatures ?? [];
-  if (rows.length === 0) return { n: 0 };
+  const idsRecus = new Set(rows.map((c) => c.id));
+  if (rows.length !== candidatureIds.length || idsRecus.size !== candidatureIds.length || candidatureIds.some((id) => !idsRecus.has(id))) {
+    return { error: "Sélection de candidatures incomplète ou hors de cette annonce." };
+  }
   // Les profils rangés dans OUT n'en sortent pas par ici (OUT prévient la
   // personne : seul son onglet le gère).
   const { data: fixes, error: fixesError } = await supabase.from("candidature_onglets").select("id").eq("fixe", true);
