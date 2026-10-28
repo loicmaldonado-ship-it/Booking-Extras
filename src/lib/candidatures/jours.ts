@@ -94,10 +94,11 @@ export async function envoyerCandidaturesDansJour(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { ok: 0, deja: 0, error: accessError };
 
-  const { data: candidatures } = await supabase
+  const { data: candidatures, error: candidaturesError } = await supabase
     .from("candidatures")
     .select("id, figurant_id, annonce_id")
     .in("id", candidatureIds.slice(0, 300));
+  if (candidaturesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les candidatures. Réessaie." };
   const rows = (candidatures ?? []).filter((c) => c.annonce_id === annonceDate.annonce_id);
   if (rows.length === 0) return { ok: 0, deja: 0, error: "Ces candidatures ne sont pas sur cette annonce." };
 

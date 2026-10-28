@@ -37,3 +37,8 @@ test('profile failure reports bookings already created and refreshes affected vi
   assert.equal(result.ok,1);assert.match(result.error,/booking.*créé/i);
   assert.ok(f.refresh.includes('/bookings/planning'));
 });
+
+test('failed candidate lookup is reported as an error, not an empty selection',async()=>{
+  const f=fixture('candidatures:select');const result=await f.action('date',['candidate'],'','cachet');
+  assert.match(result.error,/impossible/i);assert.equal(f.writes.length,0);
+});
