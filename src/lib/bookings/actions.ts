@@ -569,18 +569,17 @@ export async function moveBookingsToDate(
 
 export async function markConvocationEnvoyee(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) return { error: accessError };
-  }
-  await supabase
-    .from("bookings")
-    .update({ convocation_envoyee: true, convocation_envoyee_le: new Date().toISOString() })
-    .eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier ce booking." };
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) return { error: accessError };
+  const { error } = await supabase.from("bookings")
+    .update({ convocation_envoyee: true, convocation_envoyee_le: new Date().toISOString() }).eq("id", id);
+  if (error) return { error: "Impossible d’enregistrer le statut de convocation." };
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath(`/bookings/${id}`);
+  return { success: true as const };
 }
 
 // Permet de renvoyer une convocation déjà reçue — geste explicite du staff,
@@ -716,7 +715,7 @@ export async function sendBulkConvocations(
   rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
   projetId?: string | null
 ) {
-  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0 };
+  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0, unmarked: 0 };
   const actor = await getCurrentProfile();
   if (!actor || !Array.isArray(rows) || !rows.length || rows.length > 500 || new Set(rows.map(r => r.bookingId)).size !== rows.length) return failedResult;
   const supabase = createAdminClient();
@@ -731,6 +730,7 @@ export async function sendBulkConvocations(
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let unmarked = 0;
   for (const r of rows) {
     if (dejaEnvoyees.has(r.bookingId)) {
       skipped += 1;
@@ -749,12 +749,13 @@ export async function sendBulkConvocations(
       failed += 1;
       continue;
     }
-    await markConvocationEnvoyee(r.bookingId);
+    const marked = await markConvocationEnvoyee(r.bookingId);
+    if (marked.error) unmarked += 1;
     sent += 1;
   }
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
-  return { sent, failed, skipped };
+  return { sent, failed, skipped, unmarked };
 }
 
 // Envoi manuel du lien d'espace perso à toute une sélection (ex. au moment

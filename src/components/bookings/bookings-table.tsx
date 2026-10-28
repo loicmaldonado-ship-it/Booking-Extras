@@ -552,7 +552,7 @@ export function BookingsTable({
   const [libreSubject, setLibreSubject] = useState(`Message – ${date ?? ""}`);
   const [libreMessage, setLibreMessage] = useState(DEFAULT_LIBRE_BODY);
   const [sendPending, setSendPending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number } | null>(null);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number; unmarked?: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [repliesPending, setRepliesPending] = useState(false);
   const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
@@ -940,7 +940,7 @@ export function BookingsTable({
       );
       setSendPending(false);
       setSendResult(result);
-      if (result.failed === 0) {
+      if (result.failed === 0 && !result.unmarked) {
         setSelected(new Set());
         setMessageMode("none");
       }
@@ -2019,6 +2019,9 @@ export function BookingsTable({
                     </div>
                   ))}
                 </div>
+              )}
+              {!!sendResult?.unmarked && (
+                <p role="alert" className="text-xs text-danger">{sendResult.unmarked} email(s) envoyé(s), mais leur statut n’a pas pu être enregistré. Vérifie les convocations avant tout nouvel envoi pour éviter les doublons.</p>
               )}
               {sendResult && (
                 <p className="text-xs text-text-muted">
