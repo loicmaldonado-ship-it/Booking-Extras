@@ -82,6 +82,9 @@ export async function envoyerCandidaturesDansJour(
   cachet: Cachet | ""
 ): Promise<{ ok: number; deja: number; error?: string }> {
   if (candidatureIds.length === 0) return { ok: 0, deja: 0 };
+  if (candidatureIds.length > 300 || new Set(candidatureIds).size !== candidatureIds.length) {
+    return { ok: 0, deja: 0, error: "Sélection invalide ou trop importante (300 candidatures maximum)." };
+  }
   // Depuis Candidatures : cachet obligatoire, fonction facultative.
   if (!cachet) return { ok: 0, deja: 0, error: "Choisis un cachet." };
   const supabase = createAdminClient();
@@ -100,8 +103,12 @@ export async function envoyerCandidaturesDansJour(
     .select("id, figurant_id, annonce_id")
     .in("id", candidatureIds.slice(0, 300));
   if (candidaturesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les candidatures. Réessaie." };
-  const rows = (candidatures ?? []).filter((c) => c.annonce_id === annonceDate.annonce_id);
-  if (rows.length === 0) return { ok: 0, deja: 0, error: "Ces candidatures ne sont pas sur cette annonce." };
+  const rows = candidatures ?? [];
+  const idsRecus = new Set(rows.map((c) => c.id));
+  if (rows.length !== candidatureIds.length || idsRecus.size !== candidatureIds.length ||
+      candidatureIds.some((id) => !idsRecus.has(id)) || rows.some((c) => c.annonce_id !== annonceDate.annonce_id)) {
+    return { ok: 0, deja: 0, error: "Sélection de candidatures incomplète ou hors de cette annonce." };
+  }
 
   const [{ data: existants, error: existantsError }, { data: dejaRattachees, error: rattacheesError }] = await Promise.all([
     supabase
