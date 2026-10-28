@@ -166,15 +166,18 @@ export async function marquerEnvoiTextos(
 // ou annulée.
 export async function marquerRecu(destinataireId: string, recu: boolean): Promise<{ error?: string }> {
   const supabase = createAdminClient();
-  const { data: ligne } = await supabase.from("envoi_destinataires").select("envoi_id").eq("id", destinataireId).maybeSingle();
+  const { data: ligne, error: lookupError } = await supabase.from("envoi_destinataires").select("envoi_id").eq("id", destinataireId).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier le destinataire." };
   if (!ligne) return { error: "Introuvable." };
   const projetId = await projetDeLEnvoi(ligne.envoi_id);
+  if (!projetId) return { error: "Impossible de vérifier le projet de cet envoi." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
-  await supabase
+  const { error } = await supabase
     .from("envoi_destinataires")
     .update({ accuse_le: recu ? new Date().toISOString() : null })
     .eq("id", destinataireId);
+  if (error) return { error: "Impossible de modifier la confirmation de réception." };
   revalidatePath("/bookings/documents");
   return {};
 }

@@ -1029,8 +1029,9 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
 
   function basculerRecu(id: string, recu: boolean) {
     demarrer(async () => {
-      await marquerRecu(id, recu);
-      router.refresh();
+      const res = await marquerRecu(id, recu);
+      setInfo(res.error ? `⚠ ${res.error}` : null);
+      if (!res.error) router.refresh();
     });
   }
 
@@ -1165,6 +1166,7 @@ function FicheProfil({
   const [etatEnvoi, setEtatEnvoi] = useState<string | null>(null);
   const [envoiPending, demarrer] = useTransition();
   const [recuPending, demarrerRecu] = useTransition();
+  const [erreurRecu, setErreurRecu] = useState<string | null>(null);
   // Du plus récent au plus ancien.
   const fil = [...(messagesByFigurant[r.figurant_id ?? ""] ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const envoisProfil = envoisParFigurant.get(r.figurant_id ?? "") ?? [];
@@ -1218,6 +1220,7 @@ function FicheProfil({
       </div>
       <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
       {erreurLigne && <p className="text-xs text-danger">{erreurLigne}</p>}
+      {erreurRecu && <p role="alert" className="text-xs text-danger">{erreurRecu}</p>}
 
       <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Réponses aux messages</span>
       <div className="flex flex-col gap-1.5">
@@ -1266,8 +1269,9 @@ function FicheProfil({
                   disabled={recuPending}
                   onClick={() =>
                     demarrerRecu(async () => {
-                      await marquerRecu(d.id, !d.accuse_le);
-                      router.refresh();
+                      const res = await marquerRecu(d.id, !d.accuse_le);
+                      setErreurRecu(res.error ?? null);
+                      if (!res.error) router.refresh();
                     })
                   }
                   className={cn(
