@@ -57,7 +57,8 @@ export async function setCandidaturesJourBulk(
   if (rows.length === 0) return { n: 0 };
   // Les profils rangés dans OUT n'en sortent pas par ici (OUT prévient la
   // personne : seul son onglet le gère).
-  const { data: fixes } = await supabase.from("candidature_onglets").select("id").eq("fixe", true);
+  const { data: fixes, error: fixesError } = await supabase.from("candidature_onglets").select("id").eq("fixe", true);
+  if (fixesError) return { error: "Impossible de vérifier les candidatures protégées. Réessaie." };
   const outIds = new Set((fixes ?? []).map((o) => o.id));
   const ids = rows.filter((c) => !c.onglet_id || !outIds.has(c.onglet_id)).map((c) => c.id);
   if (ids.length === 0) return { n: 0 };
