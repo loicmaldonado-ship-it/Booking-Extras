@@ -304,15 +304,16 @@ export async function createBookingsFromDropBulk(
   return { ok: payload.length, deja };
 }
 
-export async function createJournee(projetId: string, formData: FormData) {
+export async function createJournee(projetId: string, _prevState: { error: string }, formData: FormData): Promise<{ error: string }> {
   const accessError = await checkProjetAccess(projetId);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const date = str(formData, "date");
-  if (!date) return;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Choisis une date valide." };
 
   const supabase = createAdminClient();
-  await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  const { error } = await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  if (error) return { error: "Impossible de créer la journée. Réessaie." };
 
   revalidatePath("/bookings");
   redirect(`/bookings/documents?projet_id=${projetId}&date=${date}`);

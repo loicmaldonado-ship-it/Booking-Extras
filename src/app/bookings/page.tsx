@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { getJournees } from "@/lib/bookings/journees";
-import { createJournee, deleteJournee } from "@/lib/bookings/actions";
+import { deleteJournee } from "@/lib/bookings/actions";
+import { CreateJourneeForm } from "@/components/bookings/create-journee-form";
 import { formatDateLong, formatDayMonth } from "@/lib/format-date";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
@@ -140,24 +141,7 @@ export default async function BookingsPage({
             </div>
           ))}
 
-          <form
-            action={createJournee.bind(null, currentProjetId)}
-            className="flex aspect-square w-52 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-3 text-center"
-          >
-            <span className="text-sm font-medium text-text-muted">+ Créer journée</span>
-            <input
-              type="date"
-              name="date"
-              required
-              className="w-full rounded-md border border-border bg-ink-raised-2 px-2 py-1.5 text-sm"
-            />
-            <button
-              type="submit"
-              className="rounded-full bg-ink-raised-2 px-4 py-1.5 text-sm font-medium hover:border hover:border-coral/60"
-            >
-              Créer
-            </button>
-          </form>
+          <CreateJourneeForm projetId={currentProjetId} />
         </div>
         {journees.length === 0 && (
           <p className="text-sm text-text-muted">Aucune journée pour l&apos;instant sur ce projet.</p>
