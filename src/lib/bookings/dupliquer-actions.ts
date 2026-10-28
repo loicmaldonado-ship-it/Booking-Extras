@@ -39,22 +39,32 @@ export async function dupliquerJournee(
   if (date === nouvelleDate) return { error: "Choisis une autre date que la journée actuelle." };
   const supabase = createAdminClient();
 
-  const { data: source } = await supabase
+  const { data: source, error: sourceError } = await supabase
     .from("journees")
     .select("id, total_requis, lieu, convocation_precisions, convocation_hmc, convocation_accessoires, convocation_commentaires")
     .eq("projet_id", projetId)
     .eq("date", date)
     .maybeSingle();
-  if (!source) return { error: "Journée introuvable." };
+  if (sourceError || !source) return { error: "Impossible de vérifier la journée source." };
 
   // Journée cible : créée avec les infos de la source, ou complétée si elle
   // existe déjà (ses propres infos sont gardées).
-  const { data: existante } = await supabase
+  const { data: existante, error: cibleError } = await supabase
     .from("journees")
     .select("id")
     .eq("projet_id", projetId)
     .eq("date", nouvelleDate)
     .maybeSingle();
+  if (cibleError) return { error: "Impossible de vérifier la journée cible." };
+  let cibleModifiee = false;
+  const erreurPartielle = (detail: string) => {
+    if (cibleModifiee) {
+      revalidatePath("/bookings");
+      revalidatePath("/bookings/documents");
+      return { error: `La journée cible a été créée ou modifiée, mais ${detail}. Vérifie-la avant de réessayer.` };
+    }
+    return { error: `Impossible de dupliquer : ${detail}.` };
+  };
   let cibleId = existante?.id ?? null;
   if (!cibleId) {
     const { data: creee, error } = await supabase
@@ -73,16 +83,20 @@ export async function dupliquerJournee(
       .single();
     if (error) return { error: error.message };
     cibleId = creee.id;
+    cibleModifiee = true;
   }
 
-  const { data: besoins } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", source.id);
+  const { data: besoins, error: besoinsError } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", source.id);
+  if (besoinsError) return erreurPartielle("la lecture des besoins a échoué");
   if (besoins && besoins.length > 0) {
-    await supabase
+    const { error: copieBesoinsError } = await supabase
       .from("journee_besoins")
       .upsert(
         besoins.map((b) => ({ ...b, journee_id: cibleId })),
         { onConflict: "journee_id,fonction", ignoreDuplicates: true }
       );
+    if (copieBesoinsError) return erreurPartielle("la copie des besoins a échoué");
+    cibleModifiee = true;
   }
 
   let copies = 0;
@@ -100,7 +114,7 @@ export async function dupliquerJournee(
         .order("id")
         .range(from, to)
     );
-    if (error) return { error: error.message };
+    if (error) return erreurPartielle("la lecture des bookings a échoué");
     const repris = lus.filter((b) => !NON_REPRIS.has(b.statut));
 
     const figurantIds = repris.map((b) => b.figurant_id);
@@ -108,10 +122,11 @@ export async function dupliquerJournee(
     const indispoIds = new Set<string>();
     for (let i = 0; i < figurantIds.length; i += PAQUET) {
       const paquet = figurantIds.slice(i, i + PAQUET);
-      const [{ data: la }, { data: ind }] = await Promise.all([
+      const [{ data: la, error: presentsError }, { data: ind, error: indisposError }] = await Promise.all([
         supabase.from("bookings").select("figurant_id").eq("projet_id", projetId).eq("date", nouvelleDate).in("figurant_id", paquet),
         supabase.from("figurant_indisponibilites").select("figurant_id").eq("date", nouvelleDate).in("figurant_id", paquet),
       ]);
+      if (presentsError || indisposError) return erreurPartielle("la vérification des bookings ou disponibilités a échoué");
       for (const b of la ?? []) presents.add(b.figurant_id);
       for (const x of ind ?? []) indispoIds.add(x.figurant_id);
     }
@@ -139,23 +154,29 @@ export async function dupliquerJournee(
           }))
         )
         .select("id, figurant_id");
-      if (errInsert) return { error: errInsert.message };
+      if (errInsert) return erreurPartielle("la copie des bookings a échoué");
       copies += crees?.length ?? 0;
+      if ((crees?.length ?? 0) > 0) cibleModifiee = true;
 
       // Les indemnités (transport…) suivent la personne.
       const nouveauParFigurant = new Map((crees ?? []).map((c) => [c.figurant_id, c.id]));
       const sourceParId = new Map(paquet.map((b) => [b.id, b.figurant_id]));
-      const { data: indemnites } = await supabase
+      const { data: indemnites, error: indemnitesError } = await supabase
         .from("booking_indemnites")
         .select("booking_id, projet_indemnite_id")
         .in("booking_id", paquet.map((b) => b.id));
+      if (indemnitesError) return erreurPartielle("la lecture des indemnités a échoué");
       const lignes = (indemnites ?? [])
         .map((x) => ({ booking_id: nouveauParFigurant.get(sourceParId.get(x.booking_id) ?? ""), projet_indemnite_id: x.projet_indemnite_id }))
         .filter((x): x is { booking_id: string; projet_indemnite_id: string } => !!x.booking_id);
-      if (lignes.length > 0) await supabase.from("booking_indemnites").insert(lignes);
+      if (lignes.length > 0) {
+        const { error: indemnitesInsertError } = await supabase.from("booking_indemnites").insert(lignes);
+        if (indemnitesInsertError) return erreurPartielle("la copie des indemnités a échoué");
+      }
     }
     if (copies > 0) {
-      await supabase.from("figurants").update({ confirme: true }).in("id", aCopier.map((b) => b.figurant_id));
+      const { error: profilsError } = await supabase.from("figurants").update({ confirme: true }).in("id", aCopier.map((b) => b.figurant_id));
+      if (profilsError) return erreurPartielle("la mise à jour des profils a échoué");
     }
   }
 
