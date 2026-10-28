@@ -8,12 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // le message est retiré si la candidature sort de OUT (erreur de clic).
 
 export async function getOngletOutId(): Promise<string | null> {
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from("candidature_onglets")
     .select("id")
     .eq("fixe", true)
     .is("annonce_id", null)
     .maybeSingle();
+  if (error) throw new Error("Lecture de l’onglet OUT impossible.");
   return data?.id ?? null;
 }
 
@@ -52,7 +53,7 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
   const sorties = avant.filter((c) => c.onglet_id === outId && nouvelOngletId !== outId);
 
   if (sorties.length > 0) {
-    await supabase
+    const { error } = await supabase
       .from("figurant_messages")
       .delete()
       .eq("categorie", "non_retenu")
@@ -60,10 +61,11 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
         "candidature_id",
         sorties.map((c) => c.id)
       );
+    if (error) throw new Error("Suppression des messages OUT impossible.");
   }
 
   if (entrees.length > 0) {
-    const { data: deja } = await supabase
+    const { data: deja, error: dejaError } = await supabase
       .from("figurant_messages")
       .select("candidature_id")
       .eq("categorie", "non_retenu")
@@ -71,6 +73,7 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
         "candidature_id",
         entrees.map((c) => c.id)
       );
+    if (dejaError) throw new Error("Lecture des messages OUT impossible.");
     const dejaPrevenues = new Set((deja ?? []).map((m) => m.candidature_id));
     const envoyePar = (await getCurrentProfile())?.id ?? null;
     const messages = entrees
@@ -84,6 +87,9 @@ export async function appliquerMessagesOut(avant: Avant[], nouvelOngletId: strin
         categorie: "non_retenu",
         corps: messageNonRetenu(c.annonces?.titre ?? "votre annonce"),
       }));
-    if (messages.length > 0) await supabase.from("figurant_messages").insert(messages);
+    if (messages.length > 0) {
+      const { error } = await supabase.from("figurant_messages").insert(messages);
+      if (error) throw new Error("Création des messages OUT impossible.");
+    }
   }
 }

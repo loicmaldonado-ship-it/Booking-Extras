@@ -543,7 +543,11 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   if (error) return { error: "Impossible de ranger la candidature. Réessaie." };
   revalidatePath("/candidatures");
-  await appliquerMessagesOut(avant, ongletId);
+  try {
+    await appliquerMessagesOut(avant, ongletId);
+  } catch {
+    return { error: "La candidature a été rangée, mais le message associé n’a pas pu être mis à jour. Vérifie sa messagerie." };
+  }
   return { success: true as const };
 }
 
@@ -588,8 +592,12 @@ export async function setCandidaturesOngletBulk(ids: string[], ongletId: string 
   if (error || !updated || updated.length !== selected.ids.length) {
     return { error: "Rangement incomplet. Actualise la liste avant de réessayer." };
   }
-  await appliquerMessagesOut(avant, ongletId);
   revalidatePath("/candidatures");
+  try {
+    await appliquerMessagesOut(avant, ongletId);
+  } catch {
+    return { error: "Les candidatures ont été rangées, mais les messages associés n’ont pas tous pu être mis à jour. Vérifie les messageries." };
+  }
   return { success: true as const };
 }
 
