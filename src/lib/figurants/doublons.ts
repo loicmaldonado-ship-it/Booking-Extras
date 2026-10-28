@@ -67,13 +67,15 @@ export async function doublonsProbables(personne: {
   const n = normaliser(personne.nom);
   const tel = finTelephone(personne.telephone);
 
-  const [{ data: parNom }, { data: parPrenom }, { data: parTel }] = await Promise.all([
+  const [{ data: parNom, error: erreurNom }, { data: parPrenom, error: erreurPrenom }, { data: parTel, error: erreurTel }] = await Promise.all([
     supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("nom", motifTolerant(personne.nom)).limit(500),
     supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("prenom", motifTolerant(personne.prenom)).limit(1000),
     tel.length === 9
       ? supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("telephone", `%${tel.split("").join("%")}`).limit(50)
-      : Promise.resolve({ data: [] as Ligne[] }),
+      : Promise.resolve({ data: [] as Ligne[], error: null }),
   ]);
+
+  if (erreurNom || erreurPrenom || erreurTel) throw new Error("Impossible de vérifier les doublons.");
 
   const trouves = new Map<string, { ligne: Ligne; raison: string }>();
   const noter = (l: Ligne, raison: string) => {

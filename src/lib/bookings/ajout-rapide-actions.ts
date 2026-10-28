@@ -62,22 +62,24 @@ export async function ajoutRapideBooking(
   // (fiches comédien·nes exclues, privées à leur pool).
   let figurantId: string | null = null;
   if (email) {
-    const { data } = await visible
+    const { data, error: emailError } = await visible
       .from("figurants")
       .select("id")
       .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
       .eq("est_comedien", false)
       .limit(1)
       .maybeSingle();
+    if (emailError) return { error: "Impossible de vérifier les profils existants. Réessaie." };
     figurantId = data?.id ?? null;
   }
   if (!figurantId && telephone) {
     const tel = telephone.replace(/\s+/g, "");
-    const { data } = await visible
+    const { data, error: telephoneError } = await visible
       .from("figurants")
       .select("id, telephone")
       .ilike("nom", nom.replace(/[\\%_]/g, "\\$&"))
       .eq("est_comedien", false);
+    if (telephoneError) return { error: "Impossible de vérifier les profils existants. Réessaie." };
     figurantId = (data ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === tel)?.id ?? null;
   }
 
@@ -95,7 +97,12 @@ export async function ajoutRapideBooking(
     if (!data) return { error: "Fiche introuvable." };
     figurantId = data.id;
   } else if (!figurantId && choix !== "nouvelle") {
-    const doublons = await doublonsProbables({ prenom, nom, telephone });
+    let doublons: DoublonProbable[];
+    try {
+      doublons = await doublonsProbables({ prenom, nom, telephone });
+    } catch {
+      return { error: "Impossible de vérifier les doublons. Réessaie." };
+    }
     if (doublons.length > 0) {
       const { data: deja } = await supabase
         .from("bookings")
@@ -111,13 +118,14 @@ export async function ajoutRapideBooking(
   let nomAffiche = `${prenom} ${nom}`;
 
   if (figurantId) {
-    const { data: deja } = await supabase
+    const { data: deja, error: dejaError } = await supabase
       .from("bookings")
       .select("id")
       .eq("figurant_id", figurantId)
       .eq("projet_id", projetId)
       .eq("date", date)
       .maybeSingle();
+    if (dejaError) return { error: "Impossible de vérifier les bookings existants. Réessaie." };
     if (deja) return { error: "Cette personne est déjà dans cette journée." };
     // Fiche reprise : on complète l'email / le téléphone s'ils manquaient.
     const { data: fiche } = await visible
@@ -165,7 +173,14 @@ export async function ajoutRapideBooking(
     }
   }
 
-  await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  const { error: journeeError } = await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  if (journeeError) {
+    if (!existant) {
+      revalidatePath("/figurants");
+      return { error: "La fiche a été créée, mais la journée n’a pas pu être préparée. Retrouve cette fiche avant de réessayer." };
+    }
+    return { error: "Impossible de préparer la journée de booking. Réessaie." };
+  }
   const { error: bookingError } = await supabase.from("bookings").insert({
     figurant_id: figurantId,
     projet_id: projetId,
@@ -173,8 +188,22 @@ export async function ajoutRapideBooking(
     fonction: fonction.trim(),
     cachet,
   });
-  if (bookingError) return { error: bookingError.message };
-  if (existant) await supabase.from("figurants").update({ confirme: true }).eq("id", figurantId);
+  if (bookingError) {
+    if (!existant) {
+      revalidatePath("/figurants");
+      return { error: "La fiche a été créée, mais le booking a échoué. Retrouve cette fiche avant de réessayer." };
+    }
+    return { error: "Impossible de créer le booking. Réessaie." };
+  }
+  if (existant) {
+    const { error: profilError } = await supabase.from("figurants").update({ confirme: true }).eq("id", figurantId);
+    if (profilError) {
+      revalidatePath("/bookings/documents");
+      revalidatePath("/bookings/planning");
+      revalidatePath("/figurants");
+      return { error: "Le booking a été créé, mais le profil n’a pas pu être mis à jour. Vérifie le booking existant avant de réessayer." };
+    }
+  }
 
   const invitation = await envoyerInvitationCompte(figurantId!, projetId);
   const mail: ResultatAjoutRapide["mail"] =
