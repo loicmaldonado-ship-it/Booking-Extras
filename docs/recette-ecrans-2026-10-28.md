@@ -33,3 +33,5 @@ Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; 
 - Attendu : le profil ajouté apparaît dans la journée et dans le planning.
 - Obtenu avant correction : zéro profil affiché malgré la ligne présente dans la base fictive. L'API locale renvoie PGRST201 : deux relations possibles entre la participation et le rôle.
 - Correction : préciser la clé de relation dans les deux lectures. Après rechargement, Sacha apparaît dans la journée et dans « Sans créneau » du planning. Suite automatisée 345/345, TypeScript et ESLint ciblés réussis. Affectation au créneau et autres vues restent à vérifier.
+
+- Suite ENV-04-02 : rôle fictif créé et Sacha associée sans envoi ; rôle affecté au profil sur la journée puis glissé sur le créneau 10h–10h30. La journée affiche 1/3 et le planning liste ainsi que sa vue trombi affichent Sacha et le rôle. Export PDF et permissions multi-équipe non testés.
