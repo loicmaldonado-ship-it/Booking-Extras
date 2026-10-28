@@ -36,7 +36,7 @@ export function AvatarPresence({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       {avatarUrl ? (
-        <Image src={avatarUrl} alt="" fill className="rounded-full object-cover" unoptimized={previewIsLocal} />
+        <Image src={avatarUrl} alt="" fill sizes={`${size}px`} className="rounded-full object-cover" unoptimized={previewIsLocal} />
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-full bg-ink-raised-2 text-xs font-semibold text-text-muted">
           {initials(nom, email)}

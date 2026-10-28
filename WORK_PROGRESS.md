@@ -18,3 +18,5 @@
 - Recette isolée (copie `9a9ea1c`) : connexion candidate fictive réussie ; espace personnel et candidature reçue visibles, sans tri interne affiché. TypeScript (`tsc --noEmit --incremental false`) réussi après restauration des dépendances.
 
 - ENV-04 recette partielle sur copie isolée `9a9ea1c` : pages projets, détail projet, annonces, profils, candidatures, bookings (journée 1 PER), casting, essayages et équipe chargées avec la cheffe fictive. Aucun test de modification complet de ces écrans ni relevé exhaustif réseau/console ; ne pas clore ENV-04. Site de recette 127.0.0.1:3100, base API 127.0.0.1:29194, copie temporaire : chemin enregistré dans `/private/tmp/booking-recette-directory`. Ne pas réinitialiser ni détruire la base.
+
+- Recette ENV-04 : avertissement Next/image sur les avatars corrigé avec leur largeur réelle ; contrôle DOM isolé : `sizes` 36px et 48px, ESLint ciblé sans erreur. Après restauration, serveur principal localhost:3000 répond HTTP 200. La reprise automatique récurrente a été refusée par le contrôle automatique d’approbation ; aucune automatisation créée.
