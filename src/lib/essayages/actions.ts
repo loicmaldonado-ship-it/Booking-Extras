@@ -132,11 +132,10 @@ export async function updateEssayage(id: string, _prevState: unknown, formData: 
   if (personError) return { error: personError };
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const existingAccessError = await checkProjetAccess(existing.projet_id);
-    if (existingAccessError) return { error: existingAccessError };
-  }
+  const { data: existing, error: lookupError } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier cet essayage." };
+  const existingAccessError = await checkProjetAccess(existing.projet_id);
+  if (existingAccessError) return { error: existingAccessError };
   const { error } = await supabase.from("essayages").update(payload).eq("id", id);
 
   if (error) {
@@ -150,12 +149,12 @@ export async function updateEssayage(id: string, _prevState: unknown, formData: 
 
 export async function deleteEssayage(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) throw new Error(accessError);
-  }
-  await supabase.from("essayages").delete().eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("essayages").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) throw new Error("Impossible de vérifier cet essayage.");
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("essayages").delete().eq("id", id);
+  if (error) throw new Error("Impossible de supprimer cet essayage.");
   revalidatePath("/essayages");
   redirect("/essayages");
 }
@@ -173,12 +172,13 @@ export async function createEssayageJournee(projetId: string, formData: FormData
   if (dates.length === 0) return;
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("essayage_journees")
     .upsert(
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
+  if (error) throw new Error("Impossible de créer les journées d’essayage.");
 
   revalidatePath("/essayages");
   if (dates.length === 1) {
