@@ -31,9 +31,13 @@ export function MoodboardPanel({ annonceId, photos }: { annonceId: string; photo
   }
 
   function remove(photoId: string) {
+    setError(null);
+    setBusy(true);
     startTransition(async () => {
-      await removeAnnoncePhoto(photoId);
-      router.refresh();
+      const result = await removeAnnoncePhoto(photoId);
+      setBusy(false);
+      if (result?.error) setError(result.error);
+      if (!result?.error || result.removed) router.refresh();
     });
   }
 
@@ -58,6 +62,8 @@ export function MoodboardPanel({ annonceId, photos }: { annonceId: string; photo
               <Image src={p.url} alt="" fill sizes="(min-width: 640px) 33vw, 50vw" className="object-cover" />
               <button
                 type="button"
+                disabled={busy}
+                aria-label="Supprimer cette photo"
                 onClick={() => remove(p.id)}
                 className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink"
               >

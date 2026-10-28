@@ -17,11 +17,12 @@ export async function addAnnoncePhoto(annonceId: string, formData: FormData) {
   const accessError = await requireAnnonceAccess(supabase, annonceId);
   if (accessError) return { error: accessError };
 
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("annonce_photos")
     .select("id", { count: "exact", head: true })
     .eq("annonce_id", annonceId);
-  if ((count ?? 0) >= MAX_MOODBOARD_PHOTOS) {
+  if (countError || count === null) return { error: "Impossible de vérifier le nombre de photos." };
+  if (count >= MAX_MOODBOARD_PHOTOS) {
     return { error: `Maximum ${MAX_MOODBOARD_PHOTOS} photos.` };
   }
 
@@ -41,8 +42,9 @@ export async function addAnnoncePhoto(annonceId: string, formData: FormData) {
 
   const { error } = await supabase.from("annonce_photos").insert({ annonce_id: annonceId, storage_path: path });
   if (error) {
-    await supabase.storage.from("annonce-medias").remove([path]);
-    return { error: error.message };
+    const { error: cleanupError } = await supabase.storage.from("annonce-medias").remove([path]);
+    if (cleanupError) return { error: "La photo n’a pas été ajoutée à l’annonce et son fichier n’a pas pu être supprimé du stockage." };
+    return { error: "Impossible d’ajouter cette photo à l’annonce." };
   }
 
   revalidatePath(`/annonces/${annonceId}`);
@@ -51,17 +53,20 @@ export async function addAnnoncePhoto(annonceId: string, formData: FormData) {
 
 export async function removeAnnoncePhoto(photoId: string) {
   const supabase = createAdminClient();
-  const { data: photo } = await supabase
+  const { data: photo, error: photoError } = await supabase
     .from("annonce_photos")
     .select("annonce_id, storage_path")
     .eq("id", photoId)
     .maybeSingle();
-  if (!photo) return;
+  if (photoError || !photo) return { error: "Impossible de vérifier cette photo." };
 
   const accessError = await requireAnnonceAccess(supabase, photo.annonce_id);
   if (accessError) return { error: accessError };
 
-  await supabase.storage.from("annonce-medias").remove([photo.storage_path]);
-  await supabase.from("annonce_photos").delete().eq("id", photoId);
+  const { error: deleteError } = await supabase.from("annonce_photos").delete().eq("id", photoId);
+  if (deleteError) return { error: "Impossible de supprimer cette photo." };
+  const { error: storageError } = await supabase.storage.from("annonce-medias").remove([photo.storage_path]);
   revalidatePath(`/annonces/${photo.annonce_id}`);
+  if (storageError) return { error: "La photo a été retirée de l’annonce, mais son fichier n’a pas pu être supprimé du stockage.", removed: true as const };
+  return { success: true as const };
 }
