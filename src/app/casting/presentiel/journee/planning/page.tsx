@@ -53,7 +53,7 @@ export default async function CastingPresentielPlanningPage({
   const [{ data: entries }, { data: creneaux }] = await Promise.all([
     supabase
       .from("casting_presentiel_entries")
-      .select("id, creneau_id, statut, figurant_id, figurants(prenom, nom, telephone), casting_roles(nom)")
+      .select("id, creneau_id, statut, figurant_id, figurants(prenom, nom, telephone), casting_roles!casting_presentiel_entries_role_id_fkey(nom)")
       .eq("journee_id", journee.id)
       .returns<EntryRow[]>(),
     supabase

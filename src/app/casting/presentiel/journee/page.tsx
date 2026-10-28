@@ -53,7 +53,7 @@ export default async function CastingPresentielJourneePage({
     supabase
       .from("casting_presentiel_entries")
       .select(
-        "id, statut, notes, creneau_id, figurant_id, role_id, figurants(prenom, nom, telephone, email, genre), casting_roles(nom)"
+        "id, statut, notes, creneau_id, figurant_id, role_id, figurants(prenom, nom, telephone, email, genre), casting_roles!casting_presentiel_entries_role_id_fkey(nom)"
       )
       .eq("journee_id", journee.id)
       .returns<Omit<PresentielEntry, "portraitUrl">[]>(),

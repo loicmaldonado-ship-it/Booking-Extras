@@ -25,3 +25,11 @@ Environnement : copie locale sur 127.0.0.1:3200, base fictive isolée sur 127.0.
 - Aucun fichier ou donnée de test supprimé ; capture non réalisée.
 
 Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; les contrôles réseau exhaustifs, les actions et les permissions restent à compléter avant de clôturer ENV-04.
+
+## Anomalie ENV-04-02 — profils du casting présentiel invisibles (corrigée localement)
+
+- Préconditions : cheffe fictive, projet de test, rôle « Rôle recette fictif », Sacha associée au rôle et ajoutée à la journée présentielle du 25/11.
+- Étapes : ouvrir la journée puis son planning.
+- Attendu : le profil ajouté apparaît dans la journée et dans le planning.
+- Obtenu avant correction : zéro profil affiché malgré la ligne présente dans la base fictive. L'API locale renvoie PGRST201 : deux relations possibles entre la participation et le rôle.
+- Correction : préciser la clé de relation dans les deux lectures. Après rechargement, Sacha apparaît dans la journée et dans « Sans créneau » du planning. Suite automatisée 345/345, TypeScript et ESLint ciblés réussis. Affectation au créneau et autres vues restent à vérifier.
