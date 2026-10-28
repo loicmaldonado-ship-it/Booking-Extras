@@ -13,7 +13,7 @@ const compiled = ts.transpileModule(source, {
 }).outputText;
 const id = (i) => `11111111-1111-4111-8111-${String(i).padStart(12, "0")}`;
 
-function mock({ candidates, annonces, cError = null, aError = null, denied = null, writeError = null, updateCount = null, onglet = null } = {}) {
+function mock({ candidates, annonces, cError = null, aError = null, denied = null, writeError = null, updateCount = null, onglet = null, avantIncomplete = false } = {}) {
   const selection = [id(1), id(2)];
   const rows = candidates ?? [
     { id: id(1), annonce_id: id(11) }, { id: id(2), annonce_id: id(12) },
@@ -62,7 +62,7 @@ function mock({ candidates, annonces, cError = null, aError = null, denied = nul
       if (name === "next/cache") return { revalidatePath: p => revalidates.push(p) };
       if (name === "@/lib/auth/session") return { checkProjetAccess: async (project) => { checked.push(project); return denied?.(project) ?? null; } };
       if (name === "./bulk-guard") return { validateCandidatureBulkIds };
-      if (name === "./out") return { lireOngletsAvant: async () => [], appliquerMessagesOut: async () => {} };
+      if (name === "./out") return { lireOngletsAvant: async (ids) => avantIncomplete ? [] : ids.map(id => ({id})), appliquerMessagesOut: async () => {} };
       return {};
     },
   });
@@ -137,4 +137,11 @@ test("bulk UI preserves selected candidates and alerts on a failed operation", (
   const view = readFileSync(new URL("../src/components/candidatures/candidatures-table.tsx", import.meta.url), "utf8");
   assert.match(view, /if \(res && "error" in res && res\.error\)\s*\{\s*setErreur\(res\.error\);\s*return;/);
   assert.match(view, /<p role="alert" className="text-sm text-danger">\{erreur\}<\/p>/);
+});
+
+test("bulk tab change aborts when previous state cannot be read", async () => {
+  const env = mock({ avantIncomplete: true });
+  const result = await env.actions.setCandidaturesOngletBulk(env.selection, null);
+  assert.ok(result.error);
+  assert.equal(env.writes.length, 0);
 });

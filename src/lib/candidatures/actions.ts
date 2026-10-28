@@ -539,6 +539,7 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
     if (ongletError) return { error: ongletError };
   }
   const avant = await lireOngletsAvant([id]);
+  if (avant.length !== 1 || avant[0].id !== id) return { error: "Impossible de vérifier l’état de la candidature. Réessaie." };
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
   if (error) return { error: "Impossible de ranger la candidature. Réessaie." };
   revalidatePath("/candidatures");
@@ -578,6 +579,10 @@ export async function setCandidaturesOngletBulk(ids: string[], ongletId: string 
   }
 
   const avant = await lireOngletsAvant(selected.ids);
+  const avantIds = new Set(avant.map((c) => c.id));
+  if (avant.length !== selected.ids.length || avantIds.size !== selected.ids.length || selected.ids.some((id) => !avantIds.has(id))) {
+    return { error: "Impossible de vérifier l’état des candidatures. Réessaie." };
+  }
   const { data: updated, error } = await supabase.from("candidatures")
     .update({ onglet_id: ongletId }).in("id", selected.ids).select("id");
   if (error || !updated || updated.length !== selected.ids.length) {
