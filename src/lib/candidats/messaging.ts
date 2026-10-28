@@ -50,17 +50,31 @@ export async function recordFigurantMessage(params: {
     corps: params.corps, categorie: params.categorie,
   });
   if (insertError) return { error: "Enregistrement du message impossible. Aucun envoi effectué." };
-  await sendPushToFigurant(params.figurantId, {
-    title: "Booking Extras — Vous avez un message",
-    body: "Vous avez un nouveau message, merci de vous connecter pour en prendre connaissance.", url: "/compte",
-  });
+  try {
+    await sendPushToFigurant(params.figurantId, {
+      title: "Booking Extras — Vous avez un message",
+      body: "Vous avez un nouveau message, merci de vous connecter pour en prendre connaissance.", url: "/compte",
+    });
+  } catch {
+    return { error: "Message enregistré ; notification impossible et email non envoyé. Vérifie avant de réessayer.", messageEnregistre: true };
+  }
   const to = params.email || params.cc;
   if (to) {
-    const credentials = projetId ? await getProjetEmailCredentials(supabase, projetId) : await getOwnerEmailCredentials(supabase, actor.id);
+    let credentials;
+    try {
+      credentials = projetId ? await getProjetEmailCredentials(supabase, projetId) : await getOwnerEmailCredentials(supabase, actor.id);
+    } catch {
+      return { error: "Message enregistré ; configuration email inaccessible, aucun email envoyé.", messageEnregistre: true };
+    }
     if (credentials.error) return { error: "Message enregistré ; " + credentials.error, messageEnregistre: true };
-    const sent = await sendEmail(to, params.subject ?? "Booking Extras", params.corps, credentials.credentials, {
-      cc: params.email ? params.cc : undefined, attachments: params.attachments, html: params.html,
-    });
+    let sent;
+    try {
+      sent = await sendEmail(to, params.subject ?? "Booking Extras", params.corps, credentials.credentials, {
+        cc: params.email ? params.cc : undefined, attachments: params.attachments, html: params.html,
+      });
+    } catch {
+      return { error: "Message enregistré ; statut de l’email inconnu. Vérifie avant de réessayer.", messageEnregistre: true };
+    }
     if (sent.error) return { error: "Message enregistré ; email non envoyé : " + sent.error, messageEnregistre: true };
   }
   return {};

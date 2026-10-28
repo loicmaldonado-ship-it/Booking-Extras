@@ -9,7 +9,7 @@ function load(path,mocks){
  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
  const exports={};new Function('require','exports',code)(name=>name in mocks?mocks[name]:require(name),exports);return exports;
 }
-function harness({actor={id:'staff'},denied=null,booking={projet_id:'project',figurant_id:'candidate'},person={id:'candidate',email:'fixture@example.test',agent_email:'agent@example.test'},insertError=null,mailError=null}={}){
+function harness({actor={id:'staff'},denied=null,booking={projet_id:'project',figurant_id:'candidate'},person={id:'candidate',email:'fixture@example.test',agent_email:'agent@example.test'},insertError=null,mailError=null,pushThrows=false,mailThrows=false}={}){
  const trace=[],writes=[];
  const query=(data)=>({select(){return this;},eq(){return this;},maybeSingle:async()=>({data,error:null})});
  const mocks={
@@ -18,8 +18,8 @@ function harness({actor={id:'staff'},denied=null,booking={projet_id:'project',fi
   '@/lib/supabase/server':{createServerSupabaseClient:async()=>({from:()=>query(person)})},
   '@/lib/supabase/admin':{createAdminClient:()=>{trace.push('admin');return{from(table){if(table==='bookings')return query(booking);if(table==='figurant_messages')return {insert:async row=>{trace.push('persist');writes.push(row);return{error:insertError};}};throw Error(table);}};}},
   '@/lib/projets/email':{getProjetEmailCredentials:async()=>({credentials:null}),getOwnerEmailCredentials:async()=>({credentials:null})},
-  '@/lib/push/send':{sendPushToFigurant:async()=>{trace.push('push');}},
-  '@/lib/email/send':{sendEmail:async()=>{trace.push('mail');return{error:mailError};}},
+  '@/lib/push/send':{sendPushToFigurant:async()=>{trace.push('push');if(pushThrows)throw Error('push unavailable');}},
+  '@/lib/email/send':{sendEmail:async()=>{trace.push('mail');if(mailThrows)throw Error('SMTP unavailable');return{error:mailError};}},
  };
  return {trace,writes,send:load('src/lib/candidats/messaging.ts',mocks).recordFigurantMessage};
 }
@@ -62,3 +62,6 @@ test('casting attachment resolves its stored role and project before Storage dow
   assert.ok((await recordCastingMessage('candidate','body',null,'subject','project',{rolePdfPath:'role/file.pdf'})).error);assert.equal(downloads,0);assert.equal(sends,0);
  }
 });
+
+test('unexpected push failure reports the already recorded message and does not send email',async()=>{const h=harness({pushThrows:true});const r=await h.send(params);assert.equal(r.messageEnregistre,true);assert.match(r.error,/enregistré/);assert.equal(h.trace.includes('mail'),false)});
+test('unexpected SMTP failure reports an uncertain email after saving the message',async()=>{const h=harness({mailThrows:true});const r=await h.send(params);assert.equal(r.messageEnregistre,true);assert.match(r.error,/vérifi/i);assert.equal(h.writes.length,1)});
