@@ -195,7 +195,8 @@ export async function supprimerEnvoi(envoiId: string): Promise<{ error?: string 
   if (!projetId) return { error: "Envoi introuvable." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
-  await createAdminClient().from("envois").delete().eq("id", envoiId);
+  const { error } = await createAdminClient().from("envois").delete().eq("id", envoiId);
+  if (error) return { error: "Impossible de supprimer ce suivi." };
   revalidatePath("/bookings/documents");
   return {};
 }

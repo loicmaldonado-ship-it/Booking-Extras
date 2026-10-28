@@ -795,8 +795,8 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
       if (mode === "mac") {
         const res = await textosDepuisMac(liste);
         if (res.error) {
-          await supprimerEnvoi(prep.envoiId);
-          setErreur(res.error);
+          const suppression = await supprimerEnvoi(prep.envoiId);
+          setErreur(suppression.error ? `${res.error} Le suivi créé n’a pas pu être supprimé.` : res.error);
           return;
         }
         const suivi = await marquerEnvoiTextos(
@@ -831,9 +831,15 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
   }
 
   function annulerIphone() {
-    if (prets) supprimerEnvoi(prets.envoiId).then(() => router.refresh());
-    setPrets(null);
-    setEtape("ecrire");
+    demarrer(async () => {
+      if (prets) {
+        const res = await supprimerEnvoi(prets.envoiId);
+        if (res.error) { setErreur(res.error); return; }
+        router.refresh();
+      }
+      setPrets(null);
+      setEtape("ecrire");
+    });
   }
 
   return (
@@ -1137,7 +1143,8 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
                 type="button"
                 onClick={() =>
                   demarrer(async () => {
-                    await supprimerEnvoi(envoi.id);
+                    const res = await supprimerEnvoi(envoi.id);
+                    if (res.error) { setInfo(`⚠ ${res.error}`); return; }
                     router.refresh();
                   })
                 }
