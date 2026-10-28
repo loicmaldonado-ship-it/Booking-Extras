@@ -521,6 +521,7 @@ export function BookingsTable({
   const [pending, startTransition] = useTransition();
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [resetConvocationError, setResetConvocationError] = useState<string | null>(null);
   const [activeFonction, setActiveFonction] = useState<string | null>(null);
   const [activeCachet, setActiveCachet] = useState<string | null>(null);
   const [groupDims, setGroupDims] = useState<Dimension[]>(["fonction", "cachet"]);
@@ -949,8 +950,10 @@ export function BookingsTable({
 
   function reinitialiserConvocation(ids: string[]) {
     if (ids.length === 0) return;
+    setResetConvocationError(null);
     startTransition(async () => {
-      await resetConvocationEnvoyee(ids);
+      const result = await resetConvocationEnvoyee(ids);
+      if (result.error) { setResetConvocationError(result.error); return; }
       router.refresh();
     });
   }
@@ -1960,6 +1963,7 @@ export function BookingsTable({
           {messageMode === "convocation-confirm" && (
             <Modale titre="📨 Envoyer la convocation" onClose={cancelMessageComposer} bloquee={sendPending}>
             <div className="flex flex-col gap-3">
+              {resetConvocationError && <p role="alert" className="text-sm text-danger">{resetConvocationError}</p>}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Envoyer la convocation par email à {convocationAEnvoyer.length} personne

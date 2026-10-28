@@ -586,17 +586,22 @@ export async function markConvocationEnvoyee(id: string) {
 // Permet de renvoyer une convocation déjà reçue — geste explicite du staff,
 // distinct d'un simple bouton "renvoyer" pour éviter les doublons accidentels.
 export async function resetConvocationEnvoyee(ids: string[]) {
-  if (ids.length === 0) return {};
+  const selection = validateBookingBulkIds(ids);
+  if (!selection.ok) return { error: selection.error };
+  if (selection.ids.length === 0) return {};
   const supabase = createAdminClient();
-
-  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", ids);
-  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
-  for (const projetId of projetIds) {
+  const { data: targeted, error: lookupError } = await supabase.from("bookings").select("id, projet_id").in("id", selection.ids);
+  const returnedIds = new Set((targeted ?? []).map((b) => b.id));
+  if (lookupError || !targeted || targeted.length !== selection.ids.length ||
+      returnedIds.size !== selection.ids.length || selection.ids.some((id) => !returnedIds.has(id))) {
+    return { error: "Impossible de vérifier tous les bookings sélectionnés." };
+  }
+  for (const projetId of new Set(targeted.map((b) => b.projet_id))) {
     const accessError = await checkProjetAccess(projetId);
     if (accessError) return { error: accessError };
   }
-
-  await supabase.from("bookings").update({ convocation_envoyee: false, convocation_envoyee_le: null }).in("id", ids);
+  const { error } = await supabase.from("bookings").update({ convocation_envoyee: false, convocation_envoyee_le: null }).in("id", selection.ids);
+  if (error) return { error: "Impossible de réinitialiser les convocations." };
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   return { success: true as const };
