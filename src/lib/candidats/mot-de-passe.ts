@@ -32,10 +32,11 @@ export async function motDePasseCorrect(figurantId: string, motDePasse: string):
 // connectent seules, le lien « espace » ne sert qu'aux profils ajoutés à
 // la main.
 export async function aCreeSonCompte(figurantId: string): Promise<boolean> {
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from("figurant_comptes")
     .select("figurant_id")
     .eq("figurant_id", figurantId)
     .maybeSingle();
+  if (error) throw new Error("Impossible de vérifier le compte candidat.");
   return !!data;
 }

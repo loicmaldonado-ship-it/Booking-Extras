@@ -26,15 +26,20 @@ export async function envoyerInvitationCompte(
   retour?: string | null
 ): Promise<ResultatInvitation> {
   const supabase = createAdminClient();
-  const { data: figurant } = await supabase
+  const { data: figurant, error: figurantError } = await supabase
     .from("figurants")
     .select("id, prenom, email")
     .eq("id", figurantId)
     .maybeSingle();
-  if (!figurant?.email) return "pas_email";
-  if (await aCreeSonCompte(figurantId)) return "compte_existant";
+  if (figurantError || !figurant) return { erreur: "Impossible de vérifier le profil avant invitation." };
+  if (!figurant.email) return "pas_email";
+  try {
+    if (await aCreeSonCompte(figurantId)) return "compte_existant";
+  } catch {
+    return { erreur: "Impossible de vérifier le compte candidat avant invitation." };
+  }
 
-  const { data: recent } = await supabase
+  const { data: recent, error: recentError } = await supabase
     .from("figurant_auth_tokens")
     .select("id")
     .eq("figurant_id", figurantId)
@@ -42,6 +47,7 @@ export async function envoyerInvitationCompte(
     .is("used_at", null)
     .gt("created_at", new Date(Date.now() - ANTI_REPETITION_MS).toISOString())
     .limit(1);
+  if (recentError) return { erreur: "Impossible de vérifier les invitations précédentes." };
   if (recent && recent.length > 0) return "deja_envoyee";
 
   const token = randomUUID().replace(/-/g, "");
