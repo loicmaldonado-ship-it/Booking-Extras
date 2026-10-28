@@ -354,10 +354,9 @@ export async function updateEssayageStatutInline(id: string, statut: EssayageSta
     .select("projet_id, numero_costume, figurant_id")
     .eq("id", id)
     .maybeSingle();
-  if (essayage) {
-    const accessError = await checkProjetAccess(essayage.projet_id);
-    if (accessError) return { error: accessError };
-  }
+  if (!essayage) return { error: "Impossible de vérifier cet essayage." };
+  const accessError = await checkProjetAccess(essayage.projet_id);
+  if (accessError) return { error: accessError };
 
   if (statut === "fait" && essayage && !essayage.numero_costume) {
     const { data: figurant } = await supabase
@@ -369,7 +368,8 @@ export async function updateEssayageStatutInline(id: string, statut: EssayageSta
     if (numero) updates.numero_costume = numero;
   }
 
-  await supabase.from("essayages").update(updates).eq("id", id);
+  const { error } = await supabase.from("essayages").update(updates).eq("id", id);
+  if (error) return { error: "Impossible de modifier le statut de cet essayage." };
   revalidatePath("/essayages/journee");
   revalidatePath("/bookings/documents");
   revalidatePath("/figurants");
@@ -380,7 +380,8 @@ export async function updateEssayageReponseRecue(id: string, reponse_recue: bool
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("essayages").update({ reponse_recue }).eq("id", id);
+  const { error } = await supabase.from("essayages").update({ reponse_recue }).eq("id", id);
+  if (error) return { error: "Impossible de modifier la réponse reçue." };
   revalidatePath("/essayages/journee");
 }
 
@@ -389,7 +390,8 @@ export async function removeEssayageFromJournee(id: string) {
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("essayages").delete().eq("id", id);
+  const { error } = await supabase.from("essayages").delete().eq("id", id);
+  if (error) return { error: "Impossible de retirer cet essayage." };
   revalidatePath("/essayages/journee");
 }
 

@@ -143,21 +143,24 @@ export function EssayageJourneeTable({
 
   function setStatut(id: string, statut: EssayageStatut) {
     startTransition(async () => {
-      await updateEssayageStatutInline(id, statut);
+      const result = await updateEssayageStatutInline(id, statut);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
 
   function setReponseRecue(id: string, value: boolean) {
     startTransition(async () => {
-      await updateEssayageReponseRecue(id, value);
+      const result = await updateEssayageReponseRecue(id, value);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
 
   function remove(id: string) {
     startTransition(async () => {
-      await removeEssayageFromJournee(id);
+      const result = await removeEssayageFromJournee(id);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
