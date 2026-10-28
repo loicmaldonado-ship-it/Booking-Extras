@@ -25,3 +25,4 @@
 
 - Reprise du 28 octobre : l’automatisation « Reprendre Booking Extras » a été supprimée à la demande de l’utilisatrice ; le dossier local des automatisations est vide. Le changement non committé sur `envoyerJourAuTournage` vérifie l’accès au projet avant lecture des candidatures ; ses deux tests ciblés passent. Prochaine action : terminer la vérification de ce changement, puis poursuivre BUG-13 et ses mutations partielles.
 - Vérification de reprise : 13 tests ciblés candidatures/journées réussis, ESLint ciblé et TypeScript sans erreur. Aucun parcours navigateur supplémentaire vérifié.
+- BUG-13 : envoi de journée limité explicitement à 300 candidatures ; une journée plus grande est refusée avant écriture, avec invitation à utiliser des sélections. Test de régression, 14 tests ciblés, ESLint ciblé et TypeScript réussis. Reste à étudier : atomicité bookings/profils et messages OUT ; recette navigateur non effectuée pour ces derniers changements.

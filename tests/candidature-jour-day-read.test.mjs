@@ -18,3 +18,10 @@ test('project access is checked before reading any candidates even for an empty 
  const exports={};runInNewContext(compiled,{exports,require(n){if(n==='@/lib/supabase/admin')return{createAdminClient:()=>db};if(n==='@/lib/auth/session')return{checkProjetAccess:async()=> 'Accès refusé'};return {}}});
  const result=await exports.envoyerJourAuTournage('date','','cachet');assert.equal(result.error,'Accès refusé');assert.equal(reads.includes('candidatures'),false);
 });
+
+test('a day with more than 300 candidates is rejected without partial booking',async()=>{
+ const reads=[]; let requestedLimit;
+ const db={from(table){reads.push(table);const q={select(){return this},eq(){return this},is(){return this},limit(n){requestedLimit=n;return this},maybeSingle(){return Promise.resolve({data:table==='annonce_dates'?{annonce_id:'a',annonces:{projet_id:'p'}}:{id:'tab'},error:null})},then(resolve,reject){return Promise.resolve({data:Array.from({length:Math.min(requestedLimit,301)},(_,i)=>({id:String(i)})),error:null}).then(resolve,reject)}};return q}};
+ const exports={};runInNewContext(compiled,{exports,require(n){if(n==='@/lib/supabase/admin')return{createAdminClient:()=>db};if(n==='@/lib/auth/session')return{checkProjetAccess:async()=>null};return {}}});
+ const result=await exports.envoyerJourAuTournage('date','','cachet');assert.match(result.error,/300/);assert.equal(reads.filter(t=>t==='annonce_dates').length,1);assert.equal(result.ok,0);
+});

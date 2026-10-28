@@ -185,9 +185,10 @@ export async function envoyerJourAuTournage(
     .eq("annonce_id", annonceDate.annonce_id)
     .eq("onglet_id", onglet.id)
     .is("envoyee_en_booking_le", null)
-    .limit(300);
+    .limit(301);
   if (rangeesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les candidatures de cette journée. Réessaie." };
   const ids = (rangees ?? []).map((c) => c.id);
+  if (ids.length > 300) return { ok: 0, deja: 0, error: "Cette journée contient plus de 300 candidatures. Envoie-les par sélections de 300 maximum." };
   if (ids.length === 0) return { ok: 0, deja: 0 };
   return envoyerCandidaturesDansJour(annonceDateId, ids, fonction, cachet);
 }
