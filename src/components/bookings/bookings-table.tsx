@@ -552,7 +552,7 @@ export function BookingsTable({
   const [libreSubject, setLibreSubject] = useState(`Message – ${date ?? ""}`);
   const [libreMessage, setLibreMessage] = useState(DEFAULT_LIBRE_BODY);
   const [sendPending, setSendPending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number; unmarked?: number } | null>(null);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number; unmarked?: number; partiels?: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [repliesPending, setRepliesPending] = useState(false);
   const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
@@ -940,7 +940,7 @@ export function BookingsTable({
       );
       setSendPending(false);
       setSendResult(result);
-      if (result.failed === 0 && !result.unmarked) {
+      if (result.failed === 0 && !result.unmarked && !result.partiels) {
         setSelected(new Set());
         setMessageMode("none");
       }
@@ -2019,6 +2019,9 @@ export function BookingsTable({
                     </div>
                   ))}
                 </div>
+              )}
+              {!!sendResult?.partiels && (
+                <p role="alert" className="text-xs text-danger">{sendResult.partiels} message(s) enregistré(s), mais l’email a échoué ou son statut est inconnu. Vérifie les échanges avant tout nouvel envoi pour éviter les doublons.</p>
               )}
               {!!sendResult?.unmarked && (
                 <p role="alert" className="text-xs text-danger">{sendResult.unmarked} email(s) envoyé(s), mais leur statut n’a pas pu être enregistré. Vérifie les convocations avant tout nouvel envoi pour éviter les doublons.</p>

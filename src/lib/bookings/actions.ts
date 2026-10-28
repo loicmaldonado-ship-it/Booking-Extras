@@ -716,7 +716,7 @@ export async function sendBulkConvocations(
   rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
   projetId?: string | null
 ) {
-  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0, unmarked: 0 };
+  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0, unmarked: 0, partiels: 0 };
   const actor = await getCurrentProfile();
   if (!actor || !Array.isArray(rows) || !rows.length || rows.length > 500 || new Set(rows.map(r => r.bookingId)).size !== rows.length) return failedResult;
   const supabase = createAdminClient();
@@ -732,6 +732,7 @@ export async function sendBulkConvocations(
   let failed = 0;
   let skipped = 0;
   let unmarked = 0;
+  let partiels = 0;
   for (const r of rows) {
     if (dejaEnvoyees.has(r.bookingId)) {
       skipped += 1;
@@ -747,7 +748,8 @@ export async function sendBulkConvocations(
       projetId,
     });
     if (result.error) {
-      failed += 1;
+      if (result.messageEnregistre) partiels += 1;
+      else failed += 1;
       continue;
     }
     const marked = await markConvocationEnvoyee(r.bookingId);
@@ -756,7 +758,7 @@ export async function sendBulkConvocations(
   }
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
-  return { sent, failed, skipped, unmarked };
+  return { sent, failed, skipped, unmarked, partiels };
 }
 
 // Envoi manuel du lien d'espace perso à toute une sélection (ex. au moment
