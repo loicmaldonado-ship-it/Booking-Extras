@@ -77,16 +77,23 @@ export async function updateBesoin(
   let renommes = 0;
   const ancien = besoin.fonction.trim().toLowerCase();
   if (renommerBookings && ancien !== nom.toLowerCase()) {
-    const { data: bookings } = await supabase
+    const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("id, fonction")
       .eq("projet_id", besoin.journees.projet_id)
       .eq("date", besoin.journees.date)
       .not("fonction", "is", null);
+    if (bookingsError) {
+      revalidatePath("/bookings/documents");
+      return { error: "Le besoin a été enregistré, mais les bookings n’ont pas pu être vérifiés. Vérifie leurs fonctions." };
+    }
     const ids = (bookings ?? []).filter((b) => b.fonction!.trim().toLowerCase() === ancien).map((b) => b.id);
     if (ids.length > 0) {
       const { error: errBookings } = await supabase.from("bookings").update({ fonction: nom }).in("id", ids);
-      if (errBookings) return { error: errBookings.message };
+      if (errBookings) {
+        revalidatePath("/bookings/documents");
+        return { error: "Le besoin a été enregistré, mais les bookings n’ont pas pu être renommés. Vérifie leurs fonctions." };
+      }
       renommes = ids.length;
     }
   }
