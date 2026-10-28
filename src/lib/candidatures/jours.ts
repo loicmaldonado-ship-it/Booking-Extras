@@ -101,7 +101,7 @@ export async function envoyerCandidaturesDansJour(
   const rows = (candidatures ?? []).filter((c) => c.annonce_id === annonceDate.annonce_id);
   if (rows.length === 0) return { ok: 0, deja: 0, error: "Ces candidatures ne sont pas sur cette annonce." };
 
-  const [{ data: existants }, { data: dejaRattachees }] = await Promise.all([
+  const [{ data: existants, error: existantsError }, { data: dejaRattachees, error: rattacheesError }] = await Promise.all([
     supabase
       .from("bookings")
       .select("figurant_id")
@@ -110,6 +110,7 @@ export async function envoyerCandidaturesDansJour(
       .in("figurant_id", rows.map((r) => r.figurant_id)),
     supabase.from("bookings").select("candidature_id").in("candidature_id", rows.map((r) => r.id)),
   ]);
+  if (existantsError || rattacheesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les bookings existants. Réessaie." };
   const dejaBookes = new Set((existants ?? []).map((b) => b.figurant_id));
   const rattachees = new Set((dejaRattachees ?? []).map((b) => b.candidature_id));
 
@@ -126,7 +127,8 @@ export async function envoyerCandidaturesDansJour(
   const deja = rows.length - payload.length;
   if (payload.length === 0) return { ok: 0, deja };
 
-  await supabase.from("journees").upsert({ projet_id: projetId, date: annonceDate.date }, { onConflict: "projet_id,date" });
+  const { error: journeeError } = await supabase.from("journees").upsert({ projet_id: projetId, date: annonceDate.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { ok: 0, deja, error: "Impossible de préparer la journée de tournage. Réessaie." };
   const { error } = await supabase.from("bookings").insert(payload);
   if (error) return { ok: 0, deja, error: error.message };
   await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
