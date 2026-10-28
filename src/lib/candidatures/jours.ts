@@ -170,11 +170,14 @@ export async function envoyerJourAuTournage(
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")
-    .select("annonce_id")
+    .select("annonce_id, annonces(projet_id)")
     .eq("id", annonceDateId)
-    .maybeSingle();
-  const onglet = annonceDate ? await ongletDeLaJournee(annonceDateId) : null;
-  if (!annonceDate || !onglet) return { ok: 0, deja: 0, error: "Date introuvable." };
+    .maybeSingle<{ annonce_id: string; annonces: { projet_id: string } | null }>();
+  if (!annonceDate?.annonces) return { ok: 0, deja: 0, error: "Date introuvable." };
+  const accessError = await checkProjetAccess(annonceDate.annonces.projet_id);
+  if (accessError) return { ok: 0, deja: 0, error: accessError };
+  const onglet = await ongletDeLaJournee(annonceDateId);
+  if (!onglet) return { ok: 0, deja: 0, error: "Date introuvable." };
 
   const { data: rangees, error: rangeesError } = await supabase
     .from("candidatures")
