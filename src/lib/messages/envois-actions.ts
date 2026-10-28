@@ -148,15 +148,23 @@ export async function marquerEnvoiTextos(
   if (!projetId) return { error: "Envoi introuvable." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+  if (!Array.isArray(destinataireIds) || new Set(destinataireIds).size !== destinataireIds.length) return { error: "Sélection de destinataires invalide." };
+  if (destinataireIds.length === 0) return {};
   const supabase = createAdminClient();
   const maintenant = new Date().toISOString();
   if (relance) {
-    const { data: lignes } = await supabase.from("envoi_destinataires").select("id, relances").in("id", destinataireIds).eq("envoi_id", envoiId);
-    for (const l of lignes ?? []) {
-      await supabase.from("envoi_destinataires").update({ relances: l.relances + 1, derniere_relance_le: maintenant }).eq("id", l.id);
+    const { data: lignes, error: lectureError } = await supabase.from("envoi_destinataires").select("id, relances").in("id", destinataireIds).eq("envoi_id", envoiId);
+    if (lectureError || !lignes || lignes.length !== destinataireIds.length) return { error: "Impossible de vérifier tous les destinataires des relances." };
+    for (const l of lignes) {
+      const { error } = await supabase.from("envoi_destinataires").update({ relances: l.relances + 1, derniere_relance_le: maintenant }).eq("id", l.id).eq("envoi_id", envoiId);
+      if (error) {
+        revalidatePath("/bookings/documents");
+        return { error: "Le suivi des relances est incomplet." };
+      }
     }
   } else {
-    await supabase.from("envoi_destinataires").update({ envoye_le: maintenant, erreur: null }).in("id", destinataireIds).eq("envoi_id", envoiId);
+    const { error } = await supabase.from("envoi_destinataires").update({ envoye_le: maintenant, erreur: null }).in("id", destinataireIds).eq("envoi_id", envoiId);
+    if (error) return { error: "Le suivi des textos n’a pas pu être enregistré." };
   }
   revalidatePath("/bookings/documents");
   return {};

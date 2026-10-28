@@ -799,10 +799,11 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
           setErreur(res.error);
           return;
         }
-        await marquerEnvoiTextos(
+        const suivi = await marquerEnvoiTextos(
           prep.envoiId,
           liste.filter((d) => telephoneInternational(d.telephone)).map((d) => d.cle)
         );
+        if (suivi.error) setErreur(`Les textos ont été mis en file, mais ${suivi.error} Vérifie avant de réessayer.`);
         setBilan(`✓ ${res.enFile} texto${res.enFile > 1 ? "s" : ""} en file sur ton Mac (environ 10 s d'écart). Le suivi est juste en dessous.`);
         setEtape("fait");
         router.refresh();
@@ -817,10 +818,11 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
     if (!prets) return;
     textosDepuisIphone(prets.liste)
       .then(async (nb) => {
-        await marquerEnvoiTextos(
+        const suivi = await marquerEnvoiTextos(
           prets.envoiId,
           prets.liste.filter((d) => telephoneInternational(d.telephone)).map((d) => d.cle)
         );
+        if (suivi.error) setErreur(`Les textos ont été passés au raccourci, mais ${suivi.error} Vérifie avant de réessayer.`);
         setBilan(`✓ ${nb} texto${nb > 1 ? "s" : ""} passé${nb > 1 ? "s" : ""} au raccourci iPhone. Le suivi est juste en dessous.`);
         setEtape("fait");
         router.refresh();
@@ -1021,7 +1023,12 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
         setInfo(`⚠ ${res.error}`);
         return;
       }
-      await marquerEnvoiTextos(envoi.id, liste.map((x) => x.cle), true);
+      const suivi = await marquerEnvoiTextos(envoi.id, liste.map((x) => x.cle), true);
+      if (suivi.error) {
+        setInfo(`⚠ Textos en file, mais ${suivi.error} Vérifie avant de réessayer.`);
+        router.refresh();
+        return;
+      }
       setInfo(`🔁 ${res.enFile} relance${res.enFile > 1 ? "s" : ""} en file sur ton Mac.`);
       router.refresh();
     });
