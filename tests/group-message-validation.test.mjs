@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/messages/envois-actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){const sent=[];const db={from(){let op='read';const q={select(){return this},eq(){return this},in(){return this},update(){op='write';return this},maybeSingle(){return Promise.resolve({data:{projet_id:'project'},error:null})},then(ok,bad){const error=failure==='read'&&op==='read';return Promise.resolve({data:failure==='missing'?[]:[{id:'recipient',figurant_id:failure==='mismatch'?'other':'person',booking_id:'booking',envoye_le:failure==='already'?'2026-10-01':null}],error:error?{message:'offline'}:null}).then(ok,bad)}};return q}};const exports={};new Function('require','exports',code)(n=>n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='@/lib/auth/session'?{checkProjetAccess:async()=>null}:n==='@/lib/candidats/messaging'?{recordFigurantMessage:async x=>{sent.push(x);return {}}}:n==='next/cache'?{revalidatePath:()=>{}}:{},exports);return{action:exports.envoyerEnvoiEmail,sent}}
+const item={destinataireId:'recipient',figurantId:'person',bookingId:'booking',email:'person@example.test',sujet:'Test',corps:'Test'};
+for(const failure of ['read','missing','mismatch','already'])test(`group email rejects ${failure} recipient state before sending`,async()=>{const f=fixture(failure);const r=await f.action('envoi',[item]);assert.ok(r.error);assert.equal(f.sent.length,0)});
+test('group email rejects duplicate selection before sending',async()=>{const f=fixture();const r=await f.action('envoi',[item,item]);assert.ok(r.error);assert.equal(f.sent.length,0)});
+test('group email sends one verified recipient',async()=>{const f=fixture();const r=await f.action('envoi',[item]);assert.equal(r.envoyes,1);assert.equal(f.sent.length,1)});

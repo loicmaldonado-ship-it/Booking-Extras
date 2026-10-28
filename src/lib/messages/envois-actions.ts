@@ -74,7 +74,21 @@ export async function envoyerEnvoiEmail(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError, envoyes: 0, echecs: 0 };
 
+  if (!Array.isArray(items) || items.length === 0 || items.length > 500 || new Set(items.map((it) => it.destinataireId)).size !== items.length) {
+    return { error: "Sélection de destinataires invalide.", envoyes: 0, echecs: 0 };
+  }
   const supabase = createAdminClient();
+  const { data: destinataires, error: destinatairesError } = await supabase
+    .from("envoi_destinataires")
+    .select("id, figurant_id, booking_id, envoye_le")
+    .eq("envoi_id", envoiId)
+    .in("id", items.map((it) => it.destinataireId));
+  if (destinatairesError || !destinataires || destinataires.length !== items.length || items.some((it) => {
+    const d = destinataires.find((row) => row.id === it.destinataireId);
+    return !d || d.figurant_id !== it.figurantId || d.booking_id !== it.bookingId || (!relance && !!d.envoye_le);
+  })) {
+    return { error: "Impossible de vérifier tous les destinataires ou certains sont déjà envoyés. Aucun email envoyé pour ce lot.", envoyes: 0, echecs: 0 };
+  }
   let envoyes = 0;
   let echecs = 0;
   for (const it of items) {
