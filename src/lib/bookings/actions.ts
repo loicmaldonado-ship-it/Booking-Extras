@@ -782,25 +782,37 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
   let lastError: string | undefined;
 
   for (const figurantId of Array.from(new Set(figurantIds))) {
-    const { data: figurant } = await supabase
+    const { data: figurant, error: profilError } = await supabase
       .from("figurants")
       .select("id, prenom, email, acces_compte")
       .eq("id", figurantId)
       .maybeSingle();
 
-    if (!figurant?.email) {
+    if (profilError || !figurant?.email) {
       failed += 1;
+      lastError = profilError ? "Impossible de vérifier le profil." : "Adresse email absente.";
       continue;
     }
     // Compte créé par la personne elle-même (mot de passe) : elle se
     // connecte seule, le lien ne sert qu'aux profils ajoutés à la main.
-    if (await aCreeSonCompte(figurant.id)) {
-      dejaCompte += 1;
+    try {
+      if (await aCreeSonCompte(figurant.id)) {
+        dejaCompte += 1;
+        continue;
+      }
+    } catch {
+      failed += 1;
+      lastError = "Impossible de vérifier le compte candidat.";
       continue;
     }
 
     if (!figurant.acces_compte) {
-      await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+      const { error: activationError } = await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+      if (activationError) {
+        failed += 1;
+        lastError = "Impossible d’activer l’accès candidat.";
+        continue;
+      }
     }
 
     const result = figurant.acces_compte
