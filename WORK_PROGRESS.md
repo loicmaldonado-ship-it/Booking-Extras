@@ -212,3 +212,5 @@
 - 29/10/2026 — ENV-06 partiel : le README de recette renvoie désormais à la passation technique et au suivi actif ; la passation signale la branche autorisée et l’interdiction de réinitialiser les bases de cette reprise. Le document de développement reflète l’autorisation de cocher Trello après tests techniques et rappelle la recette métier distincte. Diff vérifié ; aucun service modifié. La lecture et l’exécution par un nouveau développeur restent nécessaires : ENV-06 demeure ouverte.
 
 - 29/10/2026 — ENV-05 partiel : les anomalies de retour arrière des filtres RGPD et listes sont ajoutées au registre avec étapes, résultat attendu/observé, correctifs et limites de vérification. Documentation contrôlée par diff ; aucun reset ni modification des données. ENV-05 reste ouverte : compléter le registre des autres anomalies reproductibles et vérifier leurs rattachements.
+
+- 29/10/2026 — ENV-05 partiel : anomalie CAN-08 des deux jours ajoutée au registre avec contexte fictif, reproduction, correctifs, tests et vérification navigateur ; recette métier distinguée. Diff vérifié ; aucune donnée modifiée. ENV-05 reste ouverte pour les autres anomalies reproductibles.

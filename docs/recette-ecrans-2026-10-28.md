@@ -70,3 +70,13 @@ Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; 
 - Attendu : le champ revient à « Type (tous) » avec les résultats correspondants. Avant correction : le champ gardait Film alors que les paramètres chargés étaient revenus en arrière.
 - Après correction : le champ retrouve « Type (tous) » ; le retour arrière des annonces et profils a également rétabli respectivement « Statut (tous) » et « Genre (tous) ». ESLint ciblé réussi ; autres navigateurs non vérifiés.
 - Modules : `src/app/projets/page.tsx`, `src/app/annonces/page.tsx`, `src/app/figurants/page.tsx`. Régression à maintenir : comparer les contrôles affichés aux paramètres et aux résultats après retour arrière.
+
+## Anomalie CAN-08 — second jour inaccessible après le premier booking
+
+- Cartes associées : CAN-08, ENV-05. Sévérité : majeure ; corrigée localement par `52e260e` et `eb5f9d2`.
+- Environnement : navigateur de recette, copie locale sur `localhost:3200`, base fictive 29194 et compte cheffe fictif. Version reproduite : code avant `52e260e` ; SHA exact non relevé.
+- Préconditions : candidature fictive valide avec disponibilités les 11 et 12 novembre ; projet de test.
+- Étapes : ouvrir le panneau des jours, envoyer la candidature au booking du 11 novembre, puis tenter d’accéder au 12 novembre, y compris après fermeture et réouverture du panneau.
+- Attendu : le premier jour est marqué déjà booké et le second reste accessible. Avant correction : le panneau perdait les disponibilités après le premier envoi ; la candidature envoyée disparaissait aussi du tri, empêchant la reprise du jour restant.
+- Après correction : premier jour marqué déjà booké ; second accessible après fermeture et réouverture, puis second booking créé. Après rechargement, les deux jours sont marqués bookés ; les deux lignes de disponibilité sont conservées en base fictive. Suite 258/258, TypeScript et ESLint ciblé réussis lors de la recette. Aucun email réel.
+- Modules : `src/app/candidatures/page.tsx`, `src/components/candidatures/reprendre-jours.tsx`, `src/lib/candidatures/jours-panel-snapshot.ts`. Régressions : `tests/candidature-deux-jours-flow.test.mjs`, `tests/candidature-jours-panel-snapshot.test.mjs`. Recette métier ultérieure.
