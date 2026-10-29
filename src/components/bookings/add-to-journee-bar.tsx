@@ -71,7 +71,8 @@ export function AddToJourneeBar({
           dates,
           referenceIds,
           fonction,
-          cachet
+          cachet,
+          fonctionFacultative
         );
         setResult({ ok: res.ok, deja: res.deja, error: res.error });
         if (res.ok > 0) router.refresh();
