@@ -80,22 +80,21 @@ export async function modifierReference(
   if (refus) return { error: refus };
   const champs = lireChamps(fd);
   if ("error" in champs) return champs;
+  const supabase = createAdminClient();
+  const { data: avant, error: lectureError } = await supabase.from("references_accueil").select("id").eq("id", id).maybeSingle();
+  if (lectureError || !avant) return { error: "Impossible de vérifier cette référence. Recharge la page avant de réessayer." };
   const affiche = await envoyerAffiche(fd.get("affiche"));
   if (affiche.error) return { error: affiche.error };
 
-  const supabase = createAdminClient();
-  const { data: avant } = await supabase.from("references_accueil").select("affiche_storage_path").eq("id", id).maybeSingle();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("references_accueil")
     .update({ ...champs, ...(affiche.path ? { affiche_storage_path: affiche.path } : {}) })
-    .eq("id", id);
-  if (error) {
-    if (affiche.path) await supabase.storage.from(BUCKET).remove([affiche.path]);
-    return { error: error.message };
+    .eq("id", id).select("id").maybeSingle();
+  if (error || !updated) {
+    // Une réponse perdue peut masquer une écriture réussie : garder les fichiers.
+    return { error: "Impossible de confirmer la modification. Recharge la page et vérifie la référence avant de réessayer." };
   }
-  if (affiche.path && avant?.affiche_storage_path) {
-    await supabase.storage.from(BUCKET).remove([avant.affiche_storage_path]);
-  }
+  // L’ancienne affiche peut être partagée ; un nettoyage sûr doit vérifier les références.
   revalider();
   return { success: true };
 }
