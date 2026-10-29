@@ -116,7 +116,7 @@ export function MyProfileForm({ profile, gate }: { profile: CurrentProfile; gate
       <Card className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold">Ta photo</h2>
         <div className="flex items-center gap-4">
-          <button type="button" onClick={() => inputRef.current?.click()}>
+          <button type="button" aria-label="Changer ma photo" disabled={avatarPending} onClick={() => inputRef.current?.click()}>
             <AvatarPresence
               avatarUrl={preview ?? profile.avatarUrl}
               nom={profile.nom}
