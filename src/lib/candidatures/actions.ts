@@ -470,7 +470,7 @@ async function enregistrerPhotosCandidature(
       .filter((v): v is string => typeof v === "string" && v.length > 0)
       .map((id) => ({ id, type }))
   );
-  const { data: autorisees } =
+  const { data: autorisees, error: photosError } =
     existantes.length > 0
       ? await supabase
           .from("figurant_photos")
@@ -480,8 +480,10 @@ async function enregistrerPhotosCandidature(
             "id",
             existantes.map((e) => e.id)
           )
-      : { data: [] as { id: string }[] };
-  const idsAutorises = new Set((autorisees ?? []).map((p) => p.id));
+      : { data: [] as { id: string }[], error: null };
+  if (photosError || !autorisees) return { error: "Impossible de vérifier les photos de ton compte. Réessaie." };
+  const idsAutorises = new Set(autorisees.map((p) => p.id));
+  if (existantes.some((p) => !idsAutorises.has(p.id))) return { error: "Certaines photos ne sont plus disponibles sur ton compte. Choisis-les à nouveau." };
 
   const liens: { candidature_id: string; photo_id: string; emplacement: string; ordre: number }[] = [];
   const ajouter = (photoId: string, emplacement: string) => {
