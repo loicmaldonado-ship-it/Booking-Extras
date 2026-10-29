@@ -872,8 +872,7 @@ export function PostulerForm({
       </Button>
 
       <p className="text-center text-xs text-text-muted">
-        {inscription ? "Créer un compte et candidater est" : "Candidater est"} gratuit — aucune somme d&apos;argent ni
-        aucun document de paie ne vous sera jamais demandé sur Booking Extras.
+        {inscription ? "Créer un compte et candidater est" : "Candidater est"} gratuit. Aucun document de paie ne vous sera demandé sur Booking Extras.
       </p>
 
       <p className="text-center text-xs text-text-muted">
