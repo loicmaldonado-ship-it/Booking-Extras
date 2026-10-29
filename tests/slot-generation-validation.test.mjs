@@ -9,3 +9,7 @@ for(const [path,name] of [['src/lib/casting-presentiel/actions.ts','generatePres
  test(`${name} rejects impossible times`,async()=>{const f=fixture(path,name,false);const r=await f.action('day',null,form('09:00','25:00'));assert.ok(r.error);assert.equal(f.writes(),0)});
  test(`${name} creates slots for a valid range`,async()=>{const f=fixture(path,name,false);const r=await f.action('day',null,form());assert.equal(r.count,2);assert.equal(f.writes(),1)});
 }
+for(const [path,name] of [['src/lib/casting-presentiel/actions.ts','addPresentielCreneau'],['src/lib/essayages/actions.ts','addCreneau']]){
+ test(`${name} rejects a reversed slot`,async()=>{const f=fixture(path,name,false);const r=await f.action('day',null,form('10:00','09:00'));assert.ok(r.error);assert.equal(f.writes(),0)});
+ test(`${name} accepts valid times`,async()=>{const f=fixture(path,name,false);const r=await f.action('day',null,form());assert.equal(r.success,true);assert.equal(f.writes(),1)});
+}

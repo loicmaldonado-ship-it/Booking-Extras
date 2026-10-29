@@ -462,7 +462,9 @@ export async function addCreneau(essayageJourneeId: string, _prevState: unknown,
   const capacite = Number(str(formData, "capacite") ?? "1");
 
   if (!heureDebut || !heureFin) return { error: "Heure de début et de fin obligatoires." };
-  if (!Number.isFinite(capacite) || capacite < 1) return { error: "Capacité invalide." };
+  if (!Number.isInteger(capacite) || capacite < 1 || capacite > 10000) return { error: "Capacité invalide." };
+  const formatHeure = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!formatHeure.test(heureDebut) || !formatHeure.test(heureFin) || heureFin <= heureDebut) return { error: "Le créneau doit finir après son début." };
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("essayage_creneaux").insert({
