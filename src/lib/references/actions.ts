@@ -50,22 +50,22 @@ export async function ajouterReference(_prev: unknown, fd: FormData): Promise<{ 
   if (refus) return { error: refus };
   const champs = lireChamps(fd);
   if ("error" in champs) return champs;
-  const affiche = await envoyerAffiche(fd.get("affiche"));
-  if (affiche.error) return { error: affiche.error };
-
   const supabase = createAdminClient();
-  const { data: dernier } = await supabase
+  const { data: dernier, error: lectureError } = await supabase
     .from("references_accueil")
     .select("ordre")
     .order("ordre", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (lectureError) return { error: "Impossible de vérifier l’ordre des références. Réessaie." };
+  const affiche = await envoyerAffiche(fd.get("affiche"));
+  if (affiche.error) return { error: affiche.error };
   const { error } = await supabase
     .from("references_accueil")
     .insert({ ...champs, affiche_storage_path: affiche.path ?? null, ordre: (dernier?.ordre ?? 0) + 1 });
   if (error) {
-    if (affiche.path) await supabase.storage.from(BUCKET).remove([affiche.path]);
-    return { error: error.message };
+    // Une panne réseau peut masquer une insertion réussie : conserver l’affiche.
+    return { error: "Impossible de confirmer la création. Recharge la page et vérifie la référence avant de réessayer." };
   }
   revalider();
   return { success: true };
