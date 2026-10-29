@@ -111,6 +111,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
       ) : (
         <div className="flex items-center gap-2">
           <select
+            aria-label="Type de photo"
             value={type}
             onChange={(e) => setType(e.target.value as PhotoType)}
             className="rounded-lg border border-border bg-ink px-2 py-1.5 text-sm"
