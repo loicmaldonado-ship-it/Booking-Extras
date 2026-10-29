@@ -91,6 +91,7 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={openPalette}
+        aria-label="Rechercher"
         className="flex items-center gap-2 rounded-xl border border-border-strong px-3 py-2 text-sm text-text transition-colors hover:border-coral/60 hover:text-text"
       >
         <Search size={16} strokeWidth={1.75} />

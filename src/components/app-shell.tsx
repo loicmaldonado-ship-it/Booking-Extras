@@ -157,7 +157,7 @@ export function AppShell({
     <div className="flex min-h-screen w-full flex-col">
       <header className="print:hidden relative z-50 flex items-center justify-between border-b border-border bg-ink-raised px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/" className="shrink-0">
+          <Link href="/" aria-label="Accueil Booking Extras" className="shrink-0">
             <Logo iconSize={30} textClassName="text-lg" hideTextOnMobile />
           </Link>
 
@@ -165,6 +165,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => router.back()}
+              aria-label="Retour"
               className="flex items-center gap-1 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
             >
               ← <span className="hidden sm:inline">Retour</span>
@@ -175,6 +176,8 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
+              aria-label={`Navigation : ${current?.label ?? "Menu"}`}
+              aria-expanded={menuOpen}
               className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60"
             >
               {CurrentIcon && <CurrentIcon size={16} strokeWidth={1.75} />}
