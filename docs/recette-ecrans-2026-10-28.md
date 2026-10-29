@@ -40,3 +40,13 @@ Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; 
 
 - Reproduction : sur le planning de casting fictif du 25/11 en vue trombi, télécharger le PDF. Avant correction, le contenu court est centré très bas sur la page et le nom de Sacha est tronqué.
 - Après correction, le contenu est aligné en haut et le nom complet est affiché sur deux lignes ; PDF A4 d'une page téléchargé et contrôlé visuellement. Un trombinoscope bookings fictif en paysage a aussi été téléchargé et contrôlé : alignement correct, mais les noms longs restent tronqués dans cette autre grille, à traiter séparément en tenant compte de sa pagination fixe.
+
+## Anomalie MET-04 — fonction facultative refusée pour un booking
+
+- Carte associée : MET-04. Sévérité : majeure ; corrigée par `333a408`.
+- Environnement : copie de recette sur localhost:3200, base fictive 29194, mode test ; reproduction sur le code `df7a1a6`, cheffe fictive et projet de test.
+- Préconditions : candidature fictive Sacha sélectionnée, projet de test.
+- Étapes : choisir « Envoyer en booking sur une autre date », sélectionner le 30 octobre et le cachet Figurant, laisser la fonction vide et valider.
+- Attendu : le profil est ajouté puisque la fonction est affichée facultative. Obtenu avant correction : « Choisis une fonction », sans ajout ; la propriété facultative n’était pas transmise à l’action serveur.
+- Après correction : ajout visible, une ligne en base pour le 30 octobre, sans fonction et avec cachet Figurant. Vérification navigateur et base fictive ; 15 tests ciblés, TypeScript sans cache et ESLint réussis. Aucun email réel.
+- Module : `src/components/bookings/add-to-journee-bar.tsx`. Régression : conserver un test de bout en bout du formulaire facultatif et vérifier aussi le mode où la fonction est obligatoire.
