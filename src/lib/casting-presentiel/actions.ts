@@ -55,22 +55,25 @@ export async function createPresentielJournee(projetId: string, formData: FormDa
 
 export async function deletePresentielJournee(journeeId: string) {
   const supabase = createAdminClient();
-  const { data: journee } = await supabase
+  const { data: journee, error: journeeError } = await supabase
     .from("casting_presentiel_journees")
     .select("projet_id")
     .eq("id", journeeId)
     .maybeSingle();
+  if (journeeError) return { error: "Impossible de vérifier cette journée." };
   if (!journee) return { error: "Journée introuvable." };
   const accessError = await checkProjetAccess(journee.projet_id);
   if (accessError) return { error: accessError };
 
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("casting_presentiel_entries")
     .select("id", { count: "exact", head: true })
     .eq("journee_id", journeeId);
-  if (count && count > 0) return { error: "Cette journée contient encore des profils." };
+  if (countError || count === null) return { error: "Impossible de vérifier les profils de la journée." };
+  if (count > 0) return { error: "Cette journée contient encore des profils." };
 
-  await supabase.from("casting_presentiel_journees").delete().eq("id", journeeId);
+  const { error } = await supabase.from("casting_presentiel_journees").delete().eq("id", journeeId);
+  if (error) return { error: "Impossible de supprimer cette journée." };
   revalidatePath("/casting/presentiel");
   return { ok: true };
 }
