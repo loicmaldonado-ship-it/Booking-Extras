@@ -187,7 +187,11 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
     }
   }
 
-  await handleLiens(formData, data.id);
+  const liensError = await handleLiens(formData, data.id);
+  if (liensError) {
+    revalidatePath("/figurants");
+    return { error: "La fiche a été créée, mais l’enregistrement des liens n’a pas pu être confirmé. Ouvre la fiche et vérifie les liens avant de réessayer.", createdFigurantId: data.id };
+  }
 
   revalidatePath("/figurants");
   redirect(`/figurants/${data.id}`);
@@ -240,7 +244,12 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
     }
   }
 
-  await handleLiens(formData, id);
+  const liensError = await handleLiens(formData, id);
+  if (liensError) {
+    revalidatePath("/figurants");
+    revalidatePath(`/figurants/${id}`);
+    return { error: "La fiche a été enregistrée, mais l’enregistrement des liens n’a pas pu être confirmé. Vérifie les liens avant de réessayer." };
+  }
 
   revalidatePath("/figurants");
   revalidatePath(`/figurants/${id}`);
@@ -386,7 +395,8 @@ async function handleLiens(formData: FormData, figurantId: string) {
     .filter((r) => r.label && r.url);
 
   if (rows.length > 0) {
-    await supabase.from("figurant_liens").insert(rows);
+    const { error } = await supabase.from("figurant_liens").insert(rows);
+    if (error) return error;
   }
 }
 
