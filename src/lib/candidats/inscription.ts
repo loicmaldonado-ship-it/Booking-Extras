@@ -10,6 +10,7 @@ import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
 import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { lireProfil, emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
 
@@ -44,6 +45,10 @@ export async function inscrireCandidat(
   };
   if (!Object.values(photos).every((p) => p instanceof File && p.size > 0)) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
+  }
+  for (const photo of Object.values(photos)) {
+    const validation = await validateImageUpload(photo as File);
+    if (validation.error) return { error: validation.error };
   }
   const selfieDate = String(formData.get("selfie_date") ?? "").trim();
   if (!selfieDate) return { error: "La date du selfie est obligatoire." };
