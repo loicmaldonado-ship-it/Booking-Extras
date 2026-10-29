@@ -295,12 +295,13 @@ export async function postulerAnnonce(
     // se rattache jamais sans connexion — sinon n'importe qui pourrait
     // postuler, modifier la fiche et entrer dans l'espace d'un·e autre.
     // Fiches comédien·nes exclues (privées à leur pool, comedien-privacy.ts).
-    const { data: memeEmail } = await supabase
+    const { data: memeEmail, error: emailError } = await supabase
       .from("figurants")
       .select("id")
       .ilike("email", email)
       .eq("est_comedien", false)
       .maybeSingle();
+    if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
     if (memeEmail) {
       const invitation = await invitationPourFicheSansCompte(memeEmail.id, annonce.projet_id, `/postuler/${publicToken}`);
       if (invitation) return invitation;
@@ -311,11 +312,12 @@ export async function postulerAnnonce(
       };
     }
     const telephoneNormalise = telephone.replace(/\s+/g, "");
-    const { data: memeNom } = await supabase
+    const { data: memeNom, error: nomError } = await supabase
       .from("figurants")
       .select("id, email, telephone")
       .ilike("nom", nom)
       .eq("est_comedien", false);
+    if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
     if (doublon) {
       const invitation = doublon.email
