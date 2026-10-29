@@ -56,7 +56,7 @@ function ReferenceForm({
       }}
       className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr]"
     >
-      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border-strong bg-ink-raised-2 text-center text-xs text-text hover:border-coral/60">
+      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border-strong bg-ink-raised-2 text-center text-xs text-text hover:border-coral/60 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
         {apercu ? (
           // eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob) ou affiche déjà en ligne
           <img src={apercu} alt="Affiche" className="absolute inset-0 h-full w-full object-cover" />
@@ -66,8 +66,9 @@ function ReferenceForm({
         <input
           type="file"
           name="affiche_fichier"
+          aria-label="Choisir une affiche (optionnelle)"
           accept={ACCEPT_IMAGES}
-          className="hidden"
+          className="sr-only"
           onChange={async (e) => {
             const fichier = e.target.files?.[0];
             if (!fichier) return;

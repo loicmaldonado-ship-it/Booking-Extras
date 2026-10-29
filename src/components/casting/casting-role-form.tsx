@@ -229,6 +229,7 @@ export function CastingRoleForm({
           <input
             type="file"
             name="pdf"
+            aria-label="PDF du rôle"
             accept="application/pdf"
             className="w-full rounded-lg border border-border bg-ink px-3 py-1.5 text-sm outline-none file:mr-3 file:rounded-full file:border-0 file:bg-ink-raised-2 file:px-3 file:py-1 file:text-xs file:font-medium"
           />
