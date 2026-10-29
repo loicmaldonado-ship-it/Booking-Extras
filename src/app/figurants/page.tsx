@@ -202,14 +202,14 @@ export default async function FigurantsPage({
         <form className="flex flex-col gap-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
-          <Input name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
-          <Input name="ville" placeholder="Ville" defaultValue={params.ville} />
-          <Select name="myrole" defaultValue={params.myrole ?? ""}>
+          <Input aria-label="Nom, prénom ou email" name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
+          <Input aria-label="Ville" name="ville" placeholder="Ville" defaultValue={params.ville} />
+          <Select aria-label="Compte Myrole" name="myrole" defaultValue={params.myrole ?? ""}>
             <option value="">Compte Myrole (tous)</option>
             <option value="oui">Avec compte Myrole</option>
             <option value="non">Sans compte Myrole</option>
           </Select>
-          <Select name="vehicule" defaultValue={params.vehicule ?? ""}>
+          <Select aria-label="Véhicule" name="vehicule" defaultValue={params.vehicule ?? ""}>
             <option value="">Véhicule (tous)</option>
             <option value="oui">A un véhicule</option>
             <option value="non">Sans véhicule</option>
@@ -218,7 +218,7 @@ export default async function FigurantsPage({
             <option value="moto">Moto</option>
             <option value="scooter">Scooter</option>
           </Select>
-          <Select name="genre" defaultValue={params.genre ?? ""}>
+          <Select aria-label="Genre" name="genre" defaultValue={params.genre ?? ""}>
             <option value="">Genre (tous)</option>
             {GENRES.map((g) => (
               <option key={g} value={g}>
@@ -227,8 +227,8 @@ export default async function FigurantsPage({
             ))}
           </Select>
           <div className="col-span-2 flex gap-2 md:col-span-1">
-            <Input type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
-            <Input type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
+            <Input aria-label="Âge minimum" type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
+            <Input aria-label="Âge maximum" type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
           </div>
         </form>
       </Card>
