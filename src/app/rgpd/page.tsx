@@ -21,7 +21,13 @@ export default async function RgpdPage({
   if (!actor?.isOwner || actor.role !== "chef") notFound();
   const { seuil } = await searchParams;
   const seuilAns = Number(seuil) > 0 ? Number(seuil) : 3;
-  const figurants = await getFigurantsInactifs(seuilAns);
+  const result = await getFigurantsInactifs(seuilAns)
+    .then((figurants) => ({ figurants, error: false }))
+    .catch(() => ({ figurants: [], error: true }));
+  if (result.error) {
+    return <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-4 text-danger">Impossible de vérifier l&apos;activité des profils. Réessaie avant toute anonymisation.</div>;
+  }
+  const figurants = result.figurants;
 
   return (
     <div className="flex flex-col gap-6">

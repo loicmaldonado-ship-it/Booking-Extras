@@ -21,19 +21,24 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
   seuilDate.setFullYear(seuilDate.getFullYear() - seuilAns);
   const seuilIso = seuilDate.toISOString().slice(0, 10);
 
-  const { data: figurants } = await supabase
+  const { data: figurants, error: figurantsError } = await supabase
     .from("figurants")
     .select("id, prenom, nom, email, updated_at, anonymisation_en_cours_at")
     .eq("anonymise", false);
 
-  if (!figurants || figurants.length === 0) return [];
+  if (figurantsError || !figurants) throw new Error("Liste des profils indisponible.");
+  if (figurants.length === 0) return [];
 
   const ids = figurants.map((f) => f.id);
 
-  const [{ data: bookings }, { data: candidatures }] = await Promise.all([
+  const [{ data: bookings, error: bookingsError }, { data: candidatures, error: candidaturesError }] = await Promise.all([
     supabase.from("bookings").select("figurant_id, date").in("figurant_id", ids),
     supabase.from("candidatures").select("figurant_id, created_at").in("figurant_id", ids),
   ]);
+
+  if (bookingsError || candidaturesError || !bookings || !candidatures) {
+    throw new Error("Historique des profils indisponible.");
+  }
 
   const lastByFigurant = new Map<string, string>();
   for (const f of figurants) {
