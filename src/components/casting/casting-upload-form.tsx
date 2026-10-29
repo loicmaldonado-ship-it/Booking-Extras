@@ -138,6 +138,7 @@ function VideoSlot({
       {video.statut === "vide" ? (
         <button
           type="button"
+          aria-label={`Choisir une vidéo : ${label}${required ? " (obligatoire)" : ""}`}
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();

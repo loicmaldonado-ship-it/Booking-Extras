@@ -67,6 +67,7 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
     <div className="flex flex-col gap-1">
       <button
         type="button"
+        aria-label={`Choisir une photo : ${label}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
