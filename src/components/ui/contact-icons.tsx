@@ -32,7 +32,7 @@ export function ContactIcons({
       onClick={(e) => e.stopPropagation()}
     >
       {tel && (
-        <a href={`tel:${tel.replace(/\s+/g, "")}`} className={iconClass} title="Appeler" draggable={false}>
+        <a href={`tel:${tel.replace(/\s+/g, "")}`} className={iconClass} aria-label="Appeler" title="Appeler" draggable={false}>
           📞
         </a>
       )}
@@ -40,6 +40,7 @@ export function ContactIcons({
         <a
           href={`sms:${encodeURIComponent(tel.replace(/\s+/g, ""))}`}
           className={iconClass}
+          aria-label="Envoyer un texto"
           title="Texto"
           draggable={false}
         >
@@ -47,7 +48,7 @@ export function ContactIcons({
         </a>
       )}
       {email && (
-        <a href={`mailto:${email}`} className={iconClass} title="Email" draggable={false}>
+        <a href={`mailto:${email}`} className={iconClass} aria-label="Envoyer un email" title="Email" draggable={false}>
           ✉️
         </a>
       )}

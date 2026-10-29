@@ -313,6 +313,7 @@ export function EssayageJourneeTable({
             <button
               type="button"
               onClick={() => remove(r.id)}
+              aria-label={`Retirer ${r.figurants ? nomComplet(r.figurants) : "ce profil"} de la journée`}
               disabled={pending}
               className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text hover:bg-danger hover:text-ink"
               title="Retirer de cette journée"
