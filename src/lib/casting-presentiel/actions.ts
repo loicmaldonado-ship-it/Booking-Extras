@@ -39,12 +39,13 @@ export async function createPresentielJournee(projetId: string, formData: FormDa
   if (dates.length === 0) return;
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("casting_presentiel_journees")
     .upsert(
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
+  if (error) throw new Error("Impossible de créer les journées de casting.");
 
   revalidatePath("/casting/presentiel");
   if (dates.length === 1) {
