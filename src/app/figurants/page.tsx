@@ -230,6 +230,14 @@ export default async function FigurantsPage({
             <Input aria-label="Âge minimum" type="number" name="age_min" placeholder="Âge min" defaultValue={params.age_min} min={0} />
             <Input aria-label="Âge maximum" type="number" name="age_max" placeholder="Âge max" defaultValue={params.age_max} min={0} />
           </div>
+          <div className="flex gap-2">
+            <Input aria-label="Taille minimum en centimètres" type="number" name="taille_min" placeholder="Taille min (cm)" defaultValue={params.taille_min} min={0} />
+            <Input aria-label="Taille maximum en centimètres" type="number" name="taille_max" placeholder="Taille max (cm)" defaultValue={params.taille_max} min={0} />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit">Rechercher</Button>
+            <Link className="text-sm text-text-muted hover:text-text" href={`/figurants${isComediens ? "?profil=comediens" : ""}${!isTrombi ? (isComediens ? "&vue=liste" : "?vue=liste") : ""}`}>Réinitialiser</Link>
+          </div>
         </form>
       </Card>
 
