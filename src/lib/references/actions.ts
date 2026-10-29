@@ -101,9 +101,12 @@ export async function modifierReference(
 }
 
 export async function basculerReferenceVisible(id: string, visible: boolean) {
-  if (await exigerProprietaire()) return;
-  await createAdminClient().from("references_accueil").update({ visible }).eq("id", id);
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
+  const { data, error } = await createAdminClient().from("references_accueil").update({ visible }).eq("id", id).select("id").maybeSingle();
+  if (error || !data) return { error: "Impossible de confirmer la visibilité de cette référence. Réessaie." };
   revalider();
+  return { success: true };
 }
 
 export async function supprimerReference(id: string) {

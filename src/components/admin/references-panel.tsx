@@ -123,6 +123,7 @@ function ReferenceForm({
 function ReferenceLigne({ reference, premiere, derniere }: { reference: Reference; premiere: boolean; derniere: boolean }) {
   const [edition, setEdition] = useState(false);
   const [pending, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
 
   if (edition) {
     return (
@@ -159,7 +160,15 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
         <button
           type="button"
           disabled={pending}
-          onClick={() => demarrer(() => basculerReferenceVisible(reference.id, !reference.visible))}
+          onClick={() => {
+            setErreur(null);
+            demarrer(async () => {
+              try {
+                const result = await basculerReferenceVisible(reference.id, !reference.visible);
+                if (result.error) setErreur(result.error);
+              } catch { setErreur("Impossible de confirmer la visibilité. Réessaie."); }
+            });
+          }}
           className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
         >
           {reference.visible ? "Masquer" : "Afficher"}
@@ -175,6 +184,7 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
           Supprimer
         </button>
       </div>
+      {erreur && <p role="alert" className="text-xs text-danger">{erreur}</p>}
     </Card>
   );
 }
