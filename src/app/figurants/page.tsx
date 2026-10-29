@@ -125,6 +125,9 @@ export default async function FigurantsPage({
     groupesParCle.set(cle, groupe);
   }
   const doublons: DoublonGroupe[] = Array.from(groupesParCle.values()).filter((g) => g.profils.length > 1);
+  const previewItems = (figurants ?? []).map((g) => ({
+    id: g.id, prenom: g.prenom, nom: g.nom, ville: g.ville, portraitUrl: null,
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -267,8 +270,30 @@ export default async function FigurantsPage({
           canSelectAll={isOwner(profile)}
         />
       ) : (
-      <Card className="overflow-x-auto p-0">
-        <p className="px-4 pt-3 text-xs text-text-muted md:hidden">Tableau défilant : glisse horizontalement pour consulter les autres colonnes.</p>
+      <>
+      <div className="flex flex-col gap-3 md:hidden" aria-label="Liste des profils">
+        {(figurants ?? []).map((f, i) => (
+          <Card key={f.id} className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <Link href={`/figurants/${f.id}`} className="min-w-0 break-words font-medium hover:text-coral">{nomComplet(f)}</Link>
+              <PreviewButton items={previewItems} index={i} />
+            </div>
+            {f.cree_via_casting && <Badge tone="coral">Lien casting</Badge>}
+            <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-sm">
+              <dt className="text-text-muted">Âge</dt><dd>{computeAge(f.date_naissance) != null ? `${computeAge(f.date_naissance)} ans` : "—"}</dd>
+              <dt className="text-text-muted">Taille</dt><dd>{f.taille_cm ? `${f.taille_cm} cm` : "—"}</dd>
+              <dt className="text-text-muted">Poids</dt><dd>{f.poids_kg ? `${f.poids_kg} kg` : "—"}</dd>
+              <dt className="text-text-muted">Ville</dt><dd className="break-words">{f.ville ?? "—"}</dd>
+              <dt className="text-text-muted">Myrole</dt><dd>{f.compte_myrole ? "Oui" : "Non"}</dd>
+              <dt className="text-text-muted">Contact</dt><dd className="min-w-0 break-all">{f.email ?? f.telephone ?? "—"}</dd>
+            </dl>
+            <ContactIcons telephone={f.telephone} email={f.email} variant="inline" />
+            {f.tags.length > 0 && <div className="flex flex-wrap gap-1">{f.tags.map((t) => <Badge key={t} tone="yellow">{t}</Badge>)}</div>}
+          </Card>
+        ))}
+        {(figurants ?? []).length === 0 && !error && <p className="py-10 text-center text-text-muted">Aucun·e figurant·e pour l&apos;instant.</p>}
+      </div>
+      <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="w-full min-w-[740px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
@@ -291,13 +316,7 @@ export default async function FigurantsPage({
               >
                 <td className="px-3 py-3">
                   <PreviewButton
-                    items={(figurants ?? []).map((g) => ({
-                      id: g.id,
-                      prenom: g.prenom,
-                      nom: g.nom,
-                      ville: g.ville,
-                      portraitUrl: null,
-                    }))}
+                    items={previewItems}
                     index={i}
                   />
                 </td>
@@ -351,6 +370,7 @@ export default async function FigurantsPage({
           </tbody>
         </table>
       </Card>
+      </>
       )}
 
       {totalPages > 1 && (
