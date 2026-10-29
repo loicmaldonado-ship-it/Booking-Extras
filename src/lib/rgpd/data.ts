@@ -11,6 +11,16 @@ export type FigurantInactif = {
   effacementEnCours: boolean;
 };
 
+function estFigurantInactif(value: unknown): value is FigurantInactif {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.id === "string" && item.id.length > 0 &&
+    typeof item.prenom === "string" && typeof item.nom === "string" &&
+    (item.email === null || typeof item.email === "string") &&
+    (item.derniereActivite === null || (typeof item.derniereActivite === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.derniereActivite))) &&
+    typeof item.effacementEnCours === "boolean";
+}
+
 // Aucune tâche planifiée n'appelle cette fonction : c'est une consultation
 // à la demande, pour préparer une anonymisation manuelle (voir actions.ts).
 export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantInactif[]> {
@@ -20,6 +30,16 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
   const seuilDate = new Date();
   seuilDate.setFullYear(seuilDate.getFullYear() - seuilAns);
   const seuilIso = seuilDate.toISOString().slice(0, 10);
+
+  const snapshot = await supabase.rpc("rgpd_lister_profils_inactifs_snapshot", { p_seuil: seuilIso });
+  if (!snapshot.error) {
+    if (!Array.isArray(snapshot.data) || !snapshot.data.every(estFigurantInactif)) {
+      throw new Error("Historique des profils indisponible.");
+    }
+    return snapshot.data;
+  }
+  // Until this migration is installed, keep the existing fail-closed reader.
+  if (snapshot.error.code !== "PGRST202") throw new Error("Historique des profils indisponible.");
 
   const { data: figurants, error: figurantsError, count: figurantsCount } = await supabase
     .from("figurants")
