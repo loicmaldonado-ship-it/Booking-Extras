@@ -358,6 +358,7 @@ export async function uploadFigurantPhoto(figurantId: string, _prevState: unknow
 
   const supabase = createAdminClient();
   const existing = await countFigurantPhotos(supabase, figurantId);
+  if (existing === null) return { error: "Impossible de vérifier le nombre de photos. Réessaie." };
   if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
     return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos par profil.` };
   }

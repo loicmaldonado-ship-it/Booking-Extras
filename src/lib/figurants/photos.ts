@@ -8,12 +8,12 @@ export { MAX_PHOTOS_PAR_FIGURANT } from "./types";
 export async function countFigurantPhotos(
   supabase: ReturnType<typeof createAdminClient>,
   figurantId: string
-): Promise<number> {
-  const { count } = await supabase
+): Promise<number | null> {
+  const { count, error } = await supabase
     .from("figurant_photos")
     .select("id", { count: "exact", head: true })
     .eq("figurant_id", figurantId);
-  return count ?? 0;
+  return error ? null : count;
 }
 
 export async function insertFigurantPhoto(

@@ -458,6 +458,7 @@ export async function uploadMaPhoto(_prevState: unknown, formData: FormData) {
 
   const supabase = createAdminClient();
   const existing = await countFigurantPhotos(supabase, session.id);
+  if (existing === null) return { error: "Impossible de vérifier le nombre de photos. Réessaie." };
   if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
     return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos.` };
   }
