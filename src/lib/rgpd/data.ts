@@ -21,23 +21,28 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
   seuilDate.setFullYear(seuilDate.getFullYear() - seuilAns);
   const seuilIso = seuilDate.toISOString().slice(0, 10);
 
-  const { data: figurants, error: figurantsError } = await supabase
+  const { data: figurants, error: figurantsError, count: figurantsCount } = await supabase
     .from("figurants")
-    .select("id, prenom, nom, email, updated_at, anonymisation_en_cours_at")
+    .select("id, prenom, nom, email, updated_at, anonymisation_en_cours_at", { count: "exact" })
     .eq("anonymise", false);
 
   if (figurantsError || !figurants) throw new Error("Liste des profils indisponible.");
+  if (figurantsCount === null || figurantsCount !== figurants.length) throw new Error("Liste des profils incomplète.");
   if (figurants.length === 0) return [];
 
   const ids = figurants.map((f) => f.id);
 
-  const [{ data: bookings, error: bookingsError }, { data: candidatures, error: candidaturesError }] = await Promise.all([
-    supabase.from("bookings").select("figurant_id, date").in("figurant_id", ids),
-    supabase.from("candidatures").select("figurant_id, created_at").in("figurant_id", ids),
+  const [{ data: bookings, error: bookingsError, count: bookingsCount }, { data: candidatures, error: candidaturesError, count: candidaturesCount }] = await Promise.all([
+    supabase.from("bookings").select("figurant_id, date", { count: "exact" }).in("figurant_id", ids),
+    supabase.from("candidatures").select("figurant_id, created_at", { count: "exact" }).in("figurant_id", ids),
   ]);
 
   if (bookingsError || candidaturesError || !bookings || !candidatures) {
     throw new Error("Historique des profils indisponible.");
+  }
+
+  if (bookingsCount === null || candidaturesCount === null || bookingsCount !== bookings.length || candidaturesCount !== candidatures.length) {
+    throw new Error("Historique des profils incomplet.");
   }
 
   const lastByFigurant = new Map<string, string>();
