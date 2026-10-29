@@ -23,7 +23,7 @@ import { Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = FigurantFilters & { vue?: string; page?: string };
+type SearchParams = FigurantFilters & { vue?: string; page?: string; lancee?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
 // Un profil se trouve par nom ou par un ou plusieurs critères.
@@ -35,7 +35,7 @@ export default async function FigurantsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { vue, page: pageParam, ...rawFilters } = params;
+  const { vue, page: pageParam, lancee, ...rawFilters } = params;
   const filters = Object.fromEntries(Object.entries(rawFilters).map(([key, value]) => [key, typeof value === "string" ? value.trim() : value])) as FigurantFilters;
   const isTrombi = vue !== "liste";
   const supabase = createAdminClient();
@@ -57,7 +57,8 @@ export default async function FigurantsPage({
     !!(filters.ville || filters.genre || ["oui", "non"].includes(filters.myrole ?? "") ||
       ["oui", "non", "voiture", "velo", "moto", "scooter"].includes(filters.vehicule ?? "") || filters.age_min || filters.age_max) ||
     hasActiveMensurationFilters(filters);
-  const peutChercher = maySearchProfiles(recherche, parCriteres);
+  const typeRecherche = lancee === "1" && ["figurants", "comediens"].includes(filters.profil ?? "");
+  const peutChercher = maySearchProfiles(recherche, parCriteres, typeRecherche);
   const criteresActifs = Boolean(recherche || parCriteres || filters.genre);
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
@@ -77,15 +78,15 @@ export default async function FigurantsPage({
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
   const { data: projets } = isTrombi ? await projetsQuery : { data: [] };
 
-  const query = new URLSearchParams(
-    Object.entries(filters).filter(([, v]) => v) as [string, string][]
-  ).toString();
+  const query = new URLSearchParams([
+    ...Object.entries(filters).filter(([, v]) => v) as [string, string][],
+    ...(typeRecherche ? [["lancee", "1"] as [string, string]] : []),
+  ]).toString();
 
   const isComediens = filters.profil === "comediens";
   function profilHref(profil: "figurants" | "comediens") {
     const sp = new URLSearchParams(query);
-    if (profil === "comediens") sp.set("profil", "comediens");
-    else sp.delete("profil");
+    sp.set("profil", profil);
     if (!isTrombi) sp.set("vue", "liste");
     const qs = sp.toString();
     return `/figurants${qs ? `?${qs}` : ""}`;
@@ -201,7 +202,8 @@ export default async function FigurantsPage({
 
       <Card>
         <form autoComplete="off" key={query} className="flex flex-col gap-4" method="get">
-          {isComediens && <input type="hidden" name="profil" value="comediens" />}
+          {["figurants", "comediens"].includes(filters.profil ?? "") && <input type="hidden" name="profil" value={filters.profil} />}
+          <input type="hidden" name="lancee" value="1" />
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
           <Input aria-label="Nom, prénom ou email" name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
           <Input aria-label="Ville" name="ville" placeholder="Ville" defaultValue={params.ville} />
@@ -266,7 +268,7 @@ export default async function FigurantsPage({
       {!peutChercher && (
         <Card className="py-10 text-center text-sm text-text-muted">
           🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
-          téléphone), ou par critères : genre, âge, taille, poids, ville…
+          téléphone), ou par critères : type, genre, âge, taille, poids, ville…
         </Card>
       )}
       {!libreService && peutChercher && (totalCount ?? 0) > RESULTATS_MAX && (
