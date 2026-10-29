@@ -11,6 +11,7 @@ import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
+import { maySearchProfiles, RECHERCHE_MIN } from "@/lib/figurants/search-required";
 import { hasActiveMensurationFilters, MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS } from "@/lib/figurants/mensuration-filters";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
@@ -25,10 +26,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = FigurantFilters & { vue?: string; page?: string };
 
 const FIGURANTS_PAR_PAGE = 60;
-// Sans accès complet : pas de liste en libre service. Un profil se trouve en
-// le cherchant par nom (3 lettres minimum) ou par critères (ville, âge,
-// taille, poids…), résultats plafonnés. Le genre seul ne suffit pas.
-const RECHERCHE_MIN = 3;
+// Un profil se trouve par nom ou critères ; le genre seul ne suffit pas.
 const RESULTATS_MAX = 60;
 
 export default async function FigurantsPage({
@@ -37,7 +35,8 @@ export default async function FigurantsPage({
   searchParams: Promise<SearchParams>;
 }) {
   const params = await searchParams;
-  const { vue, page: pageParam, ...filters } = params;
+  const { vue, page: pageParam, ...rawFilters } = params;
+  const filters = Object.fromEntries(Object.entries(rawFilters).map(([key, value]) => [key, typeof value === "string" ? value.trim() : value])) as FigurantFilters;
   const isTrombi = vue !== "liste";
   const supabase = createAdminClient();
   const profile = await getCurrentProfile();
@@ -55,9 +54,10 @@ export default async function FigurantsPage({
   const libreService = aAccesComplet(profile);
   const recherche = (filters.q ?? "").trim();
   const parCriteres =
-    !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
+    !!(filters.ville || ["oui", "non"].includes(filters.myrole ?? "") ||
+      ["oui", "non", "voiture", "velo", "moto", "scooter"].includes(filters.vehicule ?? "") || filters.age_min || filters.age_max) ||
     hasActiveMensurationFilters(filters);
-  const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
+  const peutChercher = maySearchProfiles(recherche, parCriteres);
   const criteresActifs = Boolean(recherche || parCriteres || filters.genre);
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
@@ -106,7 +106,7 @@ export default async function FigurantsPage({
     .order("created_at", { ascending: true });
   const doublonsComedienClause = comedienPoolClause(profile);
   if (doublonsComedienClause) doublonsQuery = doublonsQuery.or(doublonsComedienClause);
-  const { data: tousLesFigurants } = !libreService
+  const { data: tousLesFigurants } = !libreService || !peutChercher
     ? { data: [] }
     : await doublonsQuery.returns<
     { id: string; prenom: string; nom: string; telephone: string | null; email: string | null; created_at: string; est_comedien: boolean }[]
@@ -136,7 +136,7 @@ export default async function FigurantsPage({
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold"><Users size={28} strokeWidth={1.75} />Base Profils</h1>
           <p className="mt-1 text-text-muted">
-            {libreService
+            {libreService && peutChercher
               ? `${totalCount ?? 0} ${isComediens ? "comédien·ne" : "figurant·e"}${(totalCount ?? 0) > 1 ? "s" : ""}`
               : "Cherche un profil par son nom, ou par critères (âge, taille, poids…)."}
           </p>
@@ -153,7 +153,7 @@ export default async function FigurantsPage({
         </div>
       </div>
 
-        {libreService && <DoublonsPanel groupes={doublons} canDelete={isOwner(profile)} />}
+        {libreService && peutChercher && <DoublonsPanel groupes={doublons} canDelete={isOwner(profile)} />}
 
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-medium text-text-muted">Profil :</span>
@@ -263,7 +263,7 @@ export default async function FigurantsPage({
         </div>
       )}
 
-      {!libreService && !peutChercher && (
+      {!peutChercher && (
         <Card className="py-10 text-center text-sm text-text-muted">
           🔎 Cherche un profil par son nom (au moins {RECHERCHE_MIN} lettres du nom, du prénom, de l&apos;email ou du
           téléphone), ou par critères : âge, taille, poids, ville… (le genre seul ne suffit pas, ajoute une fourchette).
