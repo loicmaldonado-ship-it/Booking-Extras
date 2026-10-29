@@ -356,12 +356,14 @@ export async function postulerAnnonce(
     figurantId = newFigurant.id;
     const legal = await saveGuardiansFromForm(figurantId, formData, dateNaissance, email);
     if (legal.error) {
-      await supabase.from("figurants").delete().eq("id", figurantId);
+      const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurantId);
+      if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
       return legal;
     }
     const mdp = await definirMotDePasse(figurantId, motDePasse);
     if (mdp.error) {
-      await supabase.from("figurants").delete().eq("id", figurantId);
+      const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurantId);
+      if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
       return { error: "Création du compte impossible, réessaie." };
     }
     compteCree = true;
