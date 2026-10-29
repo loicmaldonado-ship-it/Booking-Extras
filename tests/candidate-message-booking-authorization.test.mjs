@@ -84,3 +84,11 @@ test("does not claim success on absent booking or database error", async () => {
     assert.equal(h.refreshed.length, 0);
   }
 });
+
+test("candidate A cannot acknowledge candidate B's message by guessing its id", async () => {
+  const h = harness({ message: { id: "message-1", figurant_id: "candidate-B", sender: "staff", booking_id: "booking-1" } });
+  const result = await h.action("message-1");
+  assert.ok(result.error);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.refreshed.length, 0);
+});

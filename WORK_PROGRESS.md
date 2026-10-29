@@ -216,3 +216,5 @@
 - 29/10/2026 — ENV-05 partiel : anomalie CAN-08 des deux jours ajoutée au registre avec contexte fictif, reproduction, correctifs, tests et vérification navigateur ; recette métier distinguée. Diff vérifié ; aucune donnée modifiée. ENV-05 reste ouverte pour les autres anomalies reproductibles.
 
 - 29/10/2026 — SEC-01 partiel : six tests simulés vérifient le refus des cookies absents ou falsifiés, sessions expirées ou révoquées et erreurs de lecture, ainsi que l’utilisation de l’identité de la session stockée côté serveur. Suite 483/483 réussie ; aucun compte réel modifié. Ces tests isolés ne remplacent pas les attaques inter-comptes directes ni la recette navigateur : SEC-01 reste ouverte.
+
+- 29/10/2026 — SEC-01 partiel : deux scénarios simulés supplémentaires vérifient qu’une candidate ne peut ni acquitter le message d’une autre, ni supprimer sa photo en devinant son identifiant. Dix tests ciblés réussis avec les scénarios existants ; aucun message ou fichier réel modifié. Les accès inter-comptes complets et la recette navigateur restent à vérifier ; carte ouverte.
