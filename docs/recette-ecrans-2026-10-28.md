@@ -50,3 +50,23 @@ Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; 
 - Attendu : le profil est ajouté puisque la fonction est affichée facultative. Obtenu avant correction : « Choisis une fonction », sans ajout ; la propriété facultative n’était pas transmise à l’action serveur.
 - Après correction : ajout visible, une ligne en base pour le 30 octobre, sans fonction et avec cachet Figurant. Vérification navigateur et base fictive ; 15 tests ciblés, TypeScript sans cache et ESLint réussis. Aucun email réel.
 - Module : `src/components/bookings/add-to-journee-bar.tsx`. Régression : conserver un test de bout en bout du formulaire facultatif et vérifier aussi le mode où la fonction est obligatoire.
+
+## Anomalie ENV-05-01 — filtre RGPD incohérent après retour arrière
+
+- Cartes associées : ENV-05, QA-07. Sévérité : majeure pour la compréhension des résultats ; corrigée localement par `f366c6a`.
+- Environnement : navigateur de recette, `localhost:3200`, base fictive 29194, compte cheffe fictif. Version reproduite : code précédent `f366c6a` ; SHA exact non relevé.
+- Préconditions : ouvrir la liste RGPD avec la durée de trois ans.
+- Étapes : choisir un an, appliquer le filtre, puis revenir à la page précédente du navigateur.
+- Attendu : le champ de durée et les résultats correspondent à trois ans. Avant correction : les résultats reviennent à trois ans mais le champ indique encore un an.
+- Après correction : le champ et les résultats indiquent tous deux trois ans dans le navigateur de recette. ESLint ciblé réussi ; autres navigateurs non vérifiés.
+- Module : `src/app/rgpd/page.tsx`. Régression à maintenir : retour arrière après changement de durée et contrôle simultané du champ et des résultats.
+
+## Anomalie ENV-05-02 — filtres de listes conservés après retour arrière
+
+- Cartes associées : ENV-05, QA-07. Sévérité : mineure ; corrigée localement par `07139b4`.
+- Environnement : navigateur de recette, `localhost:3200`, base fictive 29194 et compte cheffe fictif. Version reproduite : code précédent `07139b4` ; SHA exact non relevé.
+- Préconditions : ouvrir la liste des projets avec « Type (tous) ».
+- Étapes : choisir le type Film et appliquer, puis utiliser le retour arrière du navigateur.
+- Attendu : le champ revient à « Type (tous) » avec les résultats correspondants. Avant correction : le champ gardait Film alors que les paramètres chargés étaient revenus en arrière.
+- Après correction : le champ retrouve « Type (tous) » ; le retour arrière des annonces et profils a également rétabli respectivement « Statut (tous) » et « Genre (tous) ». ESLint ciblé réussi ; autres navigateurs non vérifiés.
+- Modules : `src/app/projets/page.tsx`, `src/app/annonces/page.tsx`, `src/app/figurants/page.tsx`. Régression à maintenir : comparer les contrôles affichés aux paramètres et aux résultats après retour arrière.
