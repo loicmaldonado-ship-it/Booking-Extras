@@ -201,8 +201,10 @@ export async function removePresentielEntry(entryId: string) {
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").delete().eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").delete().eq("id", entryId);
+  if (error) return { error: "Impossible de retirer ce profil." };
   revalidatePath("/casting/presentiel/journee");
+  return {};
 }
 
 export async function updatePresentielStatut(entryId: string, statut: BookingStatut) {
@@ -210,8 +212,10 @@ export async function updatePresentielStatut(entryId: string, statut: BookingSta
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ statut }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ statut }).eq("id", entryId);
+  if (error) return { error: "Impossible de modifier le statut." };
   revalidatePath("/casting/presentiel/journee");
+  return {};
 }
 
 // Changement de statut groupé — depuis une sélection multiple sur la

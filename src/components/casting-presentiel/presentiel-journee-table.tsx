@@ -73,15 +73,17 @@ export function PresentielJourneeTable({
 
   function remove(id: string) {
     startTransition(async () => {
-      await removePresentielEntry(id);
-      router.refresh();
+      const result = await removePresentielEntry(id);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
   function changeStatut(id: string, statut: BookingStatut) {
     startTransition(async () => {
-      await updatePresentielStatut(id, statut);
-      router.refresh();
+      const result = await updatePresentielStatut(id, statut);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
