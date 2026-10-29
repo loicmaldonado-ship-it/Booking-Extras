@@ -28,17 +28,24 @@ export function EssayagePlanningBoard({
 }: {
   creneaux: Creneau[];
   rows: PlanningRow[];
-  assignToCreneau: (entryId: string, creneauId: string | null) => unknown;
+  assignToCreneau: (entryId: string, creneauId: string | null) => Promise<{ error?: string } | void>;
   dragDataKey?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [dragOverZone, setDragOverZone] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function assign(entryId: string, creneauId: string | null) {
+    setError(null);
     startTransition(async () => {
-      await assignToCreneau(entryId, creneauId);
-      router.refresh();
+      try {
+        const result = await assignToCreneau(entryId, creneauId);
+        if (result?.error) { setError(result.error); return; }
+        router.refresh();
+      } catch {
+        setError("Impossible de modifier le créneau. Réessaie.");
+      }
     });
   }
 
@@ -52,9 +59,19 @@ export function EssayagePlanningBoard({
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
           {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
         </div>
-        <span className="truncate text-xs font-medium">
+        <span className="w-full break-words text-xs font-medium">
           {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
+        <select
+          aria-label={`Créneau : ${r.figurants ? nomComplet(r.figurants) : "profil"}`}
+          value={r.creneau_id ?? ""}
+          disabled={pending}
+          onChange={(e) => assign(r.id, e.target.value || null)}
+          className="w-full rounded border border-border bg-ink-raised-2 px-1 py-1 text-xs text-text"
+        >
+          <option value="">Sans créneau</option>
+          {creneaux.map((c) => <option key={c.id} value={c.id}>{heureLabel(c.heure_debut)}–{heureLabel(c.heure_fin)}</option>)}
+        </select>
       </div>
     );
   }
@@ -69,7 +86,8 @@ export function EssayagePlanningBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-text-muted">Glisse un profil sur un créneau pour l&apos;y assigner.{pending ? " Mise à jour..." : ""}</p>
+      <p className="text-xs text-text-muted">Glisse un profil ou choisis son créneau dans la liste.{pending ? " Mise à jour..." : ""}</p>
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       <div className="flex flex-wrap items-start gap-4">
         {creneaux.map((c) => {
