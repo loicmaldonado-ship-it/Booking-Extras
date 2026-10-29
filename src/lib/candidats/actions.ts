@@ -434,11 +434,12 @@ export async function removeIndisponibiliteSelf(date: string) {
   if (!session) return { error: "Non connecté." };
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("figurant_indisponibilites")
     .delete()
     .eq("figurant_id", session.id)
     .eq("date", date);
+  if (error) return { error: "Impossible de retirer cette indisponibilité. Réessaie." };
 
   revalidatePath("/compte");
   return { success: true as const };
