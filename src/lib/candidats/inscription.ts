@@ -123,7 +123,10 @@ export async function inscrireCandidat(
     if (extra instanceof File && extra.size > 0) fichiers.push({ file: extra, type: "autre" });
   }
   for (const { file, type, priseLe } of fichiers.slice(0, MAX_PHOTOS_PAR_FIGURANT)) {
-    await insertFigurantPhoto(supabase, figurant.id, type, file, { priseLe });
+    const photo = await insertFigurantPhoto(supabase, figurant.id, type, file, { priseLe });
+    if (photo.error) {
+      return { error: "Ton compte a été créé, mais une photo n’a pas pu être enregistrée. Connecte-toi avec ton mot de passe pour compléter tes photos." };
+    }
   }
 
   await createFigurantSession(figurant.id);
