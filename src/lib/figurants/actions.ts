@@ -396,8 +396,20 @@ async function handleLiens(formData: FormData, figurantId: string) {
     .filter((r) => r.label && r.url);
 
   if (rows.length > 0) {
-    const { error } = await supabase.from("figurant_liens").insert(rows);
-    if (error) return error;
+    const { data: existing, count, error: readError } = await supabase.from("figurant_liens")
+      .select("label, url", { count: "exact" }).eq("figurant_id", figurantId);
+    if (readError || !existing || count !== existing.length) return readError ?? new Error("Lecture incomplète des liens");
+    const seen = new Set(existing.map((link) => JSON.stringify([link.label, link.url])));
+    const missing = rows.filter((row) => {
+      const key = JSON.stringify([row.label, row.url]);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (missing.length > 0) {
+      const { error } = await supabase.from("figurant_liens").insert(missing);
+      if (error) return error;
+    }
   }
 }
 
