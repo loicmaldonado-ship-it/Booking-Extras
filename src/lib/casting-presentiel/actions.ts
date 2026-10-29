@@ -220,10 +220,11 @@ export async function updatePresentielStatutBulk(
   entryIds: string[],
   statut: BookingStatut
 ): Promise<{ error?: string; ok?: number }> {
-  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+  if (!Array.isArray(entryIds) || entryIds.length === 0 || entryIds.length > 500 || new Set(entryIds).size !== entryIds.length) return { error: "Sélection invalide." };
 
   const supabase = createAdminClient();
-  const { data: entries } = await supabase.from("casting_presentiel_entries").select("id, projet_id").in("id", entryIds);
+  const { data: entries, error: lookupError } = await supabase.from("casting_presentiel_entries").select("id, projet_id").in("id", entryIds);
+  if (lookupError || !entries || entries.length !== entryIds.length || entries.some((e) => !entryIds.includes(e.id))) return { error: "Impossible de vérifier tous les profils sélectionnés." };
   const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
   for (const projetId of projetIds) {
     const accessError = await checkProjetAccess(projetId);
