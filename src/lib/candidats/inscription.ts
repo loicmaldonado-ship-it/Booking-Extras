@@ -52,12 +52,13 @@ export async function inscrireCandidat(
 
   // Fiche figurant·e déjà connue (déjà postulé, déjà booké·e) : même email,
   // ou même nom + même téléphone avec une autre adresse.
-  const { data: memeEmail } = await supabase
+  const { data: memeEmail, error: emailError } = await supabase
     .from("figurants")
     .select("id")
     .ilike("email", profil.email)
     .eq("est_comedien", false)
     .maybeSingle();
+  if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
   const retour = retourAutorise(formData.get("retour"));
   if (memeEmail) {
     // Fiche ajoutée par l'équipe, sans compte : lien « Crée ton compte ».
@@ -70,11 +71,12 @@ export async function inscrireCandidat(
     };
   }
   const telephoneNormalise = profil.telephone.replace(/\s+/g, "");
-  const { data: memeNom } = await supabase
+  const { data: memeNom, error: nomError } = await supabase
     .from("figurants")
     .select("id, email, telephone")
     .ilike("nom", profil.nom)
     .eq("est_comedien", false);
+  if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
   const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
   if (doublon) {
     const invitation = doublon.email ? await invitationPourFicheSansCompte(doublon.id, null, retour) : null;
