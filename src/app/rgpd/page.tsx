@@ -41,7 +41,7 @@ export default async function RgpdPage({
       </div>
 
       <Card>
-        <form className="flex flex-wrap items-center gap-3" method="get">
+        <form autoComplete="off" key={seuilAns} className="flex flex-wrap items-center gap-3" method="get">
           <span className="text-sm text-text-muted">Inactifs depuis plus de :</span>
           <Select aria-label="Inactifs depuis plus de" name="seuil" defaultValue={String(seuilAns)} className="w-40">
             {SEUILS.map((s) => (
