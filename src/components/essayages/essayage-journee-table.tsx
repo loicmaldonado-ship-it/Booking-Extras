@@ -372,13 +372,13 @@ export function EssayageJourneeTable({
               </div>
             )}
             {projetId && (
-              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text">
+              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
                 📷 Photo en tenue
                 <input
                   type="file"
                   accept="image/*"
                   disabled={pending}
-                  className="hidden"
+                  className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadTenue(r, file);
