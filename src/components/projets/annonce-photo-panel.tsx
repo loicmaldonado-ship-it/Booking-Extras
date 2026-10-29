@@ -74,16 +74,19 @@ export function AnnoncePhotoPanel({ projetId, photoUrl }: { projetId: string; ph
         <div className="flex flex-col gap-3">
           {error && <p className="text-sm text-danger">{error}</p>}
           <div className="flex items-center gap-3">
-            <div
+            <button
+              type="button"
+              aria-label="Choisir la photo des annonces"
+              disabled={pending}
               onClick={() => inputRef.current?.click()}
-              className="relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-border bg-ink-raised-2"
+              className="relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-border bg-ink-raised-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
             >
               {preview || photoUrl ? (
                 <Image src={preview ?? photoUrl!} alt="Photo annonces" fill className="object-cover" unoptimized={!!preview} />
               ) : (
                 <span className="text-center text-xs text-text-muted">+ Photo</span>
               )}
-            </div>
+            </button>
             <input
               ref={inputRef}
               type="file"
