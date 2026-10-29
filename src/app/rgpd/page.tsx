@@ -37,7 +37,7 @@ export default async function RgpdPage({
       <Card>
         <form className="flex flex-wrap items-center gap-3" method="get">
           <span className="text-sm text-text-muted">Inactifs depuis plus de :</span>
-          <Select name="seuil" defaultValue={String(seuilAns)} className="w-40">
+          <Select aria-label="Inactifs depuis plus de" name="seuil" defaultValue={String(seuilAns)} className="w-40">
             {SEUILS.map((s) => (
               <option key={s} value={s}>
                 {s} an{s > 1 ? "s" : ""}
