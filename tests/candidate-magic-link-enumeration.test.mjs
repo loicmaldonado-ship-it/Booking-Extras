@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/candidats/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(kind){let sends=0;const q={select(){return this},ilike(){return this},eq(){return this},async maybeSingle(){if(kind==='missing')return{data:null,error:null};if(kind==='lookup-error')return{data:null,error:{message:'offline'}};return{data:{id:'fixture',prenom:'Test',email:'fake@example.test',acces_compte:true},error:null}}};const mocks={'@/lib/supabase/admin':{createAdminClient:()=>({from:()=>q})},'@/lib/candidats/rate-limit':{consumeCandidateLoginAttempt:async()=>kind!=='rate-limited'},'@/lib/candidats/retour':{retourAutorise:()=>null},'@/lib/candidats/email':{sendMagicLinkEmail:async()=>{sends++;if(kind==='send-throws')throw new Error('smtp unavailable');return kind==='send-error'?{error:'offline'}:{}}}};const out={};new Function('require','exports',code)(n=>mocks[n]??{},out);const fd=new FormData();fd.set('email','fake@example.test');return{run:()=>out.requestMagicLink(null,fd),sends:()=>sends}}
+for(const kind of ['missing','lookup-error','rate-limited','send-error','send-throws'])test(`${kind} gives the same neutral response`,async()=>{const f=fixture(kind);assert.deepEqual(await f.run(),{sentTo:'fake@example.test'})});

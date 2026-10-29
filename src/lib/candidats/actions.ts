@@ -39,8 +39,10 @@ export async function requestMagicLink(
 
   if (!lookupError && figurant?.email) {
     if (figurant.acces_compte) {
-      const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
-      if (result.error) console.error("Échec de l'envoi du lien de connexion candidat.");
+      try {
+        const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
+        if (result.error) console.error("Échec de l'envoi du lien de connexion candidat.");
+      } catch { console.error("Échec de l'envoi du lien de connexion candidat."); }
     } else {
       // Invitation possible, sans révéler au demandeur si cette fiche existe.
       try { await invitationPourFicheSansCompte(figurant.id, null, retourAutorise(formData.get("retour"))); }
