@@ -46,8 +46,12 @@ export async function inscrireCandidat(
   if (!Object.values(photos).every((p) => p instanceof File && p.size > 0)) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
   }
-  for (const photo of Object.values(photos)) {
-    const validation = await validateImageUpload(photo as File);
+  const photosSupplementaires = [formData.get("photo_vehicule"), ...formData.getAll("photo_extra")]
+    .filter((photo): photo is File => photo instanceof File && photo.size > 0);
+  const photosAValider = [...Object.values(photos) as File[], ...photosSupplementaires];
+  if (photosAValider.length > MAX_PHOTOS_PAR_FIGURANT) return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos.` };
+  for (const photo of photosAValider) {
+    const validation = await validateImageUpload(photo);
     if (validation.error) return { error: validation.error };
   }
   const selfieDate = String(formData.get("selfie_date") ?? "").trim();
