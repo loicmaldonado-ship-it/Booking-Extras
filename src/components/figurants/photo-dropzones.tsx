@@ -87,7 +87,6 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
           return (
             <div key={slot.key} className="flex flex-col gap-1.5">
               <div
-                onClick={() => !isBusy && inputRefs.current[slot.key]?.click()}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragKey(slot.key);
@@ -105,6 +104,13 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
                   isBusy && "cursor-wait opacity-60"
                 )}
               >
+                <button
+                  type="button"
+                  aria-label={`Choisir une photo : ${slot.label}${slot.key === "autre1" ? " 1" : slot.key === "autre2" ? " 2" : ""}`}
+                  disabled={isBusy}
+                  onClick={() => inputRefs.current[slot.key]?.click()}
+                  className="absolute inset-0 h-full w-full focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-coral disabled:cursor-wait"
+                >
                 {photo?.url ? (
                   <Image
                     src={photo.url}
@@ -119,16 +125,15 @@ export function PhotoDropzones({ figurantId, photos }: { figurantId: string; pho
                     <span>{isBusy ? "Envoi..." : "Glisser ou cliquer"}</span>
                   </div>
                 )}
+                </button>
                 {photo?.url && (
                   <ZoomButton src={photo.url} alt={slot.label} gallery={gallery} index={galleryIndex(photo.id)} />
                 )}
                 {photo && (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      remove(photo.id);
-                    }}
+                    aria-label={`Retirer la photo : ${slot.label}`}
+                    onClick={() => remove(photo.id)}
                     className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink"
                   >
                     ×
