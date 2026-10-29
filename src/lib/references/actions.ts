@@ -120,15 +120,20 @@ export async function supprimerReference(id: string) {
 
 // Échange la place de la référence avec sa voisine (« monter » / « descendre »).
 export async function deplacerReference(id: string, sens: "haut" | "bas") {
-  if (await exigerProprietaire()) return;
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
   const supabase = createAdminClient();
-  const { data: toutes } = await supabase.from("references_accueil").select("id, ordre").order("ordre").order("created_at");
-  const liste = toutes ?? [];
+  const { data: toutes, count, error } = await supabase.from("references_accueil").select("id, ordre", { count: "exact" }).order("ordre").order("created_at");
+  if (error || !toutes || count !== toutes.length) return { error: "Impossible de vérifier l’ordre des références. Réessaie." };
+  const liste = toutes;
   const i = liste.findIndex((r) => r.id === id);
   const j = sens === "haut" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= liste.length) return;
+  if (i < 0 || j < 0 || j >= liste.length) return { error: "Impossible de déplacer cette référence. Recharge la page." };
   [liste[i], liste[j]] = [liste[j], liste[i]];
-  // Renumérote tout : des ordres égaux (ajouts anciens) se départagent ainsi.
-  await Promise.all(liste.map((r, k) => supabase.from("references_accueil").update({ ordre: k + 1 }).eq("id", r.id)));
+  const resultats = await Promise.allSettled(liste.map((r, k) => Promise.resolve(supabase.from("references_accueil").update({ ordre: k + 1 }).eq("id", r.id).select("id").maybeSingle())));
   revalider();
+  if (resultats.some((r) => r.status === "rejected" || r.value.error || !r.value.data)) {
+    return { error: "L’ordre a pu être partiellement modifié. Vérifie la liste avant de réessayer." };
+  }
+  return { success: true };
 }

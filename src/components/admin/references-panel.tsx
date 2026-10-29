@@ -125,6 +125,16 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
   const [pending, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
+  function deplacer(sens: "haut" | "bas") {
+    setErreur(null);
+    demarrer(async () => {
+      try {
+        const result = await deplacerReference(reference.id, sens);
+        if (result.error) setErreur(result.error);
+      } catch { setErreur("Impossible de confirmer l’ordre. Recharge la page avant de réessayer."); }
+    });
+  }
+
   if (edition) {
     return (
       <Card>
@@ -148,10 +158,10 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1 text-xs">
-        <button type="button" disabled={premiere || pending} onClick={() => demarrer(() => deplacerReference(reference.id, "haut"))} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Monter">
+        <button type="button" disabled={premiere || pending} onClick={() => deplacer("haut")} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Monter">
           ↑
         </button>
-        <button type="button" disabled={derniere || pending} onClick={() => demarrer(() => deplacerReference(reference.id, "bas"))} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Descendre">
+        <button type="button" disabled={derniere || pending} onClick={() => deplacer("bas")} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Descendre">
           ↓
         </button>
         <button type="button" onClick={() => setEdition(true)} className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text">
