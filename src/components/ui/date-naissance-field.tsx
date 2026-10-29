@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Field, Select } from "@/components/ui/field";
+import { Select } from "@/components/ui/field";
 
 const MOIS = [
   "Janvier",
@@ -66,7 +66,8 @@ export function DateNaissanceField({
   const years = Array.from({ length: currentYear - 1920 + 1 }, (_, i) => currentYear - i);
 
   return (
-    <Field label={label} required={required}>
+    <fieldset>
+      <legend className="mb-1.5 block text-xs font-medium text-text-muted">{label}{required && <span className="text-danger"> *</span>}</legend>
       <input type="hidden" name={name} value={value} />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Select
@@ -109,6 +110,6 @@ export function DateNaissanceField({
           ))}
         </Select>
       </div>
-    </Field>
+    </fieldset>
   );
 }
