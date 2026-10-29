@@ -285,10 +285,11 @@ export function EssayageJourneeTable({
         </Modale>
       )}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-text-muted">
+        <label htmlFor="essayage-consigne" className="text-xs font-medium text-text-muted">
           Consigne à ajouter aux messages de confirmation (optionnel)
         </label>
         <input
+          id="essayage-consigne"
           value={consigne}
           onChange={(e) => setConsigne(e.target.value)}
           placeholder="Ex : merci de venir avec les cheveux propres"
@@ -304,6 +305,7 @@ export function EssayageJourneeTable({
           >
             <input
               type="checkbox"
+              aria-label={`Sélectionner ${r.figurants ? nomComplet(r.figurants) : "ce profil"}`}
               checked={selected.has(r.id)}
               onChange={() => toggleSelected(r.id)}
               className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
@@ -388,6 +390,7 @@ export function EssayageJourneeTable({
               </label>
             )}
             <StatusSelect
+              aria-label={`Statut d'essayage : ${r.figurants ? nomComplet(r.figurants) : "profil"}`}
               tone={STATUT_TONE[r.statut]}
               value={r.statut}
               disabled={pending}
