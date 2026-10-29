@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Genre } from "@/lib/figurants/types";
@@ -32,8 +33,11 @@ export function CreneauxPanel({
   assignments: CreneauAssignment[];
   generateCreneaux: CreneauAction;
   addCreneau: CreneauAction;
-  removeCreneau: (creneauId: string) => void | Promise<void>;
+  removeCreneau: (creneauId: string) => Promise<{ error?: string }>;
 }) {
+  const router = useRouter();
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removePending, startRemove] = useTransition();
   const [mode, setMode] = useState<"none" | "generate" | "manual">("none");
 
   const [genState, genAction, genPending] = useActionState(generateCreneaux, undefined);
@@ -76,6 +80,7 @@ export function CreneauxPanel({
         )}
       </div>
 
+      {removeError && <p role="alert" className="text-sm text-danger">{removeError}</p>}
       {creneaux.length > 0 ? (
         <div className="flex flex-wrap gap-3">
           {[...creneaux]
@@ -97,11 +102,11 @@ export function CreneauxPanel({
                   <span className="text-xs text-text-muted">
                     {counts.femmes}F · {counts.hommes}H · {counts.nb}NB
                   </span>
-                  <form action={() => removeCreneau(c.id)}>
-                    <button type="submit" className="text-text hover:text-coral" title="Supprimer ce créneau">
-                      ×
-                    </button>
-                  </form>
+                  <button type="button" disabled={removePending} onClick={() => startRemove(async () => {
+                    const result = await removeCreneau(c.id);
+                    setRemoveError(result.error ?? null);
+                    router.refresh();
+                  })} className="text-text hover:text-coral" title="Supprimer ce créneau">×</button>
                 </div>
               );
             })}

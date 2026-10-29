@@ -534,20 +534,22 @@ export async function generateCreneaux(essayageJourneeId: string, _prevState: un
   return { success: true, count: toInsert.length };
 }
 
-export async function removeCreneau(creneauId: string) {
+export async function removeCreneau(creneauId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
-  const { data: creneau } = await supabase
-    .from("essayage_creneaux")
-    .select("essayage_journee_id")
-    .eq("id", creneauId)
-    .maybeSingle();
-  if (creneau) {
-    const accessError = await checkEssayageJourneeAccess(creneau.essayage_journee_id);
-    if (accessError) throw new Error(accessError);
+  const { data: creneau, error: lookupError } = await supabase
+    .from("essayage_creneaux").select("essayage_journee_id").eq("id", creneauId).maybeSingle();
+  if (lookupError || !creneau) return { error: "Impossible de vérifier ce créneau." };
+  const accessError = await checkEssayageJourneeAccess(creneau.essayage_journee_id);
+  if (accessError) return { error: accessError };
+  const { error: updateError } = await supabase.from("essayages").update({ creneau_id: null }).eq("creneau_id", creneauId);
+  if (updateError) return { error: "Impossible de retirer les profils du créneau." };
+  const { error: deleteError } = await supabase.from("essayage_creneaux").delete().eq("id", creneauId);
+  if (deleteError) {
+    revalidatePath("/essayages/journee");
+    return { error: "Les profils ont été retirés du créneau, mais sa suppression a échoué. Vérifie le planning." };
   }
-  await supabase.from("essayages").update({ creneau_id: null }).eq("creneau_id", creneauId);
-  await supabase.from("essayage_creneaux").delete().eq("id", creneauId);
   revalidatePath("/essayages/journee");
+  return {};
 }
 
 export async function assignFigurantToCreneau(essayageId: string, creneauId: string | null) {
