@@ -127,7 +127,8 @@ export async function updatePresentielEntryRole(entryId: string, roleId: string 
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ role_id: roleId }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ role_id: roleId }).eq("id", entryId);
+  if (error) return { error: "Impossible de modifier le rôle." };
   revalidatePath("/casting/presentiel/journee");
   return { success: true as const };
 }
@@ -137,7 +138,8 @@ export async function updatePresentielEntryNotes(entryId: string, notes: string)
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  if (error) return { error: "Impossible d’enregistrer les notes." };
   revalidatePath("/casting/presentiel/journee");
   return { success: true as const };
 }

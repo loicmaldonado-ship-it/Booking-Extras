@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/casting-presentiel/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){const refresh=[],writes=[];const db={from(){let op='read';const q={select(){return this},eq(){return this},update(){op='write';writes.push(true);return this},maybeSingle(){return Promise.resolve({data:failure==='read'?null:{projet_id:'project'},error:failure==='read'?{message:'offline'}:null})},then(ok,bad){return Promise.resolve({error:failure==='write'&&op==='write'?{message:'offline'}:null}).then(ok,bad)}};return q}};const exports={};new Function('require','exports',code)(n=>n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='@/lib/auth/session'?{checkProjetAccess:async()=>null}:n==='next/cache'?{revalidatePath:p=>refresh.push(p)}:{},exports);return{actions:exports,refresh,writes}}
+for(const name of ['updatePresentielEntryRole','updatePresentielEntryNotes'])for(const failure of ['read','write'])test(`${name} reports ${failure} failure`,async()=>{const f=fixture(failure);const r=await f.actions[name]('entry','value');assert.ok(r.error);assert.equal(f.refresh.length,0);if(failure==='read')assert.equal(f.writes.length,0)});

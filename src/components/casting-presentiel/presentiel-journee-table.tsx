@@ -61,6 +61,7 @@ export function PresentielJourneeTable({
   const [sendError, setSendError] = useState<string | null>(null);
   const [bulkStatut, setBulkStatut] = useState<BookingStatut | "">("");
   const [bulkStatutError, setBulkStatutError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
@@ -100,8 +101,9 @@ export function PresentielJourneeTable({
 
   function changeRole(id: string, roleId: string) {
     startTransition(async () => {
-      await updatePresentielEntryRole(id, roleId || null);
-      router.refresh();
+      const result = await updatePresentielEntryRole(id, roleId || null);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
@@ -153,6 +155,7 @@ export function PresentielJourneeTable({
 
   return (
     <div className="flex flex-col gap-4">
+      {roleError && <p role="alert" className="text-sm text-danger">{roleError}</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {rows.map((r, i) => (
           <div
