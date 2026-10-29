@@ -65,18 +65,22 @@ export async function sendStaffMessageToFigurant(figurantId: string, formData: F
   const supabase = createAdminClient();
 
   let emailError: string | undefined;
+  let emailEnvoye = false;
   if (requestedEmail && storedEmail) {
     const { credentials, error: credError } = await resolveSenderCredentials(supabase, projetId);
     if (credError) return { error: credError };
     const result = await sendEmail(storedEmail, "Booking Extras", corps, credentials);
     emailError = result.error;
+    emailEnvoye = !result.error;
   }
 
   const { error } = await supabase
     .from("figurant_messages")
     .insert({ figurant_id: figurantId, sender: "staff", corps, categorie, projet_id: projetId, envoye_par: (await getCurrentProfile())?.id ?? null });
 
-  if (error) return { error: error.message };
+  if (error) return { error: emailEnvoye
+    ? "L’email a été envoyé, mais l’enregistrement du message n’a pas pu être confirmé. Vérifie la messagerie avant de réessayer."
+    : "Impossible de confirmer l’enregistrement du message. Recharge la page avant de réessayer." };
 
   await sendPushToFigurant(figurantId, {
     title: "Booking Extras — Vous avez un message",
