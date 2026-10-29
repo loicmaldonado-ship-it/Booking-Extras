@@ -42,7 +42,8 @@ export async function insertFigurantPhoto(
     label: extra?.label ?? null,
   }).select("id").single();
   if (insertError || !photo) {
-    await supabase.storage.from("figurant-photos").remove([path]);
+    const { error: cleanupError } = await supabase.storage.from("figurant-photos").remove([path]);
+    if (cleanupError) return { error: "Photo non enregistrée ; le nettoyage du stockage a échoué." };
     return { error: insertError?.message ?? "Photo non enregistrée." };
   }
 
