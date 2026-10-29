@@ -168,3 +168,5 @@
 - 29/10/2026 — BUG-13/invitations équipe : une lecture de projet en erreur bloque désormais l’invitation ; si l’email est déjà parti mais que le rattachement échoue, le message explique que l’accès n’a pas été accordé et invite à réessayer. Trois tests simulés, suite 428/428, TypeScript et ESLint réussis ; aucun email réel. BUG-13 reste ouverte : parcours de panne au navigateur et recherche des comptes Auth au-delà de 1 000 à examiner.
 
 - 29/10/2026 — QA-07/BUG-18 partiel : le choix du type de photo dans l’espace candidat possède un nom accessible ; ESLint réussi. Vérification en navigateur et lecteur d’écran restant à faire ; aucune photo envoyée, cartes ouvertes.
+
+- 29/10/2026 — BUG-13/compte membre : la modification du profil confirme qu’une ligne a été enregistrée avant d’afficher un succès ; une erreur ou un profil absent affiche un message et ne rafraîchit pas la page. Trois tests simulés, suite 431/431, TypeScript et ESLint réussis. Aucun profil réel modifié ; panne à vérifier au navigateur. BUG-13 reste ouverte ; prochaine action : examiner le même cas pour la photo de compte et ses fichiers temporaires.
