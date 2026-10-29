@@ -69,9 +69,9 @@ export default async function ProjetsPage({
       </div>
 
       <Card>
-        <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
-          <Input name="q" placeholder="Nom, réalisateur·ice, société..." defaultValue={params.q} />
-          <Select name="type" defaultValue={params.type ?? ""}>
+        <form key={JSON.stringify(params)} className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
+          <Input aria-label="Nom, réalisation ou société" name="q" placeholder="Nom, réalisateur·ice, société..." defaultValue={params.q} />
+          <Select aria-label="Type de projet" name="type" defaultValue={params.type ?? ""}>
             <option value="">Type (tous)</option>
             {PROJET_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -79,12 +79,12 @@ export default async function ProjetsPage({
               </option>
             ))}
           </Select>
-          <Select name="confidentiel" defaultValue={params.confidentiel ?? ""}>
+          <Select aria-label="Confidentialité" name="confidentiel" defaultValue={params.confidentiel ?? ""}>
             <option value="">Confidentiel (tous)</option>
             <option value="oui">Confidentiel</option>
             <option value="non">Non confidentiel</option>
           </Select>
-          <Select name="archive" defaultValue={params.archive ?? "non"}>
+          <Select aria-label="État d’archivage" name="archive" defaultValue={params.archive ?? "non"}>
             <option value="non">Actifs (non archivés)</option>
             <option value="oui">Archivés</option>
             <option value="tous">Archivés + actifs</option>

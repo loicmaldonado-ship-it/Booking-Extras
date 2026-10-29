@@ -77,9 +77,9 @@ export default async function AnnoncesPage({
       </Card>
 
       <Card>
-        <form className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
-          <Input name="q" placeholder="Titre..." defaultValue={params.q} />
-          <Select name="projet_id" defaultValue={params.projet_id ?? ""}>
+        <form key={JSON.stringify(params)} className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
+          <Input aria-label="Titre de l’annonce" name="q" placeholder="Titre..." defaultValue={params.q} />
+          <Select aria-label="Projet" name="projet_id" defaultValue={params.projet_id ?? ""}>
             <option value="">Projet (tous)</option>
             {(projets ?? []).map((p) => (
               <option key={p.id} value={p.id}>
@@ -87,7 +87,7 @@ export default async function AnnoncesPage({
               </option>
             ))}
           </Select>
-          <Select name="statut" defaultValue={params.statut ?? ""}>
+          <Select aria-label="Statut" name="statut" defaultValue={params.statut ?? ""}>
             <option value="">Statut (tous)</option>
             <option value="ouverte">Ouverte</option>
             <option value="fermée">Fermée</option>
