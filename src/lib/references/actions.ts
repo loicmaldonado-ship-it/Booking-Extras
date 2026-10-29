@@ -110,12 +110,20 @@ export async function basculerReferenceVisible(id: string, visible: boolean) {
 }
 
 export async function supprimerReference(id: string) {
-  if (await exigerProprietaire()) return;
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
   const supabase = createAdminClient();
-  const { data } = await supabase.from("references_accueil").select("affiche_storage_path").eq("id", id).maybeSingle();
-  await supabase.from("references_accueil").delete().eq("id", id);
-  if (data?.affiche_storage_path) await supabase.storage.from(BUCKET).remove([data.affiche_storage_path]);
+  const { data, error } = await supabase.from("references_accueil").delete().eq("id", id).select("id, affiche_storage_path").maybeSingle();
+  if (error || !data) return { error: "Impossible de confirmer la suppression de cette référence. Recharge la page avant de réessayer." };
+  if (data.affiche_storage_path) {
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove([data.affiche_storage_path]);
+    if (storageError) {
+      revalider();
+      return { error: "La référence a été supprimée, mais la suppression de son affiche n’a pas pu être confirmée." };
+    }
+  }
   revalider();
+  return { success: true };
 }
 
 // Échange la place de la référence avec sa voisine (« monter » / « descendre »).

@@ -120,7 +120,7 @@ function ReferenceForm({
   );
 }
 
-function ReferenceLigne({ reference, premiere, derniere }: { reference: Reference; premiere: boolean; derniere: boolean }) {
+function ReferenceLigne({ reference, premiere, derniere, onError }: { reference: Reference; premiere: boolean; derniere: boolean; onError: (message: string | null) => void }) {
   const [edition, setEdition] = useState(false);
   const [pending, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
@@ -187,7 +187,15 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
           type="button"
           disabled={pending}
           onClick={() => {
-            if (confirm(`Supprimer « ${reference.titre} » des références ?`)) demarrer(() => supprimerReference(reference.id));
+            if (confirm(`Supprimer « ${reference.titre} » des références ?`)) {
+              onError(null);
+              demarrer(async () => {
+                try {
+                  const result = await supprimerReference(reference.id);
+                  if (result.error) onError(result.error);
+                } catch { onError("Impossible de confirmer la suppression. Recharge la page avant de réessayer."); }
+              });
+            }
           }}
           className="rounded-full border border-border px-3 py-1 font-medium text-danger hover:border-danger/60"
         >
@@ -200,6 +208,7 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
 }
 
 export function ReferencesPanel({ references }: { references: Reference[] }) {
+  const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-3">
@@ -209,13 +218,14 @@ export function ReferencesPanel({ references }: { references: Reference[] }) {
 
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Sur l&apos;accueil ({references.filter((r) => r.visible).length})</h2>
+        {erreurSuppression && <p role="alert" className="text-sm text-danger">{erreurSuppression}</p>}
         {references.length === 0 && (
           <Card>
             <p className="text-sm text-text-muted">Aucune référence pour l&apos;instant : le bandeau n&apos;apparaît pas sur l&apos;accueil.</p>
           </Card>
         )}
         {references.map((r, i) => (
-          <ReferenceLigne key={r.id} reference={r} premiere={i === 0} derniere={i === references.length - 1} />
+          <ReferenceLigne key={r.id} reference={r} premiere={i === 0} derniere={i === references.length - 1} onError={setErreurSuppression} />
         ))}
       </div>
     </div>
