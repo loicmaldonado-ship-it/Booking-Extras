@@ -13,6 +13,7 @@ import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
@@ -160,6 +161,18 @@ export async function postulerAnnonce(
   };
   if (!photoFournie("photo_portrait") || !photoFournie("photo_pied") || !photoFournie("photo_selfie")) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
+  }
+  const champsPhotos = ["photo_portrait", "photo_pied", "photo_selfie", "photo_vehicule", "photo_extra"];
+  for (const champ of champsPhotos) {
+    if (!session && formData.getAll(`${champ}__existante`).some((v) => typeof v === "string" && v.trim())) {
+      return { error: "Connecte-toi pour utiliser les photos de ton compte." };
+    }
+    for (const fichier of formData.getAll(champ)) {
+      if (fichier instanceof File && fichier.size > 0) {
+        const validation = await validateImageUpload(fichier);
+        if (validation.error) return { error: validation.error };
+      }
+    }
   }
   if (!str(formData, "selfie_date")) {
     return { error: "La date du selfie est obligatoire." };
