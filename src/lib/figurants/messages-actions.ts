@@ -117,16 +117,16 @@ export async function toggleMessageRepondu(messageId: string, value: boolean) {
   const actor = await getCurrentProfile();
   if (!actor) return { error: "Non autorisé." };
   const supabase = createAdminClient();
-  const { data: message } = await supabase.from("figurant_messages")
+  const { data: message, error: readError } = await supabase.from("figurant_messages")
     .select("figurant_id, projet_id")
     .eq("id", messageId)
     .maybeSingle();
-  if (!message) return { error: "Message introuvable." };
+  if (readError || !message) return { error: "Impossible de vérifier ce message." };
   const access = await requireStaffMessageAccess(message.figurant_id, message.projet_id);
   if ("error" in access) return { error: access.error };
 
-  const { error } = await supabase.from("figurant_messages").update({ repondu: value }).eq("id", messageId);
-  if (error) return { error: error.message };
+  const { data: updated, error } = await supabase.from("figurant_messages").update({ repondu: value }).eq("id", messageId).select("id").maybeSingle();
+  if (error || !updated) return { error: "Impossible de confirmer le suivi de réponse. Réessaie." };
   revalidatePath("/bookings/documents");
   return { success: true as const };
 }

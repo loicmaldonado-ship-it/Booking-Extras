@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/figurants/messages-actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(kind){let refresh=0;const db={from(table){let op='read';const q={select(){return this},eq(){return this},update(){op='write';return this},async maybeSingle(){if(table==='figurants')return{data:{email:'fake@example.test',est_comedien:false},error:null};if(op==='read')return kind==='read'?{data:null,error:{message:'offline'}}:{data:{figurant_id:'fixture',projet_id:null},error:null};return kind==='write'?{data:null,error:{message:'offline'}}:kind==='missing'?{data:null,error:null}:{data:{id:'message'},error:null}},then(ok,bad){return Promise.resolve({error:kind==='write'?{message:'offline'}:null}).then(ok,bad)}};return q}};const mocks={'@/lib/supabase/admin':{createAdminClient:()=>db},'@/lib/auth/session':{getCurrentProfile:async()=>({id:'staff'})},'next/cache':{revalidatePath:()=>refresh++}};const out={};new Function('require','exports',code)(n=>mocks[n]??{},out);return{run:()=>out.toggleMessageRepondu('message',true),refresh:()=>refresh}}
+for(const kind of ['read','write','missing'])test(`${kind} failure does not refresh`,async()=>{const f=fixture(kind);assert.ok((await f.run()).error);assert.equal(f.refresh(),0)});
+test('confirmed update refreshes',async()=>{const f=fixture();assert.equal((await f.run()).success,true);assert.equal(f.refresh(),1)});

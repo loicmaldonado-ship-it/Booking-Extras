@@ -557,6 +557,7 @@ export function BookingsTable({
   const [repliesPending, setRepliesPending] = useState(false);
   const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
   const [repliesError, setRepliesError] = useState<string | null>(null);
+  const [messageToggleError, setMessageToggleError] = useState<string | null>(null);
   const [lastCheckInfo, setLastCheckInfo] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [expandedRaccord, setExpandedRaccord] = useState<Set<string>>(new Set());
@@ -580,9 +581,13 @@ export function BookingsTable({
   }
 
   function toggleRepondu(messageId: string, value: boolean) {
+    setMessageToggleError(null);
     startTransition(async () => {
-      await toggleMessageRepondu(messageId, value);
-      router.refresh();
+      try {
+        const result = await toggleMessageRepondu(messageId, value);
+        if (result.error) { setMessageToggleError(result.error); return; }
+        router.refresh();
+      } catch { setMessageToggleError("Impossible de confirmer le suivi de réponse. Réessaie."); }
     });
   }
 
@@ -1494,6 +1499,7 @@ export function BookingsTable({
         </div>
       )}
 
+      {messageToggleError && <p role="alert" className="text-sm text-danger">{messageToggleError}</p>}
       {(repliesError || lastCheckInfo || replies.length > 0) && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
           {repliesError && <p className="text-sm text-danger">Échec de la vérification : {repliesError}</p>}
