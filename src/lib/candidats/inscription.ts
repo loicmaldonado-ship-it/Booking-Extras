@@ -111,12 +111,14 @@ export async function inscrireCandidat(
   }
   const legal = await saveGuardiansFromForm(figurant.id, formData, profil.date_naissance, profil.email);
   if (legal.error) {
-    await supabase.from("figurants").delete().eq("id", figurant.id);
+    const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurant.id);
+    if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
     return legal;
   }
   const mdp = await definirMotDePasse(figurant.id, motDePasse);
   if (mdp.error) {
-    await supabase.from("figurants").delete().eq("id", figurant.id);
+    const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurant.id);
+    if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
     return { error: "Création du compte impossible, réessaie." };
   }
 
