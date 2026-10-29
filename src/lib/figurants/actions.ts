@@ -212,8 +212,9 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
   // dans le pool de qui édite).
   let comedienPoolId: string | undefined;
   if (payload.est_comedien) {
-    const { data: existing } = await supabase.from("figurants").select("comedien_pool_id").eq("id", id).maybeSingle();
-    if (!existing?.comedien_pool_id) {
+    const { data: existing, error: existingError } = await supabase.from("figurants").select("comedien_pool_id").eq("id", id).maybeSingle();
+    if (existingError || !existing) return { error: "Impossible de vérifier le rattachement de cette fiche. Réessaie." };
+    if (!existing.comedien_pool_id) {
       comedienPoolId = comedienPoolIdFor(await getCurrentProfile()) ?? undefined;
     }
   }
