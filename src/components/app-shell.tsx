@@ -227,12 +227,12 @@ export function AppShell({
             <TeamPresenceStrip />
             <NotificationsBell />
             <CommandPalette />
-            <div className="hidden text-right text-xs sm:block">
+            <div className="hidden text-right text-xs lg:block">
               <div className="truncate font-medium text-text">{profile.email}</div>
               <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
             <MyAvatarMenu profile={profile} signOutAction={signOut} />
-            <form action={signOut} className="hidden sm:block">
+            <form action={signOut} className="hidden lg:block">
               <button
                 type="submit"
                 className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
