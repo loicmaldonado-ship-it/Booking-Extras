@@ -9,6 +9,7 @@ import type { Agent } from "@/lib/agents/types";
 // onSelect, pour ne pas retaper un agent déjà rentré une fois ailleurs.
 export function AgentNomInput({
   name,
+  id,
   value,
   onChange,
   onSelect,
@@ -16,6 +17,7 @@ export function AgentNomInput({
   placeholder = "Nom de l'agent",
 }: {
   name?: string;
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   onSelect: (agent: Agent) => void;
@@ -54,6 +56,8 @@ export function AgentNomInput({
   return (
     <div ref={containerRef} className="relative">
       <input
+        id={id}
+        aria-label="Nom de l'agent"
         name={name}
         value={value}
         onChange={(e) => {

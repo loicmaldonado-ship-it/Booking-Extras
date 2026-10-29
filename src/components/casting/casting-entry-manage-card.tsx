@@ -546,7 +546,7 @@ function AgentSection({
           placeholder="Nom de l'agent"
           className={AGENT_INPUT_CLASS}
         />
-        <input value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
+        <input aria-label="Agence" value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -558,6 +558,7 @@ function AgentSection({
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
           placeholder="Téléphone de l'agent"
+          aria-label="Téléphone de l'agent"
           className={AGENT_INPUT_CLASS}
         />
         {error && <span className="text-xs text-danger">{error}</span>}

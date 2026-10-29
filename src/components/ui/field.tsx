@@ -31,8 +31,10 @@ export function Field({
   label,
   children,
   required,
+  htmlFor,
 }: {
   label: string;
+  htmlFor?: string;
   children: React.ReactNode;
   required?: boolean;
 }) {
@@ -42,7 +44,7 @@ export function Field({
     isValidElement<{ id?: string }>(child) &&
     [Input, Textarea, Select, "input", "textarea", "select"].includes(child.type as typeof Input)
   );
-  const controlId = control ? control.props.id || generatedId : undefined;
+  const controlId = htmlFor ?? (control ? control.props.id || generatedId : undefined);
   const controls = fields.map((child) => child === control
     ? cloneElement(control, { id: controlId })
     : child);

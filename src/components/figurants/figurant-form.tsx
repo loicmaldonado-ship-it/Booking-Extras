@@ -1,7 +1,7 @@
 "use client";
 
 import { formatPrenom } from "@/lib/noms";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useId, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -28,6 +28,7 @@ export function FigurantForm({
   figurant?: Figurant;
   liens?: FigurantLien[];
 }) {
+  const agentNomId = useId();
   const [state, formAction, pending] = useActionState(action, undefined);
   const [estComedien, setEstComedien] = useState(figurant?.est_comedien ?? false);
   const [aVehicule, setAVehicule] = useState<boolean | null>(figurant?.a_vehicule ?? null);
@@ -175,8 +176,8 @@ export function FigurantForm({
           <div>
             <span className="mb-1.5 block text-xs font-medium text-text-muted">Agent</span>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Nom de l'agent">
-                <AgentNomInput
+              <Field label="Nom de l'agent" htmlFor={agentNomId}>
+                <AgentNomInput id={agentNomId}
                   name="agent_nom"
                   value={agentNom}
                   onChange={setAgentNom}

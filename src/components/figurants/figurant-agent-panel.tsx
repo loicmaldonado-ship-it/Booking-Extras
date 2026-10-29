@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
@@ -26,6 +26,7 @@ export function FigurantAgentPanel({
   agentTelephone: string | null;
   agentAgence: string | null;
 }) {
+  const agentNomId = useId();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -58,8 +59,8 @@ export function FigurantAgentPanel({
     return (
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Nom de l'agent">
-            <AgentNomInput
+          <Field label="Nom de l'agent" htmlFor={agentNomId}>
+            <AgentNomInput id={agentNomId}
               value={nom}
               onChange={setNom}
               onSelect={(a) => {
