@@ -487,8 +487,10 @@ export async function generateCreneaux(essayageJourneeId: string, _prevState: un
   const capacite = Number(str(formData, "capacite") ?? "3");
 
   if (!heureDebut || !heureFin) return { error: "Heure de début et de fin de journée obligatoires." };
-  if (!Number.isFinite(dureeMinutes) || dureeMinutes < 5) return { error: "Durée par créneau invalide." };
-  if (!Number.isFinite(capacite) || capacite < 1) return { error: "Capacité invalide." };
+  if (!Number.isInteger(dureeMinutes) || dureeMinutes < 5 || dureeMinutes > 1440) return { error: "Durée par créneau invalide." };
+  if (!Number.isInteger(capacite) || capacite < 1 || capacite > 10000) return { error: "Capacité invalide." };
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(heureDebut) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(heureFin)) return { error: "Heure invalide." };
 
   const [startH, startM] = heureDebut.split(":").map(Number);
   const [endH, endM] = heureFin.split(":").map(Number);
@@ -500,10 +502,11 @@ export async function generateCreneaux(essayageJourneeId: string, _prevState: un
   }
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("essayage_creneaux")
     .select("heure_debut")
     .eq("essayage_journee_id", essayageJourneeId);
+  if (existingError || !existing) return { error: "Impossible de vérifier les créneaux existants." };
   const existingSet = new Set((existing ?? []).map((c) => c.heure_debut.slice(0, 5)));
 
   function toHHMM(totalMinutes: number) {
