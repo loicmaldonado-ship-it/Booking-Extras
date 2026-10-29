@@ -40,7 +40,7 @@ export function DownloadPdfButton({
         const w = canvas.width * ratio;
         const h = canvas.height * ratio;
         const x = (pageWidth - w) / 2;
-        const y = (pageHeight - h) / 2;
+        const y = 0;
         if (i > 0) pdf.addPage();
         pdf.addImage(imgData, "JPEG", x, y, w, h);
       }

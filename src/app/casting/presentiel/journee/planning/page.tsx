@@ -79,11 +79,11 @@ export default async function CastingPresentielPlanningPage({
             <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" />
           )}
         </div>
-        <span className="block w-24 truncate text-[10px] font-medium leading-tight">
+        <span className="block w-24 break-words text-[10px] font-medium leading-tight">
           {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
         {r.casting_roles?.nom && (
-          <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">{r.casting_roles.nom}</span>
+          <span className="block w-24 break-words text-[8px] leading-tight text-gray-500">{r.casting_roles.nom}</span>
         )}
       </div>
     );

@@ -35,3 +35,8 @@ Les éléments « OK ouverture » indiquent uniquement que l'écran s'affiche ; 
 - Correction : préciser la clé de relation dans les deux lectures. Après rechargement, Sacha apparaît dans la journée et dans « Sans créneau » du planning. Suite automatisée 345/345, TypeScript et ESLint ciblés réussis. Affectation au créneau et autres vues restent à vérifier.
 
 - Suite ENV-04-02 : rôle fictif créé et Sacha associée sans envoi ; rôle affecté au profil sur la journée puis glissé sur le créneau 10h–10h30. La journée affiche 1/3 et le planning liste ainsi que sa vue trombi affichent Sacha et le rôle. Export PDF et permissions multi-équipe non testés.
+
+## Anomalie ENV-04-03 — export planning centré et nom tronqué (corrigée localement)
+
+- Reproduction : sur le planning de casting fictif du 25/11 en vue trombi, télécharger le PDF. Avant correction, le contenu court est centré très bas sur la page et le nom de Sacha est tronqué.
+- Après correction, le contenu est aligné en haut et le nom complet est affiché sur deux lignes ; PDF A4 d'une page téléchargé et contrôlé visuellement. Un trombinoscope bookings fictif en paysage a aussi été téléchargé et contrôlé : alignement correct, mais les noms longs restent tronqués dans cette autre grille, à traiter séparément en tenant compte de sa pagination fixe.
