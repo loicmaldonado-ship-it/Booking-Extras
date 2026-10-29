@@ -29,9 +29,10 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
   if (accessError) return { error: accessError };
 
   const admin = createAdminClient();
-  const { data: projet } = await admin.from("projets").select("nom").eq("id", projetId).single();
+  const { data: projet, error: projetError } = await admin.from("projets").select("nom").eq("id", projetId).single();
+  if (projetError || !projet) return { error: "Impossible de vérifier ce projet. Réessaie." };
 
-  const { id: profileId, invited, error } = await findOrInviteProfile(email, { projet_nom: projet?.nom ?? "" });
+  const { id: profileId, invited, error } = await findOrInviteProfile(email, { projet_nom: projet.nom ?? "" });
   if (!profileId) {
     return { error };
   }
@@ -41,7 +42,9 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
     .upsert({ projet_id: projetId, profile_id: profileId }, { onConflict: "projet_id,profile_id" });
 
   if (membreError) {
-    return { error: membreError.message };
+    return { error: invited
+      ? "L’invitation par email a été envoyée, mais l’accès au projet n’a pas pu être accordé. Réessaie de rattacher cette personne au projet."
+      : "Impossible d’accorder l’accès au projet. Réessaie." };
   }
 
   revalidatePath("/equipe");

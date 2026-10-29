@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/equipe/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){let invites=0,refresh=0;const db={from(table){const q={select(){return this},eq(){return this},async single(){return failure==='read'?{data:null,error:{message:'offline'}}:{data:{nom:'Projet fictif'},error:null}},async upsert(){return {error:failure==='write'?{message:'offline'}:null}}};return q}};const mocks={'@/lib/supabase/admin':{createAdminClient:()=>db},'@/lib/auth/session':{getCurrentProfile:async()=>({role:'chef'}),checkProjetAccess:async()=>null},'@/lib/auth/invite':{findOrInviteProfile:async()=>{invites++;return{id:'person',invited:true,error:null}}},'next/cache':{revalidatePath:()=>refresh++}};const out={};new Function('require','exports',code)(n=>mocks[n]??{},out);const form=new FormData();form.set('email','test@example.test');form.set('projet_id','project');return{run:()=>out.inviteAssistant(null,form),invites:()=>invites,refresh:()=>refresh}}
+test('project read failure stops invitation',async()=>{const f=fixture('read');const r=await f.run();assert.ok(r.error);assert.equal(f.invites(),0);assert.equal(f.refresh(),0)});
+test('membership failure reports that invitation was sent and access was not granted',async()=>{const f=fixture('write');const r=await f.run();assert.match(r.error,/invitation.*envoyée/i);assert.match(r.error,/accès.*pas/i);assert.equal(f.refresh(),0)});
+test('successful invitation grants access and refreshes the team',async()=>{const f=fixture();const r=await f.run();assert.equal(r.success,true);assert.equal(r.invited,true);assert.equal(f.refresh(),1)});
