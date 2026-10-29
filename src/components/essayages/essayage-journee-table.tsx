@@ -320,22 +320,26 @@ export function EssayageJourneeTable({
             >
               ×
             </button>
-            <Link href={`/figurants/${r.figurant_id}`} className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
+                <Link href={`/figurants/${r.figurant_id}`} aria-label={`Voir le profil de ${r.figurants ? nomComplet(r.figurants) : "cette personne"}`} className="absolute inset-0">
+                  {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
+                </Link>
                 {r.portraitUrl && (() => {
                   const gallery = toGalleryPhotos(r.photos);
                   return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;
                 })()}
               </div>
-              <div className="text-sm font-medium">
-                {r.figurants ? nomComplet(r.figurants) : "—"}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-text-muted">
-                {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}
-                {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
-              </div>
-            </Link>
+              <Link href={`/figurants/${r.figurant_id}`} className="flex flex-col items-center gap-2">
+                <div className="text-sm font-medium">
+                  {r.figurants ? nomComplet(r.figurants) : "—"}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-text-muted">
+                  {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}
+                  {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
+                </div>
+              </Link>
+            </div>
             <div className="flex items-center gap-1">
               <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
               <PreviewButton items={previewItems} index={i} />
