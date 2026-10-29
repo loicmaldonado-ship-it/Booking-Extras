@@ -176,7 +176,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-ink text-center text-xs text-text hover:border-coral/60">
+              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-ink text-center text-xs text-text hover:border-coral/60 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
                 {apercu ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={apercu} alt="" className="h-full w-full object-cover" />
@@ -186,6 +186,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
                 <input
                   type="file"
                   name="photo_brute"
+                  aria-label="Choisir une photo"
                   accept={ACCEPT_IMAGES}
                   className="sr-only"
                   disabled={pending}
