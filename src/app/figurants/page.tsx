@@ -291,6 +291,7 @@ export default async function FigurantsPage({
             photos: portraitByFigurant.get(f.id) ?? [],
           }))}
           projets={projets ?? []}
+          criteresActifs={criteresActifs}
           canSelectAll={isOwner(profile)}
         />
       ) : (

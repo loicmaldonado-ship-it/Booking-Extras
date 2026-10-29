@@ -33,10 +33,12 @@ export function FigurantsTrombiGrid({
   figurants,
   projets,
   canSelectAll = true,
+  criteresActifs = false,
 }: {
   figurants: FigurantCard[];
   projets: { id: string; nom: string }[];
   canSelectAll?: boolean;
+  criteresActifs?: boolean;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Fenêtre d'action ouverte, avec les profils cochés à ce moment-là (elle garde le résultat affiché après l'envoi).
@@ -109,12 +111,14 @@ export function FigurantsTrombiGrid({
           >
             <input
               type="checkbox"
+              aria-label={`Sélectionner ${nomComplet(f)}`}
               checked={selected.has(f.id)}
               onChange={() => toggle(f.id)}
               className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
             />
-            <Link href={`/figurants/${f.id}`} className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
+                <Link href={`/figurants/${f.id}`} aria-label={`Voir le profil de ${nomComplet(f)}`} className="absolute inset-0">
                 {f.portraitUrl && (
                   <Image
                     src={f.portraitUrl}
@@ -124,16 +128,17 @@ export function FigurantsTrombiGrid({
                     className="object-cover"
                   />
                 )}
+                </Link>
                 {f.portraitUrl && (() => {
                   const gallery = toGalleryPhotos(f.photos);
                   return <ZoomButton src={f.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, f.portraitUrl)} />;
                 })()}
               </div>
-              <div className="text-sm font-medium">
-                {nomComplet(f)}
-              </div>
-              <div className="text-xs text-text-muted">{[f.age != null ? `${f.age} ans` : null, f.tailleCm ? `${f.tailleCm} cm` : null, f.poidsKg ? `${f.poidsKg} kg` : null, f.ville].filter(Boolean).join(" · ") || "—"}</div>
-            </Link>
+              <Link href={`/figurants/${f.id}`} className="flex flex-col items-center gap-2">
+                <div className="text-sm font-medium">{nomComplet(f)}</div>
+                <div className="text-xs text-text-muted">{[f.age != null ? `${f.age} ans` : null, f.tailleCm ? `${f.tailleCm} cm` : null, f.poidsKg ? `${f.poidsKg} kg` : null, f.ville].filter(Boolean).join(" · ") || "—"}</div>
+              </Link>
+            </div>
             <ContactIcons telephone={f.telephone} email={f.email} />
             <PreviewButton
               items={figurants}
@@ -143,7 +148,7 @@ export function FigurantsTrombiGrid({
           </div>
         ))}
         {figurants.length === 0 && (
-          <p className="col-span-full py-10 text-center text-text-muted">Aucun·e figurant·e pour l&apos;instant.</p>
+          <p className="col-span-full py-10 text-center text-text-muted">{criteresActifs ? "Aucun profil ne correspond à ces critères." : "Aucun profil pour l'instant."}</p>
         )}
       </div>
     </div>
