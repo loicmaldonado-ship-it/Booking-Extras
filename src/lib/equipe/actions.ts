@@ -50,20 +50,22 @@ export async function inviteAssistant(_prevState: unknown, formData: FormData) {
 
 export async function revokeAccess(projetMembreId: string) {
   const admin = createAdminClient();
-  const { data: membre } = await admin
+  const { data: membre, error: membreError } = await admin
     .from("projet_membres")
     .select("projet_id")
     .eq("id", projetMembreId)
     .maybeSingle();
-  if (!membre) return;
+  if (membreError || !membre) return { error: "Impossible de vérifier cet accès." };
 
   const accessError = await requireChefOnProjet(membre.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
   // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
-  if (!aAccesComplet(await getCurrentProfile())) throw new Error("Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès.");
+  if (!aAccesComplet(await getCurrentProfile())) return { error: "Seuls les comptes à accès complet peuvent révoquer un accès." };
 
-  await admin.from("projet_membres").delete().eq("id", projetMembreId);
+  const { data: removed, error } = await admin.from("projet_membres").delete().eq("id", projetMembreId).select("id").maybeSingle();
+  if (error || !removed) return { error: "Impossible de révoquer cet accès. Réessaie." };
   revalidatePath("/equipe");
+  return { success: true };
 }
 
 // Stockage global sur profiles (pas par projet_membres) : un·e assistant·e
@@ -73,19 +75,22 @@ export async function revokeAccess(projetMembreId: string) {
 // empêcher de modifier les accès d'un·e assistant·e qu'on ne gère pas.
 export async function updateAssistantSections(profileId: string, sections: SectionKey[] | null) {
   const profile = await getCurrentProfile();
-  if (!profile || profile.role !== "chef") throw new Error("Réservé au·à la chef·fe de casting.");
+  if (!profile || profile.role !== "chef") return { error: "Réservé au·à la chef·fe de casting." };
 
   const admin = createAdminClient();
   const accessibleProjetIds = await getAccessibleProjetIds(profile);
-  const { data: membre } = await admin
+  const { data: membre, error: membreError } = await admin
     .from("projet_membres")
     .select("id")
     .eq("profile_id", profileId)
     .in("projet_id", idsOrNone(accessibleProjetIds ?? []))
     .limit(1)
     .maybeSingle();
-  if (!membre) throw new Error("Cet assistant·e n'est rattaché·e à aucun de vos projets.");
+  if (membreError) return { error: "Impossible de vérifier les projets de cet accès." };
+  if (!membre) return { error: "Cet assistant·e n'est rattaché·e à aucun de vos projets." };
 
-  await admin.from("profiles").update({ sections_autorisees: sections }).eq("id", profileId);
+  const { data: updated, error } = await admin.from("profiles").update({ sections_autorisees: sections }).eq("id", profileId).select("id").maybeSingle();
+  if (error || !updated) return { error: "Impossible d'enregistrer les sections. Réessaie." };
   revalidatePath("/equipe");
+  return { success: true };
 }

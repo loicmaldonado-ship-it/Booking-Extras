@@ -25,15 +25,20 @@ export function MembresList({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   // L'assistant·e dont le popover Sections est ouvert, avec la liste en
   // cours d'édition (pas encore enregistrée) — un seul appel serveur à la
   // fermeture plutôt qu'un aller-retour par case cochée/décochée.
   const [editing, setEditing] = useState<{ profileId: string; draft: string[] | null } | null>(null);
 
   function revoke(id: string) {
+    setError(null);
     startTransition(async () => {
-      await revokeAccess(id);
-      router.refresh();
+      try {
+        const result = await revokeAccess(id);
+        if (result?.error) { setError(result.error); return; }
+        router.refresh();
+      } catch { setError("Impossible de révoquer cet accès. Réessaie."); }
     });
   }
 
@@ -55,15 +60,20 @@ export function MembresList({
   function saveAndClose() {
     if (!editing) return;
     const { profileId, draft } = editing;
-    setEditing(null);
+    setError(null);
     startTransition(async () => {
-      await updateAssistantSections(profileId, draft as SectionKey[] | null);
-      router.refresh();
+      try {
+        const result = await updateAssistantSections(profileId, draft as SectionKey[] | null);
+        if (result?.error) { setError(result.error); return; }
+        setEditing(null);
+        router.refresh();
+      } catch { setError("Impossible d'enregistrer les sections. Réessaie."); }
     });
   }
 
   return (
     <Card className="flex flex-col gap-3 p-0">
+      {error && <p role="alert" className="px-4 pt-3 text-sm text-danger">{error}</p>}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-text-muted">
