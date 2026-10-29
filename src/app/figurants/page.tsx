@@ -11,7 +11,7 @@ import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
 import { getPhotosByFigurantId, pickPortrait } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { FigurantsTrombiGrid } from "@/components/figurants/figurants-trombi-grid";
-import { hasActiveMensurationFilters } from "@/lib/figurants/mensuration-filters";
+import { hasActiveMensurationFilters, MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS } from "@/lib/figurants/mensuration-filters";
 import { ContactIcons } from "@/components/ui/contact-icons";
 import { PreviewButton } from "@/components/figurants/figurant-preview-modal";
 import { DoublonsPanel, type DoublonGroupe } from "@/components/figurants/doublons-panel";
@@ -199,7 +199,7 @@ export default async function FigurantsPage({
       </div>
 
       <Card>
-        <form className="flex flex-col gap-4" method="get">
+        <form key={query} className="flex flex-col gap-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
           <Input aria-label="Nom, prénom ou email" name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />
@@ -234,6 +234,21 @@ export default async function FigurantsPage({
             <Input aria-label="Taille minimum en centimètres" type="number" name="taille_min" placeholder="Taille min (cm)" defaultValue={params.taille_min} min={0} />
             <Input aria-label="Taille maximum en centimètres" type="number" name="taille_max" placeholder="Taille max (cm)" defaultValue={params.taille_max} min={0} />
           </div>
+          <details className="rounded-xl border border-border px-3 py-2" open={hasActiveMensurationFilters(filters)}>
+            <summary className="cursor-pointer text-sm font-medium">Autres mensurations et code postal</summary>
+            <div className="mt-3 flex flex-col gap-3">
+              <Input name="code_postal" aria-label="Code postal" placeholder="Code postal" defaultValue={params.code_postal} />
+              {MENSURATION_RANGE_FIELDS.filter((field) => field.key !== "taille").map((field) => (
+                <div className="flex gap-2" key={field.key}>
+                  <Input type="number" min={0} step="any" name={`${field.key}_min`} aria-label={`${field.label} minimum`} placeholder={`${field.label} min`} defaultValue={params[`${field.key}_min`]} />
+                  <Input type="number" min={0} step="any" name={`${field.key}_max`} aria-label={`${field.label} maximum`} placeholder={`${field.label} max`} defaultValue={params[`${field.key}_max`]} />
+                </div>
+              ))}
+              {MENSURATION_TEXT_FIELDS.map((field) => (
+                <Input key={field.key} name={field.key} aria-label={field.label} placeholder={field.label} defaultValue={params[field.key]} />
+              ))}
+            </div>
+          </details>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit">Rechercher</Button>
             <Link className="text-sm text-text-muted hover:text-text" href={`/figurants${isComediens ? "?profil=comediens" : ""}${!isTrombi ? (isComediens ? "&vue=liste" : "?vue=liste") : ""}`}>Réinitialiser</Link>
