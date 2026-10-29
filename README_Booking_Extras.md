@@ -1,5 +1,7 @@
 # Booking Extras
 
+> **Reprise actuelle :** travailler uniquement dans `Booking-Extras-tests` sur `tests/integration-main-elea-2026-10-22`, après vérification de l’absence d’une autre exécution. Lire [WORK_PROGRESS.md](WORK_PROGRESS.md) avant de commencer. Ne pas modifier `main`, `elea` ou la production, déployer, fusionner, réinitialiser une base ou supprimer des données. Les commandes de réinitialisation ci-dessous décrivent une procédure historique et ne sont pas autorisées dans cette reprise. Les données et identifiants locaux existants doivent être conservés. La recette métier reste distincte des tests techniques.
+
 Application web de gestion de casting, candidatures, figurants, bookings, essayages et documents de production.
 
 - **Site de production :** https://booking-extras.vercel.app

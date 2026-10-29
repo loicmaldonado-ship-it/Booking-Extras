@@ -2,6 +2,8 @@
 
 Ce dossier sert à essayer la version intégrant `main` et `elea`, sur votre ordinateur et avec des personnes fictives. Il n’est pas relié à la production. Les fonctionnalités non vérifiées et les éléments encore manquants sont indiqués dans le [bilan de toutes les cartes](docs/bilan-trello-2026-10-26.md). La présence d’un écran ne signifie pas que sa recette est terminée.
 
+Pour la passation technique, consulter [README_Booking_Extras.md](README_Booking_Extras.md) et [docs/development.md](docs/development.md). Le suivi actif figure dans [WORK_PROGRESS.md](WORK_PROGRESS.md).
+
 ## 1. Avant le premier essai
 
 Prévoyez une connexion internet, environ 15 Go libres et quelques minutes au premier lancement. Installez **Node.js 22 ou 24** depuis [nodejs.org](https://nodejs.org/) et **Docker Desktop** depuis [docker.com](https://www.docker.com/products/docker-desktop/). Ouvrez Docker Desktop et attendez qu’il indique que son moteur fonctionne. Vous n’avez besoin ni d’un compte Supabase, ni des accès de production, ni d’un logiciel de développement.
