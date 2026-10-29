@@ -214,3 +214,5 @@
 - 29/10/2026 — ENV-05 partiel : les anomalies de retour arrière des filtres RGPD et listes sont ajoutées au registre avec étapes, résultat attendu/observé, correctifs et limites de vérification. Documentation contrôlée par diff ; aucun reset ni modification des données. ENV-05 reste ouverte : compléter le registre des autres anomalies reproductibles et vérifier leurs rattachements.
 
 - 29/10/2026 — ENV-05 partiel : anomalie CAN-08 des deux jours ajoutée au registre avec contexte fictif, reproduction, correctifs, tests et vérification navigateur ; recette métier distinguée. Diff vérifié ; aucune donnée modifiée. ENV-05 reste ouverte pour les autres anomalies reproductibles.
+
+- 29/10/2026 — SEC-01 partiel : six tests simulés vérifient le refus des cookies absents ou falsifiés, sessions expirées ou révoquées et erreurs de lecture, ainsi que l’utilisation de l’identité de la session stockée côté serveur. Suite 483/483 réussie ; aucun compte réel modifié. Ces tests isolés ne remplacent pas les attaques inter-comptes directes ni la recette navigateur : SEC-01 reste ouverte.
