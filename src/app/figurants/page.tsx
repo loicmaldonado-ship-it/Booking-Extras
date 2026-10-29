@@ -58,6 +58,7 @@ export default async function FigurantsPage({
     !!(filters.ville || filters.myrole || filters.vehicule || filters.age_min || filters.age_max) ||
     hasActiveMensurationFilters(filters);
   const peutChercher = libreService || recherche.length >= RECHERCHE_MIN || parCriteres;
+  const criteresActifs = Boolean(recherche || parCriteres || filters.genre);
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;
   const { data: figurants, error, count: totalCount } = peutChercher
@@ -314,7 +315,7 @@ export default async function FigurantsPage({
             {f.tags.length > 0 && <div className="flex flex-wrap gap-1">{f.tags.map((t) => <Badge key={t} tone="yellow">{t}</Badge>)}</div>}
           </Card>
         ))}
-        {(figurants ?? []).length === 0 && !error && <p className="py-10 text-center text-text-muted">Aucun·e figurant·e pour l&apos;instant.</p>}
+        {(figurants ?? []).length === 0 && !error && <p className="py-10 text-center text-text-muted">{criteresActifs ? "Aucun profil ne correspond à ces critères." : "Aucun profil pour l'instant."}</p>}
       </div>
       <Card className="hidden overflow-x-auto p-0 md:block">
         <table className="w-full min-w-[740px] text-sm">
@@ -386,7 +387,7 @@ export default async function FigurantsPage({
             {(figurants ?? []).length === 0 && !error && (
               <tr>
                 <td colSpan={9} className="px-6 py-10 text-center text-text-muted">
-                  Aucun·e figurant·e pour l&apos;instant.
+                  {criteresActifs ? "Aucun profil ne correspond à ces critères." : "Aucun profil pour l'instant."}
                 </td>
               </tr>
             )}
