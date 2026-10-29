@@ -477,16 +477,19 @@ export async function deleteMaPhoto(photoId: string) {
   if (!session) return { error: "Non connecté." };
 
   const supabase = createAdminClient();
-  const { data: photo } = await supabase
+  const { data: photo, error: readError } = await supabase
     .from("figurant_photos")
     .select("storage_path")
     .eq("id", photoId)
     .eq("figurant_id", session.id)
     .maybeSingle();
+  if (readError) return { error: "Impossible de vérifier cette photo. Réessaie." };
   if (!photo) return { error: "Photo introuvable." };
 
-  await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
-  await supabase.from("figurant_photos").delete().eq("id", photoId);
+  const { error: storageError } = await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
+  if (storageError) return { error: "Impossible de confirmer la suppression du fichier. Recharge la page avant de réessayer." };
+  const { error: deleteError } = await supabase.from("figurant_photos").delete().eq("id", photoId).eq("figurant_id", session.id);
+  if (deleteError) return { error: "Le fichier a été supprimé, mais le retrait de la fiche photo n’a pas pu être confirmé. Recharge la page avant de réessayer." };
 
   revalidatePath("/compte");
   return { success: true as const };

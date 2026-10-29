@@ -58,9 +58,13 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
   }
 
   function remove(photoId: string) {
+    setError(null);
     startTransition(async () => {
-      await deleteMaPhoto(photoId);
-      router.refresh();
+      try {
+        const result = await deleteMaPhoto(photoId);
+        if (result?.error) { setError(result.error); return; }
+        router.refresh();
+      } catch { setError("Impossible de confirmer la suppression. Recharge la page avant de réessayer."); }
     });
   }
 
@@ -104,7 +108,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
         </div>
       )}
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       {atCap ? (
         <p className="text-xs text-text-muted">Maximum {MAX_PHOTOS_PAR_FIGURANT} photos atteint.</p>
