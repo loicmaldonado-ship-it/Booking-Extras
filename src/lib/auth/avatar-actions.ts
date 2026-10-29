@@ -26,10 +26,11 @@ export async function updateMyAvatar(_prevState: unknown, formData: FormData) {
     .upload(path, photo, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
-  const { error } = await supabase.from("profiles").update({ avatar_storage_path: path }).eq("id", profile.id);
-  if (error) {
-    await supabase.storage.from("profile-avatars").remove([path]);
-    return { error: error.message };
+  const { data: updated, error } = await supabase.from("profiles").update({ avatar_storage_path: path }).eq("id", profile.id).select("id").maybeSingle();
+  if (error || !updated) {
+    // Une erreur réseau peut masquer une écriture réussie : conserver le fichier
+    // évite de supprimer une photo potentiellement déjà liée au profil.
+    return { error: "Impossible de confirmer l’enregistrement de la photo. Recharge la page avant de réessayer." };
   }
 
   revalidatePath("/", "layout");
