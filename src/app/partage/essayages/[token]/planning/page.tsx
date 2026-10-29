@@ -94,6 +94,10 @@ export default async function PartageEssayagesPlanningPage({
         </div>
       </div>
 
+      <p className="print-hide text-sm text-text-muted md:hidden">
+        {lang === "en" ? "This preview is scaled down. Download the PDF or print it for a readable document." : "Cet aperçu est réduit. Télécharge le PDF ou imprime-le pour lire le document confortablement."}
+      </p>
+
       <PrintSheet orientation="landscape">
         <DocumentLetterhead
           societe={projet.societe_production}

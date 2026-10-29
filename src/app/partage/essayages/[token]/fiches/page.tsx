@@ -115,12 +115,12 @@ export default async function PartageEssayagesFichesPage({
         {t(lang, "retour_planning")}
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           {t(lang, "fiches_mensuration_titre")} — {projetNomPublic(projet)}
           {date ? ` — ${formatDateShort(date)}` : ""}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <LangToggle lang={lang} basePath={`/partage/essayages/${token}/fiches`} otherParams={{ date }} />
           <DownloadPdfButton
             filename={`fiches-mensuration-${projet.nom}${date ? `-${date}` : ""}.pdf`}
@@ -130,6 +130,10 @@ export default async function PartageEssayagesFichesPage({
           <PrintButton lang={lang} />
         </div>
       </div>
+
+      <p className="print-hide text-sm text-text-muted md:hidden">
+        {lang === "en" ? "This preview is scaled down. Download the PDF or print it for a readable document." : "Cet aperçu est réduit. Télécharge le PDF ou imprime-le pour lire le document confortablement."}
+      </p>
 
       {figurants.length === 0 && (
         <PrintSheet orientation="landscape">
