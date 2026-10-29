@@ -200,7 +200,7 @@ export default async function FigurantsPage({
       </div>
 
       <Card>
-        <form key={query} className="flex flex-col gap-4" method="get">
+        <form autoComplete="off" key={query} className="flex flex-col gap-4" method="get">
           {isComediens && <input type="hidden" name="profil" value="comediens" />}
           {isTrombi === false && <input type="hidden" name="vue" value="liste" />}
           <Input aria-label="Nom, prénom ou email" name="q" placeholder="Nom, prénom, email..." defaultValue={params.q} />

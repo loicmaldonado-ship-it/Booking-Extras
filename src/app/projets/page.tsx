@@ -69,7 +69,7 @@ export default async function ProjetsPage({
       </div>
 
       <Card>
-        <form key={JSON.stringify(params)} className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
+        <form autoComplete="off" key={JSON.stringify(params)} className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4" method="get">
           <Input aria-label="Nom, réalisation ou société" name="q" placeholder="Nom, réalisateur·ice, société..." defaultValue={params.q} />
           <Select aria-label="Type de projet" name="type" defaultValue={params.type ?? ""}>
             <option value="">Type (tous)</option>
