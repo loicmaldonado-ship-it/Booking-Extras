@@ -164,12 +164,12 @@ export async function deleteEssayage(id: string) {
 // formulaire une date à la fois. Avec une seule date, on redirige
 // directement dessus comme avant ; avec plusieurs, on reste sur la liste
 // pour voir toutes les journées créées d'un coup.
-export async function createEssayageJournee(projetId: string, formData: FormData) {
+export async function createEssayageJournee(projetId: string, _previous: { error: string }, formData: FormData): Promise<{ error: string }> {
   const accessError = await checkProjetAccess(projetId);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const dates = Array.from(new Set(formData.getAll("date").map((d) => String(d).trim()).filter(Boolean)));
-  if (dates.length === 0) return;
+  if (dates.length === 0) return { error: "Choisis au moins une date." };
 
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -178,7 +178,7 @@ export async function createEssayageJournee(projetId: string, formData: FormData
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
-  if (error) throw new Error("Impossible de créer les journées d’essayage.");
+  if (error) return { error: "Impossible de créer les journées d’essayage." };
 
   revalidatePath("/essayages");
   if (dates.length === 1) {

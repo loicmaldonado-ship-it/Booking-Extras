@@ -31,12 +31,12 @@ async function checkJourneeAccess(journeeId: string): Promise<string | null> {
   return checkProjetAccess(data.projet_id);
 }
 
-export async function createPresentielJournee(projetId: string, formData: FormData) {
+export async function createPresentielJournee(projetId: string, _previous: { error: string }, formData: FormData): Promise<{ error: string }> {
   const accessError = await checkProjetAccess(projetId);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const dates = Array.from(new Set(formData.getAll("date").map((d) => String(d).trim()).filter(Boolean)));
-  if (dates.length === 0) return;
+  if (dates.length === 0) return { error: "Choisis au moins une date." };
 
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -45,7 +45,7 @@ export async function createPresentielJournee(projetId: string, formData: FormDa
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
-  if (error) throw new Error("Impossible de créer les journées de casting.");
+  if (error) return { error: "Impossible de créer les journées de casting." };
 
   revalidatePath("/casting/presentiel");
   if (dates.length === 1) {
