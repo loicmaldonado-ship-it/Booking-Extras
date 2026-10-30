@@ -1,0 +1,1766 @@
+[
+ {
+  "file": "src/lib/admin/actions.ts",
+  "action": "inviteChef",
+  "guard": "requireOwner",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/admin/actions.ts",
+  "action": "revokeChefAccess",
+  "guard": "requireOwner",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/admin/actions.ts",
+  "action": "restoreChefAccess",
+  "guard": "requireOwner",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/admin/actions.ts",
+  "action": "resendChefInvite",
+  "guard": "requireOwner",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "searchAgents",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "upsertAgent",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "listAgents",
+  "guard": "ownerAccessError",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "createAgent",
+  "guard": "ownerAccessError",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "updateAgent",
+  "guard": "ownerAccessError",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/agents/actions.ts",
+  "action": "deleteAgent",
+  "guard": "ownerAccessError",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/actions.ts",
+  "action": "createAnnonce",
+  "guard": "buildAnnoncePayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/actions.ts",
+  "action": "updateAnnonce",
+  "guard": "buildAnnoncePayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/actions.ts",
+  "action": "deleteAnnonce",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/annonces/actions.ts",
+  "action": "toggleAnnonceStatut",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/annonces/dates.ts",
+  "action": "addAnnonceDate",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/dates.ts",
+  "action": "removeAnnonceDate",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/dates.ts",
+  "action": "ajouterPeriodeAnnonce",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/dates.ts",
+  "action": "setDisposParCalendrier",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/moodboard-actions.ts",
+  "action": "addAnnoncePhoto",
+  "guard": "requireAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/annonces/moodboard-actions.ts",
+  "action": "removeAnnoncePhoto",
+  "guard": "requireAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/annonces/questions.ts",
+  "action": "getQuestionTemplates",
+  "guard": "checkAnnonceAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/questions.ts",
+  "action": "addAnnonceQuestion",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/annonces/questions.ts",
+  "action": "removeAnnonceQuestion",
+  "guard": "checkAnnonceAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/auth/avatar-actions.ts",
+  "action": "updateMyAvatar",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/auth/email-actions.ts",
+  "action": "updateMyGmailSmtp",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/auth/email-actions.ts",
+  "action": "updateMyEmailTemplates",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/auth/profile-actions.ts",
+  "action": "updateMyProfile",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/auth/support.ts",
+  "action": "entrerModeSupport",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "createBaremeCachet",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "updateBaremeCachet",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "deleteBaremeCachet",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "createBaremeMajoration",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "updateBaremeMajoration",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "deleteBaremeMajoration",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "applyMajorationToBookings",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bareme/actions.ts",
+  "action": "removeMajorationFromBooking",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "createBooking",
+  "guard": "buildBookingPayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "updateBooking",
+  "guard": "buildBookingPayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "deleteBooking",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "createBookingFromDrop",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "createBookingsFromDropBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "createJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "deleteJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "updateTotalJournee",
+  "guard": "str",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "updateConvocationSettings",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "retirerBookings",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "bulkUpdateBookings",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "moveBookingsToDate",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "markConvocationEnvoyee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "resetConvocationEnvoyee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "copyCovoiturageToDate",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "sendBulkConvocations",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/actions.ts",
+  "action": "sendEspacePersoLinkBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/ajout-rapide-actions.ts",
+  "action": "ajoutRapideBooking",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/besoins-actions.ts",
+  "action": "addBesoin",
+  "guard": "str",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/besoins-actions.ts",
+  "action": "deleteBesoin",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/besoins-actions.ts",
+  "action": "updateBesoin",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/dupliquer-actions.ts",
+  "action": "dupliquerJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/inbox-actions.ts",
+  "action": "releverReponsesAuto",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/inbox-actions.ts",
+  "action": "clearUnreviewedReplies",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/inbox-actions.ts",
+  "action": "marquerReponseLueGmail",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/bookings/pdt-actions.ts",
+  "action": "apercuModificationPdt",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/pdt-actions.ts",
+  "action": "modifierPdt",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/pdt-actions.ts",
+  "action": "prevenirProfilsPdt",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/pdt-actions.ts",
+  "action": "supprimerJourneeBasculee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/bookings/photos-actions.ts",
+  "action": "enregistrerChoixPhotos",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "requestMagicLink",
+  "guard": "consumeCandidateLoginAttempt",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "loginWithPassword",
+  "guard": "consumeCandidateLoginAttempt",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "logoutFigurant",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "markMessageBienRecu",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "subscribeToPush",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "unsubscribeFromPush",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "activerAccesCompte",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "toggleAccesCompte",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "updateMaFiche",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "addIndisponibiliteSelf",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "removeIndisponibiliteSelf",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "uploadMaPhoto",
+  "guard": "getCurrentFigurant",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/actions.ts",
+  "action": "deleteMaPhoto",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidats/creer-compte.ts",
+  "action": "creerCompteDepuisInvitation",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidats/inscription.ts",
+  "action": "inscrireCandidat",
+  "guard": "lireProfil",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "recordCandidatureMessage",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "postulerAnnonce",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "updateCandidature",
+  "guard": "checkCandidatureAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "setCandidatureOnglet",
+  "guard": "checkCandidatureAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "setCandidaturesOngletBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "createCandidatureOnglet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "getCandidatureTriData",
+  "guard": "checkCandidatureAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/actions.ts",
+  "action": "deleteCandidatureOnglet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/etiquettes.ts",
+  "action": "creerEtiquette",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/candidatures/etiquettes.ts",
+  "action": "setEtiquettesBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/jours.ts",
+  "action": "setCandidaturesJourBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/jours.ts",
+  "action": "envoyerCandidaturesDansJour",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/candidatures/jours.ts",
+  "action": "envoyerJourAuTournage",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "createPresentielJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "deletePresentielJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "updatePresentielLieu",
+  "guard": "checkJourneeAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "addFigurantToPresentielJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "updatePresentielEntryRole",
+  "guard": "checkEntryAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "updatePresentielEntryNotes",
+  "guard": "checkEntryAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "sendFigurantsToPresentiel",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "removePresentielEntry",
+  "guard": "checkEntryAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "updatePresentielStatut",
+  "guard": "checkEntryAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "updatePresentielStatutBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "addPresentielCreneau",
+  "guard": "checkJourneeAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "generatePresentielCreneaux",
+  "guard": "checkJourneeAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "removePresentielCreneau",
+  "guard": "checkJourneeAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting-presentiel/actions.ts",
+  "action": "assignPresentielEntryToCreneau",
+  "guard": "checkEntryAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "createCastingRole",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingRoleCalibration",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "deleteCastingRole",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "addFigurantToCastingRole",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "listCastingRolesForProjet",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "addFigurantsToCastingRole",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingEntryMode",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingEntryNotes",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingEntryVisiblePartage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "choisirVignetteCasting",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingRoleVisiblePartage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "setCastingRolePosition",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateAllCastingEntriesVisiblePartage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingEntriesStatutBulk",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingEntryStatut",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "deleteCastingEntry",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "deleteCastingPhoto",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "addCastingPhoto",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "removeCastingVideo",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "createStaffCastingVideoSlot",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "addCastingVideo",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "updateCastingVideoLabel",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/actions.ts",
+  "action": "setCastingVideoPosition",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/ajout-rapide-actions.ts",
+  "action": "ajoutRapideCasting",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/reel.ts",
+  "action": "lireMesAvis",
+  "guard": null,
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/reel.ts",
+  "action": "donnerAvis",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/reel.ts",
+  "action": "commentairesProfil",
+  "guard": null,
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/reel.ts",
+  "action": "commenterProfil",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/rejoindre-actions.ts",
+  "action": "rejoindreCasting",
+  "guard": "getCurrentFigurant",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/casting/rejoindre-actions.ts",
+  "action": "postulerCastingSansCompte",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/upload-actions.ts",
+  "action": "logCastingUploadEvent",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/upload-actions.ts",
+  "action": "createCastingUploadSlot",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/casting/upload-actions.ts",
+  "action": "finalizeCastingUpload",
+  "guard": "download",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/documents/template-actions.ts",
+  "action": "updateDocumentTemplate",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/documents/template-actions.ts",
+  "action": "removeDocumentTemplateLogo",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/equipe/actions.ts",
+  "action": "inviteAssistant",
+  "guard": "requireChefOnProjet",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/equipe/actions.ts",
+  "action": "revokeAccess",
+  "guard": "requireChefOnProjet",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/equipe/actions.ts",
+  "action": "updateAssistantSections",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "uploadTenuePhoto",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "createEssayage",
+  "guard": "buildEssayagePayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "updateEssayage",
+  "guard": "buildEssayagePayload",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "deleteEssayage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "createEssayageJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "updateEssayageLieuProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "updateEssayageLieu",
+  "guard": "checkEssayageAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "addFigurantToEssayageJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "sendFigurantsToEssayage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "updateEssayageStatutInline",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "updateEssayageReponseRecue",
+  "guard": "checkEssayageAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "removeEssayageFromJournee",
+  "guard": "checkEssayageAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "moveEssayagesToJournee",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "addCreneau",
+  "guard": "checkEssayageJourneeAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "generateCreneaux",
+  "guard": "checkEssayageJourneeAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "removeCreneau",
+  "guard": "checkEssayageJourneeAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/essayages/actions.ts",
+  "action": "assignFigurantToCreneau",
+  "guard": "checkEssayageAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/actions.ts",
+  "action": "createFigurant",
+  "guard": "requireStaffFigurantAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/actions.ts",
+  "action": "updateFigurantAgent",
+  "guard": "requireStaffFigurantAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/actions.ts",
+  "action": "uploadFigurantPhoto",
+  "guard": "requireStaffFigurantAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/actions.ts",
+  "action": "deletePhoto",
+  "guard": "requireStaffFigurantAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/actions.ts",
+  "action": "deleteLien",
+  "guard": "requireStaffFigurantAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/disponibilites.ts",
+  "action": "addIndisponibilite",
+  "guard": "getFigurantIdByToken",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/disponibilites.ts",
+  "action": "getIndisponibilitesForFigurants",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/disponibilites.ts",
+  "action": "removeIndisponibilite",
+  "guard": "getFigurantIdByToken",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/edit.ts",
+  "action": "getFigurantForEdit",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/messages-actions.ts",
+  "action": "sendStaffMessageToFigurant",
+  "guard": "requireStaffMessageAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/messages-actions.ts",
+  "action": "notifyFigurantByEmail",
+  "guard": "requireStaffMessageAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/messages-actions.ts",
+  "action": "toggleMessageRepondu",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/figurants/preview.ts",
+  "action": "getFigurantPreview",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/indemnites/actions.ts",
+  "action": "createProjetIndemnite",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/indemnites/actions.ts",
+  "action": "deleteProjetIndemnite",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/indemnites/actions.ts",
+  "action": "applyIndemniteToBookings",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/indemnites/actions.ts",
+  "action": "removeIndemniteFromBooking",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/messages/derniers-actions.ts",
+  "action": "lireDernierMessage",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/derniers-actions.ts",
+  "action": "enregistrerDernierMessage",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "creerEnvoi",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "envoyerEnvoiEmail",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "marquerEnvoiTextos",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "marquerRecu",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "supprimerEnvoi",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/messages/envois-actions.ts",
+  "action": "confirmerReception",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "createMinorDossier",
+  "guard": "hasSectionAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "saveMinorDates",
+  "guard": "staffDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "addMinorRequirement",
+  "guard": "hasSectionAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "deactivateMinorRequirement",
+  "guard": "hasSectionAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "createMinorLink",
+  "guard": "staffDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "revokeMinorLinks",
+  "guard": "staffDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "reviewMinorDocument",
+  "guard": "staffDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "deleteMinorDocument",
+  "guard": "staffDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/minors/actions.ts",
+  "action": "uploadMinorDocument",
+  "guard": "bearerDossier",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/notifications/actions.ts",
+  "action": "getNotificationsPanel",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/notifications/actions.ts",
+  "action": "markNotificationsLues",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/notifications/actions.ts",
+  "action": "markAllNotificationsLues",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "getPartageToken",
+  "guard": "requireAccessOrThrow",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "getPartageTitre",
+  "guard": "requireAccessOrThrow",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "updatePartageTitre",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "createPartageLien",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "updateCastingDocVisible",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "updateFichesRolesMasquerContact",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "revokePartageLien",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "getJourneePartageLien",
+  "guard": "requireAccessOrThrow",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "createJourneePartageLien",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "revokeJourneePartageLien",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/actions.ts",
+  "action": "updateReelOption",
+  "guard": "requireAccessOrThrow",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/suivi.ts",
+  "action": "signalerVisitePartage",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/partage/suivi.ts",
+  "action": "commenterPartage",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/partage/suivi.ts",
+  "action": "lireSuiviPartage",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/partage/suivi.ts",
+  "action": "repondrePartage",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "createProjet",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "updateProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "deleteProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "archiverProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "desarchiverProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/actions.ts",
+  "action": "countProjetTemporaires",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/annonce-photo-actions.ts",
+  "action": "updateProjetAnnoncePhoto",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/annonce-photo-actions.ts",
+  "action": "removeProjetAnnoncePhoto",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/fonctions.ts",
+  "action": "listerFonctionsProjet",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/fonctions.ts",
+  "action": "oublierFonctionProjet",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/tester-boite-actions.ts",
+  "action": "testerBoiteEnvoiProjet",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/projets/tester-boite-actions.ts",
+  "action": "testerMaBoiteEnvoi",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/references/actions.ts",
+  "action": "ajouterReference",
+  "guard": "exigerProprietaire",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/references/actions.ts",
+  "action": "modifierReference",
+  "guard": "exigerProprietaire",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/references/actions.ts",
+  "action": "basculerReferenceVisible",
+  "guard": "exigerProprietaire",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/references/actions.ts",
+  "action": "supprimerReference",
+  "guard": "exigerProprietaire",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/references/actions.ts",
+  "action": "deplacerReference",
+  "guard": "exigerProprietaire",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/reserve/actions.ts",
+  "action": "mettreCandidaturesEnReserve",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/reserve/actions.ts",
+  "action": "mettreBookingsEnReserve",
+  "guard": "checkProjetAccess",
+  "mutates": false,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/reserve/actions.ts",
+  "action": "retirerDeLaReserve",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/rgpd/actions.ts",
+  "action": "anonymiserFigurant",
+  "guard": "requireChef",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/search/actions.ts",
+  "action": "searchGlobal",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/templates/actions.ts",
+  "action": "createTemplate",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/templates/actions.ts",
+  "action": "updateTemplate",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/templates/actions.ts",
+  "action": "deleteTemplate",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/templates/actions.ts",
+  "action": "copierModeleDeBase",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/textos/actions.ts",
+  "action": "genererCleRelais",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/textos/actions.ts",
+  "action": "statutRelais",
+  "guard": "getCurrentProfile",
+  "mutates": false,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/textos/actions.ts",
+  "action": "noterTextosEnvoyesIphone",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/textos/actions.ts",
+  "action": "mettreEnFileTextos",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/textos/actions.ts",
+  "action": "annulerFileTextos",
+  "guard": "getCurrentProfile",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "creerLienValidation",
+  "guard": "checkProjetAccess",
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "supprimerLienValidation",
+  "guard": "lienAvecAcces",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "repondreSurLien",
+  "guard": "lienAvecAcces",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "signalerVisite",
+  "guard": null,
+  "mutates": true,
+  "guard_before_admin": false
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "voterProfil",
+  "guard": "profilDansLien",
+  "mutates": true,
+  "guard_before_admin": true
+ },
+ {
+  "file": "src/lib/validation/actions.ts",
+  "action": "commenterLien",
+  "guard": "profilDansLien",
+  "mutates": true,
+  "guard_before_admin": true
+ }
+]
