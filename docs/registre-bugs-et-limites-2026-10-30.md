@@ -14,6 +14,14 @@
 | 9 | Espaces de stockage publics listables par n'importe qui | SEC-03 | `20261030170000` |
 | 10 | Une candidate ne pouvait jamais redéfinir son mot de passe (action non branchée) | SEC-02 | formulaire sur /compte |
 | 11 | Requêtes > 10 Mo coupées : photos de 10–20 Mo en échec, erreur serveur au lieu d'un message | BUG-11 / MED-03 | `proxyClientMaxBodySize` |
+| 12 | Tout membre d'un projet pouvait l'archiver, le désarchiver ou le supprimer | MET-01 | `requireCreatriceProjet` |
+| 13 | Envoi de textos : une sélection mal formée faisait planter l'action | BUG-02 | validation `lignesTextos` |
+| 14 | 7 écrans débordaient à 375 px (tableaux équipe/barème, en-têtes, indemnités) | QA-06 / BUG-17 | conteneurs défilants, retours à la ligne |
+| 15 | 30+ champs sans nom accessible (barème, indemnités, questions, dates, liens, messages) | QA-07 / BUG-18 | `aria-label` / `aria-labelledby` |
+| 16 | 20 écritures en base sans contrôle d'erreur (faux succès : suppression de projet, archivage, rôles, indemnités…) | BUG-13 | contrôles + messages ; ligne avant fichiers |
+| 17 | Indemnités : suppression/application sans contrôle d'accès si la lecture échouait ; indemnité d'un autre projet applicable | BUG-13 | lecture obligatoire, projet vérifié |
+| 18 | Réponses email sans projet effaçables par tout membre d'équipe | BUG-13 | seules les réponses d'un projet accessible |
+| 19 | Archivage : profils temporaires supprimés AVANT l'archivage (perdus si l'archivage échouait) | BUG-13 | archivage d'abord |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -33,9 +41,11 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 ## 4. Limites connues / hors périmètre volontaire
 - **Non vérifié en production** : aucune action sur la prod, ni sur Vercel/Supabase de production (variables, sauvegardes).
 - **Recette métier** (MET-xx, CAN-05/06/07/09, LEG-xx, COM-xx, QA-06) : à faire par Loïc et Mathieu ; les tests techniques ne la remplacent pas.
-- **Envois réels** (emails, SMS, push) : bloqués en mode test ; non validés de bout en bout.
+- **Envois réels** (emails, SMS, push) : bloqués en mode test ; emails capturés localement (Mailpit) et vérifiés, envoi Gmail réel et push non validés.
+- **Navigateurs** : seul Chromium est disponible pour les tests automatiques ; Safari iOS, Firefox et photos HEIC réelles à tester sur appareils.
+- **Accessibilité** : contrôle automatique de base (noms des champs, débordements) ; pas de test au lecteur d'écran ni de mesure de contraste.
 - **Vercel ~4,5 Mo par requête** : dépend de la compression d'images côté navigateur (MED-01).
-- **Médias annulés en cours d'envoi** : un fichier déjà transféré peut rester orphelin dans le stockage (MED-03).
+- **Médias annulés en cours d'envoi** : vérifié sans fichier orphelin pour une annulation en cours de transfert (`med02`) ; un fichier entièrement transféré juste avant l'annulation reste possible.
 - **Lien de partage d'un projet archivé** : reste accessible (cohérent avec MET-01, à confirmer).
 - **`tests/rgpd-snapshot-local.sql`** dépend d'identifiants de l'ancienne base de recette ; non exécuté par la batterie.
 - **Hors périmètre (V2 / décisions à prendre)** : abonnement payant (A&A-01), fonctions d'administration et signature
