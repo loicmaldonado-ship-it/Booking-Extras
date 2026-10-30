@@ -712,7 +712,7 @@ export async function createStaffCastingVideoSlot(
 
   const path = `${entry.figurant_id}/${entryId}-video-${crypto.randomUUID()}.mp4`;
   const { data, error } = await supabase.storage.from("casting-videos").createSignedUploadUrl(path);
-  if (error || !data) return { error: error?.message ?? "Impossible de préparer l'envoi." };
+  if (error || !data) return { error: "Impossible de préparer l’envoi. Réessaie." };
 
   return { bucket: "casting-videos", path: data.path, token: data.token };
 }

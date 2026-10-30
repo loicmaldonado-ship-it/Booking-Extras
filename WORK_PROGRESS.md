@@ -256,3 +256,5 @@
 - 30/10/2026 — MED-03 partiel : une annulation pendant une préparation vidéo échouée n’attend plus inutilement avant d’être traitée. Régression reproduite et quatre tests simulés ciblés réussis ; TypeScript, ESLint et contrôle du diff réussis. Aucun envoi réel ; les scénarios navigateurs et le nettoyage des fichiers déjà transférés restent à vérifier. Carte ouverte.
 
 - 30/10/2026 — Vérification générale après les derniers correctifs : suite automatisée complète 520/520 réussie. Base et application de recette inaccessibles à cette reprise ; reprendre les vérifications navigateur et le nettoyage des médias abandonnés lorsque l’environnement de test est disponible, sans réinitialisation de base.
+
+- 30/10/2026 — MED-03 / SEC-06 partiel : la préparation des dépôts de casting candidat et équipe ne renvoie plus les erreurs brutes du stockage ; elle invite à réessayer sans exposer les éventuels chemins ou jetons. Deux défauts reproduits avec données fictives ; trois tests ciblés, TypeScript, ESLint et contrôle du diff réussis. Aucun envoi réel ; recette navigateur et autres cas restent à vérifier, cartes ouvertes.

@@ -156,7 +156,7 @@ export async function createCastingUploadSlot(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
-  if (error || !data) return { error: error?.message ?? "Impossible de préparer l'envoi." };
+  if (error || !data) return { error: "Impossible de préparer l’envoi. Réessaie." };
 
   return { bucket, path: data.path, token: data.token };
 }
