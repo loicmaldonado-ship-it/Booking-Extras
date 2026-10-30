@@ -7,7 +7,7 @@
 - **Modifications locales** : aucune hors commits (`.env.local` non versionné contient `BOOKING_TEST_SMTP_URL` vers Mailpit local).
 - **Terminé (30/10)** : SEC-01..07, BUG-02/03/08/09/11, CAN-02/03/04, DEC-02, barème par équipe, ENV-04/05/06, REL-04/06, QA-04/05 ; recette technique E2E 41 contrôles (MET-01..10, COM-01/02/04/05, CAN-06/07/09) ; QA-06/BUG-17, QA-07/BUG-18 ; MED-01/02/03 (Chromium) ; QA-08 ; BUG-13 (20 écritures corrigées, test par erreurs de base forcées).
 - **Comptes rendus des cartes** : `docs/trello-comptes-rendus-2026-10-30.md` (à coller dans Trello : Trello en lecture seule pour la reprise).
-- **Validations (30/10, commit `239c89b`)** : `npm test` 528/528 ; `tsc` OK ; ESLint fichiers modifiés OK ; batterie complète `bash scripts/integration-tests.sh` (21 suites SQL + 17 tests sur l'appli) : voir dernière entrée d'historique.
+- **Validations (30/10, commit `239c89b`)** : `npm test` 528/528 ; `tsc` OK ; ESLint fichiers modifiés OK ; batterie complète `bash scripts/integration-tests.sh` : **37/37 OK** (21 suites SQL + 16 tests sur l'appli, code de `239c89b`).
 - **Restant (hors portée)** : COM-03 push, COM-05 mail support, LEG-06, REL-01/02/03/05, logo, A&A-01, RV2-1/2/3 ; Safari/Firefox/HEIC réels ; recette métier (Loïc et Mathieu).
 - **Blocages** : production, Vercel, envois réels, GitHub (push par l'utilisateur), Trello en lecture seule.
 - **Prochaine action** : livrer le bundle ; ensuite seulement sur demande (préproduction, cartes de décision).
@@ -311,3 +311,4 @@
 
 - 30/10/2026 — Recette technique E2E (`tests/recette-technique-e2e.mjs`, 41 contrôles, emails capturés par Mailpit) : MET-01 corrigé (tout membre pouvait archiver/supprimer → réservé à la créatrice ou propriétaire globale) ; textos : sélection mal formée faisait planter l'action (validation ajoutée). Ajouté à `scripts/integration-tests.sh` et à la CI. Commit `f567495`.
 - 30/10/2026 — QA-06/QA-07 (`84a456c`) : scan 55 écrans × 4 rôles à 375 px ; 7 débordements (tableaux équipe/barème, en-têtes projet/annonce/candidature, indemnités) et 30+ champs sans nom accessible corrigés. MED-01/MED-02/QA-08 (`5e2e707`) : compression photo réelle (48 Mpx 17 Mo → 0,21 Mo, EXIF appliqué), selftape 18,5 Mo avec progression et annulation sans orphelin, journal d'erreurs JSON nettoyé (serveur + navigateur).
+- 30/10/2026 — BUG-13 (`7110714`) : 20 écritures sans contrôle d'erreur corrigées, 2 tolérées et commentées, 2 trous d'accès fermés ; `tests/bug13-erreurs-mutations.mjs` 10/10. Batterie complète finale 37/37 (exit 0). Comptes rendus de cartes : `docs/trello-comptes-rendus-2026-10-30.md`.
