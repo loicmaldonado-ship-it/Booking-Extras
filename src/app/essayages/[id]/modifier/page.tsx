@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { EssayageForm } from "@/components/essayages/essayage-form";
 import { BackLink } from "@/components/ui/back-link";
 import { updateEssayage } from "@/lib/essayages/actions";
@@ -20,7 +21,8 @@ export default async function ModifierEssayagePage({
   let projetsQuery = supabase.from("projets").select("id, nom").order("nom");
   if (accessibleIds !== null) projetsQuery = projetsQuery.in("id", idsOrNone(accessibleIds));
 
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 

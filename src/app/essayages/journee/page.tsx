@@ -1,5 +1,6 @@
 import { trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
@@ -45,7 +46,8 @@ export default async function EssayageJourneePage({
   }
 
   const profile = await getCurrentProfile();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 

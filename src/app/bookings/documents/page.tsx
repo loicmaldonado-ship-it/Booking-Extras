@@ -9,6 +9,7 @@ import Link from "next/link";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -71,7 +72,8 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
   const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =

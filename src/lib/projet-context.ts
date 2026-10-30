@@ -7,9 +7,18 @@ import { isOwner } from "@/lib/auth/owner";
 
 const COOKIE_NAME = "current_projet_id";
 
+// Le cookie est une simple préférence d'affichage : il peut être forgé. Il n'est donc retenu que si la personne
+// connectée a accès au projet (SEC-04, 30/10/2026 : un cookie forgé affichait le nom du projet d'une autre équipe).
 export async function getCurrentProjetId(): Promise<string | null> {
   const store = await cookies();
-  return store.get(COOKIE_NAME)?.value ?? null;
+  const value = store.get(COOKIE_NAME)?.value ?? null;
+  if (!value || !/^[0-9a-f-]{36}$/i.test(value)) return null;
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
+  if (isOwner(profile)) return value;
+  const accessibleIds = await getAccessibleProjetIds(profile);
+  if (accessibleIds !== null && !accessibleIds.includes(value)) return null;
+  return value;
 }
 
 // Reste le projet actif tant qu'on ne le change pas explicitement, pour ne
@@ -18,7 +27,8 @@ export async function getCurrentProjetId(): Promise<string | null> {
 // été invitée) même si l'UI ne devrait normalement proposer que ceux-là.
 export async function setCurrentProjet(projetId: string, redirectTo = "/bookings") {
   const profile = await getCurrentProfile();
-  if (profile && !isOwner(profile)) {
+  if (!profile) redirect("/login");
+  if (!isOwner(profile)) {
     const accessibleIds = await getAccessibleProjetIds(profile);
     if (accessibleIds !== null && !accessibleIds.includes(projetId)) {
       redirect("/bookings?switch=1");

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -66,7 +67,8 @@ export default async function CastingPage({
   // Onglet ouvert : une catégorie à la fois (rôles, silhouettes, doublures).
   const CATEGORIES = Object.keys(CATEGORIE_CACHET_LABELS) as CategorieCachet[];
 
-  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let allFigurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
 

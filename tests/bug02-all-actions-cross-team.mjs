@@ -45,7 +45,7 @@ const P = A.projet;
 FIG = one(`insert into figurants(prenom,nom,date_naissance,email,temporaire_projet_id,est_comedien,comedien_pool_id,acces_compte) values('Privee','${TAG}','1990-01-01','${TAG.toLowerCase()}@example.test','${P}',true,'${SEED_CHEF}',true) returning id;`);
 svc(`insert into figurant_comptes(figurant_id,password_hash) values('${FIG}','fixture-only');`);
 A.membre = one(`insert into projet_membres(projet_id, profile_id) values('${P}','${SEED_ASSIST}') returning id;`);
-A.annonce = one(`insert into annonces(projet_id,titre,statut) values('${P}','${TAG}','ouverte') returning id;`);
+A.annonce = one(`insert into annonces(projet_id,titre,statut) values('${P}','${TAG} annonce','fermée') returning id;`); // fermée : une annonce ouverte (titre, projet, cheffe) est publique par conception sur l'accueil
 A.date = one(`select (current_date+70)::text;`);
 A.annDate = one(`insert into annonce_dates(annonce_id,date) values('${A.annonce}','${A.date}') returning id;`);
 A.question = one(`insert into annonce_questions(annonce_id,label) values('${A.annonce}','${TAG}') returning id;`);
@@ -76,8 +76,9 @@ A.envoi = one(`insert into envois(projet_id,titre,corps,canal) values('${P}','${
 A.dest = one(`insert into envoi_destinataires(envoi_id,figurant_id,booking_id) values('${A.envoi}','${FIG}','${A.booking}') returning id;`);
 A.fmsg = one(`insert into figurant_messages(figurant_id,sender,corps,projet_id,booking_id,categorie) values('${FIG}','figurant','${TAG}','${P}','${A.booking}','booking') returning id;`);
 A.template = one(`insert into message_templates(nom,sujet,corps,equipe_id) values('${TAG}','s','c','${SEED_CHEF}') returning id;`);
-A.agent = one(`insert into agents(nom) values('${TAG}') returning id;`);
-A.reference = one(`insert into references_accueil(titre) values('${TAG}') returning id;`);
+// Répertoire d'agents et références de l'accueil : communs à tous par conception (marqueur distinct de TAG).
+A.agent = one(`insert into agents(nom) values('BUG02GLOBAL-${Date.now()}') returning id;`);
+A.reference = one(`insert into references_accueil(titre) values('BUG02GLOBAL-${Date.now()}') returning id;`);
 A.baremeCachet = one(`select id from bareme_cachets order by id limit 1;`);
 A.baremeMaj = one(`select id from bareme_majorations order by id limit 1;`);
 A.dossier = one(`insert into minor_dossiers(projet_id,figurant_id) values('${P}','${FIG}') returning id;`);
@@ -104,7 +105,7 @@ assert.ok(created.id, "Création cheffe B impossible");
 const B = created.id;
 if (ACTOR === "cheffe-autre-equipe") svc(`update profiles set role='chef', is_owner=false, nom='Cheffe B fictive' where id='${B}';`);
 else svc(`update profiles set role='assistant', is_owner=false, acces_complet=true, sections_autorisees=null, nom='Assistante B fictive' where id='${B}';`);
-const PB = ACTOR === "cheffe-autre-equipe" ? one(`insert into projets(nom, owner_id) values('${TAG} projet B','${B}') returning id;`) : RANDOM;
+const PB = ACTOR === "cheffe-autre-equipe" ? one(`insert into projets(nom, owner_id) values('Projet B ${Date.now()}','${B}') returning id;`) : RANDOM;
 
 // ---------- Paramètres ----------
 const fileOf = (f) => f.replace(/^src\/lib\//, "");
@@ -199,6 +200,7 @@ for (const r of inventory) {
   const worker = ((ws.find((w) => !w.includes("[")) || ws[0]) || "app/page").replace(/^app/, "").replace(/\/page$/, "").replace(/\[[^\]]+\]/g, A.annonce) || "/";
   calls.push({ file: r.file, action: r.action, id: entry[0], worker, args, forms });
 }
+if (process.env.ONLY) calls.splice(0, calls.length, ...calls.filter((c) => process.env.ONLY.split(",").includes(c.action)));
 calls.sort((a, b) => Number(LAST.has(a.action)) - Number(LAST.has(b.action)));
 
 // ---------- Empreinte de la base ----------
@@ -235,35 +237,35 @@ try {
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 20000 }), page.locator("form button[type=submit]").first().click()]);
   let before = snapshot();
   for (const c of calls) {
-    const r = await page.evaluate(async ({ url, id, args, forms }) => {
+    const r = await page.evaluate(async ({ url, id, args, forms, tag }) => {
       let body, headers = { "Next-Action": id, Accept: "text/x-component" };
       if (forms.length) {
         const fd = new FormData(); const root = [...args];
         forms.forEach((f, k) => { const key = k + 1; root[f.index] = "$K" + key.toString(16); for (const [n, v] of Object.entries(f.fields)) fd.append(`_${key}_${n}`, v); });
         fd.append("0", JSON.stringify(root)); body = fd;
       } else { body = JSON.stringify(args); headers["Content-Type"] = "text/plain;charset=UTF-8"; }
-      try { const res = await fetch(url, { method: "POST", headers, body, redirect: "manual" }); const t = await res.text(); return { status: res.status, line1: (t.split("\n").find((l) => l.startsWith("1:")) || "").slice(0, 200), full: t.length }; }
+      try { const res = await fetch(url, { method: "POST", headers, body, redirect: "manual" }); const t = await res.text(); return { status: res.status, line1: (t.split("\n").find((l) => l.startsWith("1:")) || "").slice(0, 200), full: t.length, tagLeak: t.includes(tag), tagCtx: t.includes(tag) ? t.slice(Math.max(0, t.indexOf(tag) - 900), t.indexOf(tag) + 200) : "" }; }
       catch (e) { return { status: "ERR", line1: String(e).slice(0, 200) }; }
-    }, { url: BASE + c.worker, id: c.id, args: c.args, forms: c.forms });
+    }, { url: BASE + c.worker, id: c.id, args: c.args, forms: c.forms, tag: TAG });
     const after = snapshot();
     const changed = tables.filter((t) => before[t] !== after[t]);
     before = after;
-    results.push({ action: `${fileOf(c.file)}#${c.action}`, http: r.status, changed, reponse: r.line1, leak: /-tok[jv]?\b/.test(r.line1) || r.line1.includes(TAG + "-tok") });
+    results.push({ action: `${fileOf(c.file)}#${c.action}`, http: r.status, changed, reponse: r.line1, leak: Boolean(r.tagLeak), tagCtx: r.tagCtx || "" });
   }
 } finally {
   await browser.close();
   var othersAfter = othersQuery();
   restoreBareme();
-  svc(`delete from projets where id in ('${P}','${PB}'); delete from figurants where nom like 'BUG02ALL-%'; delete from message_templates where id='${A.template}'; delete from agents where nom like 'BUG02ALL-%' or id='${A.agent}'; delete from references_accueil where titre like 'BUG02ALL-%';`);
+  svc(`delete from projets where id in ('${P}','${PB}'); delete from figurants where nom like 'BUG02ALL-%'; delete from message_templates where id='${A.template}'; delete from agents where nom like 'BUG02ALL-%' or nom like 'BUG02GLOBAL-%' or id='${A.agent}'; delete from references_accueil where titre like 'BUG02ALL-%' or titre like 'BUG02GLOBAL-%';`);
   await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${B}`, { method: "DELETE", headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } });
 }
 
 if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 1));
 const suspects = results.filter((r) => r.changed.length || r.leak);
 console.log(`[${ACTOR}] ${results.length} actions appelées ; ${suspects.length} ont modifié au moins une table ou renvoyé un token :`);
-for (const s of suspects) console.log(` - ${s.action} [${s.http}] tables: ${s.changed.join(", ") || "-"}${s.leak ? " TOKEN" : ""} :: ${s.reponse.slice(0, 120)}`);
+for (const s of suspects) console.log(` - ${s.action} [${s.http}] tables: ${s.changed.join(", ") || "-"}${s.leak ? " FUITE-LECTURE" : ""} :: ${s.reponse.slice(0, 120)}${s.leak ? "\n     contexte: " + s.tagCtx.replace(/\s+/g, " ") : ""}`);
 const unexpected = suspects.filter((r) => (r.leak || r.changed.some((t) => !(SELF_SCOPED[r.action] || []).includes(t))));
 assert.equal(othersAfter, othersBefore, "Des lignes n'appartenant pas à la cheffe B ont été modifiées (profils, modèles, brouillons ou relais d'autres personnes)");
 assert.deepEqual(unexpected.map((r) => r.action), [], "Actions ayant modifié des données hors du périmètre de la cheffe B");
 assert.ok(results.length >= 240, `Trop peu d'actions appelées : ${results.length}`);
-console.log(`PASS [${ACTOR}]: ${results.length} actions appelées directement ; seules les données de la personne connectée ont changé.`);
+console.log(`PASS [${ACTOR}]: ${results.length} actions appelées directement ; seules les données de la personne connectée ont changé, aucune donnée de A renvoyée.`);
