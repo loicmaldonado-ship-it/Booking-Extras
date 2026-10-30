@@ -230,3 +230,5 @@
 - 30/10/2026 — SEC-07/SEC-02 partiel : trois tests simulés vérifient que la déconnexion révoque uniquement le jeton courant avant d’effacer son cookie, qu’une panne de révocation ne simule pas une déconnexion réussie et qu’une absence de cookie est gérée. Tests ciblés réussis ; aucun compte réel modifié. La révocation effective en base et la recette navigateur restent à confirmer ; cartes ouvertes.
 
 - 30/10/2026 — SEC-07/SEC-02 partiel : deux tests simulés de création de session vérifient l’enregistrement avant le cookie, l’expiration concordante, les attributs HttpOnly/Secure/SameSite/Path et l’absence de cookie après un échec de stockage. Tests ciblés réussis ; aucun compte réel modifié. Vérifications navigateur, expiration réelle et concurrence restent ouvertes.
+
+- 30/10/2026 — BUG-09/SEC-02 partiel : cinq tests simulés confirment le refus du limiteur si le secret manque, si la base retourne une erreur ou un refus, ainsi que le rejet des adresses trop longues avant accès à la base. L’autorisation n’est accordée que sur réponse explicite positive. Suite 510/510 réussie ; la concurrence et les quotas réels en base restent à vérifier, cartes ouvertes.
