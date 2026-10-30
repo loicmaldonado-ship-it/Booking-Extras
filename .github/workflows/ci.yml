@@ -30,3 +30,40 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
           SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+  # Tests d'intégration réels (isolation entre équipes, actions serveur, pages, stockage, authentification,
+  # uploads, liens publics, barème, doublons) sur une base Supabase LOCALE démarrée dans le runner.
+  integration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx supabase start -x vector,logflare,studio,imgproxy,edge-runtime,supavisor
+      - name: Configuration locale fictive
+        run: |
+          eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "BOOKING_TEST_MODE=1"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+            echo "SECRETS_ENCRYPTION_KEY=$(openssl rand -base64 32)"
+            echo "CRON_SECRET=$(openssl rand -hex 32)"
+          } > .env.local
+      - run: npm run build
+      - name: Démarrer l'application
+        run: |
+          nohup npm start > /tmp/next.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/login && break; sleep 1; done
+      - run: npm install --no-save playwright && npx playwright install --with-deps chromium
+      - run: bash scripts/integration-tests.sh
+      - if: failure()
+        run: tail -100 /tmp/next.log
