@@ -371,7 +371,7 @@ export function FigurantForm({
               name="photo_portrait"
               accept="image/*"
               required={!estComedien}
-              className="text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
+              className="w-full max-w-full text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
             />
           </Field>
           <p className="text-xs text-text-muted">Les autres photos (pied, selfie...) se gèrent depuis la fiche une fois le profil créé.</p>

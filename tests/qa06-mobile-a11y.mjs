@@ -5,17 +5,23 @@
 // Aucun outil supplémentaire (pas d'axe-core) : contrôles DOM ciblés. Ne remplace pas un test au lecteur d'écran.
 // Usage : node tests/qa06-mobile-a11y.mjs [--json]   (appli sur :3000, base locale avec seed)
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const BASE = process.env.BASE || "http://localhost:3000";
 const P = "00000000-0000-4000-8000-0000000070e0", ANN = "00000000-0000-4000-8000-00000000a000", ANN_TOK = "00000000-0000-4000-8000-00000000a0a0";
 const CAND = "00000000-0000-4000-8000-00000000cd01", FIG = "00000000-0000-4000-8000-00000000f001";
+const sql = (q) => execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"], { input: q, encoding: "utf8" }).trim();
+// BUG-17 : lien de partage des essayages (tableau large) créé pour le scan, retiré à la fin.
+const TOK_ESS = randomBytes(32).toString("hex");
+sql(`insert into partage_liens(projet_id,type,token) values('00000000-0000-4000-8000-0000000070e0','essayages','${TOK_ESS}');`);
 const staff = ["/", "/projets", `/projets/${P}`, `/projets/${P}/modifier`, "/projets/nouveau", `/projets/${P}/mineurs`, "/annonces", `/annonces/${ANN}`,
   `/annonces/${ANN}/modifier`, "/annonces/nouveau", "/candidatures", `/candidatures/${CAND}`, "/bookings", "/bookings/nouveau", "/bookings/reserve",
   "/bookings/resume", "/bookings/documents", "/casting", "/casting/distribution", "/casting/presentiel", "/essayages", "/essayages/nouveau",
   "/figurants", `/figurants/${FIG}`, `/figurants/${FIG}/modifier`, "/figurants/nouveau", "/equipe", "/bareme", "/modeles", "/mineurs", "/mon-compte",
-  "/aide", "/partage", "/admin", "/admin/agents", "/admin/references", "/admin/support"];
-const publics = ["/login", "/compte/connexion", "/compte/inscription", "/compte/creer", "/auth/forgot-password", "/confidentialite", "/rgpd", `/postuler/${ANN_TOK}`, "/offline"];
+  "/aide", "/partage", "/rgpd", "/figurants?vue=liste", "/casting/presentiel/journee", "/casting/presentiel/journee/planning", "/essayages/journee", "/bookings/documents/bordereau", "/admin", "/admin/agents", "/admin/references", "/admin/support"];
+const publics = ["/login", "/compte/connexion", "/compte/inscription", "/compte/creer", "/auth/forgot-password", "/confidentialite", "/rgpd", `/postuler/${ANN_TOK}`, "/offline", `/partage/essayages/${TOK_ESS}`, `/partage/essayages/${TOK_ESS}/planning`];
 const candidate = ["/compte"];
 
 const audit = () => {
@@ -46,8 +52,8 @@ const audit = () => {
   return res;
 };
 
-async function login(browser, path, email) {
-  const ctx = await browser.newContext({ viewport: { width: 375, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+async function login(browser, path, email, width = 375) {
+  const ctx = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
   if (path) {
     await p.goto(BASE + path); await p.fill("input[type=email]", email); await p.fill("input[type=password]", "booking-test");
@@ -58,20 +64,24 @@ async function login(browser, path, email) {
 const browser = await chromium.launch();
 const rows = [];
 try {
-  const groupes = [["cheffe", await login(browser, "/login", "cheffe.test@test-chat-charge.fr"), staff],
-    ["assistante", await login(browser, "/login", "assistante.test@test-chat-charge.fr"), ["/", "/projets", "/candidatures", "/bookings", "/casting", "/essayages", "/figurants", "/mon-compte"]],
-    ["candidate", await login(browser, "/compte/connexion", "candidate.test@test-figurant.fr"), candidate],
-    ["public", await login(browser, null), publics]];
-  for (const [role, page, routes] of groupes) for (const route of routes) {
-    const r = await page.goto(BASE + route, { waitUntil: "networkidle" }).catch(() => null);
-    const a = await page.evaluate(audit);
-    rows.push({ role, route, http: r?.status(), arrivee: new URL(page.url()).pathname, ...a });
+  // Largeurs : 375 px (iPhone courant) et 320 px (petit téléphone, exigé par BUG-17).
+  for (const width of (process.env.WIDTHS || "375,320").split(",").map(Number)) {
+    const groupes = [["cheffe", await login(browser, "/login", "cheffe.test@test-chat-charge.fr", width), staff],
+      ["assistante", await login(browser, "/login", "assistante.test@test-chat-charge.fr", width), ["/", "/projets", "/candidatures", "/bookings", "/casting", "/essayages", "/figurants", "/mon-compte"]],
+      ["candidate", await login(browser, "/compte/connexion", "candidate.test@test-figurant.fr", width), candidate],
+      ["public", await login(browser, null, null, width), publics]];
+    for (const [role, page, routes] of groupes) for (const route of routes) {
+      const r = await page.goto(BASE + route, { waitUntil: "networkidle" }).catch(() => null);
+      const a = await page.evaluate(audit);
+      rows.push({ role: `${role}@${width}`, route, http: r?.status(), arrivee: new URL(page.url()).pathname, ...a });
+    }
+    for (const [, page] of groupes) await page.context().close();
   }
-} finally { await browser.close(); }
+} finally { await browser.close(); sql(`delete from partage_liens where token='${TOK_ESS}';`); }
 
 if (process.argv.includes("--json")) console.log(JSON.stringify(rows, null, 1));
 const deb = rows.filter((r) => r.overflow > 1), a11y = rows.filter((r) => r.sansNom.length || r.sansAlt || !r.lang);
-console.log(`${rows.length} écrans à 375 px. Débordements : ${deb.length}. Écrans avec défaut d'accessibilité de base : ${a11y.length}.`);
+console.log(`${rows.length} écrans (375 et 320 px). Débordements : ${deb.length}. Écrans avec défaut d'accessibilité de base : ${a11y.length}.`);
 for (const r of deb) console.log(`DEBORDEMENT ${r.role} ${r.route} +${r.overflow}px ${r.coupable}`);
 for (const r of a11y) console.log(`A11Y ${r.role} ${r.route} lang=${r.lang || "ABSENT"} sansAlt=${r.sansAlt} ${r.sansNom.slice(0, 4).join(" | ")}${r.sansNom.length > 4 ? ` (+${r.sansNom.length - 4})` : ""}`);
 process.exit(deb.length || a11y.length ? 1 : 0);

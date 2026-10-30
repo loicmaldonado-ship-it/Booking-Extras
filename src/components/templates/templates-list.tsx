@@ -96,8 +96,8 @@ function ModeleDeBase({ template }: { template: MessageTemplate }) {
 
   return (
     <Card className="flex flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <button type="button" onClick={() => setOuvert((v) => !v)} className="text-left">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <button type="button" onClick={() => setOuvert((v) => !v)} className="min-w-0 text-left">
           <h3 className="font-semibold">⭐ {template.nom}</h3>
           <p className="text-sm text-text-muted">{template.sujet}</p>
         </button>
