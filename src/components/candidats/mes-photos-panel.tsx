@@ -114,7 +114,7 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
       {atCap ? (
         <p className="text-xs text-text-muted">Maximum {MAX_PHOTOS_PAR_FIGURANT} photos atteint.</p>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             aria-label="Type de photo"
             value={type}

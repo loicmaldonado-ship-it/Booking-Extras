@@ -33,7 +33,11 @@ export function PushSubscribe() {
       if (!cancelled) setStatus(existing ? "subscribed" : "unsubscribed");
     }
 
-    check();
+    // Safari peut lever une erreur (push indisponible hors appli installée) : on masque le bloc au lieu de laisser
+    // une promesse rejetée non gérée.
+    check().catch(() => {
+      if (!cancelled) setStatus("unsupported");
+    });
     return () => {
       cancelled = true;
     };
