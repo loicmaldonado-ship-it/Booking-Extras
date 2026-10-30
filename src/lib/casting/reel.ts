@@ -74,8 +74,8 @@ export async function donnerAvis(token: string, visiteurId: string, entryId: str
 
   const supabase = createAdminClient();
   if (avis === null) {
-    await supabase.from("casting_avis").delete().eq("entry_id", entryId).eq("visiteur_id", visiteurId);
-    return {};
+    const { error } = await supabase.from("casting_avis").delete().eq("entry_id", entryId).eq("visiteur_id", visiteurId);
+    return error ? { error: "Ton avis n'a pas pu être retiré ; réessaie." } : {};
   }
   const { data: avant } = await supabase.from("casting_avis").select("avis").eq("entry_id", entryId).eq("visiteur_id", visiteurId).maybeSingle();
   const { error } = await supabase.from("casting_avis").upsert(

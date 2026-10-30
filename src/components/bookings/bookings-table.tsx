@@ -757,10 +757,8 @@ export function BookingsTable({
     if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
     startTransition(async () => {
       const res = await retirerBookings(cibles.map((r) => r.id));
-      if (res.error) {
-        alert(res.error);
-        return;
-      }
+      if (res.error) alert(res.error);
+      if (!res.retires) return;
       setSelected(new Set());
       router.refresh();
     });
@@ -856,10 +854,15 @@ export function BookingsTable({
 
   function clearReplies() {
     const ids = replies.map((r) => r.messageId);
+    const avant = replies;
     setReplies([]);
     setLastCheckInfo(null);
     startTransition(async () => {
-      await clearUnreviewedReplies(ids);
+      const res = await clearUnreviewedReplies(ids);
+      if (res?.error) {
+        setReplies(avant);
+        alert(res.error);
+      }
     });
   }
 

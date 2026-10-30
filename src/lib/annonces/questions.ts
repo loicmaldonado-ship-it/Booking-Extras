@@ -62,6 +62,8 @@ export async function addAnnonceQuestion(annonceId: string, _prevState: unknown,
 
   const equipeId = await equipeDeLAnnonce(annonceId);
   if (equipeId) {
+    // Mémorisation facultative de la question comme modèle d'équipe : la question est déjà ajoutée à l'annonce,
+    // un échec ici ne doit pas l'annuler ni être présenté comme une erreur (BUG-13 : cas volontairement toléré).
     await supabase
       .from("question_templates")
       .upsert({ label, equipe_id: equipeId }, { onConflict: "equipe_id,label", ignoreDuplicates: true });

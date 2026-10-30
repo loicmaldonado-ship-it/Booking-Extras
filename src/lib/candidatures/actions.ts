@@ -395,6 +395,7 @@ export async function postulerAnnonce(
   // candidat qui repostule sans le ressaisir (formulaire pas pré-rempli, pas
   // connecté) ne doit pas effacer celui déjà enregistré sur sa fiche.
   if (lienBandeDemo) {
+    // Le lien est secondaire : son échec ne doit pas empêcher la candidature (BUG-13 : toléré volontairement).
     await upsertFigurantLienByLabel(supabase, figurantId, LIEN_BANDE_DEMO, lienBandeDemo);
   }
 

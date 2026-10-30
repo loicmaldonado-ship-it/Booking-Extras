@@ -408,18 +408,23 @@ export async function retirerBookings(ids: string[]): Promise<{ retires: number;
   const { error } = await supabase.from("bookings").delete().in("id", list.map((b) => b.id));
   if (error) return { retires: 0, error: error.message };
 
+  let covoiturageEchec = false;
   for (const date of Array.from(new Set(list.map((b) => b.date)))) {
-    await supabase
+    const { error: covoiturageError } = await supabase
       .from("bookings")
       .update({ covoiturage_conducteur_id: null })
       .eq("projet_id", projetIds[0])
       .eq("date", date)
       .in("covoiturage_conducteur_id", list.filter((b) => b.date === date).map((b) => b.figurant_id));
+    if (covoiturageError) covoiturageEchec = true;
   }
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath("/bookings/planning");
+  if (covoiturageEchec) {
+    return { retires: list.length, error: `${list.length} profil(s) retiré(s), mais le covoiturage n'a pas pu être mis à jour : vérifie les conducteurs de la journée.` };
+  }
   return { retires: list.length };
 }
 
@@ -553,18 +558,23 @@ export async function moveBookingsToDate(
     .in("id", moves.map((b) => b.id));
   if (error) return { moved: 0, conflits, restantIds: ids, error: friendlyError(error.message) };
 
+  let covoiturageEchec = false;
   for (const oldDate of Array.from(new Set(moves.map((b) => b.date)))) {
-    await supabase
+    const { error: covoiturageError } = await supabase
       .from("bookings")
       .update({ covoiturage_conducteur_id: null })
       .eq("projet_id", projetId)
       .eq("date", oldDate)
       .in("covoiturage_conducteur_id", moves.filter((b) => b.date === oldDate).map((b) => b.figurant_id));
+    if (covoiturageError) covoiturageEchec = true;
   }
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath("/bookings/planning");
+  if (covoiturageEchec) {
+    return { moved: moves.length, conflits, restantIds, error: `${moves.length} profil(s) déplacé(s), mais le covoiturage de l'ancienne date n'a pas pu être mis à jour : vérifie les conducteurs.` };
+  }
   return { moved: moves.length, conflits, restantIds };
 }
 
@@ -831,7 +841,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       continue;
     }
 
-    await supabase.from("figurant_messages").insert({
+    const { error: traceError } = await supabase.from("figurant_messages").insert({
       figurant_id: figurantId,
       projet_id: projetId,
       sender: "staff",
@@ -839,6 +849,8 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       corps: "Lien d'accès à l'espace personnel envoyé.",
       categorie: "espace_perso",
     });
+    // L'email est parti : on le compte, mais on signale que la trace manque (pas de renvoi en double).
+    if (traceError) lastError = "Lien envoyé, mais sa trace dans les messages n'a pas pu être enregistrée.";
     sent += 1;
   }
 

@@ -59,15 +59,20 @@ export async function releverReponsesAuto(projetId: string): Promise<{ nouvelles
 }
 
 export async function clearUnreviewedReplies(messageIds: string[]) {
+  if (!Array.isArray(messageIds) || messageIds.length === 0) return {};
   const supabase = createAdminClient();
-  const { data } = await supabase.from("figurant_messages").select("id, projet_id").in("id", messageIds.slice(0, 500));
+  const { data, error: readError } = await supabase.from("figurant_messages").select("id, projet_id").in("id", messageIds.slice(0, 500));
+  if (readError) return { error: "Impossible de vérifier les réponses. Rien n'a été effacé." };
+  // BUG-13 : seules les réponses rattachées à un projet accessible sont effacées (avant : sans projet = sans contrôle).
   const projets = [...new Set((data ?? []).map((m) => m.projet_id).filter((p): p is string => !!p))];
   for (const p of projets) {
     const accessError = await checkProjetAccess(p);
-    if (accessError) return;
+    if (accessError) return { error: accessError };
   }
-  await clearUnreviewedRepliesInbox((data ?? []).map((m) => m.id));
+  const ids = (data ?? []).filter((m) => !!m.projet_id).map((m) => m.id);
+  const res = await clearUnreviewedRepliesInbox(ids);
   revalidatePath("/bookings/documents");
+  return res;
 }
 
 // Bouton « Marquer comme lu dans Gmail » sur une réponse traitée.

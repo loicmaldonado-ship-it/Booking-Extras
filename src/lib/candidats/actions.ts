@@ -410,12 +410,13 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData): Pr
     return { error: error.message };
   }
 
-  await Promise.all([
+  const liens = await Promise.all([
     upsertFigurantLienByLabel(supabase, session.id, LIEN_BANDE_DEMO, str(formData, "lien_bande_demo")),
     upsertFigurantLienByLabel(supabase, session.id, LIEN_INSTAGRAM, str(formData, "lien_instagram")),
   ]);
 
   revalidatePath("/compte");
+  if (liens.some((r) => r.error)) return { error: "Profil enregistré, mais tes liens (bande démo, Instagram) n'ont pas pu être mis à jour. Réessaie." };
   return { success: true as const };
 }
 

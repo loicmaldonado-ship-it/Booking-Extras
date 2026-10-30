@@ -42,7 +42,8 @@ export function ChangeDateBar({
       setConfirming(false);
       if (res.moved > 0) {
         router.refresh();
-        if (res.conflits.length === 0) {
+        // BUG-13 : un avertissement (covoiturage non mis à jour) reste affiché au lieu d'un succès silencieux.
+        if (res.conflits.length === 0 && !res.error) {
           onDone(`${res.moved} personne${res.moved > 1 ? "s" : ""} déplacée${res.moved > 1 ? "s" : ""} au ${formatDateShort(target)}.`);
         } else {
           onPartial(res.restantIds);

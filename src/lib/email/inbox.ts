@@ -100,14 +100,15 @@ export async function getUnreviewedReplies(projetId?: string | null, figurantIds
 
 // Efface seulement les réponses affichées (celles de la journée).
 export async function clearUnreviewedReplies(messageIds: string[]) {
-  if (messageIds.length === 0) return;
+  if (messageIds.length === 0) return {};
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("figurant_messages")
     .update({ reviewed_at: new Date().toISOString() })
     .eq("sender", "figurant")
     .is("reviewed_at", null)
     .in("id", messageIds.slice(0, 500));
+  return error ? { error: "Les réponses n'ont pas pu être effacées ; réessaie." } : {};
 }
 
 // Personnes bookées sur cette journée du projet.

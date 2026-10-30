@@ -9,20 +9,22 @@ export async function upsertFigurantLienByLabel(
   label: string,
   url: string | null
 ) {
-  const { data: existing } = await supabase
+  // BUG-13 : renvoie l'erreur au lieu de l'ignorer ; à l'appelant de décider si elle bloque.
+  const { data: existing, error: readError } = await supabase
     .from("figurant_liens")
     .select("id")
     .eq("figurant_id", figurantId)
     .eq("label", label)
     .maybeSingle();
+  if (readError) return { error: readError.message };
 
   if (!url) {
-    if (existing) await supabase.from("figurant_liens").delete().eq("id", existing.id);
-    return;
+    if (!existing) return {};
+    const { error } = await supabase.from("figurant_liens").delete().eq("id", existing.id);
+    return error ? { error: error.message } : {};
   }
-  if (existing) {
-    await supabase.from("figurant_liens").update({ url }).eq("id", existing.id);
-  } else {
-    await supabase.from("figurant_liens").insert({ figurant_id: figurantId, label, url });
-  }
+  const { error } = existing
+    ? await supabase.from("figurant_liens").update({ url }).eq("id", existing.id)
+    : await supabase.from("figurant_liens").insert({ figurant_id: figurantId, label, url });
+  return error ? { error: error.message } : {};
 }
