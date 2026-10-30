@@ -2,6 +2,8 @@
 
 Ce dossier sert à essayer la version intégrant `main` et `elea`, sur votre ordinateur et avec des personnes fictives. Il n’est pas relié à la production. Les fonctionnalités non vérifiées et les éléments encore manquants sont indiqués dans le [bilan de toutes les cartes](docs/bilan-trello-2026-10-26.md). La présence d’un écran ne signifie pas que sa recette est terminée.
 
+**Recette métier (Loïc et Mathieu) : [docs/RECETTE-METIER.md](docs/RECETTE-METIER.md)** — parcours à jouer, comment signaler un problème, décisions en attente.
+
 **Développeurs : démarrage rapide vérifié dans [docs/DEMARRAGE-DEVELOPPEUR.md](docs/DEMARRAGE-DEVELOPPEUR.md)** (installation, base locale, `.env.local`, lancement, tests). Mise en production : [docs/mise-en-production.md](docs/mise-en-production.md). Bugs corrigés et limites connues : [docs/registre-bugs-et-limites-2026-10-30.md](docs/registre-bugs-et-limites-2026-10-30.md). Passation détaillée : [README_Booking_Extras.md](README_Booking_Extras.md) et [docs/development.md](docs/development.md). Le suivi actif figure dans [WORK_PROGRESS.md](WORK_PROGRESS.md).
 
 ## 1. Avant le premier essai
