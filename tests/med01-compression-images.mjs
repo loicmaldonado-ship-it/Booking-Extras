@@ -8,7 +8,9 @@ import { createRequire } from "node:module";
 import assert from "node:assert/strict";
 
 const BASE = process.env.BASE || "http://localhost:3000";
-const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const pw = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const chromium = pw[NAV];
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 assert.equal(env.BOOKING_TEST_MODE, "1");
 const sql = (q) => execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"], { input: q, encoding: "utf8" }).trim().split("\n").filter(Boolean).pop() ?? "";
@@ -39,12 +41,18 @@ sql("delete from candidate_auth_attempts;");
 const browser = await chromium.launch();
 const resultats = [];
 try {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3,
-    userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36" });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: NAV !== "firefox", hasTouch: true, deviceScaleFactor: 3,
+    userAgent: { chromium: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36",
+      webkit: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+      firefox: "Mozilla/5.0 (Android 14; Mobile; rv:131.0) Gecko/131.0 Firefox/131.0" }[NAV] });
   const page = await ctx.newPage();
-  // Génération des images de test dans le navigateur (bruit = photo difficile à compresser).
+  // Génération des images de test avec Chromium (bruit = photo difficile à compresser) ; l'envoi et la compression se
+  // font ensuite dans le navigateur testé (WebKit limite la taille des canvas : on ne teste pas la génération).
+  const genBrowser = await pw.chromium.launch();
+  const genPage = await genBrowser.newPage();
+  await genPage.goto(BASE + "/compte/connexion");
   await page.goto(BASE + "/compte/connexion");
-  const gen = (w, h, type, q, alpha) => page.evaluate(async ({ w, h, type, q, alpha }) => {
+  const gen = (w, h, type, q, alpha) => genPage.evaluate(async ({ w, h, type, q, alpha }) => {
     const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d");
     const g = x.createLinearGradient(0, 0, w, h); g.addColorStop(0, "#c33"); g.addColorStop(1, "#33c"); x.fillStyle = g; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 4000; i++) { x.fillStyle = `hsla(${(i * 37) % 360},70%,50%,${alpha ? 0.3 : 0.8})`; x.fillRect((i * 7919) % w, (i * 104729) % h, 3 + (i % 60), 3 + (i % 40)); }
@@ -59,6 +67,7 @@ try {
     { nom: "Petite photo sous le seuil (640×480)", buf: await gen(640, 480, "image/jpeg", 0.6), mime: "image/jpeg", attendu: "envoyée telle quelle" },
     { nom: "PNG avec transparence (2400×2400)", buf: await gen(2400, 2400, "image/png", 1, true), mime: "image/png", attendu: "convertie en JPEG (transparence perdue)" },
   ];
+  await genBrowser.close();
   await page.fill("input[type=email]", `${M.toLowerCase()}@example.test`); await page.fill("input[type=password]", "booking-test");
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/compte/connexion"), { timeout: 20000 }), page.locator("form button[type=submit]").first().click()]);
   await page.goto(BASE + "/compte");
@@ -85,4 +94,4 @@ assert.ok(petite._obj === petite._in, "petite photo modifiée alors qu'elle est 
 assert.ok(png._d1?.type === "jpeg", "PNG non converti");
 // Le fichier stocké est exactement celui envoyé par le navigateur (pas de ré-encodage serveur) : il borne la requête.
 assert.ok(resultats.every((r) => r._obj < 4_000_000), "un envoi dépasse ~4 Mo (limite Vercel ~4,5 Mo par requête)");
-console.log("PASS: MED-01 compression des photos (Chromium mobile).");
+console.log(`PASS: MED-01 compression des photos (${NAV} mobile).`);

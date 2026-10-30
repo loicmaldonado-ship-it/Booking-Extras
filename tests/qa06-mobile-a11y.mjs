@@ -8,7 +8,9 @@ import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const chromium = pw[NAV];
 const BASE = process.env.BASE || "http://localhost:3000";
 const P = "00000000-0000-4000-8000-0000000070e0", ANN = "00000000-0000-4000-8000-00000000a000", ANN_TOK = "00000000-0000-4000-8000-00000000a0a0";
 const CAND = "00000000-0000-4000-8000-00000000cd01", FIG = "00000000-0000-4000-8000-00000000f001";
@@ -53,7 +55,7 @@ const audit = () => {
 };
 
 async function login(browser, path, email, width = 375) {
-  const ctx = await browser.newContext({ viewport: { width, height: 740 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const ctx = await browser.newContext({ viewport: { width, height: 740 }, isMobile: NAV !== "firefox", hasTouch: true, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
   if (path) {
     await p.goto(BASE + path); await p.fill("input[type=email]", email); await p.fill("input[type=password]", "booking-test");

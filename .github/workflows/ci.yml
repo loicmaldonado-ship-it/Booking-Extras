@@ -57,7 +57,7 @@ jobs:
             echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
             echo "SECRETS_ENCRYPTION_KEY=$(openssl rand -base64 32)"
             echo "CRON_SECRET=$(openssl rand -hex 32)"
-            echo "BOOKING_TEST_SMTP_URL=smtp://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$(docker ps --format '{{.Names}}' | grep -m1 supabase_inbucket_)"):1025"
+            echo "BOOKING_TEST_SMTP_URL=smtp://127.0.0.1:54325"
           } > .env.local
       - run: npm run build
       - name: Démarrer l'application

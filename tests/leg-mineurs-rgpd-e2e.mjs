@@ -12,7 +12,9 @@ import assert from "node:assert/strict";
 
 const BASE = process.env.BASE || "http://localhost:3000";
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const chromium = pw[NAV];
 const sharp = require("sharp");
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 assert.equal(env.BOOKING_TEST_MODE, "1");
