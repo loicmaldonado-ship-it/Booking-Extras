@@ -19,8 +19,19 @@ et une session staff valide, sur les lignes de l'autre équipe ; contrôle inver
 
 Accès légitimes : aucun acteur n'a perdu l'accès à ses propres lignes.
 
+## Compléments (30/10/2026, même journée)
+| Surface | Test | Résultat |
+|---|---|---|
+| Stockage (8 espaces) | `tests/storage-isolation-local.mjs` : lister / lire / signer / déposer / écraser / supprimer en anonyme et avec une session de cheffe | Espaces privés (photos, vidéos, documents de rôle, documents mineurs) : aucun accès. Espaces publics : **étaient listables par tous** → policies de listing retirées (`20261030170000_storage_public_sans_listing.sql`), fichiers toujours servis par URL publique, aucune écriture possible |
+| Pages (127) | `tests/sec04-read-leak-pages.mjs` : cheffe d'une autre équipe et assistante hors projet, identifiants de A dans l'URL, projet_id/date/q, cookie de projet forgé | **Fuites corrigées** : listes de figurants de 7 pages (profil « ajout rapide » sans compte d'une autre équipe visible) → RLS ; cookie de projet courant forgé → contrôlé. PASS, et la cheffe A voit toujours ses profils |
+| Actions serveur (244) | `tests/bug02-all-actions-cross-team.mjs` : écriture ET lecture (marqueur de A cherché dans chaque réponse) | PASS pour les deux acteurs |
+| Barème | `tests/bareme-equipe-local.sql` | Barème par équipe, référence intacte |
+| Création de comédien | relecture : `comedien_pool_id` posé à l'insertion (fiche, ajout rapide casting, inscription casting) | OK |
+| Fiches historiques `comedien_pool_id IS NULL` | `tests/hotfix-rights-local.sql` | invisibles hors propriétaire globale (décision du hotfix) |
+
+Publics par conception (non considérés comme fuites) : annonces ouvertes (titre, projet, cheffe) sur l'accueil, références de l'accueil, répertoire commun des agents (autocomplétion), base commune des figurants AVEC compte.
+
 ## Hors périmètre de ce script
-- Objets Storage (buckets) : non couverts.
 - Actions serveur utilisant `service_role` (BUG-02) : la RLS ne les protège pas, elles doivent contrôler l'accès elles-mêmes.
 - Propriétaire global (`is_owner`) et fiches historiques `comedien_pool_id IS NULL` : couverts par `tests/hotfix-rights-local.sql`, pas par ce script.
 - `projets.gmail_smtp_app_password` reste lisible par les membres du même projet (pas de fuite inter-équipes) ; à restreindre aux colonnes si l'on veut le cacher aux assistantes.
