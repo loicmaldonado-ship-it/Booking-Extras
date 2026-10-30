@@ -256,35 +256,45 @@ export function CastingUploadForm({
   // Photos uniquement — les vidéos partent dès qu'elles sont choisies
   // (envoyerVideo, mutualisé avec la carte équipe).
   async function uploadOnePhoto(slot: string, file: File, signal: AbortSignal) {
-    const attempt = (async () => {
-      const target = await createCastingUploadSlot(token, "photo", slot);
-      if (target.error || !target.bucket || !target.path || !target.token) {
-        throw new Error(target.error ?? "Impossible de préparer l'envoi.");
-      }
-      const supabase = createBrowserSupabaseClient();
-      const { error: uploadError } = await supabase.storage
-        .from(target.bucket)
-        .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-      if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
-      return target.path;
-    })();
+    if (signal.aborted) throw new DOMException("Annulé", "AbortError");
+    let finished = false;
     return new Promise<string>((resolve, reject) => {
-      const timeoutId = setTimeout(
-        () => reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie.")),
-        120_000
-      );
-      signal.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(timeoutId);
-          reject(new DOMException("Annulé", "AbortError"));
-        },
-        { once: true }
-      );
-      attempt.then((p) => {
+      const cleanUp = () => {
+        finished = true;
         clearTimeout(timeoutId);
-        resolve(p);
-      }, reject);
+        signal.removeEventListener("abort", onAbort);
+      };
+      const onAbort = () => {
+        cleanUp();
+        reject(new DOMException("Annulé", "AbortError"));
+      };
+      const timeoutId = setTimeout(() => {
+        cleanUp();
+        reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie."));
+      }, 120_000);
+      signal.addEventListener("abort", onAbort, { once: true });
+      (async () => {
+        const target = await createCastingUploadSlot(token, "photo", slot);
+        // An abandoned slot must not start an upload after the user cancels.
+        if (finished || signal.aborted) throw new DOMException("Annulé", "AbortError");
+        if (target.error || !target.bucket || !target.path || !target.token) {
+          throw new Error(target.error ?? "Impossible de préparer l'envoi.");
+        }
+        const supabase = createBrowserSupabaseClient();
+        const { error: uploadError } = await supabase.storage
+          .from(target.bucket)
+          .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+        if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
+        return target.path;
+      })().then((path) => {
+        if (finished) return;
+        cleanUp();
+        resolve(path);
+      }, (error) => {
+        if (finished) return;
+        cleanUp();
+        reject(error);
+      });
     });
   }
 
@@ -423,6 +433,7 @@ export function CastingUploadForm({
           setStep(null);
           return;
         }
+        if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
         setStep(`Envoi de la photo « ${label} »...`);
         uploadedPhotos.push({ label, path: await uploadOnePhoto(label, prepare.file, controller.signal) });
       }
