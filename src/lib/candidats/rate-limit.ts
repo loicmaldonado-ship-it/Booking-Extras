@@ -7,7 +7,11 @@ import { authAttemptKeys, trustedAuthIp } from "./auth-attempt-keys";
 export async function consumeCandidateLoginAttempt(email: string): Promise<boolean> {
   const secret = process.env.AUTH_RATE_LIMIT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!secret || email.length > 254) return false;
-  const ip = trustedAuthIp(await headers(), process.env.VERCEL === "1");
-  const { data, error } = await createAdminClient().rpc("consume_candidate_auth_limits", authAttemptKeys(email, ip, secret));
-  return !error && data === true;
+  try {
+    const ip = trustedAuthIp(await headers(), process.env.VERCEL === "1");
+    const { data, error } = await createAdminClient().rpc("consume_candidate_auth_limits", authAttemptKeys(email, ip, secret));
+    return !error && data === true;
+  } catch {
+    return false;
+  }
 }
