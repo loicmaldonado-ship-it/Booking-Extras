@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { signOut } from "@/lib/auth/actions";
+import { StaffLogoutForm } from "@/components/staff-logout-form";
 import { quitterModeSupport } from "@/lib/auth/support";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
@@ -231,15 +231,8 @@ export function AppShell({
               <div className="truncate font-medium text-text">{profile.email}</div>
               <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
-            <MyAvatarMenu profile={profile} signOutAction={signOut} />
-            <form action={signOut} className="hidden lg:block">
-              <button
-                type="submit"
-                className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
-              >
-                Se déconnecter
-              </button>
-            </form>
+            <MyAvatarMenu profile={profile} />
+            <StaffLogoutForm />
           </div>
         )}
       </header>

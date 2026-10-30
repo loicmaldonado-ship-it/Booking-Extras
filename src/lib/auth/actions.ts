@@ -54,8 +54,13 @@ export async function requestPasswordReset(_prevState: unknown, formData: FormDa
 }
 
 export async function signOut() {
-  const supabase = await createServerSupabaseClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) return { error: "La déconnexion a échoué. Veuillez réessayer." };
+  } catch {
+    return { error: "La déconnexion a échoué. Veuillez réessayer." };
+  }
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_STARTED_AT_COOKIE);
   redirect("/login");
