@@ -21,6 +21,7 @@ const PUBLIC_PREFIXES = [
   "/api/relais-textos",
   "/api/cron/",
   "/api/videos/alleger",
+  "/api/erreurs-client",
   "/relais-textos",
   "/recu/",
   "/compte",

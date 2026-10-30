@@ -20,6 +20,13 @@ for t in qa06-mobile-a11y storage-isolation-local auth-e2e-local bug11-upload-va
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
 done
+for t in med01-compression-images med02-envoi-video; do
+  if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
+done
+# QA-08 : lit le journal de `npm start` (NEXT_LOG, défaut /tmp/next.log comme dans la CI).
+if [ -f "${NEXT_LOG:-/tmp/next.log}" ]; then
+  if node tests/qa08-journal-erreurs.mjs > /tmp/integration-qa08.log 2>&1; then echo "OK  qa08-journal-erreurs"; else echo "KO  qa08-journal-erreurs"; tail -5 /tmp/integration-qa08.log; fail=1; fi
+else echo "KO  qa08-journal-erreurs : journal de l'appli introuvable (NEXT_LOG)"; fail=1; fi
 # Recette technique (MET/COM/CAN) : nécessite la capture des emails par Mailpit (BOOKING_TEST_SMTP_URL dans .env.local).
 if grep -q '^BOOKING_TEST_SMTP_URL=smtp' .env.local 2>/dev/null; then
   if node tests/recette-technique-e2e.mjs > /tmp/integration-recette.log 2>&1; then echo "OK  recette-technique-e2e"; else echo "KO  recette-technique-e2e"; tail -5 /tmp/integration-recette.log; fail=1; fi

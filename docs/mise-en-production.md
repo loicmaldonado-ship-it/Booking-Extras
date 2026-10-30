@@ -34,7 +34,9 @@ pendant la reprise : aucun déploiement, aucune fusion, aucune action sur la pro
 - [ ] Connexion candidate, `/compte`, candidature sur une annonce de test, message reçu.
 - [ ] Un lien de partage (documents) ouvert en navigation privée.
 - [ ] Un email réel de test (invitation ou convocation) vers une adresse interne.
-- [ ] Journal Vercel : aucune erreur 500 nouvelle (QA-08).
+- [ ] Journal Vercel : filtrer sur `[booking-error]` (une ligne JSON par erreur serveur ou navigateur : env, release = commit,
+      route sans token, type, message et pile nettoyés). Aucune nouvelle erreur après le smoke test (QA-08). Vérifier que
+      « Automatically expose System Environment Variables » est actif pour que `release` porte le commit (`VERCEL_GIT_COMMIT_SHA`).
 
 ## D. Retour arrière
 - Code : re-promouvoir le déploiement précédent dans Vercel.
