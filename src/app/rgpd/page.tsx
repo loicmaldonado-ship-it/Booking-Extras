@@ -20,7 +20,9 @@ export default async function RgpdPage({
   const actor = await getCurrentProfile();
   if (!actor?.isOwner || actor.role !== "chef") notFound();
   const { seuil } = await searchParams;
-  const seuilAns = Number(seuil) > 0 ? Number(seuil) : 3;
+  // Keep the displayed option and the query in sync for malformed URLs.
+  const requestedSeuil = Number(seuil);
+  const seuilAns = SEUILS.includes(requestedSeuil) ? requestedSeuil : 3;
   const result = await getFigurantsInactifs(seuilAns)
     .then((figurants) => ({ figurants, error: false }))
     .catch(() => ({ figurants: [], error: true }));
