@@ -33,7 +33,10 @@ try {
     const p = await (await browser.newContext()).newPage();
     await p.goto(BASE + "/login"); await p.fill("input[type=email]", email); await p.fill("input[type=password]", password);
     await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login")), p.locator("form button[type=submit]").first().click()]);
-    await p.goto(BASE + url);
+    // Un compte cheffe neuf est renvoyé vers /mon-compte (fiche à compléter) : sous WebKit ce renvoi interrompt goto.
+    // Seule compte une page du même site pour appeler l'action ; le résultat est vérifié en base.
+    await p.goto(BASE + url).catch((e) => { if (!/interrupted by another navigation|NS_BINDING_ABORTED|net::ERR_ABORTED/.test(e.message)) throw e; });
+    await p.waitForLoadState();
     await p.evaluate(async ({ id, url, args }) => { await fetch(url, { method: "POST", headers: { "Next-Action": id, Accept: "text/x-component", "Content-Type": "text/plain;charset=UTF-8" }, body: JSON.stringify(args) }); },
       { id, url, args: [[{ nom: "Lou", telephone: tel, texte: `Texte ${M}`, figurantId: fig, projetId: P }]] });
     await p.context().close();

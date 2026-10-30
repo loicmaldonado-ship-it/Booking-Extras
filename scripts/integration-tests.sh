@@ -8,6 +8,7 @@ DB="${SUPABASE_DB_CONTAINER:-supabase_db_BOOKING_EXTRAS}"
 grep -q '^BOOKING_TEST_MODE=1' .env.local || { echo "BOOKING_TEST_MODE=1 requis dans .env.local"; exit 1; }
 grep -Eq '^NEXT_PUBLIC_SUPABASE_URL=http://(127\.0\.0\.1|localhost)' .env.local || { echo "Base locale uniquement"; exit 1; }
 fail=0
+node scripts/seed-medias-local.mjs
 echo "== Suites SQL (transaction annulée) =="
 for f in tests/*-local.sql; do
   # rgpd-snapshot dépend d'identifiants de la base de recette d'Éléa, absents du seed.

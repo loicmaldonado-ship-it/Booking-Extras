@@ -19,11 +19,11 @@
      avoid a mass rename across the app. Now a muted sage green, deliberately
      less saturated than "turquoise" below so the two greens stay
      distinguishable (sage = primary/brand, vivid green = confirmed status). */
-  --color-coral: #5b7355;
-  --color-coral-hover: #46593f;
+  --color-coral: #4a5f45;
+  --color-coral-hover: #3a4b36;
   /* "turquoise" = positive/confirmed status, a franker, saturated green. */
-  --color-turquoise: #16a34a;
-  --color-yellow: #d97706;
+  --color-turquoise: #166534;
+  --color-yellow: #92400e;
   /* Dedicated negative/error/refused status color, split out from coral. */
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;

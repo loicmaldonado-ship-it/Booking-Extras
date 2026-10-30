@@ -645,6 +645,7 @@ export function CandidaturesTable({
                             <Link
                               href={`/candidatures/${r.id}`}
                               onClick={(e) => openFiche(e, r.id)}
+                              aria-label={`Ouvrir la fiche de ${nomComplet(r.figurants)}${message ? " (message)" : ""}`}
                               className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                             >
                               {r.portraitUrl && (

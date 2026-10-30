@@ -32,6 +32,8 @@
 | 27 | Erreurs levées par les actions masquées en production (écran générique) | BUG-13 / QA-08 | `{ error }` affichés + page d'erreur `src/app/error.tsx` |
 | 28 | Derrière un proxy HTTPS : contrôle d'origine du PDF de rôle et protocole du QR code erronés | QA-06 | comparaison d'hôte, `x-forwarded-proto` |
 | 29 | Aucun en-tête de sécurité HTTP (clickjacking possible, pas de nosniff/HSTS, Next signalé par X-Powered-By) | SEC | en-têtes dans `next.config.ts`, `tests/securite-entetes.mjs` |
+| 31 | Lighthouse : `/robots.txt` renvoyait une page HTML ; texte vert, ambre et corail trop peu contrasté (badges, montants du barème) ; vignette photo des candidatures sans nom accessible | QA-06 / QA-07 | `src/app/robots.ts`, couleurs assombries dans `globals.css`, `aria-label` ; vérifié par Lighthouse et `tests/securite-entetes.mjs` |
+| 32 | HSTS envoyé aussi en local : Safari et Firefox forçaient ensuite https://localhost sur tous les ports | SEC | HSTS seulement si `NEXT_PUBLIC_SITE_URL` est un domaine public en https |
 | 30 | 25 pages de documents et 5 pages de détail débordaient sur téléphone une fois remplies ; exports préchargés comme des pages (requêtes en échec) | QA-06 / BUG-17 | `tests/passe-complete.mjs` (96 adresses × 4 rôles × 4 largeurs) |
 
 ## 2. Smoke test des écrans (ENV-04)
@@ -60,7 +62,7 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 - **Recette métier** (MET-xx, CAN-05/06/07/09, LEG-xx, COM-xx, QA-06) : à faire par Loïc et Mathieu ; les tests techniques ne la remplacent pas.
 - **Envois réels** (emails, SMS, push) : bloqués en mode test ; emails capturés localement (Mailpit) et vérifiés, envoi Gmail réel et push non validés.
 - **Navigateurs** : tests automatiques sur Chromium, WebKit (moteur de Safari, via le relais HTTPS local) et Firefox ; Safari sur iPhone réel, photos HEIC et vidéos d'iPhone restent à tester sur appareils.
-- **Accessibilité** : contrôle automatique de base (noms des champs, débordements) ; pas de test au lecteur d'écran ni de mesure de contraste.
+- **Accessibilité** : contrôle automatique (noms des champs, débordements) et Lighthouse (contrastes, noms des liens) sur 10 écrans × téléphone, tablette, ordinateur ; pas de test au lecteur d'écran. Le mot « EXTRAS » du logo, en lilas clair, reste sous le seuil de contraste : les logos en sont exemptés et la carte « Créer nouveau logo » est hors de cette reprise.
 - **Vercel ~4,5 Mo par requête** : dépend de la compression d'images côté navigateur (MED-01).
 - **Médias annulés en cours d'envoi** : vérifié sans fichier orphelin pour une annulation en cours de transfert (`med02`) ; un fichier entièrement transféré juste avant l'annulation reste possible.
 - **Lien de partage d'un projet archivé** : reste accessible (cohérent avec MET-01, à confirmer).

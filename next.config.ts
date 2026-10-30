@@ -4,6 +4,9 @@ const storageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NE
 const localStorage = storageUrl?.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(storageUrl.hostname)
   && (process.env.NODE_ENV !== "production" || process.env.BOOKING_TEST_MODE === "1");
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : null;
+const hsts = siteUrl?.protocol === "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(siteUrl.hostname);
+
 const nextConfig: NextConfig = {
   // Deux adresses de boucle locale utilisées pour isoler les sessions de recette.
   allowedDevOrigins: ["127.0.0.1"],
@@ -18,7 +21,9 @@ const nextConfig: NextConfig = {
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
-      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+      // HSTS seulement pour un site public en HTTPS : envoyé sur localhost, Safari et Firefox forcent ensuite
+      // https://localhost sur TOUS les ports (appli locale, outils) — constaté en test WebKit le 30/10/2026.
+      ...(hsts ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
     ];
     // Adresses portant un jeton d'accès : jamais transmises en référent à un autre site.
     const sansReferent = [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }];
