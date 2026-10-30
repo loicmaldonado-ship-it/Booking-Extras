@@ -439,6 +439,8 @@ export function CastingUploadForm({
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
+      // La finalisation serveur ne peut pas être annulée une fois lancée.
+      abortRef.current = null;
       setStep("Finalisation...");
       const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo, fiche: ficheRemplie, reponses: reponses ?? [] });
       if (result?.error) {
@@ -599,7 +601,7 @@ export function CastingUploadForm({
               ? `Vidéo en cours d'envoi… ${videos.find((v) => v.statut === "envoi")?.progression?.pct ?? 0} %`
               : "Envoyer"}
         </Button>
-        {pending && (
+        {pending && step !== "Finalisation..." && (
           <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
             Annuler
           </Button>
