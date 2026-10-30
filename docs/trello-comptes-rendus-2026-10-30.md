@@ -1,8 +1,7 @@
 # Comptes rendus des cartes Trello restantes (30/10/2026)
 
-Trello est en lecture seule depuis le 30/10 (~16 h 45) : ces comptes rendus sont à coller en commentaire, et la carte à
-cocher, par une personne ayant accès au tableau. Règle demandée : la carte est cochée une fois la partie technique faite,
-même s'il reste une recette métier (indiquée ci-dessous avec qui la fait).
+**Postés sur Trello le 30/10/2026 vers 18 h** (autorisation de l'utilisateur) : 30 cartes commentées et cochées,
+7 commentées sans coche (COM-03, COM-05, LEG-06, REL-01/02/03/05). Logo, A&A-01 et RV2-1/2/3 laissées de côté (consigne).
 
 Environnement de toutes les vérifications : base Supabase locale, données fictives, appli construite (`npm start`), emails
 capturés par Mailpit (aucun envoi réel), Chromium (Playwright). Commande qui rejoue tout : `bash scripts/integration-tests.sh`
