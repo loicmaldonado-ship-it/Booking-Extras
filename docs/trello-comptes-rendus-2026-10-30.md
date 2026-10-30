@@ -99,14 +99,29 @@ Tous vérifiés par `recette-technique-e2e` (41 contrôles), `bug13-erreurs-muta
 
 ## Mineurs et légal
 
-**LEG-01 / LEG-02 / LEG-03 — Représentant légal, autorisations, DRIEETS.** Cocher (technique existante vérifiée).
-Vérifié : suites SQL `guardians-local`, `minor-dossiers-local`, `minor-identity-local` (toutes OK dans la batterie du 30/10) ; pages
-mineurs à 375 px. Reste : conformité aux règles DEC-03 (deux représentants, documents par commission) — **Mathieu**.
+Tous vérifiés par `leg-mineurs-rgpd-e2e` (30 contrôles sur l'appli réelle) en plus des suites SQL `guardians-local`,
+`minor-dossiers-local`, `minor-identity-local`, `booking-age-local`, `rgpd-transaction-local`.
 
-**LEG-04 — Règles d'âge.** Cocher. Vérifié : `booking-age-local`, `minor-identity-local`. Reste : cas frontières métier — **Mathieu**.
+**LEG-01 — Représentant légal.** Cocher. Vérifié : représentants exigés pour tout mineur à la candidature (y compris la veille
+des 18 ans), emails enfant/représentants distincts, second représentant absent seulement pour motif valable (décédé /
+sans autorité), enregistrement des deux fiches. Reste : conformité aux règles DEC-03 — **Mathieu**.
 
-**LEG-05 — Anonymisation RGPD.** Cocher. Vérifié : `rgpd-transaction-local` (transaction complète). Limite : 
-`rgpd-snapshot-local.sql` dépend de l'ancienne base de recette. Reste : essai sur un profil complet — **Loïc**.
+**LEG-02 — Autorisations.** Cocher. Vérifié : dossier mineur (refusé pour un majeur), pièce demandée par projet, lien de dépôt
+parent sans compte (aucun autre dossier visible), dépôt d'autorisation PDF, faux PDF refusé, validation par l'équipe,
+révocation des liens ; **un mineur ne peut pas être booké tant que le dossier est incomplet**. Reste : recette métier — **Mathieu**.
+
+**LEG-03 — Dossier DRIEETS.** Cocher. Vérifié : dates de tournage (période inversée refusée) et de commission, préparation
+DRIEETS bloquée avec message explicite tant qu'une information manque (ex. société de production), puis générée avec enfant,
+représentants, commission et pièce validée ; lien de partage production. Reste : vérifier que le document correspond au
+dossier attendu par la DRIEETS — **Mathieu**.
+
+**LEG-04 — Règles d'âge.** Cocher. Vérifié à la candidature : 14 ans et « 16 ans demain » refusés sur une annonce non ouverte
+aux mineurs, 16 ans le jour même accepté, 12 ans accepté sur annonce ouverte aux mineurs, 18 ans le jour même majeur.
+Reste : cas métier particuliers — **Mathieu**.
+
+**LEG-05 — Anonymisation RGPD.** Cocher. Vérifié : anonymisation par la propriétaire d'un profil mineur avec candidature,
+messages, photos, représentants et pièces de dossier → plus aucune donnée identifiante, photos effacées du stockage ;
+refusée à une assistante. Reste : essai sur un vrai profil ancien en préproduction — **Loïc**.
 
 **LEG-06 — Pages légales.** Ne pas cocher. Relecture juridique et coordonnées — **Loïc et Mathieu**.
 
@@ -134,8 +149,6 @@ et réponses email sans projet). `bug13-erreurs-mutations` force de vraies erreu
 
 **REL-03 — Recette métier finale.** Ne pas cocher. Par définition à faire par **Loïc et Mathieu** sur la préproduction.
 
-## Hors périmètre / décisions
+## Non traitées (consigne du 30/10)
 
-**Nouveau logo, A&A-01 (abonnement), RV2-1/2/3 (administration, grille salaire, signature électronique).** Ne pas cocher :
-nouvelles fonctionnalités et choix de prestataires (commentaires de Mathieu et Loïc) — décision **Loïc et Mathieu** avant
-tout développement.
+Nouveau logo, A&A-01, RV2-1/2/3 : laissées de côté à la demande de l'utilisateur (ni commentaire ni coche).
