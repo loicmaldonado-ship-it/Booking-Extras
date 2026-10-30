@@ -42,7 +42,8 @@ export default async function AnnonceDetailPage({
 
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");
-  const protocol = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
+  const protoProxy = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = protoProxy === "http" || protoProxy === "https" ? protoProxy : host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
   const publicUrl = `${protocol}://${host}/postuler/${annonce.public_token}`;
 
   const { count: candidatureCount } = await supabase

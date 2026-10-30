@@ -77,15 +77,16 @@ export async function updateBaremeCachet(id: string, montantBrut: number, notes:
   return { success: true as const };
 }
 
-export async function deleteBaremeCachet(id: string) {
+export async function deleteBaremeCachet(id: string): Promise<{ error?: string }> {
   const cle = await equipeEcriture();
 
   const supabase = createAdminClient();
   const ligne = await ligneEquipe(supabase, "bareme_cachets", cle, id);
-  if (!ligne) throw new Error("Ligne du barème introuvable.");
+  if (!ligne) return { error: "Ligne du barème introuvable." };
   const { error } = await supabase.from("bareme_cachets").delete().eq("id", ligne).eq("equipe_id", cle);
-  if (error) throw new Error("La ligne n'a pas pu être supprimée.");
+  if (error) return { error: "La ligne n'a pas pu être supprimée." };
   revalidatePath("/bareme");
+  return {};
 }
 
 export async function createBaremeMajoration(_prevState: unknown, formData: FormData) {
@@ -136,15 +137,16 @@ export async function updateBaremeMajoration(id: string, valeur: number | null, 
   return { success: true as const };
 }
 
-export async function deleteBaremeMajoration(id: string) {
+export async function deleteBaremeMajoration(id: string): Promise<{ error?: string }> {
   const cle = await equipeEcriture();
 
   const supabase = createAdminClient();
   const ligne = await ligneEquipe(supabase, "bareme_majorations", cle, id);
-  if (!ligne) throw new Error("Ligne du barème introuvable.");
+  if (!ligne) return { error: "Ligne du barème introuvable." };
   const { error } = await supabase.from("bareme_majorations").delete().eq("id", ligne).eq("equipe_id", cle);
-  if (error) throw new Error("La majoration n'a pas pu être supprimée.");
+  if (error) return { error: "La majoration n'a pas pu être supprimée." };
   revalidatePath("/bareme");
+  return {};
 }
 
 export async function applyMajorationToBookings(bookingIds: string[], baremeMajorationId: string) {

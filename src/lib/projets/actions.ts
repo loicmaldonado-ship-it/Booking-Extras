@@ -163,28 +163,31 @@ export async function updateProjet(
 
 // MET-01 (règle de Loïc, 27/10/2026) : un projet n'est archivé, désarchivé ou supprimé que par la cheffe qui l'a
 // créé (ou le compte propriétaire). Avant le 30/10, tout membre du projet (assistante comprise) le pouvait.
-async function requireCreatriceProjet(id: string): Promise<void> {
+// Les actions renvoient { error } au lieu de lever une erreur : en production, Next masque le texte des erreurs levées.
+async function erreurCreatriceProjet(id: string): Promise<string | null> {
   const accessError = await checkProjetAccess(id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return accessError;
   const profile = await getCurrentProfile();
-  if (!profile) throw new Error("Non autorisé.");
-  if (profile.isOwner) return;
+  if (!profile) return "Non autorisé.";
+  if (profile.isOwner) return null;
   const { data, error } = await createAdminClient().from("projets").select("owner_id").eq("id", id).maybeSingle();
-  if (error || !data) throw new Error("Projet introuvable.");
-  if (data.owner_id !== profile.id) throw new Error("Seule la cheffe qui a créé ce projet peut l'archiver ou le supprimer.");
+  if (error || !data) return "Projet introuvable.";
+  if (data.owner_id !== profile.id) return "Seule la cheffe qui a créé ce projet peut l'archiver ou le supprimer.";
+  return null;
 }
 
-export async function deleteProjet(id: string) {
-  await requireCreatriceProjet(id);
+export async function deleteProjet(id: string): Promise<{ error: string }> {
+  const refus = await erreurCreatriceProjet(id);
+  if (refus) return { error: refus };
 
   const supabase = createAdminClient();
   const { data: projet } = await supabase.from("projets").select("archive, archive_le").eq("id", id).maybeSingle();
   if (!projet || !projetEstSupprimable(projet)) {
-    throw new Error("Ce projet doit être archivé depuis au moins 1 an avant de pouvoir être supprimé définitivement.");
+    return { error: "Ce projet doit être archivé depuis au moins 1 an avant de pouvoir être supprimé définitivement." };
   }
 
   const { data: supprime, error } = await supabase.from("projets").delete().eq("id", id).select("id").maybeSingle();
-  if (error || !supprime) throw new Error("La suppression du projet a échoué. Rien n'a été supprimé ; réessaie.");
+  if (error || !supprime) return { error: "La suppression du projet a échoué. Rien n'a été supprimé ; réessaie." };
   revalidatePath("/projets");
   redirect("/projets");
 }
@@ -193,26 +196,35 @@ export async function deleteProjet(id: string) {
 // "temporaires" (rôles soi-même — éboueur, chauffeur... — qui ne font de la
 // figuration qu'une fois sur ce projet, cochés par le candidat lui-même à
 // la candidature). Irréversible : désarchiver ne les restaure pas.
-export async function archiverProjet(id: string) {
-  await requireCreatriceProjet(id);
+// BUG-13 : l'archivage est enregistré d'abord (vérifié), puis les profils temporaires sont supprimés. Rejouable sur un
+// projet déjà archivé pour terminer ce nettoyage (bouton « Supprimer les profils temporaires restants »).
+export async function archiverProjet(id: string): Promise<{ error: string }> {
+  const refus = await erreurCreatriceProjet(id);
+  if (refus) return { error: refus };
 
   const supabase = createAdminClient();
+  const { data: etat, error: etatError } = await supabase.from("projets").select("archive").eq("id", id).maybeSingle();
+  if (etatError || !etat) return { error: "Impossible de vérifier le projet. Rien n'a été modifié ; réessaie." };
+  if (!etat.archive) {
+    const { data: archive, error: archiveError } = await supabase
+      .from("projets")
+      .update({ archive: true, archive_le: new Date().toISOString() })
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (archiveError || !archive) return { error: "L'archivage du projet a échoué. Rien n'a été modifié ; réessaie." };
+  }
 
-  // BUG-13 : archiver d'abord (vérifié), puis supprimer les profils temporaires ; un échec n'est plus silencieux.
-  const { data: archive, error: archiveError } = await supabase
-    .from("projets")
-    .update({ archive: true, archive_le: new Date().toISOString() })
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
-  if (archiveError || !archive) throw new Error("L'archivage du projet a échoué. Rien n'a été modifié ; réessaie.");
-
+  const reprendre = "Utilise « Supprimer les profils temporaires restants » sur la page du projet pour terminer.";
   const { data: temporaires, error: temporairesError } = await supabase
     .from("figurants")
     .select("id")
     .eq("temporaire_projet_id", id)
     .eq("temporaire", true);
-  if (temporairesError) throw new Error("Projet archivé, mais les profils temporaires n'ont pas pu être lus : archive à nouveau plus tard pour les supprimer.");
+  if (temporairesError) {
+    revalidatePath(`/projets/${id}`);
+    return { error: `Projet archivé, mais les profils temporaires n'ont pas pu être lus. ${reprendre}` };
+  }
 
   let echecs = 0;
   for (const figurant of temporaires ?? []) {
@@ -229,7 +241,8 @@ export async function archiverProjet(id: string) {
   }
   if (echecs > 0) {
     revalidatePath("/projets");
-    throw new Error(`Projet archivé, mais ${echecs} profil(s) temporaire(s) n'ont pas pu être supprimés. Réessaie l'archivage plus tard.`);
+    revalidatePath(`/projets/${id}`);
+    return { error: `Projet archivé, mais ${echecs} profil(s) temporaire(s) n'ont pas pu être supprimés. ${reprendre}` };
   }
 
   revalidatePath("/projets");
@@ -238,12 +251,13 @@ export async function archiverProjet(id: string) {
   redirect(`/projets/${id}`);
 }
 
-export async function desarchiverProjet(id: string) {
-  await requireCreatriceProjet(id);
+export async function desarchiverProjet(id: string): Promise<{ error: string }> {
+  const refus = await erreurCreatriceProjet(id);
+  if (refus) return { error: refus };
 
   const supabase = createAdminClient();
   const { data: restaure, error } = await supabase.from("projets").update({ archive: false, archive_le: null }).eq("id", id).select("id").maybeSingle();
-  if (error || !restaure) throw new Error("Le désarchivage du projet a échoué ; réessaie.");
+  if (error || !restaure) return { error: "Le désarchivage du projet a échoué ; réessaie." };
 
   revalidatePath("/projets");
   revalidatePath(`/projets/${id}`);

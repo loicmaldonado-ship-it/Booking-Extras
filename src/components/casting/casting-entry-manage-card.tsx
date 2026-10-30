@@ -112,7 +112,8 @@ function ExistingPhoto({ photo, gallery, index }: { photo: CastingEntryPhoto; ga
 
   function remove() {
     startTransition(async () => {
-      await deleteCastingPhoto(photo.id);
+      const res = await deleteCastingPhoto(photo.id);
+      if (res?.error) alert(res.error);
       router.refresh();
     });
   }
@@ -646,7 +647,8 @@ export function CastingEntryManageCard({
 
   function removeEntry() {
     startTransition(async () => {
-      await deleteCastingEntry(entry.id);
+      const res = await deleteCastingEntry(entry.id);
+      if (res?.error) alert(res.error);
       router.refresh();
     });
   }

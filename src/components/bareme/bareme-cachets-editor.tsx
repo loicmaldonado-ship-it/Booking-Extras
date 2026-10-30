@@ -65,7 +65,8 @@ function CachetRow({ cachet, isChef }: { cachet: BaremeCachet; isChef: boolean }
             type="button"
             onClick={() => {
               startTransition(async () => {
-                await deleteBaremeCachet(cachet.id);
+                const res = await deleteBaremeCachet(cachet.id);
+                if (res?.error) alert(res.error);
                 router.refresh();
               });
             }}

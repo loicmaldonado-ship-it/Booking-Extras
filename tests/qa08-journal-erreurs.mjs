@@ -20,11 +20,11 @@ const SECRET = "Sup3rS3cretQa08-" + Date.now();
 const browser = await chromium.launch();
 try {
   const page = await (await browser.newContext()).newPage();
-  // 1. Erreur serveur : action qui lève une exception (ligne de barème inexistante), appelée avec un « mot de passe » dans l'argument.
+  // 1. Erreur serveur : action qui lève une exception (besoin inexistant), appelée avec un « mot de passe » dans l'argument.
   await page.goto(BASE + "/login");
   await page.fill("input[type=email]", "cheffe.test@test-chat-charge.fr"); await page.fill("input[type=password]", "booking-test");
   await Promise.all([page.waitForURL((u) => !u.pathname.startsWith("/login")), page.locator("form button[type=submit]").first().click()]);
-  const [id, entree] = Object.entries(manifest).find(([, v]) => v.filename === "src/lib/bareme/actions.ts" && v.exportedName === "deleteBaremeCachet");
+  const [id, entree] = Object.entries(manifest).find(([, v]) => v.filename === "src/lib/bookings/besoins-actions.ts" && v.exportedName === "deleteBesoin");
   const worker = Object.keys(entree.workers).find((k) => k.endsWith("/page") && !k.includes("[")) || Object.keys(entree.workers)[0];
   url = worker.replace(/^app/, "").replace(/\/page$/, "") || "/";
   await page.goto(BASE + url);

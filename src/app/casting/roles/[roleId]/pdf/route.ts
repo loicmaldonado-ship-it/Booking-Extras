@@ -72,7 +72,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ rol
   }
   const origin = request.headers.get("origin");
   try {
-    if (!origin || new URL(origin).origin !== new URL(request.url).origin) {
+    // Hôte comparé (et non l'origine complète) : derrière un proxy TLS, request.url peut être en http alors que le
+    // navigateur est en https ; la protection contre les envois depuis un autre site est conservée.
+    const hote = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? new URL(request.url).host;
+    if (!origin || new URL(origin).host !== hote) {
       return Response.json({ error: "Origine non autorisée." }, { status: 403 });
     }
   } catch {

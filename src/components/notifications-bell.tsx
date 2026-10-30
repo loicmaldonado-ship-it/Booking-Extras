@@ -93,8 +93,10 @@ export function NotificationsBell() {
       })
     );
     setUnreadCount((c) => Math.max(0, c - ids.length));
-    startTransition(() => {
-      markNotificationsLues(ids);
+    // Si la base refuse, on recharge l'état réel au lieu d'afficher des notifications lues à tort.
+    startTransition(async () => {
+      const res = await markNotificationsLues(ids);
+      if (res?.error) await refresh();
     });
   }
 
@@ -104,8 +106,9 @@ export function NotificationsBell() {
       prev.map((g) => ({ ...g, nonLu: false, items: g.items.map((n) => ({ ...n, lu_at: n.lu_at ?? now })) }))
     );
     setUnreadCount(0);
-    startTransition(() => {
-      markAllNotificationsLues();
+    startTransition(async () => {
+      const res = await markAllNotificationsLues();
+      if (res?.error) await refresh();
     });
   }
 

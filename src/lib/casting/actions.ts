@@ -203,28 +203,29 @@ export async function updateCastingRoleCalibration(
   return { success: true };
 }
 
-export async function deleteCastingRole(roleId: string) {
+export async function deleteCastingRole(roleId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
     .select("projet_id, pdf_storage_path")
     .eq("id", roleId)
     .maybeSingle();
-  if (!role) return;
+  if (!role) return {};
   const accessError = await checkProjetAccess(role.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const { data: entries, error: entriesError } = await supabase.from("casting_entries").select("video_storage_paths").eq("role_id", roleId);
-  if (entriesError) throw new Error("Impossible de lire les profils du rôle. Rien n'a été supprimé.");
+  if (entriesError) return { error: "Impossible de lire les profils du rôle. Rien n'a été supprimé." };
   const allPaths = (entries ?? []).flatMap((e) => e.video_storage_paths ?? []);
 
   // BUG-13 : la ligne d'abord (vérifiée), les fichiers ensuite — un échec ne laisse plus un rôle pointant vers des
   // vidéos déjà effacées.
   const { error: deleteError } = await supabase.from("casting_roles").delete().eq("id", roleId);
-  if (deleteError) throw new Error("La suppression du rôle a échoué. Rien n'a été supprimé ; réessaie.");
+  if (deleteError) return { error: "La suppression du rôle a échoué. Rien n'a été supprimé ; réessaie." };
   if (allPaths.length > 0) await supabase.storage.from("casting-videos").remove(allPaths);
   if (role.pdf_storage_path) await supabase.storage.from("casting-role-documents").remove([role.pdf_storage_path]);
   revalidatePath("/casting");
+  return {};
 }
 
 // Crée juste l'entrée (avec son request_token) — n'envoie plus rien : le
@@ -573,50 +574,52 @@ export async function updateCastingEntryStatut(entryId: string, statut: BookingS
   return { success: true };
 }
 
-export async function deleteCastingEntry(entryId: string) {
+export async function deleteCastingEntry(entryId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
     .select("projet_id, video_storage_paths")
     .eq("id", entryId)
     .maybeSingle();
-  if (!entry) return;
+  if (!entry) return {};
   const accessError = await checkProjetAccess(entry.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const { error: deleteError } = await supabase.from("casting_entries").delete().eq("id", entryId);
-  if (deleteError) throw new Error("Le retrait du profil a échoué ; réessaie.");
+  if (deleteError) return { error: "Le retrait du profil a échoué ; réessaie." };
   if (entry.video_storage_paths?.length) {
     await supabase.storage.from("casting-videos").remove(entry.video_storage_paths);
   }
   revalidatePath("/casting");
+  return {};
 }
 
 // Retire une photo envoyée par le candidat (staff seulement) — pour laisser
 // la place à un remplacement via addCastingPhoto, ex. si la photo envoyée
 // est floue ou ne correspond pas au libellé demandé.
-export async function deleteCastingPhoto(photoId: string) {
+export async function deleteCastingPhoto(photoId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: photo } = await supabase
     .from("figurant_photos")
     .select("storage_path, casting_entry_id")
     .eq("id", photoId)
     .maybeSingle();
-  if (!photo?.casting_entry_id) return;
+  if (!photo?.casting_entry_id) return {};
 
   const { data: entry } = await supabase
     .from("casting_entries")
     .select("projet_id")
     .eq("id", photo.casting_entry_id)
     .maybeSingle();
-  if (!entry) return;
+  if (!entry) return {};
   const accessError = await checkProjetAccess(entry.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const { error: deleteError } = await supabase.from("figurant_photos").delete().eq("id", photoId);
-  if (deleteError) throw new Error("Le retrait de la photo a échoué ; réessaie.");
+  if (deleteError) return { error: "Le retrait de la photo a échoué ; réessaie." };
   await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
   revalidatePath("/casting");
+  return {};
 }
 
 // Ajoute (ou remplace, une fois l'ancienne retirée) une photo pour un

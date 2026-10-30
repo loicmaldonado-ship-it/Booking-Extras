@@ -91,7 +91,8 @@ function MajorationRow({ majoration, isChef }: { majoration: BaremeMajoration; i
             type="button"
             onClick={() => {
               startTransition(async () => {
-                await deleteBaremeMajoration(majoration.id);
+                const res = await deleteBaremeMajoration(majoration.id);
+                if (res?.error) alert(res.error);
                 router.refresh();
               });
             }}

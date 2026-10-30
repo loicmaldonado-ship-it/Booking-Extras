@@ -61,18 +61,29 @@ export async function releverReponsesAuto(projetId: string): Promise<{ nouvelles
 export async function clearUnreviewedReplies(messageIds: string[]) {
   if (!Array.isArray(messageIds) || messageIds.length === 0) return {};
   const supabase = createAdminClient();
-  const { data, error: readError } = await supabase.from("figurant_messages").select("id, projet_id").in("id", messageIds.slice(0, 500));
+  const { data, error: readError } = await supabase.from("figurant_messages").select("id, projet_id, figurant_id").in("id", messageIds.slice(0, 500));
   if (readError) return { error: "Impossible de vérifier les réponses. Rien n'a été effacé." };
-  // BUG-13 : seules les réponses rattachées à un projet accessible sont effacées (avant : sans projet = sans contrôle).
   const projets = [...new Set((data ?? []).map((m) => m.projet_id).filter((p): p is string => !!p))];
   for (const p of projets) {
     const accessError = await checkProjetAccess(p);
     if (accessError) return { error: accessError };
   }
-  const ids = (data ?? []).filter((m) => !!m.projet_id).map((m) => m.id);
+  // Réponses sans projet (mail ou SMS non rattaché) : affichées pour les personnes bookées de la journée, donc effaçables
+  // si la figurante est bookée sur un projet accessible (BUG-13 + revue du 30/10/2026 : avant, ignorées en silence).
+  const sansProjet = (data ?? []).filter((m) => !m.projet_id);
+  const autorisees = new Set<string>();
+  for (const figurantId of [...new Set(sansProjet.map((m) => m.figurant_id).filter((f): f is string => !!f))]) {
+    const { data: bookings } = await supabase.from("bookings").select("projet_id").eq("figurant_id", figurantId);
+    for (const p of [...new Set((bookings ?? []).map((b) => b.projet_id))]) {
+      if (!(await checkProjetAccess(p))) { autorisees.add(figurantId); break; }
+    }
+  }
+  const ids = (data ?? []).filter((m) => !!m.projet_id || (m.figurant_id && autorisees.has(m.figurant_id))).map((m) => m.id);
+  const refusees = (data ?? []).length - ids.length;
   const res = await clearUnreviewedRepliesInbox(ids);
   revalidatePath("/bookings/documents");
-  return res;
+  if (res.error) return res;
+  return refusees > 0 ? { error: `${refusees} réponse(s) non rattachée(s) à vos projets n'ont pas pu être effacées.` } : {};
 }
 
 // Bouton « Marquer comme lu dans Gmail » sur une réponse traitée.

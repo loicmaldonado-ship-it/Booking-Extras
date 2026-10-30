@@ -2,7 +2,7 @@
 
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { hacherCle } from "./relais";
 import { telephoneInternational, type DestinataireTexto } from "./telephone";
 
@@ -100,14 +100,45 @@ function lignesTextos(profileId: string, destinataires: DestinataireTexto[]) {
   return { lignes, sansNumero };
 }
 
+// Revue indépendante du 30/10/2026 : figurant_id / projet_id venaient du navigateur sans contrôle ; une personne d'une
+// équipe pouvait rattacher un numéro à un projet et un profil d'une autre équipe (ses réponses SMS arrivaient alors
+// dans la messagerie de l'autre équipe). Projet accessible ET profil lié à ce projet, sinon les deux sont ignorés.
+async function rattachementsVerifies(lignes: LigneTexto[]): Promise<LigneTexto[]> {
+  const supabase = createAdminClient();
+  const acces = new Map<string, boolean>();
+  const lies = new Map<string, boolean>();
+  for (const l of lignes) {
+    if (!l.projet_id) { l.figurant_id = null; continue; }
+    if (!acces.has(l.projet_id)) acces.set(l.projet_id, !(await checkProjetAccess(l.projet_id)));
+    let ok = acces.get(l.projet_id) === true && !!l.figurant_id;
+    if (ok) {
+      const cle = `${l.projet_id}:${l.figurant_id}`;
+      if (!lies.has(cle)) {
+        const f = l.figurant_id!, p = l.projet_id;
+        const [b, c, e, k] = await Promise.all([
+          supabase.from("bookings").select("id", { count: "exact", head: true }).eq("projet_id", p).eq("figurant_id", f),
+          supabase.from("casting_entries").select("id", { count: "exact", head: true }).eq("projet_id", p).eq("figurant_id", f),
+          supabase.from("essayages").select("id", { count: "exact", head: true }).eq("projet_id", p).eq("figurant_id", f),
+          supabase.from("candidatures").select("id, annonces!inner(projet_id)", { count: "exact", head: true }).eq("figurant_id", f).eq("annonces.projet_id", p),
+        ]);
+        lies.set(cle, [b, c, e, k].some((r) => !r.error && (r.count ?? 0) > 0));
+      }
+      ok = lies.get(cle) === true;
+    }
+    if (!ok) { l.figurant_id = null; l.projet_id = null; }
+  }
+  return lignes;
+}
+
 // Textos envoyés depuis l'iPhone (raccourci) : notés comme déjà envoyés,
 // pour que le relais Mac sache que les réponses de ces numéros viennent
 // d'un échange de l'appli.
 export async function noterTextosEnvoyesIphone(destinataires: DestinataireTexto[]): Promise<void> {
   const profile = await getCurrentProfile();
   if (!profile) return;
-  const { lignes } = lignesTextos(profile.id, destinataires);
-  if (lignes.length === 0) return;
+  const { lignes: brutes } = lignesTextos(profile.id, destinataires);
+  if (brutes.length === 0) return;
+  const lignes = await rattachementsVerifies(brutes);
   const maintenant = new Date().toISOString();
   await createAdminClient()
     .from("textos_file")
@@ -124,7 +155,8 @@ export async function mettreEnFileTextos(
   const { data: relais } = await supabase.from("relais_textos").select("profile_id").eq("profile_id", profile.id).maybeSingle();
   if (!relais) return { error: "Relais Mac pas encore installé (Mon compte → Textos).", enFile: 0, sansNumero: [] };
 
-  const { lignes, sansNumero } = lignesTextos(profile.id, destinataires);
+  const { lignes: brutes, sansNumero } = lignesTextos(profile.id, destinataires);
+  const lignes = await rattachementsVerifies(brutes);
   if (lignes.length > 0) {
     const { error } = await supabase.from("textos_file").insert(lignes);
     if (error) return { error: error.message, enFile: 0, sansNumero };

@@ -34,7 +34,8 @@ export function IndemnitesManager({ projetId, indemnites }: { projetId: string; 
 
   function remove(id: string) {
     startTransition(async () => {
-      await deleteProjetIndemnite(id);
+      const result = await deleteProjetIndemnite(id);
+      setError(result?.error ?? null);
       router.refresh();
     });
   }
