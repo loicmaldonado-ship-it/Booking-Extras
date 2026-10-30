@@ -20,7 +20,7 @@ export function LoginForm({ next }: { next: string }) {
         <Field label="Mot de passe" required>
           <Input type="password" name="password" autoComplete="current-password" required />
         </Field>
-        {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+        {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
         <Button type="submit" disabled={pending} className="mt-2">
           {pending ? "Connexion..." : "Se connecter"}
         </Button>

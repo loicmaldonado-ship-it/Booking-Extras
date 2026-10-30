@@ -266,3 +266,5 @@
 - 30/10/2026 — Suite complète après correctifs casting : 524/524 tests réussis. L’application de recette sur 127.0.0.1:3200 reste inaccessible ; aucune carte concernée n’est cochée sans validation technique complète.
 
 - 30/10/2026 — BUG-18 / QA-07 partiel : dans la création du rôle casting, le groupe des photos demandées possède une légende, le champ de saisie et chaque retrait ont un nom accessible, et le libellé du PDF est relié à son sélecteur. TypeScript, ESLint et diff réussis ; pas de vérification clavier ou lecteur d’écran, application de recette inaccessible. Cartes ouvertes.
+
+- 30/10/2026 — QA-07 partiel : les erreurs de connexion équipe, candidate et récupération du mot de passe sont annoncées aux technologies d’assistance ; le message d’invitation candidate utilise un statut non alarmant. TypeScript, ESLint et diff réussis ; aucun compte modifié. Recette au lecteur d’écran et au navigateur non réalisée, carte ouverte.
