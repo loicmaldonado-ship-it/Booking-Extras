@@ -1,16 +1,17 @@
 # Suivi Booking Extras
 
-## Résumé de reprise (mis à jour le 30/10/2026, ~17 h CET)
+## Résumé de reprise (mis à jour le 30/10/2026, ~22 h 45 CET)
+- **Dernière passe (30/10 soir)** : passe complète `tests/passe-complete.mjs` 0 problème sous Chromium (320→1920 px), WebKit et Firefox (320→1280 px) ; Lighthouse 10 écrans × téléphone/tablette/ordinateur : accessibilité 96–100, bonnes pratiques 100, perf 77–100 (scripts Lighthouse hors dépôt). Corrigés : robots.txt, contrastes, HSTS limité au https public, appels de fond interrompus, relais HTTPS des tests WebKit. Bugs 31–33 dans `docs/registre-bugs-et-limites-2026-10-30.md`. Guide de recette : `docs/RECETTE-METIER.md`.
+- **Avant de tester localement** : `node scripts/seed-medias-local.mjs` (avatar fictif du seed ; lancé aussi par `scripts/integration-tests.sh`).
 - **Objectif** : traiter toutes les cartes Trello BOOKING-SITE ; pour chaque carte restante, faire tous les tests techniques possibles et indiquer ce qui reste (recette métier : Loïc et Mathieu).
 - **Branche** : `tests/integration-main-elea-2026-10-22` ; dernier commit observé : voir `git log -1` (série du 30/10 depuis `7b8ac9e`). Travail fait dans une copie cloud isolée de cette branche (le dossier local d'Éléa n'est pas joignable depuis la session) ; livraison par bundle git, poussé par l'utilisateur.
-- **Trello** : passé en **lecture seule** le 30/10 ~16 h 45 (consigne). Plus de commentaire ni de coche : les comptes rendus par carte vont dans `docs/trello-comptes-rendus-2026-10-30.md`.
 - **Modifications locales** : aucune hors commits (`.env.local` non versionné contient `BOOKING_TEST_SMTP_URL` vers Mailpit local).
 - **Terminé (30/10)** : SEC-01..07, BUG-02/03/08/09/11, CAN-02/03/04, DEC-02, barème par équipe, ENV-04/05/06, REL-04/06, QA-04/05 ; recette technique E2E 41 contrôles (MET-01..10, COM-01/02/04/05, CAN-06/07/09) ; QA-06/BUG-17, QA-07/BUG-18 ; MED-01/02/03 (Chromium) ; QA-08 ; BUG-13 (20 écritures corrigées, test par erreurs de base forcées).
 - **Trello** : comptes rendus postés et 30 cartes cochées le 30/10 ~18 h (autorisation explicite) ; COM-03, COM-05, LEG-06, REL-01/02/03/05 commentées sans coche ; logo, A&A-01, RV2-1/2/3 laissées de côté (consigne). Détail : `docs/trello-comptes-rendus-2026-10-30.md`.
 - **Validations (30/10, commit `239c89b`)** : `npm test` 528/528 ; `tsc` OK ; ESLint fichiers modifiés OK ; batterie complète `bash scripts/integration-tests.sh` : **37/37 OK** (21 suites SQL + 16 tests sur l'appli, code de `239c89b`).
 - **Restant (hors portée)** : COM-03 push, COM-05 mail support, LEG-06, REL-01/02/03/05, logo, A&A-01, RV2-1/2/3 ; Safari/Firefox/HEIC réels ; recette métier (Loïc et Mathieu).
 - **Blocages** : production, Vercel, envois réels, GitHub (push par l'utilisateur), Trello en lecture seule.
-- **Prochaine action** : livrer le bundle ; ensuite seulement sur demande (préproduction, cartes de décision).
+- **Prochaine action** : livrer le bundle (QA-06/QA-07 commentées avec Lighthouse et la passe complète) ; ensuite seulement sur demande (préproduction, cartes de décision).
 - **Attention tests** : `ACTOR=cheffe-proprietaire` (mode LEGIT de bug02) agit avec des droits réels sur l'assistante du seed ; son état est désormais restauré en fin de test (sinon bug08/auth-e2e échouent).
 - **Conclusions réutilisables** : appel direct d'actions serveur = POST `Next-Action` (id du manifeste) ; FormData `_1_champ` + racine `0` en dernier. Une cheffe non propriétaire doit configurer sa boîte d'envoi avant convocation (message gardé, email non parti, signalé). Casting à cachet rôle : fiche comédien·ne jumelle créée, fiche d'origine intacte. Bordereau : montant arrondi à l'euro.
 
