@@ -192,8 +192,10 @@ export async function envoyerVideo({
           essai,
         });
       });
-      onProgress({ pct: 100, restant: 0, essai });
+      if (signal.aborted) throw new DOMException("Annulé", "AbortError");
       await journal("reussi");
+      if (signal.aborted) throw new DOMException("Annulé", "AbortError");
+      onProgress({ pct: 100, restant: 0, essai });
       return slot.path;
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") {

@@ -24,3 +24,20 @@ test('a logging failure does not retry or fail a completed video upload', async 
     if (old.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = old.key;
   }
 });
+
+test('cancelling while the completed upload is being logged does not return success', async () => {
+  const old = { xhr: globalThis.XMLHttpRequest, url: process.env.NEXT_PUBLIC_SUPABASE_URL, key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY };
+  class FakeXHR { upload = {}; status = 200; open() {} setRequestHeader() {} send() { this.onload(); } abort() {} }
+  globalThis.XMLHttpRequest = FakeXHR;
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost'; process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'fake';
+  try {
+    const controller = new AbortController();
+    const exports = {};
+    new Function('require', 'exports', code)(name => name === '@/lib/casting/upload-actions' ? { logCastingUploadEvent: async event => { if (event.outcome === 'reussi') controller.abort(); } } : {}, exports);
+    await assert.rejects(exports.envoyerVideo({ file: { size: 10, type: 'video/mp4' }, signal: controller.signal, onProgress() {}, createSlot: async () => ({ bucket: 'fake', path: 'test.mp4', token: 'fake' }), logContext: { source: 'equipe' } }), error => error.name === 'AbortError');
+  } finally {
+    globalThis.XMLHttpRequest = old.xhr;
+    if (old.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL; else process.env.NEXT_PUBLIC_SUPABASE_URL = old.url;
+    if (old.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = old.key;
+  }
+});
