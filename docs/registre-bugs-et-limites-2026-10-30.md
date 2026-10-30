@@ -22,6 +22,9 @@
 | 17 | Indemnités : suppression/application sans contrôle d'accès si la lecture échouait ; indemnité d'un autre projet applicable | BUG-13 | lecture obligatoire, projet vérifié |
 | 18 | Réponses email sans projet effaçables par tout membre d'équipe | BUG-13 | seules les réponses d'un projet accessible |
 | 19 | Archivage : profils temporaires supprimés AVANT l'archivage (perdus si l'archivage échouait) | BUG-13 | archivage d'abord |
+| 20 | **Export Myrole sans aucun contrôle d'accès** : une cheffe d'une autre équipe téléchargeait l'export complet (identité, email, téléphone, naissance, adresse) des figurants confirmés de n'importe quel projet | SEC-04 / MET-08 | `checkProjetAccess` dans `/bookings/export-myrole` |
+| 21 | Manifeste et icônes de l'appli redirigés vers /login pour les visiteurs (préfixe public erroné « /manifest.ts ») : installation sur téléphone cassée sur les pages publiques | QA-06 | préfixes `/manifest.webmanifest`, `/manifest-icon` |
+| 22 | 5 débordements à 320 px (adresse Google, champ fichier, bouton des modèles) | BUG-17 | retours à la ligne / largeur max |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -42,7 +45,7 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 - **Non vérifié en production** : aucune action sur la prod, ni sur Vercel/Supabase de production (variables, sauvegardes).
 - **Recette métier** (MET-xx, CAN-05/06/07/09, LEG-xx, COM-xx, QA-06) : à faire par Loïc et Mathieu ; les tests techniques ne la remplacent pas.
 - **Envois réels** (emails, SMS, push) : bloqués en mode test ; emails capturés localement (Mailpit) et vérifiés, envoi Gmail réel et push non validés.
-- **Navigateurs** : seul Chromium est disponible pour les tests automatiques ; Safari iOS, Firefox et photos HEIC réelles à tester sur appareils.
+- **Navigateurs** : tests automatiques sur Chromium, WebKit (moteur de Safari, via le relais HTTPS local) et Firefox ; Safari sur iPhone réel, photos HEIC et vidéos d'iPhone restent à tester sur appareils.
 - **Accessibilité** : contrôle automatique de base (noms des champs, débordements) ; pas de test au lecteur d'écran ni de mesure de contraste.
 - **Vercel ~4,5 Mo par requête** : dépend de la compression d'images côté navigateur (MED-01).
 - **Médias annulés en cours d'envoi** : vérifié sans fichier orphelin pour une annulation en cours de transfert (`med02`) ; un fichier entièrement transféré juste avant l'annulation reste possible.

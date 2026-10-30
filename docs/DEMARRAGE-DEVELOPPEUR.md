@@ -48,6 +48,10 @@ sur `/login` ; `candidate.test@test-figurant.fr` sur `/compte/connexion`.
 npm test && npm run lint && npm run typecheck     # tests unitaires (sans base)
 bash scripts/integration-tests.sh                 # tests réels : base locale + appli lancée sur :3000 (npm start)
 ```
+Autres navigateurs : `BROWSER=firefox node tests/<test>.mjs` ; pour WebKit (moteur de Safari), lancer d'abord le relais
+HTTPS local `node scripts/https-local.mjs` (Safari n'envoie pas les cookies « Secure » en HTTP) puis
+`NODE_TLS_REJECT_UNAUTHORIZED=0 BASE=https://localhost:3443 BROWSER=webkit node tests/<test>.mjs`
+(moteurs : `npx playwright install webkit firefox`).
 `scripts/integration-tests.sh` nécessite Playwright (`npm install --no-save playwright && npx playwright install chromium`).
 Il couvre : suites SQL (RLS, droits, transactions), isolation entre équipes (base, stockage, 127 pages, 244 actions
 serveur), authentification candidate et équipe, validation des fichiers, liens publics, barème par équipe, doublons.
