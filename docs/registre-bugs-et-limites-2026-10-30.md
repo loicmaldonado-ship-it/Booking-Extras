@@ -25,6 +25,12 @@
 | 20 | **Export Myrole sans aucun contrôle d'accès** : une cheffe d'une autre équipe téléchargeait l'export complet (identité, email, téléphone, naissance, adresse) des figurants confirmés de n'importe quel projet | SEC-04 / MET-08 | `checkProjetAccess` dans `/bookings/export-myrole` |
 | 21 | Manifeste et icônes de l'appli redirigés vers /login pour les visiteurs (préfixe public erroné « /manifest.ts ») : installation sur téléphone cassée sur les pages publiques | QA-06 | préfixes `/manifest.webmanifest`, `/manifest-icon` |
 | 22 | 5 débordements à 320 px (adresse Google, champ fichier, bouton des modèles) | BUG-17 | retours à la ligne / largeur max |
+| 23 | Textos : rattachement possible à un projet et un profil d'une autre équipe (réponses SMS déversées chez elle) — trouvé par la relecture indépendante | SEC-04 / BUG-02 | projet accessible + profil lié, sinon ignorés |
+| 24 | Réponses sans projet : affichées mais jamais effacées, sans message | BUG-13 | effaçables si la personne est bookée sur un projet accessible |
+| 25 | Boutons archiver/supprimer visibles pour tous les membres, échec silencieux | MET-01 | boutons réservés à la créatrice, erreurs affichées |
+| 26 | Nettoyage des profils temporaires impossible à relancer après un archivage partiel | MET-01 / BUG-13 | bouton « Supprimer les profils temporaires restants » |
+| 27 | Erreurs levées par les actions masquées en production (écran générique) | BUG-13 / QA-08 | `{ error }` affichés + page d'erreur `src/app/error.tsx` |
+| 28 | Derrière un proxy HTTPS : contrôle d'origine du PDF de rôle et protocole du QR code erronés | QA-06 | comparaison d'hôte, `x-forwarded-proto` |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -42,6 +48,11 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 équipe, doublons à l'inscription. Commande : `bash scripts/integration-tests.sh` (et job CI `integration`).
 
 ## 4. Limites connues / hors périmètre volontaire
+- **Actions anciennes qui lèvent encore des erreurs** : plusieurs actions antérieures à la reprise lèvent une erreur au lieu de
+  renvoyer `{ error }` ; en production l'utilisateur voit alors la page d'erreur « Une erreur est survenue » (avec référence),
+  plus l'écran générique. À convertir progressivement.
+- **`/api/erreurs-client`** : public et sans limite de débit (contenu nettoyé, rien n'est stocké) ; ajouter une limite si abus.
+- **`src/middleware.ts`** : convention dépréciée en Next 16 au profit de `proxy.ts` ; fonctionne, à migrer.
 - **Non vérifié en production** : aucune action sur la prod, ni sur Vercel/Supabase de production (variables, sauvegardes).
 - **Recette métier** (MET-xx, CAN-05/06/07/09, LEG-xx, COM-xx, QA-06) : à faire par Loïc et Mathieu ; les tests techniques ne la remplacent pas.
 - **Envois réels** (emails, SMS, push) : bloqués en mode test ; emails capturés localement (Mailpit) et vérifiés, envoi Gmail réel et push non validés.
