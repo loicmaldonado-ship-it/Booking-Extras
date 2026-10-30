@@ -151,17 +151,22 @@ export async function envoyerVideo({
 }): Promise<string> {
   const debutTotal = Date.now();
   const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : undefined;
-  const journal = (outcome: "reussi" | "erreur" | "annule", errorMessage?: string) =>
-    logCastingUploadEvent({
-      ...logContext,
-      kind: "video",
-      outcome,
-      errorMessage,
-      originalBytes: file.size,
-      finalBytes: file.size,
-      durationMs: Date.now() - debutTotal,
-      userAgent,
-    });
+  const journal = async (outcome: "reussi" | "erreur" | "annule", errorMessage?: string) => {
+    try {
+      await logCastingUploadEvent({
+        ...logContext,
+        kind: "video",
+        outcome,
+        errorMessage,
+        originalBytes: file.size,
+        finalBytes: file.size,
+        durationMs: Date.now() - debutTotal,
+        userAgent,
+      });
+    } catch {
+      // A failed logging request must never retry or change the upload result.
+    }
+  };
 
   if (file.size > VIDEO_MAX_OCTETS) {
     const message = `Cette vidéo fait ${formatTaille(file.size)} : le maximum est ${formatTaille(VIDEO_MAX_OCTETS)}.`;
