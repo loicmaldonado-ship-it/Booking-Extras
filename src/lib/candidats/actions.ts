@@ -63,7 +63,7 @@ export async function loginWithPassword(
   const password = String(formData.get("password") ?? "");
   if (!email || !password || email.length > 254 || password.length > 1024) return { error: "Email ou mot de passe incorrect." };
   if (!(await consumeCandidateLoginAttempt(email))) {
-    return { error: "Trop de tentatives. Réessayez dans 15 minutes." };
+    return { error: "Connexion momentanément indisponible. Réessayez dans 15 minutes." };
   }
 
   const supabase = createAdminClient();
