@@ -6,6 +6,7 @@ import { Card, Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { LogoutForm } from "@/components/candidats/logout-form";
+import { MotDePasseForm } from "@/components/candidats/mot-de-passe-form";
 import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
@@ -258,6 +259,8 @@ export default async function CompteCandidatPage({
         <h2 className="text-lg font-semibold">Messages</h2>
         <MessageThread messages={messages ?? []} projetInfoById={projetInfoById} />
       </Card>
+
+      <MotDePasseForm />
 
       <LogoutForm />
 

@@ -98,6 +98,11 @@ export async function setMaPassword(
   if (password.length < MOT_DE_PASSE_MIN) {
     return { error: `Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.` };
   }
+  if (password.length > 1024) return { error: "Mot de passe trop long." };
+  const confirmation = formData.get("password_confirmation");
+  if (confirmation !== null && String(confirmation) !== password) {
+    return { error: "Les deux mots de passe ne sont pas identiques." };
+  }
 
   const { error, session: renewed } = await definirMotDePasse(session.id, password, true, (await cookies()).get("figurant_session")?.value);
   if (error) return { error };
