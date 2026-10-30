@@ -96,7 +96,8 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
               <button
                 type="button"
                 onClick={() => remove(p.id)}
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink"
+                aria-label={`Supprimer la photo : ${TYPE_LABELS[p.type]}`}
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
               >
                 ×
               </button>
