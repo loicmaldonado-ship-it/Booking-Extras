@@ -228,3 +228,5 @@
 - 30/10/2026 — BUG-09/SEC-02 partiel : tests simulés de connexion par mot de passe pour compte absent, désactivé, mauvais mot de passe, limite atteinte et connexion valide. Les trois cas d’échec donnent le même message, aucun ne crée de session ; le compte absent utilise l’identifiant factice. Suite 500/500 réussie. Les temps réels et le limiteur distribué ne sont pas mesurés ; cartes ouvertes.
 
 - 30/10/2026 — SEC-07/SEC-02 partiel : trois tests simulés vérifient que la déconnexion révoque uniquement le jeton courant avant d’effacer son cookie, qu’une panne de révocation ne simule pas une déconnexion réussie et qu’une absence de cookie est gérée. Tests ciblés réussis ; aucun compte réel modifié. La révocation effective en base et la recette navigateur restent à confirmer ; cartes ouvertes.
+
+- 30/10/2026 — SEC-07/SEC-02 partiel : deux tests simulés de création de session vérifient l’enregistrement avant le cookie, l’expiration concordante, les attributs HttpOnly/Secure/SameSite/Path et l’absence de cookie après un échec de stockage. Tests ciblés réussis ; aucun compte réel modifié. Vérifications navigateur, expiration réelle et concurrence restent ouvertes.
