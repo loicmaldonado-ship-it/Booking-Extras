@@ -112,8 +112,12 @@ export async function logoutFigurant() {
   const { cookies } = await import("next/headers");
   const token = (await cookies()).get("figurant_session")?.value;
   if (token) {
-    const { error } = await createAdminClient().from("figurant_sessions").delete().eq("token", token);
-    if (error) throw new Error("Impossible de révoquer la session candidat.");
+    try {
+      const { error } = await createAdminClient().from("figurant_sessions").delete().eq("token", token);
+      if (error) return { error: "La déconnexion a échoué. Veuillez réessayer." };
+    } catch {
+      return { error: "La déconnexion a échoué. Veuillez réessayer." };
+    }
   }
   await clearFigurantSessionCookie();
   redirect("/compte/connexion");

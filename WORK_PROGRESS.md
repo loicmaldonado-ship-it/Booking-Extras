@@ -238,3 +238,5 @@
 - 30/10/2026 — BUG-09/SEC-02 partiel : le refus temporaire de connexion utilise un message neutre, sans attribuer systématiquement le problème à trop de tentatives quand le limiteur est indisponible. Huit tests ciblés, suite 511/511, TypeScript et ESLint réussis ; aucun compte réel modifié. Le test des quotas distribués et des délais réels reste à faire ; cartes ouvertes.
 
 - 30/10/2026 — BUG-18/QA-07 partiel : chaque bouton de retrait de photo candidate porte un nom accessible indiquant le type de photo et un contour de focus clavier. ESLint et diff ciblés réussis ; aucune photo supprimée. Test clavier et lecteur d’écran non effectué : outil navigateur indisponible dans cette reprise. Cartes ouvertes.
+
+- 30/10/2026 — SEC-07 partiel : en cas d’échec de révocation de la session candidate, la déconnexion affiche un message invitant à réessayer et conserve le cookie ; une exception réseau reçoit le même traitement. Quatre tests simulés ciblés, TypeScript, ESLint et contrôle du diff réussis. La révocation réelle en base et le parcours navigateur restent à vérifier : carte ouverte, recette métier ultérieure.

@@ -3,10 +3,9 @@ import { nomComplet } from "@/lib/noms";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
-import { logoutFigurant } from "@/lib/candidats/actions";
+import { LogoutForm } from "@/components/candidats/logout-form";
 import { CONTACT_SUPPORT_EMAIL } from "@/lib/legal/contact";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
@@ -260,11 +259,7 @@ export default async function CompteCandidatPage({
         <MessageThread messages={messages ?? []} projetInfoById={projetInfoById} />
       </Card>
 
-      <form action={logoutFigurant}>
-        <Button type="submit" variant="ghost">
-          Se déconnecter
-        </Button>
-      </form>
+      <LogoutForm />
 
       <p className="text-center text-xs text-text-muted">
         Une question sur le site ?{" "}
