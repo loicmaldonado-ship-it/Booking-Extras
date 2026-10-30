@@ -264,3 +264,5 @@
 - 30/10/2026 — MED-03 partiel : le bouton d’annulation n’est plus proposé pendant la finalisation serveur d’un casting, étape qu’il ne pouvait pas interrompre ; l’annulation reste disponible pendant la préparation et l’envoi. Deux tests ciblés existants, TypeScript, ESLint et diff réussis ; interaction navigateur et situation réseau incertaine restent à recetter. Carte ouverte.
 
 - 30/10/2026 — Suite complète après correctifs casting : 524/524 tests réussis. L’application de recette sur 127.0.0.1:3200 reste inaccessible ; aucune carte concernée n’est cochée sans validation technique complète.
+
+- 30/10/2026 — BUG-18 / QA-07 partiel : dans la création du rôle casting, le groupe des photos demandées possède une légende, le champ de saisie et chaque retrait ont un nom accessible, et le libellé du PDF est relié à son sélecteur. TypeScript, ESLint et diff réussis ; pas de vérification clavier ou lecteur d’écran, application de recette inaccessible. Cartes ouvertes.

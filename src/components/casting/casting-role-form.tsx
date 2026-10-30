@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useActionState, useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Field, Input, Textarea, Select } from "@/components/ui/field";
@@ -25,6 +25,7 @@ export function CastingRoleForm({
   const [state, formAction, pending] = useActionState(action, undefined);
   const [labels, setLabels] = useState<string[]>(role?.photo_labels ?? DEFAULT_LABELS);
   const [labelInput, setLabelInput] = useState("");
+  const pdfInputId = useId();
   const router = useRouter();
   const [pdfUploading, setPdfUploading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -162,7 +163,8 @@ export function CastingRoleForm({
         sont visibles dans le rôle et sur le lien réal.
       </p>
 
-      <Field label="Photos demandées (nom du matériau)">
+      <fieldset>
+        <legend className="mb-1.5 block text-xs font-medium text-text-muted">Photos demandées (nom du matériau)</legend>
         <div className="flex flex-col gap-2">
           {labels.map((l) => (
             <div key={l} className="flex items-center gap-2">
@@ -171,7 +173,8 @@ export function CastingRoleForm({
               <button
                 type="button"
                 onClick={() => removeLabel(l)}
-                className="text-xs text-text hover:text-danger"
+                aria-label={`Retirer la photo demandée : ${l}`}
+                className="text-xs text-text hover:text-danger focus-visible:outline-2 focus-visible:outline-coral"
               >
                 Retirer
               </button>
@@ -181,6 +184,7 @@ export function CastingRoleForm({
             <input
               type="text"
               value={labelInput}
+              aria-label="Nom de la photo demandée"
               onChange={(e) => setLabelInput(e.target.value)}
               placeholder="Ex. Photo pied"
               className="flex-1 rounded-lg border border-border bg-ink px-3 py-1.5 text-sm outline-none focus:border-coral"
@@ -190,7 +194,7 @@ export function CastingRoleForm({
             </Button>
           </div>
         </div>
-      </Field>
+      </fieldset>
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="demande_bande_demo" defaultChecked={role?.demande_bande_demo} className="accent-coral" />
@@ -207,7 +211,7 @@ export function CastingRoleForm({
         Visible sur le lien de partage réal
       </label>
 
-      <Field label="Document PDF du rôle (optionnel)">
+      <Field label="Document PDF du rôle (optionnel)" htmlFor={pdfInputId}>
         <p className="mb-1 text-xs text-text-muted">Extrait de texte ou consignes de casting. Tu pourras aussi l&apos;ajouter plus tard via « Calibrer ». 20 Mo maximum.</p>
         <div className="flex flex-col gap-1.5">
           {role?.pdf_filename && role.pdf_storage_path && (
@@ -228,6 +232,7 @@ export function CastingRoleForm({
           )}
           <input
             type="file"
+            id={pdfInputId}
             name="pdf"
             aria-label="PDF du rôle"
             accept="application/pdf"
