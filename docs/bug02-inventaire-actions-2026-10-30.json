@@ -191,42 +191,42 @@
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "createBaremeCachet",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "updateBaremeCachet",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "deleteBaremeCachet",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "createBaremeMajoration",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "updateBaremeMajoration",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },
  {
   "file": "src/lib/bareme/actions.ts",
   "action": "deleteBaremeMajoration",
-  "guard": "requireChef",
+  "guard": "equipeEcriture",
   "mutates": true,
   "guard_before_admin": true
  },

@@ -211,11 +211,16 @@ const snapshot = () => { const vals = psql(`\\pset tuples_only on\n\\pset format
 const othersQuery = () => psql(`select md5(coalesce((select string_agg((to_jsonb(r)-'last_seen_at'-'updated_at')::text,'|' order by r.id) from profiles r where id<>'${B}'),'')
   ||coalesce((select string_agg(to_jsonb(r)::text,'|' order by r.id) from message_templates r where equipe_id is distinct from '${B}'),'')
   ||coalesce((select string_agg(to_jsonb(r)::text,'|' order by r.profile_id,r.contexte) from derniers_messages r where profile_id<>'${B}'),'')
-  ||coalesce((select string_agg(to_jsonb(r)::text,'|' order by r.profile_id) from relais_textos r where profile_id<>'${B}'),''));`);
+  ||coalesce((select string_agg(to_jsonb(r)::text,'|' order by r.profile_id) from relais_textos r where profile_id<>'${B}'),'')
+  ||coalesce((select string_agg((to_jsonb(r)-'updated_at')::text,'|' order by r.id) from bareme_cachets r where equipe_id is distinct from '${B}'),'')
+  ||coalesce((select string_agg((to_jsonb(r)-'updated_at')::text,'|' order by r.id) from bareme_majorations r where equipe_id is distinct from '${B}'),''));`);
 const othersBefore = othersQuery();
 // Actions qui n'écrivent que pour la personne connectée (profil, brouillons, modèles de son équipe, clé de relais)
 // ou qui journalisent une tentative de connexion candidate (limiteur).
-const SELF_SCOPED = { "auth/email-actions.ts#updateMyGmailSmtp": ["profiles"], "auth/email-actions.ts#updateMyEmailTemplates": ["profiles"],
+const BAREME_SELF = ["bareme_cachets", "bareme_majorations", "bareme_equipes"]; // copie du barème propre à l'équipe de B
+const SELF_SCOPED = { "auth/email-actions.ts#updateMyGmailSmtp": ["profiles"],
+  "bareme/actions.ts#updateBaremeCachet": BAREME_SELF, "bareme/actions.ts#deleteBaremeCachet": BAREME_SELF, "bareme/actions.ts#createBaremeCachet": BAREME_SELF,
+  "bareme/actions.ts#updateBaremeMajoration": BAREME_SELF, "bareme/actions.ts#deleteBaremeMajoration": BAREME_SELF, "bareme/actions.ts#createBaremeMajoration": BAREME_SELF, "auth/email-actions.ts#updateMyEmailTemplates": ["profiles"],
   "auth/profile-actions.ts#updateMyProfile": ["profiles"], "messages/derniers-actions.ts#enregistrerDernierMessage": ["derniers_messages"],
   "templates/actions.ts#createTemplate": ["message_templates"], "textos/actions.ts#genererCleRelais": ["relais_textos"],
   "candidats/actions.ts#requestMagicLink": ["candidate_auth_attempts"], "candidats/actions.ts#loginWithPassword": ["candidate_auth_attempts"] };
@@ -257,14 +262,7 @@ if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 1));
 const suspects = results.filter((r) => r.changed.length || r.leak);
 console.log(`[${ACTOR}] ${results.length} actions appelées ; ${suspects.length} ont modifié au moins une table ou renvoyé un token :`);
 for (const s of suspects) console.log(` - ${s.action} [${s.http}] tables: ${s.changed.join(", ") || "-"}${s.leak ? " TOKEN" : ""} :: ${s.reponse.slice(0, 120)}`);
-// Barème ACFDA : grille commune à toutes les équipes, modifiable par toute cheffe (interface /bareme conçue ainsi
-// à l'époque d'une seule cheffe). Décision produit en attente : signalé, sans faire échouer le test.
-const KNOWN_OPEN = { "bareme/actions.ts#updateBaremeCachet": ["bareme_cachets"], "bareme/actions.ts#updateBaremeMajoration": ["bareme_majorations"],
-  "bareme/actions.ts#deleteBaremeCachet": ["bareme_cachets"], "bareme/actions.ts#deleteBaremeMajoration": ["bareme_majorations"],
-  "bareme/actions.ts#createBaremeCachet": ["bareme_cachets"], "bareme/actions.ts#createBaremeMajoration": ["bareme_majorations"] };
-const open = suspects.filter((r) => r.changed.length && r.changed.every((t) => (KNOWN_OPEN[r.action] || []).includes(t)));
-if (open.length) console.log(`POINT OUVERT (décision attendue) : ${open.map((r) => r.action).join(", ")} modifient le barème commun.`);
-const unexpected = suspects.filter((r) => !open.includes(r) && (r.leak || r.changed.some((t) => !(SELF_SCOPED[r.action] || []).includes(t))));
+const unexpected = suspects.filter((r) => (r.leak || r.changed.some((t) => !(SELF_SCOPED[r.action] || []).includes(t))));
 assert.equal(othersAfter, othersBefore, "Des lignes n'appartenant pas à la cheffe B ont été modifiées (profils, modèles, brouillons ou relais d'autres personnes)");
 assert.deepEqual(unexpected.map((r) => r.action), [], "Actions ayant modifié des données hors du périmètre de la cheffe B");
 assert.ok(results.length >= 240, `Trop peu d'actions appelées : ${results.length}`);

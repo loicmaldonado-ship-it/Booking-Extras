@@ -10,6 +10,7 @@ import { BackToJournee } from "@/components/documents/back-to-journee";
 import { formatHeureConvocation } from "@/lib/documents/fields";
 import { formatDateLong } from "@/lib/format-date";
 import { formatMajorationValeur, type BaremeCachet, type BaremeMajoration } from "@/lib/bareme/types";
+import { baremePourEquipes, cleEquipeProjet } from "@/lib/bareme/equipe";
 import { requireProjetAccess } from "@/lib/auth/session";
 
 const ROWS_PER_PAGE = 16;
@@ -59,13 +60,13 @@ export default async function BordereauPage({
   const convention = projet?.convention ?? null;
   const figurantIds = bookings.map((b) => b.figurant.id);
   const bookingIds = bookings.map((b) => b.id);
+  // Barème de l'équipe du projet (barème par équipe).
+  const baremeProjet = convention
+    ? cleEquipeProjet(supabase, projet_id).then((cle) => (cle ? baremePourEquipes(supabase, [cle], convention) : { cachets: [], majorations: [] }))
+    : Promise.resolve({ cachets: [], majorations: [] });
   const [{ data: cachetsBareme }, { data: majorationsBareme }, { data: essaisFaits }, { data: indemnitesRaw }, { data: bookingMajorationsRaw }] = await Promise.all([
-    convention
-      ? supabase.from("bareme_cachets").select("*").eq("convention", convention).returns<BaremeCachet[]>()
-      : Promise.resolve({ data: [] as BaremeCachet[] }),
-    convention
-      ? supabase.from("bareme_majorations").select("*").eq("convention", convention).returns<BaremeMajoration[]>()
-      : Promise.resolve({ data: [] as BaremeMajoration[] }),
+    baremeProjet.then((b) => ({ data: b.cachets as BaremeCachet[] })),
+    baremeProjet.then((b) => ({ data: b.majorations as BaremeMajoration[] })),
     figurantIds.length > 0
       ? supabase
           .from("essayages")

@@ -34,6 +34,7 @@ import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
+import { baremePourEquipes, cleEquipeProjet } from "@/lib/bareme/equipe";
 import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
 import type { CovoiturageRole } from "@/lib/bookings/types";
 
@@ -217,13 +218,13 @@ const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds)
   }
 
   const [{ data: baremeMajorations }, { data: bookingMajorationsRaw }] = await Promise.all([
-    projet?.convention
-      ? supabase
-          .from("bareme_majorations")
-          .select("*")
-          .eq("convention", projet.convention)
-          .order("type")
-          .returns<BaremeMajoration[]>()
+    // Barème de l'équipe du projet (barème par équipe).
+    projet?.convention && projet_id
+      ? (async () => {
+          const cle = await cleEquipeProjet(supabase, projet_id);
+          const { majorations } = cle ? await baremePourEquipes(supabase, [cle], projet.convention) : { majorations: [] };
+          return { data: majorations as BaremeMajoration[] };
+        })()
       : Promise.resolve({ data: [] as BaremeMajoration[] }),
     bookingIds.length > 0
       ? supabase
