@@ -7,12 +7,31 @@ const localStorage = storageUrl?.protocol === "http:" && ["localhost", "127.0.0.
 const nextConfig: NextConfig = {
   // Deux adresses de boucle locale utilisées pour isoler les sessions de recette.
   allowedDevOrigins: ["127.0.0.1"],
+  // Sécurité (30/10/2026) : aucun en-tête n'était envoyé. Politique de contenu volontairement limitée aux directives qui
+  // ne touchent pas aux scripts de Next (pas de nonce nécessaire) : interdiction d'être affiché dans un cadre
+  // (clickjacking), formulaires et <base> limités au site, pas d'objets/plugins.
+  poweredByHeader: false,
   async headers() {
-    return [{ source: "/mineurs/:path*", headers: [
-      { key: "Referrer-Policy", value: "no-referrer" },
-      { key: "X-Robots-Tag", value: "noindex, nofollow" },
-      { key: "Cache-Control", value: "private, no-store, max-age=0" },
-    ] }];
+    const securite = [
+      { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
+      { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+    ];
+    // Adresses portant un jeton d'accès : jamais transmises en référent à un autre site.
+    const sansReferent = [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    return [
+      { source: "/:path*", headers: securite },
+      ...["/partage/:path*", "/casting/upload/:path*", "/casting/rejoindre/:path*", "/disponibilites/:path*", "/recu/:path*", "/compte/verifier"]
+        .map((source) => ({ source, headers: sansReferent })),
+      { source: "/mineurs/:path*", headers: [
+        { key: "Referrer-Policy", value: "no-referrer" },
+        { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        { key: "Cache-Control", value: "private, no-store, max-age=0" },
+      ] },
+    ];
   },
   // ffmpeg (allègement des vidéos du casting après l'envoi) : binaire du
   // paquet npm, laissé tel quel et embarqué dans les fonctions concernées.

@@ -118,7 +118,10 @@ try {
         const onCons = (m) => { if (m.type() === "error" && !/favicon|manifest|Failed to load resource/.test(m.text())) erreursJs.push("console: " + m.text().slice(0, 120)); };
         const onResp = (r) => { const u = r.url(); if (u.startsWith(BASE) && r.status() >= 400 && r.status() !== 404 && !u.includes("/_next/image")) requetes.push(`${r.status()} ${u.slice(BASE.length, BASE.length + 70)}`); };
         page.on("pageerror", onErr); page.on("console", onCons); page.on("response", onResp);
-        const res = await page.goto(BASE + route, { waitUntil: "networkidle", timeout: 45000 }).catch((e) => ({ status: () => 0, err: e.message.slice(0, 80) }));
+        const t0 = Date.now();
+        const res = await page.goto(BASE + route, { waitUntil: "load", timeout: 45000 }).catch((e) => ({ status: () => 0, err: e.message.slice(0, 80) }));
+        const chargement = Date.now() - t0;
+        await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
         await page.waitForTimeout(300);
         const a = await page.evaluate(audit).catch(() => ({ overflow: 0, erreurNext: true, introuvable: false }));
         page.off("pageerror", onErr); page.off("console", onCons); page.off("response", onResp);
@@ -130,7 +133,7 @@ try {
         if (erreursJs.length) problemes.push("JS: " + erreursJs.slice(0, 2).join(" | "));
         if (requetes.length) problemes.push("requêtes: " + requetes.slice(0, 3).join(", "));
         if (a.overflow > 1) problemes.push(`débordement +${a.overflow}px ${a.coupable || ""}`);
-        lignes.push({ largeur: width, role, route, http: status, arrivee: new URL(page.url()).pathname, problemes });
+        lignes.push({ largeur: width, role, route, http: status, arrivee: new URL(page.url()).pathname, problemes, chargement });
       }
       await page.context().close();
     }
@@ -143,5 +146,9 @@ if (process.argv.includes("--json")) console.log(JSON.stringify(lignes, null, 1)
 const ko = lignes.filter((l) => l.problemes.length);
 console.log(`${lignes.length} visites (${new Set(lignes.map((l) => l.route)).size} adresses, ${largeurs.length} largeurs, 4 rôles, ${NAV}). Problèmes : ${ko.length}.`);
 for (const l of ko) console.log(`KO ${l.role}@${l.largeur} ${l.route} → ${l.arrivee} :: ${l.problemes.join(" ; ")}`);
+// Fluidité : temps jusqu'à l'événement « load » (appli construite, base locale). Les 8 écrans les plus lents.
+const lents = [...lignes].sort((a, b) => b.chargement - a.chargement).slice(0, 8);
+console.log(`Chargement médian : ${[...lignes].map((l) => l.chargement).sort((a, b) => a - b)[Math.floor(lignes.length / 2)]} ms. Plus lents :`);
+for (const l of lents) console.log(`  ${l.chargement} ms  ${l.role}@${l.largeur} ${l.route.replace(/\?.*$/, "")}`);
 assert.equal(ko.length, 0, "La passe complète a trouvé des problèmes");
 console.log("PASS: passe complète sans erreur.");

@@ -31,6 +31,8 @@
 | 26 | Nettoyage des profils temporaires impossible à relancer après un archivage partiel | MET-01 / BUG-13 | bouton « Supprimer les profils temporaires restants » |
 | 27 | Erreurs levées par les actions masquées en production (écran générique) | BUG-13 / QA-08 | `{ error }` affichés + page d'erreur `src/app/error.tsx` |
 | 28 | Derrière un proxy HTTPS : contrôle d'origine du PDF de rôle et protocole du QR code erronés | QA-06 | comparaison d'hôte, `x-forwarded-proto` |
+| 29 | Aucun en-tête de sécurité HTTP (clickjacking possible, pas de nosniff/HSTS, Next signalé par X-Powered-By) | SEC | en-têtes dans `next.config.ts`, `tests/securite-entetes.mjs` |
+| 30 | 25 pages de documents et 5 pages de détail débordaient sur téléphone une fois remplies ; exports préchargés comme des pages (requêtes en échec) | QA-06 / BUG-17 | `tests/passe-complete.mjs` (96 adresses × 4 rôles × 4 largeurs) |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -51,7 +53,8 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 - **Actions anciennes qui lèvent encore des erreurs** : plusieurs actions antérieures à la reprise lèvent une erreur au lieu de
   renvoyer `{ error }` ; en production l'utilisateur voit alors la page d'erreur « Une erreur est survenue » (avec référence),
   plus l'écran générique. À convertir progressivement.
-- **`/api/erreurs-client`** : public et sans limite de débit (contenu nettoyé, rien n'est stocké) ; ajouter une limite si abus.
+- **`/api/erreurs-client`** : public, limité à 20 signalements par minute et par adresse (par instance) ; contenu nettoyé, rien n'est stocké.
+- **Fluidité** : mesurée avec 3 000 profils, 800 candidatures et 300 bookés sur une journée : écrans entre 0,15 et 0,4 s, sauf la page journée (`/bookings/documents`, 1,5 s, 132 Ko compressés) dont le tableau éditable est dense ; à surveiller au-delà de ~300 personnes par journée (pagination ou virtualisation à décider).
 - **`src/middleware.ts`** : convention dépréciée en Next 16 au profit de `proxy.ts` ; fonctionne, à migrer.
 - **Non vérifié en production** : aucune action sur la prod, ni sur Vercel/Supabase de production (variables, sauvegardes).
 - **Recette métier** (MET-xx, CAN-05/06/07/09, LEG-xx, COM-xx, QA-06) : à faire par Loïc et Mathieu ; les tests techniques ne la remplacent pas.
