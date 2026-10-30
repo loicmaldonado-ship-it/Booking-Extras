@@ -30,6 +30,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "50mb",
     },
+    // Le proxy (ex-middleware) tronque par défaut tout corps au-delà de 10 Mo : une photo de 10 à 20 Mo
+    // (limite annoncée par validateImageUpload) échouait avec « Unexpected end of form » au lieu d'être
+    // acceptée ou refusée proprement (BUG-11 / MED-03, 30/10/2026). Aligné sur la limite des actions.
+    // NB : en production Vercel, la plateforme limite elle-même les requêtes à ~4,5 Mo.
+    proxyClientMaxBodySize: "50mb",
   },
   images: {
     // Autorise l'optimiseur d'images Next.js à passer par le stockage
