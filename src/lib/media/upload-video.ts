@@ -1,6 +1,7 @@
 "use client";
 
 import { logCastingUploadEvent } from "@/lib/casting/upload-actions";
+import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 
 // Envoi d'une vidéo : le fichier d'origine part tel quel, directement du
 // navigateur vers le stockage (aucune compression, aucune attente avant
@@ -63,7 +64,7 @@ function messageServeur(status: number, corps: string): ErreurEnvoi {
     );
   }
   const reessayable = status >= 500 || status === 408 || status === 429;
-  return new ErreurEnvoi(detail ? `Envoi refusé (${detail}).` : `Envoi refusé (erreur ${status}).`, reessayable);
+  return new ErreurEnvoi(translateUploadErrorMessage(`${status} ${detail}`), reessayable);
 }
 
 // Un essai : PUT du fichier brut vers l'URL signée, avec progression.
@@ -179,7 +180,7 @@ export async function envoyerVideo({
     try {
       const slot = await createSlot();
       if (slot.error || !slot.bucket || !slot.path || !slot.token) {
-        throw new ErreurEnvoi(slot.error ?? "Impossible de préparer l'envoi.", false);
+        throw new ErreurEnvoi(translateUploadErrorMessage(slot.error ?? ""), false);
       }
       onProgress({ pct: 0, restant: null, essai });
       await envoyerUneFois({ bucket: slot.bucket, path: slot.path, token: slot.token }, file, signal, (envoyes, total, debut) => {
@@ -199,7 +200,7 @@ export async function envoyerVideo({
         await journal("annule");
         throw e;
       }
-      derniere = e instanceof Error ? e : new Error(String(e));
+      derniere = e instanceof ErreurEnvoi ? e : new Error(translateUploadErrorMessage(e instanceof Error ? e.message : String(e)));
       const reessayable = e instanceof ErreurEnvoi ? e.reessayable : true;
       if (!reessayable || essai === ESSAIS_MAX) break;
       // Petite pause avant de reprendre, interrompue par une annulation.
