@@ -49,7 +49,7 @@ export default async function ListeArtistiquePage() {
           <h1 className="text-2xl font-semibold">Liste artistique — {projet?.nom}</h1>
           <p className="mt-1 text-text-muted">{items.length} rôle{items.length > 1 ? "s" : ""} validé{items.length > 1 ? "s" : ""}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <AnchorButton href={`/casting/liste-artistique/export?projet_id=${projetId}`} variant="secondary">
             Télécharger Excel
           </AnchorButton>

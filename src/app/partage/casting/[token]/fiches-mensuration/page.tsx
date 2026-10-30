@@ -69,7 +69,7 @@ export default async function PartageCastingFichesMensurationPage({
         <h1 className="text-2xl font-semibold">
           {t(lang, "fiches_mensuration_titre")} — {role.nom}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`fiches-mensuration-${role.nom}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

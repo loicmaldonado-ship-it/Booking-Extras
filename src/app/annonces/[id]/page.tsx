@@ -76,9 +76,9 @@ export default async function AnnonceDetailPage({
       <BackLink href="/annonces" label="Annonces" />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold">{annonce.titre}</h1>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="min-w-0 break-words text-3xl font-semibold">{annonce.titre}</h1>
             <Badge tone={annonce.statut === "ouverte" ? "turquoise" : "default"}>
               {annonce.statut === "ouverte" ? "Ouverte" : "Fermée"}
             </Badge>

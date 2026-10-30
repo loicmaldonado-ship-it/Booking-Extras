@@ -118,7 +118,7 @@ export default async function CastingTrombisPage({
             {filtered.length} profil{filtered.length > 1 ? "s" : ""} sur {roles.length} rôle{roles.length > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`trombis-casting-${projet?.nom ?? "projet"}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

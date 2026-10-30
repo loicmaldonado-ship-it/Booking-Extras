@@ -134,9 +134,9 @@ export default async function PartageTrombisPage({
         </Link>
       )}
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t(lang, "trombis")}</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <LangToggle lang={lang} basePath={`/partage/documents/${token}/trombis`} otherParams={{ date }} />
           <DownloadPdfButton filename={`trombis-${date}.pdf`} orientation="landscape" lang={lang} />
           <PrintButton lang={lang} />

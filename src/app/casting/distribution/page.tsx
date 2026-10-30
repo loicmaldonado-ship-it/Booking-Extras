@@ -48,7 +48,7 @@ export default async function DistributionPage() {
           <h1 className="text-2xl font-semibold">Distribution — {projet?.nom}</h1>
           <p className="mt-1 text-text-muted">{items.length} rôle{items.length > 1 ? "s" : ""} validé{items.length > 1 ? "s" : ""}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`distribution-${projet?.nom ?? "projet"}.pdf`} />
           <PrintButton />
         </div>

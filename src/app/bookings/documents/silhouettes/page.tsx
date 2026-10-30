@@ -65,9 +65,9 @@ export default async function SilhouettesPage({
         ← Retour
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Tableau silhouette</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`tableau-silhouette-${projet?.nom ?? projet_id}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

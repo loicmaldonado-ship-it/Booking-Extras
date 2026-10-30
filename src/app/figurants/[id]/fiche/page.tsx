@@ -44,9 +44,9 @@ export default async function FigurantFichePage({
     <div className="flex flex-col gap-4">
       <BackLink href={`/figurants/${id}`} label="Retour au profil" />
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Fiche mensuration</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton
             filename={`fiche-mensuration-${figurant.prenom}-${figurant.nom}.pdf`}
             orientation="landscape"

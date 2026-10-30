@@ -122,7 +122,7 @@ export default async function CandidatureDetailPage({
       <BackLink href="/candidatures" label="Candidatures" />
 
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-ink-raised-2">
             {portrait?.url && (
               <>
@@ -131,8 +131,8 @@ export default async function CandidatureDetailPage({
               </>
             )}
           </div>
-          <div>
-            <h1 className="text-3xl font-semibold">
+          <div className="min-w-0">
+            <h1 className="break-words text-3xl font-semibold">
               {nomComplet(f)}
             </h1>
             <p className="mt-1 text-text-muted">

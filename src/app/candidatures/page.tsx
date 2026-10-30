@@ -4,7 +4,7 @@ import { comparerNoms, nomComplet } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { AnchorButton, Button, ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { setCurrentProjet } from "@/lib/projet-context";
@@ -737,7 +737,7 @@ export default async function CandidaturesPage({
               </form>
             )}
             {isOwner(profile) && (
-              <ButtonLink
+              <AnchorButton
                 href={`/candidatures/export?${new URLSearchParams(
                   Object.entries({
                     annonce_id: annonceId,
@@ -749,7 +749,7 @@ export default async function CandidaturesPage({
                 variant="secondary"
               >
                 Exporter Excel
-              </ButtonLink>
+              </AnchorButton>
             )}
           </div>
         </div>

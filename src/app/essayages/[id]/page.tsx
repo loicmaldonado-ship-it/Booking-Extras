@@ -32,7 +32,7 @@ export default async function EssayageDetailPage({
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/essayages" label="Essayages" />
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold">
             Essayage #{essayage.numero} — {nomComplet(essayage.figurants)}
@@ -43,7 +43,7 @@ export default async function EssayageDetailPage({
             {essayage.heure ? ` · ${essayage.heure}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/essayages/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>

@@ -123,9 +123,9 @@ export default async function BordereauPage({
     <div className="flex flex-col gap-4">
       <BackToJournee projetId={projet_id} date={date} />
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Bordereau d&apos;émargement</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`bordereau-${date}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

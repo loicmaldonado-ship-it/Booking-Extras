@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { ButtonLink } from "@/components/ui/button";
+import { AnchorButton, ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { BookingsTable, type Row, type MessageRow } from "@/components/bookings/bookings-table";
 import { EssayagesPanel, type EssayageRow, type BookedFigurant } from "@/components/bookings/essayages-panel";
@@ -231,13 +231,14 @@ export function JourneeTabs({
             <ButtonLink href={`/bookings/documents/silhouettes${query}`} variant="secondary">
               🕴️ Tableau silhouette
             </ButtonLink>
-            <ButtonLink href={`/bookings/documents/vcards${query}`} variant="secondary">
+            {/* Téléchargements : lien classique (un lien Next les préchargeait comme des pages → requêtes en échec). */}
+            <AnchorButton href={`/bookings/documents/vcards${query}`} variant="secondary">
               📇 Vcards
-            </ButtonLink>
+            </AnchorButton>
             {canExport && (
-              <ButtonLink href={`/bookings/export${query}`} variant="secondary">
+              <AnchorButton href={`/bookings/export${query}`} variant="secondary">
                 📊 Exporter Excel
-              </ButtonLink>
+              </AnchorButton>
             )}
           </div>
           <ExportMyroleButtons projetId={projetId} date={date} />

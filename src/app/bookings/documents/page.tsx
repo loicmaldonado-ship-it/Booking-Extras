@@ -307,16 +307,16 @@ const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds)
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
+        <div className="min-w-0">
+          <p className="flex flex-wrap gap-x-3 text-xs font-medium uppercase tracking-wide text-text-muted">
             <Link href="/bookings" className="hover:text-text">
               ← Bookings
             </Link>
-            <Link href="/bookings?switch=1" className="ml-3 text-coral hover:underline">
+            <Link href="/bookings?switch=1" className="text-coral hover:underline">
               Changer de projet
             </Link>
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {prevJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${prevJournee.date}`}
@@ -327,7 +327,7 @@ const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds)
             ) : (
               <span className="text-sm text-text-muted/30">← Journée précédente</span>
             )}
-            <h1 className="text-3xl font-semibold">
+            <h1 className="break-words text-3xl font-semibold">
               {projet?.nom} — {formatDateShort(date)}
             </h1>
             {nextJournee ? (

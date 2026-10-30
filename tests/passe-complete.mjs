@@ -23,15 +23,18 @@ const largeurs = (process.env.WIDTHS || "320,375,768,1280").split(",").map(Numbe
 // ---------- Données fictives (projet de la cheffe du seed, assistante du seed membre) ----------
 const M = "Passe" + Date.now().toString(36);
 const CHEF = "00000000-0000-4000-8000-00000000c0c0", ASSIST = "00000000-0000-4000-8000-00000000a551", CAND = "00000000-0000-4000-8000-00000000f001";
+// Nettoyage garanti même si la préparation échoue (sql est synchrone : utilisable à la sortie du processus).
+process.on("exit", () => { try { sql(`delete from projets where nom='Projet ${M}'; delete from figurants where nom like '${M}%'; delete from envois where titre='${M}';`); } catch { /* déjà nettoyé */ } });
 const P = sql(`insert into projets(nom,owner_id,societe_production) values('Projet ${M}','${CHEF}','Prod ${M}') returning id;`);
 sql(`insert into projet_membres(projet_id,profile_id) values('${P}','${ASSIST}');`);
 const D = sql("select (current_date+50)::text;");
 const fig = sql(`insert into figurants(prenom,nom,email,telephone,date_naissance,acces_compte) values('Lou','${M}','${M.toLowerCase()}@example.test','0612${String(Date.now()).slice(-6)}','1990-01-01',true) returning id;`);
+sql(`insert into figurant_comptes(figurant_id,password_hash) values('${fig}','fixture');`);
 const ann = sql(`insert into annonces(projet_id,titre,statut,ouverte_mineurs) values('${P}','Annonce ${M}','ouverte',true) returning id;`);
 const annTok = sql(`select public_token from annonces where id='${ann}';`);
 sql(`insert into annonce_questions(annonce_id,label,ordre) values('${ann}','Vélo ?',0); insert into annonce_dates(annonce_id,date) values('${ann}','${D}');`);
 const cand = sql(`insert into candidatures(figurant_id,annonce_id) values('${fig}','${ann}') returning id;`);
-sql(`insert into candidatures(figurant_id,annonce_id) values('${CAND}','${ann}');`);
+sql(`insert into candidatures(figurant_id,annonce_id) values('${CAND}','${ann}') on conflict do nothing;`);
 sql(`insert into journees(projet_id,date) values('${P}','${D}');`);
 const bk = sql(`insert into bookings(figurant_id,projet_id,date,statut,cachet) values('${fig}','${P}','${D}','confirmé','Figurant') returning id;`);
 sql(`insert into bookings(figurant_id,projet_id,date,statut,cachet) values('${CAND}','${P}','${D}','confirmé','Figurant');`);
@@ -76,7 +79,20 @@ const candidate = ["/compte", "/", `/postuler/${annTok}`];
 const audit = () => {
   const vw = document.documentElement.clientWidth;
   const texte = document.body?.innerText || "";
-  return { overflow: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - vw,
+  let coupable = "";
+  const overflow = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - vw;
+  if (overflow > 1) {
+    let pire = null;
+    for (const el of document.body.querySelectorAll("*")) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || r.right <= vw + 1) continue;
+      let p = el.parentElement, clippe = false;
+      while (p && p !== document.body) { const o = getComputedStyle(p).overflowX; if (o === "auto" || o === "scroll" || o === "hidden") { clippe = true; break; } p = p.parentElement; }
+      if (!clippe && (!pire || r.right > pire.r)) pire = { r: r.right, d: `${el.tagName.toLowerCase()}.${String(el.className).split(" ").slice(0, 4).join(".")} « ${(el.textContent || "").trim().slice(0, 25)} »` };
+    }
+    coupable = pire?.d || "";
+  }
+  return { overflow, coupable,
     erreurNext: /Application error|Internal Server Error|Unhandled Runtime Error/.test(texte), introuvable: /This page could not be found|404/.test(document.title + " " + texte.slice(0, 200)) };
 };
 const lignes = [];
@@ -113,7 +129,7 @@ try {
         if (a.introuvable && status !== 404) problemes.push("page introuvable");
         if (erreursJs.length) problemes.push("JS: " + erreursJs.slice(0, 2).join(" | "));
         if (requetes.length) problemes.push("requêtes: " + requetes.slice(0, 3).join(", "));
-        if (a.overflow > 1) problemes.push(`débordement +${a.overflow}px`);
+        if (a.overflow > 1) problemes.push(`débordement +${a.overflow}px ${a.coupable || ""}`);
         lignes.push({ largeur: width, role, route, http: status, arrivee: new URL(page.url()).pathname, problemes });
       }
       await page.context().close();

@@ -711,7 +711,7 @@ export function CandidaturesTable({
                       <Link
                         href={`/candidatures/${r.id}`}
                         onClick={(e) => openFiche(e, r.id)}
-                        className="text-sm font-semibold leading-tight hover:text-coral"
+                        className="min-w-0 break-words text-sm font-semibold leading-tight hover:text-coral"
                       >
                         <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
                       </Link>

@@ -152,7 +152,7 @@ export default async function FigurantDetailPage({
     <div className="flex max-w-4xl flex-col gap-6">
       <BackLink href="/figurants" label="Base Profils" />
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-2 text-3xl font-semibold">
             {figurant.civilite ? `${figurant.civilite} ` : ""}
@@ -166,7 +166,7 @@ export default async function FigurantDetailPage({
             {figurant.tranche_age ? ` · ${figurant.tranche_age}` : ""}
           </p>
         </div>
-        <div className="flex max-w-xl flex-wrap items-start justify-end gap-3">
+        <div className="flex max-w-xl flex-wrap items-start gap-3 sm:justify-end">
           <ButtonLink href={`/bookings/nouveau?figurant_id=${id}`}>+ Ajouter à un booking</ButtonLink>
           <AddDatesPanel figurantId={id} projets={projets ?? []} />
           <ButtonLink href={`/figurants/${id}/fiche`} variant="secondary">

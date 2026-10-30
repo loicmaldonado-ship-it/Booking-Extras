@@ -50,7 +50,7 @@ export default async function FichesRolesPage() {
           <h1 className="text-2xl font-semibold">Fiches rôles validés — {projet?.nom}</h1>
           <p className="mt-1 text-text-muted">{fiches.length} rôle{fiches.length > 1 ? "s" : ""} validé{fiches.length > 1 ? "s" : ""}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`fiches-roles-valides-${projet?.nom ?? "projet"}.pdf`} />
           <PrintButton />
         </div>
