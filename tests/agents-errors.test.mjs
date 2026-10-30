@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
-const code=ts.transpileModule(readFileSync(new URL('../src/lib/agents/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const load=path=>ts.transpileModule(readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const code=load('../src/lib/agents/actions.ts');
+const upsertCode=load('../src/lib/agents/upsert.ts');
 function harness({reads=[],writeError=null,updated=[{id:'existing'}],actor={isOwner:true}}={}){
  const writes=[],revalidates=[];let clients=0;
  const db={from(table){assert.equal(table,'agents');let op='read';const q={
@@ -13,8 +15,8 @@ function harness({reads=[],writeError=null,updated=[{id:'existing'}],actor={isOw
   delete(){op='delete';writes.push({op});return q;},
   then(resolve,reject){return Promise.resolve({data:op==='update'?updated:null,error:writeError}).then(resolve,reject);}
  };return q;}};
- const mocks={'next/cache':{revalidatePath:path=>revalidates.push(path)},'@/lib/supabase/admin':{createAdminClient:()=>{clients++;return db;}},'@/lib/auth/session':{getCurrentProfile:async()=>actor},'@/lib/auth/owner':{isOwner:p=>!!p?.isOwner}};
- const actions={};new Function('require','exports',code)(name=>{assert.ok(name in mocks,name);return mocks[name];},actions);
+ const mocks={'server-only':{},'next/cache':{revalidatePath:path=>revalidates.push(path)},'@/lib/supabase/admin':{createAdminClient:()=>{clients++;return db;}},'@/lib/auth/session':{getCurrentProfile:async()=>actor},'@/lib/auth/owner':{isOwner:p=>!!p?.isOwner}};
+ const actions={};const req=name=>{assert.ok(name in mocks,name);return mocks[name];};new Function('require','exports',code)(req,actions);new Function('require','exports',upsertCode)(req,actions);
  return {actions,writes,revalidates,clients:()=>clients};
 }
 const value={nom:'Fixture',email:'fixture@example.test'};
@@ -41,4 +43,13 @@ test('normal agent save and deletion preserve success behavior',async()=>{
 test('anonymous save and non-owner delete are rejected before privileged access',async()=>{
  const anonymous=harness({actor:null});assert.ok((await anonymous.actions.upsertAgent(value)).error);assert.equal(anonymous.clients(),0);
  const staff=harness({actor:{isOwner:false}});assert.ok((await staff.actions.deleteAgent('fixture')).error);assert.equal(staff.clients(),0);
+});
+test('upsertAgent is no longer a Server Action callable from the browser (BUG-02)',()=>{
+ const actionsSource=readFileSync(new URL('../src/lib/agents/actions.ts',import.meta.url),'utf8');
+ assert.doesNotMatch(actionsSource,/export\s+async\s+function\s+upsertAgent/);
+ const upsertSource=readFileSync(new URL('../src/lib/agents/upsert.ts',import.meta.url),'utf8');
+ assert.match(upsertSource,/^import "server-only";/);
+ assert.doesNotMatch(upsertSource,/^["']use server["'];?\s*$/m);
+ const figurants=readFileSync(new URL('../src/lib/figurants/actions.ts',import.meta.url),'utf8');
+ assert.match(figurants,/from "@\/lib\/agents\/upsert"/);
 });

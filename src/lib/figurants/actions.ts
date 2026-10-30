@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { validateImageUpload } from "@/lib/media/validate-upload";
 import { countFigurantPhotos, insertFigurantPhoto, MAX_PHOTOS_PAR_FIGURANT } from "./photos";
-import { upsertAgent } from "@/lib/agents/actions";
+import { upsertAgent } from "@/lib/agents/upsert";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import type { Civilite, Genre, PhotoType, Pronom } from "./types";

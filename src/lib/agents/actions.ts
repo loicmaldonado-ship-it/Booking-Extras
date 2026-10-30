@@ -44,52 +44,6 @@ export async function searchAgents(query: string): Promise<Agent[]> {
   return data ?? [];
 }
 
-// Rattache/complète un agent dans la base commune à partir d'une saisie
-// staff (fiche figurant, carte casting) — jamais appelé depuis le
-// formulaire public de candidature. Dédoublonne par email si fourni, sinon
-// par nom (insensible à la casse), pour éviter un doublon "Jean Dupont" /
-// "jean dupont" créé séparément à chaque fiche saisie à la main.
-export async function upsertAgent(agent: {
-  nom: string;
-  agence?: string | null;
-  email?: string | null;
-  telephone?: string | null;
-}): Promise<{ error?: string }> {
-  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
-  if (!agent.nom?.trim()) return { error: "Le nom de l'agent est obligatoire." };
-
-  const supabase = createAdminClient();
-
-  let existing: { id: string } | null = null;
-  if (agent.email) {
-    const { data, error } = await supabase.from("agents").select("id").ilike("email", literalLike(agent.email)).maybeSingle();
-    if (error) return { error: "Impossible de vérifier l'agent par email." };
-    existing = data;
-  }
-  if (!existing) {
-    const { data, error } = await supabase.from("agents").select("id").ilike("nom", literalLike(agent.nom)).maybeSingle();
-    if (error) return { error: "Impossible de vérifier l'agent par nom." };
-    existing = data;
-  }
-
-  const payload = {
-    nom: agent.nom,
-    agence: agent.agence ?? null,
-    email: agent.email ?? null,
-    telephone: agent.telephone ?? null,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (existing) {
-    const { data, error } = await supabase.from("agents").update(payload).eq("id", existing.id).select("id");
-    if (error || data?.length !== 1) return { error: "L'agent n'a pas pu être mis à jour." };
-  } else {
-    const { error } = await supabase.from("agents").insert(payload);
-    if (error) return { error: "L'agent n'a pas pu être enregistré." };
-  }
-  return {};
-}
-
 export async function listAgents(): Promise<Agent[]> {
   const accessError = await ownerAccessError();
   if (accessError) return [];
