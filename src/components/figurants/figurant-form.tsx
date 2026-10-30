@@ -395,9 +395,10 @@ export function FigurantForm({
               <Input
                 name="lien_label"
                 placeholder="Bande démo, Instagram..."
+                aria-label={`Libellé du lien ${i + 1}`}
                 defaultValue={row.label}
               />
-              <Input name="lien_url" placeholder="https://..." defaultValue={row.url} />
+              <Input name="lien_url" aria-label={`Adresse du lien ${i + 1}`} placeholder="https://..." defaultValue={row.url} />
             </div>
           ))}
         </div>
@@ -438,6 +439,7 @@ export function FigurantForm({
         <div className="flex items-center gap-3">
           <input
             type="date"
+            aria-label="Date d'indisponibilité à ajouter"
             value={indispoDate}
             onChange={(e) => setIndispoDate(e.target.value)}
             disabled={indispoPending}

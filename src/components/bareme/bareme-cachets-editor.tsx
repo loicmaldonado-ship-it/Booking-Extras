@@ -42,6 +42,7 @@ function CachetRow({ cachet, isChef }: { cachet: BaremeCachet; isChef: boolean }
           step="0.5"
           min={0}
           value={montant}
+          aria-label={`Montant brut ${cachet.cachet}`}
           onChange={(e) => setMontant(e.target.value)}
           onBlur={save}
           disabled={pending}
@@ -53,6 +54,7 @@ function CachetRow({ cachet, isChef }: { cachet: BaremeCachet; isChef: boolean }
           <input
             type="text"
             value={notes}
+            aria-label={`Notes ${cachet.cachet}`}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={save}
             disabled={pending}
@@ -100,6 +102,7 @@ function AddCachetRow({ convention, availableCachets }: { convention: Convention
           <input type="hidden" name="convention" value={convention} />
           <select
             name="cachet"
+            aria-label="Cachet"
             required
             defaultValue=""
             className="rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
@@ -120,12 +123,14 @@ function AddCachetRow({ convention, availableCachets }: { convention: Convention
             name="montant_brut"
             required
             placeholder="Montant €"
+            aria-label="Montant brut en euros"
             className="w-28 rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           />
           <input
             type="text"
             name="notes"
             placeholder="Notes (optionnel)"
+            aria-label="Notes"
             className="flex-1 rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           />
           <Button type="submit" variant="secondary" disabled={pending}>
@@ -151,7 +156,8 @@ export function BaremeCachetsEditor({
   const availableCachets = CACHETS.filter((c) => !usedCachets.has(c));
 
   return (
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-border text-left text-text-muted">
           <th className="px-6 py-3 font-medium">Cachet</th>
@@ -166,5 +172,6 @@ export function BaremeCachetsEditor({
         {isChef && <AddCachetRow convention={convention} availableCachets={availableCachets} />}
       </tbody>
     </table>
+      </div>
   );
 }

@@ -74,6 +74,7 @@ export function MembresList({
   return (
     <Card className="flex flex-col gap-3 p-0">
       {error && <p role="alert" className="px-4 pt-3 text-sm text-danger">{error}</p>}
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-text-muted">
@@ -154,6 +155,7 @@ export function MembresList({
           )}
         </tbody>
       </table>
+      </div>
     </Card>
   );
 }

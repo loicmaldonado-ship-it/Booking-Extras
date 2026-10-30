@@ -205,8 +205,8 @@ export function BookingForm({
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Notes</h2>
-        <Textarea name="notes" defaultValue={booking?.notes ?? ""} />
+        <h2 id="booking-notes-titre" className="text-lg font-semibold">Notes</h2>
+        <Textarea name="notes" aria-labelledby="booking-notes-titre" defaultValue={booking?.notes ?? ""} />
       </Card>
 
       <div className="flex gap-3">

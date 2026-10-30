@@ -74,7 +74,7 @@ export default async function AnnonceDetailPage({
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/annonces" label="Annonces" />
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold">{annonce.titre}</h1>
@@ -88,7 +88,7 @@ export default async function AnnonceDetailPage({
             {annonce.lieu ? ` · ${annonce.lieu}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/candidatures?annonce_id=${id}`}>Voir les candidatures</ButtonLink>
           <ButtonLink href={`/annonces/${id}/modifier`} variant="secondary">
             Modifier

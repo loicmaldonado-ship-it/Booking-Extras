@@ -67,6 +67,7 @@ function MajorationRow({ majoration, isChef }: { majoration: BaremeMajoration; i
             type="number"
             step="0.1"
             value={valeur}
+            aria-label={`Valeur ${majoration.label}`}
             onChange={(e) => setValeur(e.target.value)}
             onBlur={save}
             disabled={pending}
@@ -79,6 +80,7 @@ function MajorationRow({ majoration, isChef }: { majoration: BaremeMajoration; i
           <input
             type="text"
             value={notes}
+            aria-label={`Notes ${majoration.label}`}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={save}
             disabled={pending}
@@ -127,10 +129,12 @@ function AddMajorationRow({ convention }: { convention: Convention }) {
             name="label"
             required
             placeholder="Libellé (ex. Nuit)"
+            aria-label="Libellé de la majoration"
             className="w-40 rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           />
           <select
             name="valeur_type"
+            aria-label="Type de valeur"
             defaultValue="pourcentage"
             className="rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           >
@@ -145,6 +149,7 @@ function AddMajorationRow({ convention }: { convention: Convention }) {
             step="0.1"
             name="valeur"
             placeholder="Valeur (ignoré si cachet doublé)"
+            aria-label="Valeur"
             className="w-48 rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           />
           <label className="flex items-center gap-1.5 text-xs text-text-muted">
@@ -155,6 +160,7 @@ function AddMajorationRow({ convention }: { convention: Convention }) {
             type="text"
             name="notes"
             placeholder="Notes (optionnel)"
+            aria-label="Notes"
             className="flex-1 rounded-lg border border-border bg-ink px-2 py-1.5 text-sm outline-none focus:border-coral"
           />
           <Button type="submit" variant="secondary" disabled={pending}>
@@ -177,7 +183,8 @@ export function BaremeMajorationsEditor({
   isChef: boolean;
 }) {
   return (
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
       <thead>
         <tr className="border-b border-border text-left text-text-muted">
           <th className="px-6 py-3 font-medium">Majoration</th>
@@ -192,5 +199,6 @@ export function BaremeMajorationsEditor({
         {isChef && <AddMajorationRow convention={convention} />}
       </tbody>
     </table>
+      </div>
   );
 }

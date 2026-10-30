@@ -168,6 +168,7 @@ export function AgentsAdminPanel({ agents }: { agents: Agent[] }) {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Rechercher un agent, une agence, un email..."
+        aria-label="Rechercher un agent"
         className="w-full rounded-xl border border-border bg-ink px-3.5 py-2.5 text-sm outline-none focus:border-coral"
       />
       <div className="flex flex-col gap-2">

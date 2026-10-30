@@ -90,8 +90,9 @@ export function QuestionsManager({
           name="label"
           onInput={(e) => setHasLabel(e.currentTarget.value.trim().length > 0)}
           placeholder="Ex. Possédez-vous un vélo ?"
+          aria-label="Nouvelle question pour les candidat·es"
           disabled={pending}
-          className="flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         />
         <Button type="submit" variant="secondary" disabled={pending || !hasLabel}>
           {pending ? "Ajout..." : "Ajouter"}

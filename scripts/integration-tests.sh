@@ -16,7 +16,7 @@ for f in tests/*-local.sql; do
 done
 echo "== Tests navigateur / API sur l'application =="
 docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
-for t in storage-isolation-local auth-e2e-local bug11-upload-validation can03-doublons-local bug08-share-token-access sec05-share-links sec04-read-leak-pages bug02-all-actions-cross-team; do
+for t in qa06-mobile-a11y storage-isolation-local auth-e2e-local bug11-upload-validation can03-doublons-local bug08-share-token-access sec05-share-links sec04-read-leak-pages bug02-all-actions-cross-team; do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
 done

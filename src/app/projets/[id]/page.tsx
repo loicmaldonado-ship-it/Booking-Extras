@@ -43,7 +43,7 @@ export default async function ProjetDetailPage({
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/projets" label="Projets" />
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold">{projet.nom}</h1>
@@ -59,7 +59,7 @@ export default async function ProjetDetailPage({
             {projet.lieu ? ` · ${projet.lieu}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/projets/${id}/mineurs`} variant="secondary">Mineurs / DRIEETS</ButtonLink>
           <ButtonLink href={`/projets/${id}/modifier`} variant="secondary">
             Modifier

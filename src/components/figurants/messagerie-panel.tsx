@@ -160,6 +160,7 @@ export function MessageriePanel({
           onChange={(e) => setCategorie(e.target.value as FigurantMessageCategorie)}
           disabled={pending}
           className="w-auto"
+          aria-label="Catégorie du message"
         >
           {FIGURANT_MESSAGE_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -174,6 +175,7 @@ export function MessageriePanel({
         rows={3}
         disabled={pending}
         placeholder="Écrire un message interne..."
+        aria-label="Message interne"
         className="w-full rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-50"
       />
       <div className="flex justify-end gap-2">

@@ -64,13 +64,14 @@ export function IndemnitesManager({ projetId, indemnites }: { projetId: string; 
           ))}
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Ex. Prime nuit"
+          aria-label="Libellé de l'indemnité"
           disabled={pending}
-          className="flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         />
         <input
           type="number"
@@ -79,6 +80,7 @@ export function IndemnitesManager({ projetId, indemnites }: { projetId: string; 
           value={montant}
           onChange={(e) => setMontant(e.target.value)}
           placeholder="Montant €"
+          aria-label="Montant de l'indemnité en euros"
           disabled={pending}
           className="w-32 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
         />

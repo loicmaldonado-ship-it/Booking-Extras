@@ -139,6 +139,7 @@ export function DatesManager({
         <input
           type="date"
           name="date"
+          aria-label="Date de tournage à ajouter"
           onChange={(e) => setHasDate(!!e.target.value)}
           disabled={pending}
           className="rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
