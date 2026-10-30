@@ -27,7 +27,8 @@ begin
  assert not has_table_privilege('authenticated','public.profiles','TRUNCATE'),'Profiles TRUNCATE allowed';
  assert not has_table_privilege('authenticated','public.figurants','TRUNCATE'),'Figurants TRUNCATE allowed';
  assert not has_column_privilege('anon','public.profiles','gmail_smtp_app_password','SELECT'),'Anonymous SMTP grant';
- select count(*) into n from public.profiles where id in(u1,u2);assert n=2,'Team names hidden';
+ select count(*) into n from public.profiles where id=u1;assert n=1,'Own profile hidden';
+ select count(*) into n from public.profiles where id=u2;assert n=0,'Foreign team profile visible (DEC-02 30/10/2026)';
  perform id, nom, prenom, telephone, role, avatar_storage_path, last_seen_at, sections_autorisees, is_owner, comedien_pool_id, acces_complet from public.profiles where id=u1;
  perform gmail_smtp_user, email_espace_perso_template, email_magic_link_template from public.profiles where id=u1;
  update public.profiles set nom='Self edit allowed',last_seen_at=now() where id=u1;

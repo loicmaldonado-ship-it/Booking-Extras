@@ -15,7 +15,7 @@ et une session staff valide, sur les lignes de l'autre équipe ; contrôle inver
 | projets, annonces (+dates, questions, photos), candidatures (+jours, disponibilités, réponses, étiquettes, liens), journées, besoins, bookings, réserve, casting (rôles, entrées, événements d'upload, présentiel journées/créneaux/entrées), essayages (+journées), partage_liens, partage_journee_liens, figurants, figurant_photos, figurant_liens | 0 | 0 | OK |
 | projet_membres | **cheffes : visible** (avant) → 0 (après) | 0 | **Corrigé** : migration `20261030141000_isoler_lecture_projet_membres.sql` |
 | profiles — colonne `gmail_smtp_app_password` | **lisible par tout membre d'équipe** (avant) → refusée (après) | 0 | **Corrigé** : report du hotfix `423751b` absent de la branche de tests, migration `20261030140000_report_hotfix_secret_smtp_profiles.sql` |
-| profiles — nom, email, téléphone, rôle | visible par tout le personnel | 0 | **À décider (DEC-02)** : conservé volontairement par le hotfix ; expose les coordonnées du personnel des autres équipes |
+| profiles — nom, email, téléphone, rôle | **visible par tout le personnel** (avant) → son profil + personnes partageant un projet + propriétaire globale (après) | 0 | **Corrigé** (décision DEC-02 validée par Maxime le 30/10) : migration `20261030143000_isoler_lecture_profiles_equipe.sql` ; `tests/hotfix-rights-local.sql` mis à jour en conséquence |
 
 Accès légitimes : aucun acteur n'a perdu l'accès à ses propres lignes.
 

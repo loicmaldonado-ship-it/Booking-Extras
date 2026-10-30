@@ -108,16 +108,14 @@ select tbl, string_agg(actor||' lit='||foreign_visible||' maj='||foreign_updated
 from res where foreign_visible>0 or foreign_updated<>0 or foreign_deleted<>0 group by tbl order by tbl;
 \echo '--- Contrôle : lignes de SA PROPRE équipe invisibles (accès légitime cassé ?) ---'
 select tbl, string_agg(actor, ',' order by actor) as acteurs_sans_acces from res where own_visible=0 group by tbl order by tbl;
--- profiles : lecture des noms/emails du personnel de toutes les équipes conservée volontairement
--- (hotfix 423751b, test « Team names hidden ») en attendant la décision DEC-02 ; écriture/suppression interdites.
 do $verdict$
 declare leaks text; broken text;
 begin
   select string_agg(distinct tbl, ', ') into leaks from res
-   where (foreign_visible>0 and tbl<>'profiles') or foreign_updated<>0 or foreign_deleted<>0;
+   where foreign_visible>0 or foreign_updated<>0 or foreign_deleted<>0;
   select string_agg(distinct tbl, ', ') into broken from res where own_visible=0;
   if leaks is not null then raise exception 'ÉCHEC isolation inter-équipes : %', leaks; end if;
   if broken is not null then raise exception 'ÉCHEC accès légitime perdu : %', broken; end if;
-  raise notice 'PASS: % tables, 4 acteurs, aucune ligne étrangère lisible/modifiable/supprimable (hors lecture profiles documentée)', (select count(distinct tbl) from res);
+  raise notice 'PASS: % tables, 4 acteurs, aucune ligne étrangère lisible/modifiable/supprimable ', (select count(distinct tbl) from res);
 end $verdict$;
 rollback;
