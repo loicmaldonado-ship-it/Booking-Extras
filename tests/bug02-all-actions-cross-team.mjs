@@ -17,7 +17,9 @@ import assert from "node:assert/strict";
 const BASE = process.env.BASE || "http://localhost:3000";
 const DB = process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS";
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const ACTOR = process.env.ACTOR || "cheffe-autre-equipe"; // ou "assistante-hors-projet"
 assert.ok(["cheffe-autre-equipe", "assistante-hors-projet", "cheffe-proprietaire"].includes(ACTOR), "ACTOR inconnu");
 const LEGIT = ACTOR === "cheffe-proprietaire"; // la cheffe propriétaire du projet A appelle tout sur SES données : aucune action ne doit planter

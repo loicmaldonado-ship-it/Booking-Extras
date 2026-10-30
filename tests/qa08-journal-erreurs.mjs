@@ -8,7 +8,9 @@ import assert from "node:assert/strict";
 
 const BASE = process.env.BASE || "http://localhost:3000";
 const LOG = process.env.NEXT_LOG || "/tmp/next.log";
-const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const pw = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const manifest = JSON.parse(readFileSync(".next/server/server-reference-manifest.json", "utf8")).node;
 const lignes = () => readFileSync(LOG, "utf8").split("\n").filter((l) => l.includes("[booking-error] ")).map((l) => JSON.parse(l.slice(l.indexOf("[booking-error] ") + 16)));
 const avant = lignes().length;

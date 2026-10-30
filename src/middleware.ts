@@ -27,7 +27,10 @@ const PUBLIC_PREFIXES = [
   "/compte",
   "/mineurs/depot/",
   "/mineurs/partage/",
-  "/manifest.ts",
+  // Adresses réellement servies (corrigé le 30/10/2026 : "/manifest.ts" ne correspondait à rien, le manifeste et ses
+  // icônes redirigeaient vers /login pour un visiteur non connecté → installation de l'appli cassée sur mobile).
+  "/manifest.webmanifest",
+  "/manifest-icon",
   "/icon",
   "/apple-icon",
   "/offline",

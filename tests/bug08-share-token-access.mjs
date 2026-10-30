@@ -9,7 +9,9 @@ import assert from "node:assert/strict";
 
 const BASE = process.env.BASE || "http://localhost:3000";
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const sql = (q) => execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"], { input: `set request.jwt.claim.role='service_role';\n${q}`, encoding: "utf8" }).trim();
 const P = "00000000-0000-4000-8000-0000000070e0"; // projet du seed (cheffe propriétaire + assistante membre)
 const TOKEN = `bug08-${Date.now()}`;

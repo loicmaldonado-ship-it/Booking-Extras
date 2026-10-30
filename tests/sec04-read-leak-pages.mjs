@@ -18,7 +18,9 @@ const BASE = process.env.BASE || "http://localhost:3000";
 const DB = process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS";
 const ACTOR = process.env.ACTOR || "cheffe-autre-equipe";
 const require = createRequire(import.meta.url);
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 assert.equal(env.BOOKING_TEST_MODE, "1");
 assert.match(env.NEXT_PUBLIC_SUPABASE_URL, /127\.0\.0\.1|localhost/);

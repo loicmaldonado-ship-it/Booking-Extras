@@ -20,7 +20,7 @@ for t in qa06-mobile-a11y storage-isolation-local auth-e2e-local bug11-upload-va
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
 done
-for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e; do
+for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e annonces-can05-met02 routes-export-acces; do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
 done
 # QA-08 : lit le journal de `npm start` (NEXT_LOG, défaut /tmp/next.log comme dans la CI).

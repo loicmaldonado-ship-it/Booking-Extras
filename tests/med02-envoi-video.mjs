@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 const BASE = process.env.BASE || "http://localhost:3000";
 const pw = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
 const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
-const chromium = pw[NAV];
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 assert.equal(env.BOOKING_TEST_MODE, "1");
 const sql = (q) => execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"], { input: q, encoding: "utf8" }).trim().split("\n").filter(Boolean).pop() ?? "";
@@ -35,7 +35,7 @@ try {
   const page = await ctx.newPage();
   // Vraie vidéo : 12 s, 1280×720, image animée + son, débit élevé (≈ 20 Mo), fabriquée avec Chromium (MediaRecorder) ;
   // l'envoi se fait ensuite dans le navigateur testé.
-  const genBrowser = await pw.chromium.launch();
+  const genBrowser = await (await import("./lib/navigateur.mjs")).navigateur(pw, "chromium").launch();
   const genPage = await genBrowser.newPage();
   await genPage.goto(BASE + "/confidentialite");
   const b64 = await genPage.evaluate(async () => {

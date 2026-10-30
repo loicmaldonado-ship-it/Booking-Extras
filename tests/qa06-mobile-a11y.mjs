@@ -10,7 +10,7 @@ import { randomBytes } from "node:crypto";
 const require = createRequire(import.meta.url);
 const pw = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
-const chromium = pw[NAV];
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const BASE = process.env.BASE || "http://localhost:3000";
 const P = "00000000-0000-4000-8000-0000000070e0", ANN = "00000000-0000-4000-8000-00000000a000", ANN_TOK = "00000000-0000-4000-8000-00000000a0a0";
 const CAND = "00000000-0000-4000-8000-00000000cd01", FIG = "00000000-0000-4000-8000-00000000f001";

@@ -8,7 +8,9 @@ import { createRequire } from "node:module";
 import assert from "node:assert/strict";
 
 const BASE = process.env.BASE || "http://localhost:3000";
-const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const NAV = process.env.BROWSER || "chromium"; // chromium | webkit (moteur de Safari) | firefox
+const pw = createRequire(import.meta.url)(process.env.PLAYWRIGHT_PATH || "playwright");
+const chromium = (await import("./lib/navigateur.mjs")).navigateur(pw, NAV);
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
 assert.equal(env.BOOKING_TEST_MODE, "1");
 const sql = (q) => execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt", "-v", "ON_ERROR_STOP=1"], { input: q, encoding: "utf8" }).trim().split("\n").filter(Boolean).pop() ?? "";
