@@ -18,7 +18,7 @@ export function ExportMyroleButtons({ projetId, date }: { projetId?: string; dat
   const query = new URLSearchParams({ projet_id: projetId, date }).toString();
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <AnchorButton href={`/bookings/export-myrole?${query}`} variant="secondary">
         Exporter Myrole (CSV)
       </AnchorButton>
@@ -40,7 +40,7 @@ export function ExportMyroleButtons({ projetId, date }: { projetId?: string; dat
       >
         {state === "copied" ? "Emails copiés !" : state === "error" ? "Erreur" : "Copier les emails"}
       </Button>
-      <span className="text-xs text-text-muted">Seuls les bookings confirmés sont inclus.</span>
+      <span className="min-w-0 text-xs text-text-muted">Seuls les bookings confirmés sont inclus.</span>
     </div>
   );
 }

@@ -82,11 +82,13 @@ export function ValidationMes({
   // rafraîchit en même temps (votes des autres, réponses de l'équipe).
   useEffect(() => {
     if (apercu) return;
+    // Appel interrompu (page quittée, réseau coupé) : ignoré, le signalement repart au tour suivant.
+    const signaler = () => { if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role).catch(() => {}); };
     const tic = () => {
-      if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role);
+      signaler();
       router.refresh();
     };
-    if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role);
+    signaler();
     const id = setInterval(tic, 30_000);
     return () => clearInterval(id);
   }, [apercu, moi, token, router]);

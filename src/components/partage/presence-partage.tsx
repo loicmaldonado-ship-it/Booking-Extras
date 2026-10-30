@@ -35,7 +35,8 @@ export function PresencePartage({
   const [pending, startTransition] = useTransition();
 
   const charger = useCallback(() => {
-    commentairesDuLien(token).then(setCommentaires);
+    // Appel interrompu (page quittée, réseau coupé) : nouvel essai au tour suivant.
+    commentairesDuLien(token).then(setCommentaires).catch(() => {});
   }, [token]);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function PresencePartage({
     // Sans identité (lien réal pas encore commenté) : seulement les
     // commentaires, aucune visite enregistrée.
     const tic = () => {
-      if (moi) signalerVisitePartage(token, moi.id, moi.prenom, moi.role);
+      if (moi) signalerVisitePartage(token, moi.id, moi.prenom, moi.role).catch(() => {});
       charger();
     };
     tic();

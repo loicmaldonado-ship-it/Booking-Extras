@@ -609,7 +609,13 @@ function Panneau(props: PanneauProps) {
     let actif = true;
     async function relever() {
       setReleve((r) => ({ ...r, enCours: true }));
-      const res = await releverReponsesAuto(projetId);
+      let res;
+      try {
+        res = await releverReponsesAuto(projetId);
+      } catch {
+        if (actif) setReleve((r) => ({ ...r, enCours: false }));
+        return; // appel interrompu : nouvel essai au tour suivant
+      }
       if (!actif) return;
       setReleve({ le: res.releveLe, erreur: res.erreur, enCours: false });
       // Recharge aussi pour les réponses texto remontées par le relais Mac.

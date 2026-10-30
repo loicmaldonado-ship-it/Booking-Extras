@@ -17,8 +17,14 @@ export function TeamPresenceStrip() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const data = await fetchMyTeamPresence();
-      if (!cancelled) setMembers(data);
+      // Appel interrompu (changement de page, réseau coupé) : on garde l'affichage précédent au lieu d'une erreur
+      // non gérée — relevé par la passe complète sous Firefox et WebKit (30/10/2026).
+      try {
+        const data = await fetchMyTeamPresence();
+        if (!cancelled) setMembers(data);
+      } catch {
+        // prochain essai au tour suivant
+      }
     }
     load();
     const timer = setInterval(load, POLL_INTERVAL_MS);

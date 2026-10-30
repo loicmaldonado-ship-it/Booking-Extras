@@ -49,7 +49,12 @@ export function NotificationsBell() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   async function refresh() {
-    const panel = await getNotificationsPanel();
+    let panel;
+    try {
+      panel = await getNotificationsPanel();
+    } catch {
+      return; // appel interrompu (page quittée, réseau coupé) : nouvel essai au tour suivant
+    }
     setGroups(panel.groups);
     setATrier(panel.aTrier);
     setUnreadCount(panel.unreadCount);
