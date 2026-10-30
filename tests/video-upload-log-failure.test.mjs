@@ -41,3 +41,19 @@ test('cancelling while the completed upload is being logged does not return succ
     if (old.key === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = old.key;
   }
 });
+
+test('cancelling during a failed slot request reports cancellation and does not retry', async () => {
+  const controller = new AbortController();
+  let slots = 0, waits = 0;
+  const realTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = (fn) => { waits++; fn(); return 0; };
+  const events = [];
+  const exports = {};
+  new Function('require', 'exports', code)(name => name === '@/lib/casting/upload-actions' ? { logCastingUploadEvent: async event => events.push(event.outcome) } : { translateUploadErrorMessage: () => 'Erreur temporaire' }, exports);
+  try {
+    await assert.rejects(exports.envoyerVideo({ file: { size: 10, type: 'video/mp4' }, signal: controller.signal, onProgress() {}, createSlot: async () => { slots++; controller.abort(); throw new Error('offline'); }, logContext: { source: 'equipe' } }), error => error.name === 'AbortError');
+    assert.equal(slots, 1);
+    assert.equal(waits, 0);
+    assert.deepEqual(events, ['annule']);
+  } finally { globalThis.setTimeout = realTimeout; }
+});

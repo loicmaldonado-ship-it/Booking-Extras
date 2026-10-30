@@ -198,9 +198,9 @@ export async function envoyerVideo({
       onProgress({ pct: 100, restant: 0, essai });
       return slot.path;
     } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
+      if (signal.aborted || (e instanceof DOMException && e.name === "AbortError")) {
         await journal("annule");
-        throw e;
+        throw new DOMException("Annulé", "AbortError");
       }
       derniere = e instanceof ErreurEnvoi ? e : new Error(translateUploadErrorMessage(e instanceof Error ? e.message : String(e)));
       const reessayable = e instanceof ErreurEnvoi ? e.reessayable : true;
