@@ -20,6 +20,11 @@ for t in storage-isolation-local auth-e2e-local bug11-upload-validation can03-do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
 done
+# Recette technique (MET/COM/CAN) : nécessite la capture des emails par Mailpit (BOOKING_TEST_SMTP_URL dans .env.local).
+if grep -q '^BOOKING_TEST_SMTP_URL=smtp' .env.local 2>/dev/null; then
+  if node tests/recette-technique-e2e.mjs > /tmp/integration-recette.log 2>&1; then echo "OK  recette-technique-e2e"; else echo "KO  recette-technique-e2e"; tail -5 /tmp/integration-recette.log; fail=1; fi
+  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
+else echo "KO  recette-technique-e2e : BOOKING_TEST_SMTP_URL absent de .env.local (voir .env.example)"; fail=1; fi
 for t in sec04-read-leak-pages bug02-all-actions-cross-team; do
   if ACTOR=assistante-hors-projet node "tests/$t.mjs" > "/tmp/integration-$t-assistante.log" 2>&1; then echo "OK  $t (assistante hors projet)"; else echo "KO  $t (assistante hors projet)"; tail -5 "/tmp/integration-$t-assistante.log"; fail=1; fi
 done

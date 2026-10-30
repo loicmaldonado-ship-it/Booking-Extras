@@ -6,8 +6,23 @@ import nodemailer from "nodemailer";
 // par projet ayant configuré sa propre boîte Gmail (voir projets/email.ts).
 const transporters = new Map<string, ReturnType<typeof nodemailer.createTransport>>();
 
+// COM-01 (30/10/2026) : en mode test, les emails peuvent être CAPTURÉS par une boîte locale (Mailpit, fournie par
+// `supabase start`) au lieu d'être jetés, pour relire leur contenu sans aucun secret de production. N'accepte qu'un
+// hôte local ou privé : impossible d'envoyer vers un vrai serveur depuis le mode test.
+function transporteurCapture(user?: string | null) {
+  const url = process.env.BOOKING_TEST_SMTP_URL;
+  if (!url) return null;
+  let host: string;
+  try { host = new URL(url).hostname; } catch { return null; }
+  if (!/^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)$/.test(host)) return null;
+  const cached = transporters.get(`capture\u0000${url}`);
+  const transporter = cached ?? nodemailer.createTransport({ url, ignoreTLS: true, connectionTimeout: 5_000 });
+  transporters.set(`capture\u0000${url}`, transporter);
+  return { transporter, user: user || process.env.GMAIL_SMTP_USER || "booking-test@example.test" };
+}
+
 function getTransporter(user?: string | null, pass?: string | null) {
-  if (communicationsDesactivees()) return null;
+  if (communicationsDesactivees()) return transporteurCapture(user);
   const resolvedUser = user || process.env.GMAIL_SMTP_USER;
   const resolvedPass = pass || process.env.GMAIL_SMTP_APP_PASSWORD;
   if (!resolvedUser || !resolvedPass) return null;

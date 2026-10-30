@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptSecret } from "@/lib/crypto/secrets";
 import { motDePasseApp } from "@/lib/projets/email";
-import { checkProjetAccess, requireChef } from "@/lib/auth/session";
+import { checkProjetAccess, getCurrentProfile, requireChef } from "@/lib/auth/session";
 import { projetEstSupprimable } from "./types";
 import type { Convention, ProjetType } from "./types";
 
@@ -152,9 +152,21 @@ export async function updateProjet(
   redirect(`/projets/${id}`);
 }
 
-export async function deleteProjet(id: string) {
+// MET-01 (règle de Loïc, 27/10/2026) : un projet n'est archivé, désarchivé ou supprimé que par la cheffe qui l'a
+// créé (ou le compte propriétaire). Avant le 30/10, tout membre du projet (assistante comprise) le pouvait.
+async function requireCreatriceProjet(id: string): Promise<void> {
   const accessError = await checkProjetAccess(id);
   if (accessError) throw new Error(accessError);
+  const profile = await getCurrentProfile();
+  if (!profile) throw new Error("Non autorisé.");
+  if (profile.isOwner) return;
+  const { data, error } = await createAdminClient().from("projets").select("owner_id").eq("id", id).maybeSingle();
+  if (error || !data) throw new Error("Projet introuvable.");
+  if (data.owner_id !== profile.id) throw new Error("Seule la cheffe qui a créé ce projet peut l'archiver ou le supprimer.");
+}
+
+export async function deleteProjet(id: string) {
+  await requireCreatriceProjet(id);
 
   const supabase = createAdminClient();
   const { data: projet } = await supabase.from("projets").select("archive, archive_le").eq("id", id).maybeSingle();
@@ -172,8 +184,7 @@ export async function deleteProjet(id: string) {
 // figuration qu'une fois sur ce projet, cochés par le candidat lui-même à
 // la candidature). Irréversible : désarchiver ne les restaure pas.
 export async function archiverProjet(id: string) {
-  const accessError = await checkProjetAccess(id);
-  if (accessError) throw new Error(accessError);
+  await requireCreatriceProjet(id);
 
   const supabase = createAdminClient();
 
@@ -203,8 +214,7 @@ export async function archiverProjet(id: string) {
 }
 
 export async function desarchiverProjet(id: string) {
-  const accessError = await checkProjetAccess(id);
-  if (accessError) throw new Error(accessError);
+  await requireCreatriceProjet(id);
 
   const supabase = createAdminClient();
   await supabase.from("projets").update({ archive: false, archive_le: null }).eq("id", id);

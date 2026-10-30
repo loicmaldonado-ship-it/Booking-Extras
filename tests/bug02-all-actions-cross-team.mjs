@@ -19,7 +19,8 @@ const DB = process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || "playwright");
 const ACTOR = process.env.ACTOR || "cheffe-autre-equipe"; // ou "assistante-hors-projet"
-assert.ok(["cheffe-autre-equipe", "assistante-hors-projet"].includes(ACTOR), "ACTOR inconnu");
+assert.ok(["cheffe-autre-equipe", "assistante-hors-projet", "cheffe-proprietaire"].includes(ACTOR), "ACTOR inconnu");
+const LEGIT = ACTOR === "cheffe-proprietaire"; // la cheffe propriétaire du projet A appelle tout sur SES données : aucune action ne doit planter
 const jsonOut = process.argv.includes("--json") ? process.argv[process.argv.indexOf("--json") + 1] : null;
 
 const env = Object.fromEntries(readFileSync(".env.local", "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]));
@@ -103,7 +104,8 @@ const created = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users
 }).then((r) => r.json());
 assert.ok(created.id, "Création cheffe B impossible");
 const B = created.id;
-if (ACTOR === "cheffe-autre-equipe") svc(`update profiles set role='chef', is_owner=false, nom='Cheffe B fictive' where id='${B}';`);
+if (ACTOR !== "assistante-hors-projet") svc(`update profiles set role='chef', is_owner=false, nom='Cheffe B fictive' where id='${B}';`);
+if (LEGIT) svc(`update projets set owner_id='${B}' where id='${P}'; update message_templates set equipe_id='${B}' where id='${A.template}'; update figurants set comedien_pool_id='${B}' where id='${FIG}';`);
 else svc(`update profiles set role='assistant', is_owner=false, acces_complet=true, sections_autorisees=null, nom='Assistante B fictive' where id='${B}';`);
 const PB = ACTOR === "cheffe-autre-equipe" ? one(`insert into projets(nom, owner_id) values('Projet B ${Date.now()}','${B}') returning id;`) : RANDOM;
 
@@ -113,7 +115,7 @@ const idByFile = (f) => {
   const m = [["agents/", A.agent], ["annonces/dates", A.annDate], ["annonces/moodboard", A.annPhoto], ["annonces/questions", A.question], ["annonces/", A.annonce],
     ["bookings/besoins", A.besoin], ["bookings/", A.booking], ["candidatures/etiquettes", A.etiq], ["candidatures/", A.cand], ["casting-presentiel/", A.pEntry],
     ["casting/", A.entry], ["essayages/", A.essayage], ["figurants/", FIG], ["indemnites/", A.indemnite], ["references/", A.reference], ["templates/", A.template],
-    ["equipe/", A.membre], ["validation/", A.lienVal], ["partage/", A.partage], ["messages/", A.envoi], ["minors/", A.dossier], ["fonctions", A.fonction], ["bareme/", A.baremeCachet]];
+    ["equipe/", A.membre], ["validation/", A.lienVal], ["partage/", A.partage], ["messages/", A.envoi], ["minors/", A.dossier], ["fonctions", A.fonction], ["bareme/", A.baremeCachet], ["projets/", P]];
   return (m.find(([k]) => fileOf(f).startsWith(k)) || [null, A.cand])[1];
 };
 const S = "INTRUSION-B";
@@ -264,6 +266,13 @@ if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 1));
 const suspects = results.filter((r) => r.changed.length || r.leak);
 console.log(`[${ACTOR}] ${results.length} actions appelées ; ${suspects.length} ont modifié au moins une table ou renvoyé un token :`);
 for (const s of suspects) console.log(` - ${s.action} [${s.http}] tables: ${s.changed.join(", ") || "-"}${s.leak ? " FUITE-LECTURE" : ""} :: ${s.reponse.slice(0, 120)}${s.leak ? "\n     contexte: " + s.tagCtx.replace(/\s+/g, " ") : ""}`);
+if (LEGIT) {
+  const crashes = results.filter((r) => r.http === 500 || /^E\{/.test(r.reponse));
+  console.log(`[cheffe-proprietaire] ${results.length} actions ; ${crashes.length} plantages serveur :`);
+  for (const c of crashes) console.log("  PLANTAGE " + c.action + " :: " + c.reponse.slice(0, 100));
+  if (jsonOut) writeFileSync(jsonOut, JSON.stringify(results, null, 1));
+  process.exit(0);
+}
 const unexpected = suspects.filter((r) => (r.leak || r.changed.some((t) => !(SELF_SCOPED[r.action] || []).includes(t))));
 assert.equal(othersAfter, othersBefore, "Des lignes n'appartenant pas à la cheffe B ont été modifiées (profils, modèles, brouillons ou relais d'autres personnes)");
 assert.deepEqual(unexpected.map((r) => r.action), [], "Actions ayant modifié des données hors du périmètre de la cheffe B");

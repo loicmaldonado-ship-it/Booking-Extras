@@ -77,20 +77,24 @@ type LigneTexto = {
 function lignesTextos(profileId: string, destinataires: DestinataireTexto[]) {
   const sansNumero: string[] = [];
   const lignes: LigneTexto[] = [];
-  for (const d of destinataires.slice(0, MAX_PAR_ENVOI)) {
-    const tel = telephoneInternational(d.telephone);
-    const texte = d.texte.trim();
+  // Entrée venant du navigateur : forme vérifiée ici (le 30/10/2026, un élément incomplet faisait planter l'action).
+  const uuid = (v: unknown) => (typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v) ? v : null);
+  for (const d of (Array.isArray(destinataires) ? destinataires : []).slice(0, MAX_PAR_ENVOI)) {
+    if (!d || typeof d !== "object") continue;
+    const nom = typeof d.nom === "string" ? d.nom : "";
+    const tel = typeof d.telephone === "string" ? telephoneInternational(d.telephone) : null;
+    const texte = typeof d.texte === "string" ? d.texte.trim() : "";
     if (!tel || !texte) {
-      sansNumero.push(d.nom);
+      sansNumero.push(nom);
       continue;
     }
     lignes.push({
       profile_id: profileId,
       telephone: tel,
-      destinataire: d.nom.slice(0, 120),
+      destinataire: nom.slice(0, 120),
       message: texte.slice(0, 2000),
-      figurant_id: d.figurantId ?? null,
-      projet_id: d.projetId ?? null,
+      figurant_id: uuid(d.figurantId),
+      projet_id: uuid(d.projetId),
     });
   }
   return { lignes, sansNumero };
