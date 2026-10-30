@@ -20,7 +20,10 @@ https.createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (req, r
     headers: { ...req.headers, "x-forwarded-proto": "https", "x-forwarded-host": req.headers.host } }, (r) => {
     // Next construit ses redirections absolues en http (il voit http://localhost:3443) : on les remet en https.
     const entetes = { ...r.headers };
-    if (typeof entetes.location === "string") entetes.location = entetes.location.replace(/^http:\/\/localhost:/, "https://localhost:");
+    // Les redirections qui reprennent le port de l'appli (http:// ou https://localhost:3000, selon x-forwarded-proto) sont
+    // renvoyées vers le relais.
+    if (typeof entetes.location === "string")
+      entetes.location = entetes.location.replace(new RegExp(`^https?://${cible.host}`), `https://localhost:${port}`).replace(/^http:\/\/localhost:/, "https://localhost:");
     res.writeHead(r.statusCode, entetes); r.pipe(res);
   });
   amont.on("error", () => { res.writeHead(502); res.end(); });

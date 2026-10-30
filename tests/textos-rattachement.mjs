@@ -25,7 +25,8 @@ const D = sql("select (current_date+88)::text;");
 const fig = sql(`insert into figurants(prenom,nom,email,date_naissance) values('Lou','${M}','${M.toLowerCase()}@example.test','1990-01-01') returning id;`);
 sql(`insert into journees(projet_id,date) values('${P}','${D}') on conflict do nothing; insert into bookings(figurant_id,projet_id,date,statut,cachet) values('${fig}','${P}','${D}','confirmé','Figurant');`);
 const autre = await admin("users", "POST", { email: `txt-autre-${Date.now()}@example.test`, password: "booking-test-x", email_confirm: true });
-sql(`update profiles set role='chef', is_owner=false, acces_complet=true where id='${autre.id}';`);
+// Fiche membre complète (sinon l'appli renvoie vers /mon-compte pendant le test).
+sql(`update profiles set role='chef', is_owner=false, acces_complet=true, prenom='Dom', nom='Autre-Equipe', telephone='0600000009', avatar_storage_path='seed/avatar-cheffe.png' where id='${autre.id}';`);
 const checks = [];
 const browser = await navigateur.launch();
 try {
@@ -33,10 +34,7 @@ try {
     const p = await (await browser.newContext()).newPage();
     await p.goto(BASE + "/login"); await p.fill("input[type=email]", email); await p.fill("input[type=password]", password);
     await Promise.all([p.waitForURL((u) => !u.pathname.startsWith("/login")), p.locator("form button[type=submit]").first().click()]);
-    // Un compte cheffe neuf est renvoyé vers /mon-compte (fiche à compléter) : sous WebKit ce renvoi interrompt goto.
-    // Seule compte une page du même site pour appeler l'action ; le résultat est vérifié en base.
-    await p.goto(BASE + url).catch((e) => { if (!/interrupted by another navigation|NS_BINDING_ABORTED|net::ERR_ABORTED/.test(e.message)) throw e; });
-    await p.waitForLoadState();
+    await p.goto(BASE + url);
     await p.evaluate(async ({ id, url, args }) => { await fetch(url, { method: "POST", headers: { "Next-Action": id, Accept: "text/x-component", "Content-Type": "text/plain;charset=UTF-8" }, body: JSON.stringify(args) }); },
       { id, url, args: [[{ nom: "Lou", telephone: tel, texte: `Texte ${M}`, figurantId: fig, projetId: P }]] });
     await p.context().close();
