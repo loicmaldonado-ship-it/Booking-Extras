@@ -71,6 +71,8 @@ export async function middleware(request: NextRequest) {
     if (sessionError || active !== true) {
       await supabase.auth.signOut();
       const signedOutResponse = NextResponse.redirect(new URL("/login", request.url));
+      // Preserve the auth cookie removals written by Supabase on the redirect.
+      for (const cookie of response.cookies.getAll()) signedOutResponse.cookies.set(cookie);
       signedOutResponse.cookies.delete(SESSION_STARTED_AT_COOKIE);
       return signedOutResponse;
     }
