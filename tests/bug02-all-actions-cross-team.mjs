@@ -35,6 +35,10 @@ const inventory = JSON.parse(readFileSync("docs/bug02-inventaire-actions-2026-10
 
 const SEED_CHEF = "00000000-0000-4000-8000-00000000c0c0";
 const SEED_ASSIST = "00000000-0000-4000-8000-00000000a551";
+// L'assistante du seed est membre du projet A : en mode LEGIT la cheffe de test peut légitimement modifier ses accès.
+// Son état est sauvegardé ici et restauré à la fin pour ne pas polluer les autres tests (bug08, auth-e2e).
+const SEED_ASSIST_ETAT = execFileSync("docker", ["exec", "-i", process.env.SUPABASE_DB_CONTAINER || "supabase_db_BOOKING_EXTRAS", "psql", "-U", "postgres", "-d", "postgres", "-qAt"],
+  { input: `select json_build_object('acces_complet', acces_complet, 'sections', sections_autorisees, 'role', role)::text from profiles where id='${SEED_ASSIST}';`, encoding: "utf8" }).trim();
 let FIG = "00000000-0000-4000-8000-00000000f001"; // remplacé ci-dessous par un profil PRIVÉ à l'équipe A
 const TAG = "BUG02ALL-" + Date.now();
 const RANDOM = "00000000-0000-4000-8000-0000000b0b0b";
@@ -258,6 +262,9 @@ try {
   await browser.close();
   var othersAfter = othersQuery();
   restoreBareme();
+  svc(`update profiles p set acces_complet=(e->>'acces_complet')::boolean, role=e->>'role',
+         sections_autorisees=case when e->'sections' = 'null'::jsonb then null else array(select jsonb_array_elements_text(e->'sections')) end
+       from (select $json$${SEED_ASSIST_ETAT}$json$::jsonb as e) x where p.id='${SEED_ASSIST}';`);
   svc(`delete from projets where id in ('${P}','${PB}'); delete from figurants where nom like 'BUG02ALL-%'; delete from message_templates where id='${A.template}'; delete from agents where nom like 'BUG02ALL-%' or nom like 'BUG02GLOBAL-%' or id='${A.agent}'; delete from references_accueil where titre like 'BUG02ALL-%' or titre like 'BUG02GLOBAL-%';`);
   await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/users/${B}`, { method: "DELETE", headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` } });
 }
