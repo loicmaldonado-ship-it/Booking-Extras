@@ -262,3 +262,5 @@
 - 30/10/2026 — MED-03 partiel : l’annulation ou l’expiration pendant la préparation d’une photo de casting empêche désormais le dépôt de démarrer après coup ; minuteries et écouteurs sont nettoyés. Défaut reproduit ; deux tests simulés (annulation et succès), TypeScript, ESLint et diff réussis. Aucun fichier réel envoyé. Un transfert déjà démarré ne peut pas être interrompu par cette correction et peut laisser un fichier orphelin ; recette navigateur et nettoyage restent à étudier. Carte ouverte.
 
 - 30/10/2026 — MED-03 partiel : le bouton d’annulation n’est plus proposé pendant la finalisation serveur d’un casting, étape qu’il ne pouvait pas interrompre ; l’annulation reste disponible pendant la préparation et l’envoi. Deux tests ciblés existants, TypeScript, ESLint et diff réussis ; interaction navigateur et situation réseau incertaine restent à recetter. Carte ouverte.
+
+- 30/10/2026 — Suite complète après correctifs casting : 524/524 tests réussis. L’application de recette sur 127.0.0.1:3200 reste inaccessible ; aucune carte concernée n’est cochée sans validation technique complète.
