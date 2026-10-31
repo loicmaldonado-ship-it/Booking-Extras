@@ -35,6 +35,7 @@
 | 31 | Lighthouse : `/robots.txt` renvoyait une page HTML ; texte vert, ambre et corail trop peu contrasté (badges, montants du barème) ; vignette photo des candidatures sans nom accessible | QA-06 / QA-07 | `src/app/robots.ts`, couleurs assombries dans `globals.css`, `aria-label` ; vérifié par Lighthouse et `tests/securite-entetes.mjs` |
 | 32 | HSTS envoyé aussi en local : Safari et Firefox forçaient ensuite https://localhost sur tous les ports | SEC | HSTS seulement si `NEXT_PUBLIC_SITE_URL` est un domaine public en https |
 | 33 | Appels automatiques en tâche de fond (présence de l'équipe, cloche, relève des mails, liens de validation et de partage) : s'ils étaient interrompus (changement de page, réseau coupé), erreur JavaScript non gérée, remontée dans le journal d'erreurs ; constaté sous Firefox et Safari en passant par `/mineurs` | QA-08 / BUG-13 | erreurs interceptées, nouvel essai au tour suivant ; `tests/passe-complete.mjs` sous Firefox et WebKit |
+| 34 | Lanceur de recette : la base ne démarrait pas si une autre base Supabase locale tournait déjà (port 54325 de la boîte mail de test non déplacé) ; photo de la cheffe du seed absente | QA-06 | port déplacé (29245), avatar fictif déposé au démarrage ; vérifié depuis l'archive ZIP (3 comptes, arrêt) |
 | 30 | 25 pages de documents et 5 pages de détail débordaient sur téléphone une fois remplies ; exports préchargés comme des pages (requêtes en échec) | QA-06 / BUG-17 | `tests/passe-complete.mjs` (96 adresses × 4 rôles × 4 largeurs) |
 
 ## 2. Smoke test des écrans (ENV-04)

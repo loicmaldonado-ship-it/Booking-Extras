@@ -51,7 +51,7 @@ mkdirSync(join(local,'supabase/migrations'),{recursive:true});
 for(const n of migrationNames)copyFileSync(join(root,'supabase/migrations',n),join(local,'supabase/migrations',n));
 copyFileSync(join(root,'supabase/seed.sql'),join(local,'supabase/seed.sql'));
 let config=readFileSync(join(root,'supabase/config.toml'),'utf8').replace(/^project_id\s*=.*$/m,`project_id = "${projectPrefix}_${fingerprint.slice(0,12)}"`);
-for(const [a,b] of [['54321','29194'],['54322','29242'],['54320','29240'],['54323','29243'],['54324','29244'],['54327','29247'],['54329','29249']])config=config.replaceAll(a,b);
+for(const [a,b] of [['54321','29194'],['54322','29242'],['54320','29240'],['54323','29243'],['54324','29244'],['54325','29245'],['54327','29247'],['54329','29249']])config=config.replaceAll(a,b);
 writeFileSync(join(local,'supabase/config.toml'),config);
 console.log('Préparation de la base de démonstration. Le premier démarrage peut prendre plusieurs minutes.');
 const started=command('npx',startArgs,{cwd:local,capture:true,allowFailure:true,diagnostic:true});
