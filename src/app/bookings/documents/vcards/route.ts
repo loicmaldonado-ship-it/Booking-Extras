@@ -7,7 +7,7 @@ import { sanitizeFilenamePart } from "@/lib/export/xlsx";
 // sinon une virgule dans un nom ("Dupont, Jean") casserait le parsing côté
 // client (Contacts, Google, etc.).
 function vcardEscape(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;").replace(/\n/g, "\\n");
+  return value.replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;").replace(/\r\n|\r|\n/g, "\\n");
 }
 
 type Row = {

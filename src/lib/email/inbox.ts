@@ -111,6 +111,12 @@ export async function clearUnreviewedReplies(messageIds: string[]) {
   return error ? { error: "Les réponses n'ont pas pu être effacées ; réessaie." } : {};
 }
 
+// Personnes bookées sur ce projet, toutes dates confondues.
+export async function figurantsDuProjet(projetId: string): Promise<string[]> {
+  const { data } = await createAdminClient().from("bookings").select("figurant_id").eq("projet_id", projetId);
+  return [...new Set((data ?? []).map((b) => b.figurant_id))];
+}
+
 // Personnes bookées sur cette journée du projet.
 export async function figurantsDeLaJournee(projetId: string, date: string): Promise<string[]> {
   const { data } = await createAdminClient()

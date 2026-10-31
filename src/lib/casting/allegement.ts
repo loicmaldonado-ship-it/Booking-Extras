@@ -1,6 +1,6 @@
 import "server-only";
 import { spawn } from "node:child_process";
-import { copyFile, chmod, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { copyFile, chmod, mkdir, open, readFile, rm, stat } from "node:fs/promises";
 import { createWriteStream } from "node:fs";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -27,6 +27,24 @@ const ENCODAGE_MAX_MS = 230_000;
 const PATH_RE = /^[0-9a-f-]{36}\/[0-9a-f-]{36}-video-[\w-]+\.mp4$/i;
 
 export const cheminVideoValide = (path: string) => PATH_RE.test(path);
+
+async function premiersOctets(fichier: string): Promise<Buffer> {
+  const f = await open(fichier, "r");
+  try {
+    const tampon = Buffer.alloc(16);
+    const { bytesRead } = await f.read(tampon, 0, 16, 0);
+    return tampon.subarray(0, bytesRead);
+  } finally { await f.close(); }
+}
+
+// Démultiplexeur ffmpeg correspondant aux premiers octets : MP4/MOV/3GP (boîte « ftyp »), WebM/Matroska (EBML),
+// AVI (RIFF…AVI). Tout autre contenu (liste de lecture, texte, image…) renvoie null.
+export function formatConteneur(debut: Buffer): "mov" | "matroska" | "avi" | null {
+  if (debut.length >= 8 && debut.toString("latin1", 4, 8) === "ftyp") return "mov";
+  if (debut.length >= 4 && debut[0] === 0x1a && debut[1] === 0x45 && debut[2] === 0xdf && debut[3] === 0xa3) return "matroska";
+  if (debut.length >= 12 && debut.toString("latin1", 0, 4) === "RIFF" && debut.toString("latin1", 8, 11) === "AVI") return "avi";
+  return null;
+}
 
 type Resultat = { statut: "ok" | "ignore" | "erreur" | "occupe" | "absent"; message?: string };
 
@@ -140,8 +158,19 @@ export async function alleger(path: string): Promise<Resultat> {
     await pipeline(Readable.fromWeb(reponse.body as never), createWriteStream(entree));
     const octetsAvant = (await stat(entree)).size;
 
+    // Audit du 31/10/2026 : le fichier vient d'un·e candidat·e et ffmpeg devine son format au contenu. Une liste de
+    // lecture (HLS, concat…) déguisée en .mp4 pouvait lui faire lire d'autres fichiers ou des adresses réseau.
+    // Seuls les conteneurs vidéo reconnus à leurs premiers octets sont traités, avec ce démultiplexeur imposé et
+    // le seul protocole « file » ; le reste est laissé tel quel (pas d'allègement).
+    const format = formatConteneur(await premiersOctets(entree));
+    if (!format) {
+      await noter(path, { statut: "ignore", octets_avant: octetsAvant, message: "Format vidéo non reconnu (laissée telle quelle)." });
+      return { statut: "ignore", message: "format non reconnu" };
+    }
+    const lecture = ["-protocol_whitelist", "file", "-f", format, "-i", entree];
+
     const bin = await binaireFfmpeg();
-    const sonde = await lancer(bin, ["-hide_banner", "-i", entree], 30_000);
+    const sonde = await lancer(bin, ["-hide_banner", ...lecture], 30_000);
     const infos = lireInfos(sonde.sortie);
     if (infos.duree && infos.duree > MAX_DUREE_S) {
       await noter(path, { statut: "ignore", octets_avant: octetsAvant, duree_s: Math.round(infos.duree), message: "Trop longue pour l'allègement automatique (laissée telle quelle)." });
@@ -155,7 +184,7 @@ export async function alleger(path: string): Promise<Resultat> {
     const encodage = await lancer(
       bin,
       [
-        "-hide_banner", "-y", "-i", entree,
+        "-hide_banner", "-y", ...lecture,
         "-vf", "scale=w='if(gt(a,1),min(1280,iw),-2)':h='if(gt(a,1),-2,min(1280,ih))',format=yuv420p",
         "-c:v", "libx264", "-preset", "veryfast", "-crf", "27", "-maxrate", "5M", "-bufsize", "10M",
         "-c:a", "aac", "-b:a", "128k",

@@ -22,6 +22,8 @@ import { validateCandidatureBulkIds } from "./bulk-guard";
 import { getTournagesConfirmesCount } from "./onglets";
 import { appliquerMessagesOut, lireOngletsAvant } from "./out";
 import type { Cachet, TriCandidature } from "./types";
+// Échappement local (même règle que @/lib/texte/motif) : les tests de ce module chargent ses imports un par un.
+const echapperMotif = (valeur: string) => valeur.replace(/[\\%_]/g, "\\$&");
 
 // candidatures n'a pas de projet_id direct — il vit sur son annonce.
 async function checkCandidatureAccess(candidatureId: string): Promise<string | null> {
@@ -311,7 +313,7 @@ export async function postulerAnnonce(
     const { data: memeEmail, error: emailError } = await supabase
       .from("figurants")
       .select("id")
-      .ilike("email", email)
+      .ilike("email", echapperMotif(email))
       .eq("est_comedien", false)
       .maybeSingle();
     if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
@@ -328,7 +330,7 @@ export async function postulerAnnonce(
     const { data: memeNom, error: nomError } = await supabase
       .from("figurants")
       .select("id, email, telephone")
-      .ilike("nom", nom)
+      .ilike("nom", echapperMotif(nom))
       .eq("est_comedien", false);
     if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);

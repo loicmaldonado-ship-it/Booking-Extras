@@ -6,6 +6,7 @@ import {
   getUnreviewedReplies,
   clearUnreviewedReplies as clearUnreviewedRepliesInbox,
   figurantsDeLaJournee,
+  figurantsDuProjet,
 } from "@/lib/email/inbox";
 import { releverReponsesMail, marquerMailLu } from "@/lib/email/releve";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -27,7 +28,9 @@ export async function checkEmailReplies(projetId?: string | null, date?: string 
     revalidatePath("/figurants");
     revalidatePath("/bookings/documents");
   }
-  const replies = await getUnreviewedReplies(projetId, date ? await figurantsDeLaJournee(projetId, date) : undefined);
+  // Audit du 31/10/2026 : sans date, les réponses « sans projet » de TOUTES les équipes remontaient. On se limite
+  // toujours aux personnes bookées sur ce projet (la journée si elle est donnée, sinon tout le projet).
+  const replies = await getUnreviewedReplies(projetId, date ? await figurantsDeLaJournee(projetId, date) : await figurantsDuProjet(projetId));
   return {
     checked: nouvelles,
     matched: Array.from({ length: nouvelles }, (_, i) => ({ id: String(i) })),
@@ -58,7 +61,7 @@ export async function releverReponsesAuto(projetId: string): Promise<{ nouvelles
   return { nouvelles, releveLe: new Date().toISOString(), erreur: resultats.find((r) => r.erreur)?.erreur };
 }
 
-export async function clearUnreviewedReplies(messageIds: string[]) {
+export async function clearUnreviewedReplies(messageIds: string[]): Promise<{ error?: string }> {
   if (!Array.isArray(messageIds) || messageIds.length === 0) return {};
   const supabase = createAdminClient();
   const { data, error: readError } = await supabase.from("figurant_messages").select("id, projet_id, figurant_id").in("id", messageIds.slice(0, 500));
@@ -88,10 +91,24 @@ export async function clearUnreviewedReplies(messageIds: string[]) {
 
 // Bouton « Marquer comme lu dans Gmail » sur une réponse traitée.
 export async function marquerReponseLueGmail(messageRowId: string): Promise<{ error?: string }> {
-  const { data } = await createAdminClient().from("figurant_messages").select("projet_id").eq("id", messageRowId).maybeSingle();
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("figurant_messages").select("projet_id, figurant_id").eq("id", messageRowId).maybeSingle();
   if (!data) return { error: "Message introuvable." };
-  const accessError = await checkProjetAccess(data.projet_id);
-  if (accessError) return { error: accessError };
+  if (data.projet_id) {
+    const accessError = await checkProjetAccess(data.projet_id);
+    if (accessError) return { error: accessError };
+  } else {
+    // Audit du 31/10/2026 : checkProjetAccess(null) laisse passer tout le staff. Une réponse sans projet n'est
+    // traitable que si la personne est bookée sur un projet accessible (même règle que clearUnreviewedReplies).
+    const { data: bookings } = data.figurant_id
+      ? await supabase.from("bookings").select("projet_id").eq("figurant_id", data.figurant_id)
+      : { data: [] as { projet_id: string }[] };
+    let autorise = false;
+    for (const p of [...new Set((bookings ?? []).map((b) => b.projet_id))]) {
+      if (!(await checkProjetAccess(p))) { autorise = true; break; }
+    }
+    if (!autorise) return { error: "Message introuvable." };
+  }
   const res = await marquerMailLu(messageRowId);
   if (!res.error) revalidatePath("/bookings/documents");
   return res;

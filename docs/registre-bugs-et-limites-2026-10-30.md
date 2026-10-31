@@ -37,6 +37,14 @@
 | 33 | Appels automatiques en tâche de fond (présence de l'équipe, cloche, relève des mails, liens de validation et de partage) : s'ils étaient interrompus (changement de page, réseau coupé), erreur JavaScript non gérée, remontée dans le journal d'erreurs ; constaté sous Firefox et Safari en passant par `/mineurs` | QA-08 / BUG-13 | erreurs interceptées, nouvel essai au tour suivant ; `tests/passe-complete.mjs` sous Firefox et WebKit |
 | 34 | Lanceur de recette : la base ne démarrait pas si une autre base Supabase locale tournait déjà (port 54325 de la boîte mail de test non déplacé) ; photo de la cheffe du seed absente | QA-06 | port déplacé (29245), avatar fictif déposé au démarrage ; vérifié depuis l'archive ZIP (3 comptes, arrêt) |
 | 30 | 25 pages de documents et 5 pages de détail débordaient sur téléphone une fois remplies ; exports préchargés comme des pages (requêtes en échec) | QA-06 / BUG-17 | `tests/passe-complete.mjs` (96 adresses × 4 rôles × 4 largeurs) |
+| 35 | **Prise de compte candidat** : une cheffe d'une autre équipe pouvait changer l'email d'une fiche reliée à un compte candidat (base partagée), puis demander un lien de connexion à sa place ; elle pouvait aussi la basculer en comédien·ne pour la cacher des autres équipes et bloquer sa connexion (audit sécurité indépendant du 31/10) | SEC | email et statut comédien·ne d'un compte candidat modifiables seulement par la personne ou le compte propriétaire (`saveFigurantUpdate`) ; `tests/sec06-audit-2026-10-31.mjs` |
+| 36 | **Casting sans compte** : connaître l'email et le nom d'un·e comédien·ne suffisait pour ouvrir sa page d'envoi (date de naissance, ville, mensurations, envoi de vidéos en son nom) | SEC | si la fiche existe, le lien d'envoi part par email à l'adresse enregistrée, réponse identique dans tous les cas ; une nouvelle personne garde le parcours direct |
+| 37 | Jokers `%` / `_` non échappés dans l'inscription publique, la candidature, la jonction d'un casting connecté·e : « % » en nom + téléphone d'une autre personne renvoyait son adresse masquée ; un email à jokers permettait d'énumérer les comptes ou de rejoindre la fiche comédien·ne d'un·e autre | SEC | `echapperMotif` partout ; `tests/like-jokers-publics.test.mjs` |
+| 38 | Réponses mail/SMS « sans projet » de toutes les équipes renvoyées par `checkEmailReplies` appelée sans date ; `marquerReponseLueGmail` acceptait tout le personnel pour ces réponses | SEC / BUG-13 | toujours limité aux personnes bookées sur un projet accessible |
+| 39 | Fonction `enregistrer_fonction_projet` (SECURITY DEFINER) appelable avec la clé publique : ajout de « fonctions » dans le projet de n'importe quelle équipe | SEC | migration `20261031120000` (droit d'exécution retiré ; seuls les déclencheurs l'appellent) |
+| 40 | Allègement vidéo : ffmpeg devinait le format d'un fichier envoyé par un·e candidat·e ; une liste de lecture HLS/concat déguisée en .mp4 pouvait lui faire lire des fichiers du serveur | SEC | conteneur reconnu aux premiers octets, démultiplexeur imposé, protocole `file` seul ; `tests/allegement-format-conteneur.test.mjs` |
+| 41 | Essayage rattachable à la journée d'essayage d'une autre équipe ; entrée de casting rattachable au booking ou à la candidature d'un autre projet | SEC | appartenance au projet vérifiée |
+| 42 | Liens bande démo / Instagram saisis par les candidats acceptés sans contrôle (`javascript:`…) ; vCard : retour chariot non échappé | SEC | seules les adresses http(s) (complétées en https:// si besoin) ; échappement `\r` |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -68,6 +76,22 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 - **Vercel ~4,5 Mo par requête** : dépend de la compression d'images côté navigateur (MED-01).
 - **Médias annulés en cours d'envoi** : vérifié sans fichier orphelin pour une annulation en cours de transfert (`med02`) ; un fichier entièrement transféré juste avant l'annulation reste possible.
 - **Lien de partage d'un projet archivé** : reste accessible (cohérent avec MET-01, à confirmer).
+- **Décision à prendre — Base Profils lisible en direct par tout le personnel** (audit du 31/10) : toute personne de l'équipe
+  connectée (même une assistante sans la section « Base Profils ») peut, avec sa propre session, interroger l'API de la base
+  et lire toutes les fiches reliées à un compte candidat (identité, naissance, téléphone, adresse, mensurations, notes, lien
+  de disponibilités), au-delà de ce que l'écran lui montre. C'est la conséquence de la base partagée voulue par Loïc ; la
+  restreindre (lecture réservée à la section Base Profils, ou passage par le serveur uniquement) changerait les listes de
+  choix des pages Bookings, Casting et Essayages pour les assistantes restreintes : à décider avec Loïc avant d'y toucher.
+- **Verrouillage d'un compte candidat** : 6 demandes en 15 minutes sur une adresse bloquent aussi l'envoi du lien de
+  connexion (protection contre l'envoi massif d'emails) ; un tiers peut donc gêner la connexion d'une personne qu'il connaît.
+- **Inscription et candidature publiques sans limite de débit** : création de comptes en masse possible ; un message
+  « déjà un compte avec cet email » reste volontaire (parcours de récupération).
+- **Réponses par email** : l'expéditeur affiché n'est pas authentifié (pas de contrôle SPF/DKIM) ; une fausse « réponse »
+  peut être rattachée à une personne.
+- **ffmpeg 4.1 (2018)** fourni par `@ffmpeg-installer` : durci (bug 40) mais ancien ; à remplacer par un binaire récent.
+- **Dépendances** : `npm audit` signale 8 alertes « modérées » (minimatch via exceljs/archiver) sans motif contrôlable par un
+  utilisateur ; aucune alerte haute ou critique.
+- **CSP** limitée à `frame-ancestors`, `base-uri`, `form-action`, `object-src` (pas de `script-src`) ; HSTS seulement sur un domaine public.
 - **`tests/rgpd-snapshot-local.sql`** dépend d'identifiants de l'ancienne base de recette ; non exécuté par la batterie.
 - **Hors périmètre (V2 / décisions à prendre)** : abonnement payant (A&A-01), fonctions d'administration et signature
   électronique (RV2-1/2/3), nouveau logo.

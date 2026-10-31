@@ -9,6 +9,7 @@ import { formatTournageLabel } from "@/lib/casting/types";
 import { formatDateLong } from "@/lib/format-date";
 import { RejoindreBouton } from "@/components/casting/rejoindre-bouton";
 import { PostulerCastingSansCompte } from "@/components/casting/postuler-casting-sans-compte";
+import { echapperMotif } from "@/lib/texte/motif";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,7 @@ export default async function RejoindreCastingPage({ params }: { params: Promise
       .from("casting_entries")
       .select("submitted_at, figurants!inner(email)")
       .eq("role_id", role.id)
-      .ilike("figurants.email", session.email)
+      .ilike("figurants.email", echapperMotif(session.email))
       .returns<{ submitted_at: string | null }[]>();
     dejaEnvoye = (entrees ?? []).some((e) => !!e.submitted_at);
   }

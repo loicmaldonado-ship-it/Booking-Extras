@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentFigurant } from "@/lib/candidats/session";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
+import { getSiteOrigin } from "@/lib/partage/data";
+import { sendEmail } from "@/lib/email/send";
+import { getProjetEmailCredentials } from "@/lib/projets/email";
 
 // Lien rapide de casting : la personne connectée rejoint le rôle (sa fiche
 // casting se crée si besoin) puis arrive sur la page d'envoi des photos /
@@ -77,8 +80,6 @@ export async function rejoindreCasting(token: string): Promise<{ error?: string 
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const normaliser = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 
 // Postuler à un casting SANS compte : identité minimale, puis envoi des
 // photos / vidéos. La fiche va dans la base privée de la cheffe du projet
@@ -88,7 +89,7 @@ export async function postulerCastingSansCompte(
   token: string,
   _prev: unknown,
   formData: FormData
-): Promise<{ error?: string }> {
+): Promise<{ error?: string; envoye?: string }> {
   const champ = (k: string) => String(formData.get(k) ?? "").trim();
   const prenom = champ("prenom");
   const nom = champ("nom");
@@ -122,20 +123,20 @@ export async function postulerCastingSansCompte(
     : { data: null };
   const poolId = owner ? (owner.comedien_pool_id ?? owner.id) : null;
 
-  // Même email déjà dans cette base : on reprend la fiche seulement si c'est
-  // bien la même personne (nom identique) — sinon n'importe qui pourrait
-  // envoyer des photos sur la fiche de quelqu'un d'autre.
-  let existanteQuery = supabase.from("figurants").select("id, nom").eq("est_comedien", true)
+  // Même email déjà dans cette base : la fiche est reprise, mais son lien d'envoi part à cette adresse (voir plus bas).
+  let existanteQuery = supabase.from("figurants").select("id, prenom").eq("est_comedien", true)
     .ilike("email", email.replace(/[\\%_]/g, "\\$&"));
   existanteQuery = poolId ? existanteQuery.eq("comedien_pool_id", poolId) : existanteQuery.is("comedien_pool_id", null);
   const { data: existante } = await existanteQuery.maybeSingle();
 
   let figurantId: string;
+  let ficheExistante = false;
   if (existante) {
-    if (normaliser(existante.nom) !== normaliser(nom)) {
-      return { error: "Cet email est déjà utilisé par une autre personne pour ce casting. Contacte l'équipe de casting." };
-    }
+    // Audit du 31/10/2026 : connaître l'email et le nom d'un·e comédien·ne ne prouve pas que c'est soi. La page
+    // d'envoi (date de naissance, ville, mensurations, envoi de vidéos en son nom) n'est plus ouverte directement :
+    // son lien part par email à l'adresse déjà enregistrée, avec la même réponse que l'email soit connu ou non.
     figurantId = existante.id;
+    ficheExistante = true;
   } else {
     const { data: creee, error } = await supabase
       .from("figurants")
@@ -171,6 +172,20 @@ export async function postulerCastingSansCompte(
       .single();
     if (error || !creee) return { error: "Inscription au casting impossible, réessaie." };
     requestToken = creee.request_token;
+  }
+
+  if (ficheExistante) {
+    const lien = `${await getSiteOrigin()}/casting/upload/${requestToken}`;
+    const { credentials } = await getProjetEmailCredentials(supabase, role.projet_id);
+    const envoi = await sendEmail(
+      email,
+      "Booking Extras — ton lien d'envoi pour le casting",
+      [`Bonjour ${existante?.prenom ?? prenom},`, "", "Voici ton lien personnel pour envoyer tes photos et vidéos au casting :", lien, "",
+        "Si tu n'es pas à l'origine de cette demande, ignore ce message."].join("\n"),
+      credentials,
+    );
+    if (envoi.error) console.error("[casting sans compte] envoi du lien impossible");
+    return { envoye: email };
   }
 
   redirect(`/casting/upload/${requestToken}`);

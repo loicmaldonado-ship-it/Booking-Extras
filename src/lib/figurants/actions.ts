@@ -206,6 +206,24 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
 
   const supabase = createAdminClient();
 
+  // Audit sécurité du 31/10/2026 : une fiche reliée à un compte candidat (acces_compte) est partagée entre équipes.
+  // Son email sert d'identifiant de connexion (lien magique) : le changer depuis une autre équipe permettait de
+  // prendre le compte ; la passer en comédien·ne la cachait des autres équipes et bloquait la connexion de la
+  // personne. Ces deux champs ne se changent donc que par la personne elle-même (espace candidat) ou par le compte
+  // propriétaire ; les autres champs restent modifiables comme avant.
+  const { data: actuel, error: actuelError } = await supabase.from("figurants").select("email, est_comedien, acces_compte").eq("id", id).maybeSingle();
+  if (actuelError || !actuel) return { error: "Impossible de vérifier cette fiche. Réessaie." };
+  const actor = await getCurrentProfile();
+  if (actuel.acces_compte && !actor?.isOwner) {
+    const emailActuel = (actuel.email ?? "").trim().toLowerCase();
+    if ((payload.email ?? "").trim().toLowerCase() !== emailActuel) {
+      return { error: "Cette personne a un compte candidat : son email ne peut être changé que par elle, depuis son espace." };
+    }
+    if (payload.est_comedien !== actuel.est_comedien) {
+      return { error: "Cette personne a un compte candidat : sa fiche ne peut pas être basculée en comédien·ne." };
+    }
+  }
+
   // Ne rattache au pool comédien·nes que si la fiche n'en a pas déjà un —
   // ne change jamais le pool d'une fiche existante en la modifiant (sinon
   // rééditer la fiche d'un·e comédien·ne géré ailleurs la ferait basculer

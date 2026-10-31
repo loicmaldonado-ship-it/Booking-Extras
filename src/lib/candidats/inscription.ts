@@ -13,6 +13,8 @@ import { insertFigurantPhoto } from "@/lib/figurants/photos";
 import { validateImageUpload } from "@/lib/media/validate-upload";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
+// Échappement local (même règle que @/lib/texte/motif) : les tests de ce module chargent ses imports un par un.
+const echapperMotif = (valeur: string) => valeur.replace(/[\\%_]/g, "\\$&");
 
 // Création d'un compte candidat·e sans passer par une annonce (page
 // /compte/inscription) : profil complet + photos + mot de passe, puis
@@ -64,7 +66,7 @@ export async function inscrireCandidat(
   const { data: memeEmail, error: emailError } = await supabase
     .from("figurants")
     .select("id")
-    .ilike("email", profil.email)
+    .ilike("email", echapperMotif(profil.email))
     .eq("est_comedien", false)
     .maybeSingle();
   if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
@@ -83,7 +85,7 @@ export async function inscrireCandidat(
   const { data: memeNom, error: nomError } = await supabase
     .from("figurants")
     .select("id, email, telephone")
-    .ilike("nom", profil.nom)
+    .ilike("nom", echapperMotif(profil.nom))
     .eq("est_comedien", false);
   if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
   const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);

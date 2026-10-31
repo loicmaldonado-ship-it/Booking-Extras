@@ -243,6 +243,18 @@ async function createCastingEntry(
 
   const supabase = createAdminClient();
 
+  // Audit du 31/10/2026 : le booking et la candidature d'origine doivent appartenir au même projet que le rôle
+  // (sinon des identifiants d'une autre équipe pouvaient être rattachés à l'entrée de casting).
+  if (opts?.bookingId) {
+    const { data: b } = await supabase.from("bookings").select("projet_id").eq("id", opts.bookingId).maybeSingle();
+    if (!b || b.projet_id !== projetId) return { error: "Booking introuvable sur ce projet." };
+  }
+  if (opts?.candidatureId) {
+    const { data: c } = await supabase.from("candidatures").select("annonces(projet_id)").eq("id", opts.candidatureId)
+      .maybeSingle<{ annonces: { projet_id: string } | null }>();
+    if (!c || c.annonces?.projet_id !== projetId) return { error: "Candidature introuvable sur ce projet." };
+  }
+
   const { data: role } = await supabase.from("casting_roles").select("categorie_cachet").eq("id", roleId).maybeSingle();
 
   const { data: figurant } = await supabase

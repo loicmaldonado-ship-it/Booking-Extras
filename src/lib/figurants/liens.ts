@@ -23,6 +23,11 @@ export async function upsertFigurantLienByLabel(
     const { error } = await supabase.from("figurant_liens").delete().eq("id", existing.id);
     return error ? { error: error.message } : {};
   }
+  // Audit du 31/10/2026 : un lien saisi par la personne est affiché comme lien cliquable côté équipe ; seules les
+  // adresses web http(s) sont acceptées (pas de « javascript: », « data: »…).
+  // Une adresse saisie sans protocole (« instagram.com/… ») est complétée en https://.
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = `https://${url}`;
+  if (!/^https?:\/\/[^\s]+$/i.test(url)) return { error: "Le lien doit commencer par https://" };
   const { error } = existing
     ? await supabase.from("figurant_liens").update({ url }).eq("id", existing.id)
     : await supabase.from("figurant_liens").insert({ figurant_id: figurantId, label, url });

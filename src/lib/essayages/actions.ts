@@ -238,6 +238,11 @@ export async function addFigurantToEssayageJournee(
 
   const supabase = createAdminClient();
 
+  // Audit du 31/10/2026 : la journée d'essayage doit appartenir au projet vérifié ci-dessus (sinon un essayage
+  // pouvait être rattaché à la journée d'une autre équipe).
+  const { data: journee } = await supabase.from("essayage_journees").select("projet_id").eq("id", essayageJourneeId).maybeSingle();
+  if (!journee || journee.projet_id !== projetId) return { error: "Journée d'essayage introuvable." };
+
   const { data: existing } = await supabase
     .from("essayages")
     .select("id")
