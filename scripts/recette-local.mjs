@@ -79,6 +79,8 @@ const dependenciesMarker=join(local,'dependencies.sha256');
 if(!existsSync(join(root,'node_modules/next'))||!existsSync(dependenciesMarker)||readFileSync(dependenciesMarker,'utf8')!==lockHash){
  console.log('Installation des composants du projet…');command('npm',['ci']);writeFileSync(dependenciesMarker,lockHash);
 }
+// Photo fictive de la cheffe du seed (sinon « ? » à la place de son avatar). Facultatif : un échec n'arrête pas la recette.
+command(process.execPath,[join(root,'scripts/seed-medias-local.mjs')],{capture:true,allowFailure:true});
 console.log('\nOuvrez http://localhost:3100 dans votre navigateur.\nGardez cette fenêtre ouverte. Pour arrêter : Ctrl+C.\nLes emails, SMS, notifications et accès Gmail réels sont désactivés.\n');
 const next=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port','3100'],{cwd:root,stdio:'inherit',env:{...process.env,...values}});
 next.on('error',()=>fail('Le site n’a pas démarré. Vérifiez qu’aucun autre test n’utilise le port 3100.'));
