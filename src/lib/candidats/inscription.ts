@@ -1,5 +1,6 @@
 "use server";
 
+import { consumePublicSignupAttempt, MESSAGE_LIMITE_PUBLIQUE } from "@/lib/candidats/rate-limit";
 import { readGuardians } from "@/lib/minors/model";
 import { saveGuardiansFromForm } from "@/lib/minors/data";
 import { retourAutorise } from "@/lib/candidats/retour";
@@ -58,6 +59,8 @@ export async function inscrireCandidat(
   }
   const selfieDate = String(formData.get("selfie_date") ?? "").trim();
   if (!selfieDate) return { error: "La date du selfie est obligatoire." };
+
+  if (!(await consumePublicSignupAttempt(profil.email))) return { error: MESSAGE_LIMITE_PUBLIQUE };
 
   const supabase = createAdminClient();
 

@@ -15,3 +15,8 @@ export function trustedAuthIp(values: Pick<Headers, "get">, vercel: boolean): st
   if (!isIP(ip)) return "unattributed";
   return ip.includes(":") ? new URL(`http://[${ip}]/`).hostname.toLowerCase() : ip;
 }
+
+export function publicSignupKeys(email: string, ip: string, secret: string) {
+  const digest = (scope: string, value: string) => createHmac("sha256", secret).update(scope + "\0" + value).digest("hex");
+  return { p_reseau_hash: digest("public-ip", ip), p_email_hash: digest("public-email", email.trim().toLowerCase()) };
+}

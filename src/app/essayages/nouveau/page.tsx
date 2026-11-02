@@ -5,6 +5,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { createEssayage } from "@/lib/essayages/actions";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export default async function NouvelEssayagePage({
   searchParams,
@@ -24,10 +25,11 @@ export default async function NouvelEssayagePage({
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: figurants }, { data: projets }] = await Promise.all([
+  const [{ data: figurantsRls }, { data: projets }] = await Promise.all([
     figurantsQuery,
     projetsQuery,
   ]);
+  const figurants = await completerChoix(figurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">

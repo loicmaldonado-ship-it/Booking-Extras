@@ -48,11 +48,13 @@ export function formatConteneur(debut: Buffer): "mov" | "matroska" | "avi" | nul
 
 type Resultat = { statut: "ok" | "ignore" | "erreur" | "occupe" | "absent"; message?: string };
 
-// Binaire ffmpeg du paquet npm, copié dans /tmp et rendu exécutable (les
-// fonctions serveur ne gardent pas toujours le droit d'exécution).
+// Binaire ffmpeg 7 du paquet npm ffmpeg-static (téléchargé pour la plateforme à l'installation), copié dans /tmp
+// et rendu exécutable (les fonctions serveur ne gardent pas toujours le droit d'exécution). Nom de copie propre à
+// ce paquet : une ancienne copie de ffmpeg 4.1 (@ffmpeg-installer) laissée dans /tmp n'est jamais réutilisée.
 async function binaireFfmpeg(): Promise<string> {
-  const { path } = (await import("@ffmpeg-installer/ffmpeg")).default as { path: string };
-  const cible = join(tmpdir(), "ffmpeg-bin");
+  const path = (await import("ffmpeg-static")).default as unknown as string | null;
+  if (!path) throw new Error("Binaire ffmpeg indisponible pour cette plateforme.");
+  const cible = join(tmpdir(), "ffmpeg-static-7-bin");
   try {
     await stat(cible);
   } catch {

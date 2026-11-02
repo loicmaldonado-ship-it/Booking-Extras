@@ -10,13 +10,12 @@ const hsts = siteUrl?.protocol === "https:" && !["localhost", "127.0.0.1", "[::1
 const nextConfig: NextConfig = {
   // Deux adresses de boucle locale utilisées pour isoler les sessions de recette.
   allowedDevOrigins: ["127.0.0.1"],
-  // Sécurité (30/10/2026) : aucun en-tête n'était envoyé. Politique de contenu volontairement limitée aux directives qui
-  // ne touchent pas aux scripts de Next (pas de nonce nécessaire) : interdiction d'être affiché dans un cadre
-  // (clickjacking), formulaires et <base> limités au site, pas d'objets/plugins.
+  // Sécurité (30/10/2026, complétée le 02/11/2026) : la politique de contenu (CSP) avec nonce est posée par le
+  // middleware (src/lib/securite/csp.ts) sur toutes les pages ; ici, les autres en-têtes, et une CSP fermée pour les
+  // fichiers que le middleware ne traite pas (service worker, ressources statiques).
   poweredByHeader: false,
   async headers() {
     const securite = [
-      { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" },
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -27,8 +26,10 @@ const nextConfig: NextConfig = {
     ];
     // Adresses portant un jeton d'accès : jamais transmises en référent à un autre site.
     const sansReferent = [{ key: "Referrer-Policy", value: "no-referrer" }, { key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    const cspStatique = { key: "Content-Security-Policy", value: "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" };
     return [
       { source: "/:path*", headers: securite },
+      ...["/sw.js", "/_next/static/:path*", "/fonts/:path*"].map((source) => ({ source, headers: [cspStatique] })),
       ...["/partage/:path*", "/casting/upload/:path*", "/casting/rejoindre/:path*", "/disponibilites/:path*", "/recu/:path*", "/compte/verifier"]
         .map((source) => ({ source, headers: sansReferent })),
       { source: "/mineurs/:path*", headers: [
@@ -40,13 +41,13 @@ const nextConfig: NextConfig = {
   },
   // ffmpeg (allègement des vidéos du casting après l'envoi) : binaire du
   // paquet npm, laissé tel quel et embarqué dans les fonctions concernées.
-  serverExternalPackages: ["@ffmpeg-installer/ffmpeg"],
+  serverExternalPackages: ["ffmpeg-static"],
   // Les polices de l'affiche sont lues avec readFile au moment du rendu :
   // à embarquer explicitement dans la fonction serveur.
   outputFileTracingIncludes: {
     "/annonces/*/poster": ["./src/app/fonts/*.ttf"],
-    "/api/videos/alleger": ["./node_modules/@ffmpeg-installer/**/*"],
-    "/api/cron/alleger-videos": ["./node_modules/@ffmpeg-installer/**/*"],
+    "/api/videos/alleger": ["./node_modules/ffmpeg-static/ffmpeg"],
+    "/api/cron/alleger-videos": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
   experimental: {
     // Server Actions default to a 1MB request body — too small for photo

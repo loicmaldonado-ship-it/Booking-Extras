@@ -4,6 +4,7 @@ import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProjetEmailCredentials } from "@/lib/projets/email";
+import { AVERTISSEMENT_EXPEDITEUR, expediteurAuthentifie } from "@/lib/email/authentification";
 
 // Relève automatique des réponses par mail : chaque projet est relu dans SA
 // boîte d'envoi (celle configurée par la cheffe sur le projet ou sur
@@ -129,6 +130,9 @@ async function releverBoite(boite: Boite): Promise<ReleveResultat> {
         let corps = parsed.text?.trim() || "";
         if (!corps && parsed.html) corps = stripHtml(String(parsed.html));
         corps = texteDeLaReponse(corps).slice(0, 3000) || "(message vide)";
+        // Adresse « De » falsifiable : sans SPF/DKIM/DMARC valide selon Gmail, le message est importé avec un avertissement.
+        const authResults = (parsed.headerLines ?? []).filter((h) => h.key === "authentication-results").map((h) => h.line);
+        if (!expediteurAuthentifie(authResults, de!)) corps = `${AVERTISSEMENT_EXPEDITEUR}\n\n${corps}`;
 
         // Déjà importée par l'ancien bouton « Vérifier les réponses » (sans
         // identifiant de mail) : même personne, même texte, moins de 7 jours.

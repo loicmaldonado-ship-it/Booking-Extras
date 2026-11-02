@@ -7,6 +7,7 @@ import { updateEssayage } from "@/lib/essayages/actions";
 import type { Essayage } from "@/lib/essayages/types";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export default async function ModifierEssayagePage({
   params,
@@ -26,11 +27,12 @@ export default async function ModifierEssayagePage({
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: essayage }, { data: figurants }, { data: projets }] = await Promise.all([
+  const [{ data: essayage }, { data: figurantsRls }, { data: projets }] = await Promise.all([
     supabase.from("essayages").select("*").eq("id", id).single<Essayage>(),
     figurantsQuery,
     projetsQuery,
   ]);
+  const figurants = await completerChoix(figurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   if (!essayage) notFound();
   await requireProjetAccess(essayage.projet_id);

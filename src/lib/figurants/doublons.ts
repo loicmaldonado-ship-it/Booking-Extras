@@ -1,5 +1,8 @@
 import "server-only";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { sansBaseProfils } from "@/lib/figurants/choix";
 import { sansAccent } from "@/lib/candidatures/onglets-affichage";
 import { computeAge } from "@/lib/documents/fields";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
@@ -67,24 +70,44 @@ export async function doublonsProbables(personne: {
   const n = normaliser(personne.nom);
   const tel = finTelephone(personne.telephone);
 
-  const [{ data: parNom, error: erreurNom }, { data: parPrenom, error: erreurPrenom }, { data: parTel, error: erreurTel }] = await Promise.all([
-    supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("nom", motifTolerant(personne.nom)).limit(500),
-    supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("prenom", motifTolerant(personne.prenom)).limit(1000),
-    tel.length === 9
-      ? supabase.from("figurants").select(COLONNES).eq("est_comedien", false).ilike("telephone", `%${tel.split("").join("%")}`).limit(50)
-      : Promise.resolve({ data: [] as Ligne[], error: null }),
-  ]);
-
+  const chercher = (client: typeof supabase | ReturnType<typeof createAdminClient>, baseSeule: boolean) => {
+    const q = () => {
+      const r = client.from("figurants").select(COLONNES).eq("est_comedien", false);
+      return baseSeule ? r.eq("acces_compte", true) : r;
+    };
+    return Promise.all([
+      q().ilike("nom", motifTolerant(personne.nom)).limit(500),
+      q().ilike("prenom", motifTolerant(personne.prenom)).limit(1000),
+      tel.length === 9
+        ? q().ilike("telephone", `%${tel.split("").join("%")}`).limit(50)
+        : Promise.resolve({ data: [] as Ligne[], error: null }),
+    ]);
+  };
+  const [{ data: parNomRls, error: erreurNom }, { data: parPrenomRls, error: erreurPrenom }, { data: parTelRls, error: erreurTel }] = await chercher(supabase, false);
   if (erreurNom || erreurPrenom || erreurTel) throw new Error("Impossible de vérifier les doublons.");
+
+  // Sans la section Base Profils, la base partagée n'est plus lisible sous RLS : on y cherche quand même les doublons
+  // (pour ne pas recréer la personne), mais sans en montrer l'email ni le téléphone.
+  const visibles = new Set([...(parNomRls ?? []), ...(parPrenomRls ?? []), ...(parTelRls ?? [])].map((l) => (l as Ligne).id));
+  let parNom = (parNomRls ?? []) as Ligne[], parPrenom = (parPrenomRls ?? []) as Ligne[], parTel = (parTelRls ?? []) as Ligne[];
+  if (sansBaseProfils(await getCurrentProfile())) {
+    const [base1, base2, base3] = await chercher(createAdminClient(), true);
+    if (base1.error || base2.error || base3.error) throw new Error("Impossible de vérifier les doublons.");
+    const masquer = (lignes: unknown[] | null) =>
+      ((lignes ?? []) as Ligne[]).filter((l) => !visibles.has(l.id)).map((l) => ({ ...l, email: null, telephone: null, telephoneCache: l.telephone }));
+    parNom = [...parNom, ...masquer(base1.data)];
+    parPrenom = [...parPrenom, ...masquer(base2.data)];
+    parTel = [...parTel, ...masquer(base3.data)];
+  }
 
   const trouves = new Map<string, { ligne: Ligne; raison: string }>();
   const noter = (l: Ligne, raison: string) => {
     if (!trouves.has(l.id)) trouves.set(l.id, { ligne: l, raison });
   };
-  for (const l of (parTel ?? []) as Ligne[]) {
-    if (finTelephone(l.telephone) === tel) noter(l, "même téléphone");
+  for (const l of parTel as (Ligne & { telephoneCache?: string | null })[]) {
+    if (finTelephone(l.telephoneCache !== undefined ? l.telephoneCache : l.telephone) === tel) noter(l, "même téléphone");
   }
-  for (const l of [...((parNom ?? []) as Ligne[]), ...((parPrenom ?? []) as Ligne[])]) {
+  for (const l of [...parNom, ...parPrenom]) {
     const lp = normaliser(l.prenom);
     const ln = normaliser(l.nom);
     if (lp === p && ln === n) noter(l, "même nom");

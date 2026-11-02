@@ -45,6 +45,11 @@
 | 40 | Allègement vidéo : ffmpeg devinait le format d'un fichier envoyé par un·e candidat·e ; une liste de lecture HLS/concat déguisée en .mp4 pouvait lui faire lire des fichiers du serveur | SEC | conteneur reconnu aux premiers octets, démultiplexeur imposé, protocole `file` seul ; `tests/allegement-format-conteneur.test.mjs` |
 | 41 | Essayage rattachable à la journée d'essayage d'une autre équipe ; entrée de casting rattachable au booking ou à la candidature d'un autre projet | SEC | appartenance au projet vérifiée |
 | 42 | Liens bande démo / Instagram saisis par les candidats acceptés sans contrôle (`javascript:`…) ; vCard : retour chariot non échappé | SEC | seules les adresses http(s) (complétées en https:// si besoin) ; échappement `\r` |
+| 43 | Base Profils lisible par l'API pour tout le personnel, même une assistante sans la section « Base Profils » (identité, naissance, téléphone, adresse, mensurations, notes) | SEC | migration `20261102100000` : lecture complète réservée aux personnes qui ont la section ; une assistante restreinte garde les fiches de ses projets (bookings, casting, essayages, **candidatures**), les **noms seuls** de la base dans ses listes de choix (`figurants_choix`) et peut toujours booker ces personnes ; doublons signalés sans email ni téléphone ; `tests/sec07-base-profils-section.mjs` |
+| 44 | Inscription, candidature et casting publics sans limite de débit (création de comptes en masse, envois d'emails répétés vers une adresse) | SEC | migration `20261102110000` : 100 demandes/heure par connexion, 8/heure par adresse email (clés HMAC, aucune IP ni email en clair), refus si la base ne répond pas ; candidat·e connecté·e non concerné·e ; `tests/limites-publiques-local.sql`, `tests/sec08-limite-inscriptions.mjs` |
+| 45 | Réponses par email rattachées sur la seule adresse « De » (falsifiable) | SEC | résultat SPF/DKIM/DMARC lu dans le premier en-tête `Authentication-Results` de Gmail : sans validation alignée, le message est importé avec l'avertissement « Expéditeur non vérifié » et sans indice oui/non ; `tests/email-expediteur-authentifie.test.mjs` |
+| 46 | ffmpeg 4.1 (2018) pour l'allègement des vidéos | SEC | remplacé par ffmpeg 7.0.2 (`ffmpeg-static`, binaire téléchargé pour la plateforme à l'installation) |
+| 47 | Politique de contenu (CSP) sans `script-src` : un script injecté dans une page se serait exécuté | SEC | CSP complète posée par le middleware avec un nonce par requête (`src/lib/securite/csp.ts`) : scripts de Next seuls, gestionnaires d'événements injectés et `eval` bloqués, connexions limitées au site et à Supabase ; conversion HEIC passée sur la version « csp » de heic-to ; `tests/csp-navigateur.mjs` (Chromium, WebKit, Firefox), `tests/securite-entetes.mjs` |
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.
@@ -76,22 +81,25 @@ limitation, sessions, liens à usage unique, récupération), validation des fic
 - **Vercel ~4,5 Mo par requête** : dépend de la compression d'images côté navigateur (MED-01).
 - **Médias annulés en cours d'envoi** : vérifié sans fichier orphelin pour une annulation en cours de transfert (`med02`) ; un fichier entièrement transféré juste avant l'annulation reste possible.
 - **Lien de partage d'un projet archivé** : reste accessible (cohérent avec MET-01, à confirmer).
-- **Décision à prendre — Base Profils lisible en direct par tout le personnel** (audit du 31/10) : toute personne de l'équipe
-  connectée (même une assistante sans la section « Base Profils ») peut, avec sa propre session, interroger l'API de la base
-  et lire toutes les fiches reliées à un compte candidat (identité, naissance, téléphone, adresse, mensurations, notes, lien
-  de disponibilités), au-delà de ce que l'écran lui montre. C'est la conséquence de la base partagée voulue par Loïc ; la
-  restreindre (lecture réservée à la section Base Profils, ou passage par le serveur uniquement) changerait les listes de
-  choix des pages Bookings, Casting et Essayages pour les assistantes restreintes : à décider avec Loïc avant d'y toucher.
 - **Verrouillage d'un compte candidat** : 6 demandes en 15 minutes sur une adresse bloquent aussi l'envoi du lien de
   connexion (protection contre l'envoi massif d'emails) ; un tiers peut donc gêner la connexion d'une personne qu'il connaît.
-- **Inscription et candidature publiques sans limite de débit** : création de comptes en masse possible ; un message
-  « déjà un compte avec cet email » reste volontaire (parcours de récupération).
-- **Réponses par email** : l'expéditeur affiché n'est pas authentifié (pas de contrôle SPF/DKIM) ; une fausse « réponse »
-  peut être rattachée à une personne.
-- **ffmpeg 4.1 (2018)** fourni par `@ffmpeg-installer` : durci (bug 40) mais ancien ; à remplacer par un binaire récent.
-- **Dépendances** : `npm audit` signale 8 alertes « modérées » (minimatch via exceljs/archiver) sans motif contrôlable par un
-  utilisateur ; aucune alerte haute ou critique.
-- **CSP** limitée à `frame-ancestors`, `base-uri`, `form-action`, `object-src` (pas de `script-src`) ; HSTS seulement sur un domaine public.
+- **Limite de débit des parcours publics** (bug 44) : en dehors de Vercel, l'adresse IP n'est pas fiable et toutes les
+  demandes partagent un même compteur (100/heure) ; un message « déjà un compte avec cet email » reste volontaire
+  (parcours de récupération).
+- **Réponses par email** (bug 45) : vérifiées par les résultats SPF/DKIM/DMARC de Gmail ; une réponse non vérifiée est
+  importée avec un avertissement plutôt qu'écartée (pour ne pas perdre une vraie réponse). Non testé sur une vraie
+  boîte Gmail (relève coupée en local).
+- **ffmpeg 7.0.2** (bug 46) : le binaire est téléchargé depuis GitHub par `npm install` ; l'installation (Vercel, iMac) doit
+  avoir accès à Internet.
+- **Dépendances** : aucune alerte haute ou critique. Restent des alertes « modérées » sur `minimatch` (nouvel avis
+  GHSA-g3hv-75wg-m249, corrigé seulement en v11) : dans les outils de développement (ESLint, non déployés), et dans
+  exceljs → archiver → glob 7, dont le code de recherche de fichiers n'est jamais appelé par l'export Excel (aucun motif
+  fourni par un utilisateur). `readdir-glob` (archiver) est passé à minimatch 11 ; glob 7 n'est pas compatible avec la v11.
+- **CSP** (bug 47) : `style-src` garde `'unsafe-inline'` (attributs style de React, sans exécution de code) ; HSTS et
+  `upgrade-insecure-requests` seulement sur un domaine public en HTTPS. Les pages doivent rester rendues à la demande
+  (nonce par requête) : une future page statique perdrait ses scripts.
+- **Conversion HEIC** : vérifiée par le mécanisme (WebAssembly dans un worker sous la CSP, trois moteurs) ; pas de vraie
+  photo HEIC dans l'environnement de test, à valider sur iPhone.
 - **`tests/rgpd-snapshot-local.sql`** dépend d'identifiants de l'ancienne base de recette ; non exécuté par la batterie.
 - **Hors périmètre (V2 / décisions à prendre)** : abonnement payant (A&A-01), fonctions d'administration et signature
   électronique (RV2-1/2/3), nouveau logo.

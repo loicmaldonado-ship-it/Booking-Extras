@@ -1,5 +1,6 @@
 "use server";
 
+import { consumePublicSignupAttempt, MESSAGE_LIMITE_PUBLIQUE } from "@/lib/candidats/rate-limit";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentFigurant } from "@/lib/candidats/session";
@@ -99,6 +100,7 @@ export async function postulerCastingSansCompte(
   if (!prenom || !nom) return { error: "Indique ton prénom et ton nom." };
   if (!EMAIL_RE.test(email)) return { error: "Adresse email invalide." };
   if (telephone.replace(/\D/g, "").length < 8) return { error: "Numéro de téléphone invalide." };
+  if (!(await consumePublicSignupAttempt(email))) return { error: MESSAGE_LIMITE_PUBLIQUE };
 
   const supabase = createAdminClient();
   const { data: role } = await supabase

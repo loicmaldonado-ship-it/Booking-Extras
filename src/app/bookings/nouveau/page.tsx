@@ -6,6 +6,7 @@ import { createBooking } from "@/lib/bookings/actions";
 import { baremePourEquipes, clesEquipeProjets } from "@/lib/bareme/equipe";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export default async function NouveauBookingPage({
   searchParams,
@@ -27,10 +28,11 @@ export default async function NouveauBookingPage({
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: figurants }, { data: projets }] = await Promise.all([
+  const [{ data: figurantsRls }, { data: projets }] = await Promise.all([
     figurantsQuery,
     projetsQuery,
   ]);
+  const figurants = await completerChoix(figurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const backHref =
     params.projet_id && params.date

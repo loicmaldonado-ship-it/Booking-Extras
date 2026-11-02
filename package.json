@@ -11,10 +11,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.3",
     "exceljs": "^4.4.0",
+    "ffmpeg-static": "^5.3.0",
     "heic-to": "^1.6.5",
     "html2canvas-pro": "^2.3.8",
     "imapflow": "^1.7.1",
@@ -48,7 +48,10 @@
   },
   "overrides": {
     "exceljs": {
-      "uuid": "11.1.1"
+      "uuid": "11.1.1",
+      "readdir-glob": {
+        "minimatch": "^11.0.4"
+      }
     },
     "zod": "4.6.6"
   }

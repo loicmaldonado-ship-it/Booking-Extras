@@ -18,6 +18,16 @@ for (const chemin of ["/partage/documents/abc", "/casting/upload/abc", "/recu/ab
   const r = await fetch(BASE + chemin, { redirect: "manual" });
   if (r.headers.get("referrer-policy") !== "no-referrer") ko.push(`${chemin} referrer-policy=${r.headers.get("referrer-policy")}`);
 }
+// CSP complète (02/11/2026) : scripts limités au nonce de la requête (nouveau à chaque fois), sans 'unsafe-inline'.
+const scriptSrc = async (chemin) => ((await fetch(BASE + chemin, { redirect: "manual" })).headers.get("content-security-policy") || "").split(";").map((d) => d.trim()).find((d) => d.startsWith("script-src")) || "";
+for (const chemin of ["/login", "/", "/compte/connexion"]) {
+  const [a, b] = [await scriptSrc(chemin), await scriptSrc(chemin)];
+  const nonce = /'nonce-([^']+)'/.exec(a)?.[1];
+  if (!nonce || a === b || /'unsafe-inline'|'unsafe-eval'/.test(a)) ko.push(`${chemin} script-src=${a || "absent"}`);
+  const html = await (await fetch(BASE + chemin)).text();
+  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0]);
+  if (scripts.some((t) => !/\snonce="/.test(t))) ko.push(`${chemin} script sans nonce`);
+}
 // robots.txt : vrai fichier texte, outil d'équipe et liens à jeton exclus de l'indexation.
 const robots = await fetch(BASE + "/robots.txt");
 const texte = await robots.text();

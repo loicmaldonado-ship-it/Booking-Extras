@@ -16,13 +16,15 @@ for f in tests/*-local.sql; do
   if out=$(docker exec -i "$DB" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -q < "$f" 2>&1) && ! grep -q ERROR <<<"$out"; then echo "OK  $f"; else echo "KO  $f"; grep -m1 ERROR <<<"$out" || true; fail=1; fi
 done
 echo "== Tests navigateur / API sur l'application =="
-docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
+docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
 for t in qa06-mobile-a11y storage-isolation-local auth-e2e-local bug11-upload-validation can03-doublons-local bug08-share-token-access sec05-share-links sec04-read-leak-pages bug02-all-actions-cross-team; do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
-  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
+  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
 done
-for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e annonces-can05-met02 routes-export-acces textos-rattachement securite-entetes sec06-audit-2026-10-31 passe-complete; do
+for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e annonces-can05-met02 routes-export-acces textos-rattachement securite-entetes csp-navigateur sec06-audit-2026-10-31 sec07-base-profils-section sec08-limite-inscriptions passe-complete; do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
+  # Compteurs anti-abus remis à zéro entre deux tests indépendants (tous partagent la connexion locale).
+  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
 done
 # QA-08 : lit le journal de `npm start` (NEXT_LOG, défaut /tmp/next.log comme dans la CI).
 if [ -f "${NEXT_LOG:-/tmp/next.log}" ]; then
@@ -31,7 +33,7 @@ else echo "KO  qa08-journal-erreurs : journal de l'appli introuvable (NEXT_LOG)"
 # Recette technique (MET/COM/CAN) : nécessite la capture des emails par Mailpit (BOOKING_TEST_SMTP_URL dans .env.local).
 if grep -q '^BOOKING_TEST_SMTP_URL=smtp' .env.local 2>/dev/null; then
   if node tests/recette-technique-e2e.mjs > /tmp/integration-recette.log 2>&1; then echo "OK  recette-technique-e2e"; else echo "KO  recette-technique-e2e"; tail -5 /tmp/integration-recette.log; fail=1; fi
-  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts" >/dev/null
+  docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
 else echo "KO  recette-technique-e2e : BOOKING_TEST_SMTP_URL absent de .env.local (voir .env.example)"; fail=1; fi
 for t in sec04-read-leak-pages bug02-all-actions-cross-team; do
   if ACTOR=assistante-hors-projet node "tests/$t.mjs" > "/tmp/integration-$t-assistante.log" 2>&1; then echo "OK  $t (assistante hors projet)"; else echo "KO  $t (assistante hors projet)"; tail -5 "/tmp/integration-$t-assistante.log"; fail=1; fi

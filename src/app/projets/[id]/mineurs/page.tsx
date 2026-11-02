@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getCurrentProfile, requireProjetAccess } from "@/lib/auth/session";
 import { hasSectionAccess } from "@/lib/auth/sections";
 import { ageOnDate, todayInParis } from "@/lib/minors/model";
+import { completerChoix } from "@/lib/figurants/choix";
 import { staffDossier, dossierContents, signedMinorFile, type MinorDossier } from "@/lib/minors/dossiers";
 import { CreateMinorDossierForm, MinorDatesForm, MinorGuardiansForm, MinorRequirementForm, MinorLinkForm, MinorReviewForm, RemoveMinorRequirement } from "@/components/minors/dossier-forms";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,8 @@ export default async function MinorProjectPage({ params, searchParams }: { param
     (await createServerSupabaseClient()).from("figurants").select("id,prenom,nom,date_naissance").eq("est_comedien", false).gte("date_naissance", `${Number(today.slice(0, 4)) - 18}-01-01`).order("nom").limit(1000),
   ]);
   if (dossierResult.error || peopleResult.error) throw new Error("Liste des dossiers temporairement indisponible.");
-  const profiles = (peopleResult.data ?? []).filter(p => { const age = ageOnDate(p.date_naissance); return age !== null && age < 18; });
+  const peopleRows = await completerChoix(peopleResult.data, actor, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom, date_naissance: c.date_naissance as string }));
+  const profiles = peopleRows.filter(p => { const age = ageOnDate(p.date_naissance); return age !== null && age < 18; });
   const people = new Map(profiles.map(p => [p.id, p]));
   const requested = (await searchParams).enfant;
   const selected = (dossierResult.data ?? []).find(d => d.figurant_id === requested) ?? dossierResult.data?.[0];

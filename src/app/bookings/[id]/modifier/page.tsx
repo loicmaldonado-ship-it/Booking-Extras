@@ -8,6 +8,7 @@ import type { Booking } from "@/lib/bookings/types";
 import { baremePourEquipes, clesEquipeProjets } from "@/lib/bareme/equipe";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone, requireProjetAccess } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export default async function ModifierBookingPage({
   params,
@@ -27,12 +28,13 @@ export default async function ModifierBookingPage({
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: booking }, { data: figurants }, { data: projets }] =
+  const [{ data: booking }, { data: figurantsRls }, { data: projets }] =
     await Promise.all([
       supabase.from("bookings").select("*").eq("id", id).single<Booking>(),
       figurantsQuery,
       projetsQuery,
     ]);
+  const figurants = await completerChoix(figurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   if (!booking) notFound();
   await requireProjetAccess(booking.projet_id);

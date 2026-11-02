@@ -17,6 +17,7 @@ import { Shirt } from "lucide-react";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,7 @@ export default async function EssayageJourneePage({
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: essayagesRaw }, { data: allFigurants }, { data: creneaux }] = await Promise.all([
+  const [{ data: essayagesRaw }, { data: allFigurantsRls }, { data: creneaux }] = await Promise.all([
     supabase
       .from("essayages")
       .select(
@@ -67,6 +68,7 @@ export default async function EssayageJourneePage({
       .order("heure_debut")
       .returns<Creneau[]>(),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const figurantIds = (essayagesRaw ?? []).map((e) => e.figurant_id);
   const photosByFigurant = await getPhotosByFigurantId(figurantIds);

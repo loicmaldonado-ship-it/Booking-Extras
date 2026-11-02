@@ -13,7 +13,17 @@ export async function checkVisibleFigurants(ids: string[]): Promise<string | nul
   for (let offset = 0; offset < unique.length; offset += 400) {
     const batch = unique.slice(offset, offset + 400);
     const { data, error } = await client.from("figurants").select("id").in("id", batch);
-    if (error || !data || data.length !== batch.length) return "Un profil est introuvable ou inaccessible.";
+    if (error || !data) return "Un profil est introuvable ou inaccessible.";
+    if (data.length === batch.length) continue;
+    // Sans la section Base Profils, une personne de la base partagée reste choisissable (noms seuls, figurants_choix).
+    const vus = new Set(data.map((r) => r.id as string));
+    const manquants = batch.filter((id) => !vus.has(id));
+    try {
+      const { data: choix, error: choixError } = await client.rpc("figurants_choix", { p_ids: manquants });
+      if (choixError || (choix ?? []).length !== manquants.length) return "Un profil est introuvable ou inaccessible.";
+    } catch {
+      return "Un profil est introuvable ou inaccessible.";
+    }
   }
   return null;
 }

@@ -10,7 +10,8 @@
 // 2. <img> (anciens Safari, navigateurs intégrés de Facebook/Instagram,
 //    et HEIC sur Safari, qui sait l'afficher) ;
 // 3. pour un HEIC illisible (Chrome, Firefox, Android) : conversion par
-//    heic-to, chargé seulement dans ce cas (bibliothèque lourde).
+//    heic-to, chargé seulement dans ce cas (bibliothèque lourde). Version « csp » : sans eval de texte,
+//    compatible avec la politique de contenu stricte (WebAssembly autorisé par 'wasm-unsafe-eval').
 
 const RE_HEIC = /\.(heic|heif)$/i;
 
@@ -49,7 +50,7 @@ async function viaImg(blob: Blob): Promise<Source> {
 }
 
 async function viaHeicTo(file: File): Promise<Source> {
-  const { heicTo } = await import("heic-to/next");
+  const { heicTo } = await import("heic-to/csp");
   const jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
   return viaImg(jpeg);
 }

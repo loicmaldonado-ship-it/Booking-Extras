@@ -1,5 +1,6 @@
 "use server";
 
+import { consumePublicSignupAttempt, MESSAGE_LIMITE_PUBLIQUE } from "@/lib/candidats/rate-limit";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { readGuardians } from "@/lib/minors/model";
@@ -213,6 +214,8 @@ export async function postulerAnnonce(
       return { error: "Les deux mots de passe ne sont pas identiques." };
     }
   }
+  // Sans session, la candidature crée un compte : limite de débit (pas pour un·e candidat·e déjà connecté·e).
+  if (!session && !(await consumePublicSignupAttempt(email))) return { error: MESSAGE_LIMITE_PUBLIQUE };
 
   const supabase = createAdminClient();
 

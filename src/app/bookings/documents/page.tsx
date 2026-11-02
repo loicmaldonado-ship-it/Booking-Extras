@@ -31,6 +31,7 @@ import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
@@ -76,7 +77,7 @@ export default async function JourneeDashboardPage({
   let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
-  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
+  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurantsRls }, { data: projetIndemnites }, resolvedSignature] =
     await Promise.all([
     supabase
       .from("projets")
@@ -102,6 +103,7 @@ export default async function JourneeDashboardPage({
       .returns<ProjetIndemnite[]>(),
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const ageAlerts = await Promise.all((bookingsRaw ?? []).filter(b => b.statut !== "annulé").map(async b => {
     const age = ageOnDate(b.figurants?.date_naissance, b.date);

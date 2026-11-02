@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SESSION_STARTED_AT_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-timeout";
 import { APP_SECTIONS, hasSectionAccess } from "@/lib/auth/sections";
+import { nouveauNonce, politiqueContenu } from "@/lib/securite/csp";
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -43,8 +44,39 @@ function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+// Site public en HTTPS (pas localhost) : les ressources http:// sont forcées en https://.
+function sitePublicHttps(): boolean {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+    return u.protocol === "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // CSP avec nonce (audit du 31/10/2026) : Next lit le nonce dans l'en-tête de la requête et l'applique à ses scripts.
+  const nonce = nouveauNonce();
+  const csp = politiqueContenu({
+    nonce,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    dev: process.env.NODE_ENV === "development",
+    https: sitePublicHttps(),
+  });
+  // Recalculé après chaque écriture de cookie de session : les en-têtes transmis aux pages restent à jour.
+  const suivant = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("content-security-policy", csp);
+    return NextResponse.next({ request: { headers } });
+  };
+  const reponse = await traiter(request, suivant);
+  reponse.headers.set("Content-Security-Policy", csp);
+  return reponse;
+}
+
+async function traiter(request: NextRequest, suivant: () => NextResponse): Promise<NextResponse> {
+  let response = suivant();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,7 +90,7 @@ export async function middleware(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({ request });
+          response = suivant();
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }

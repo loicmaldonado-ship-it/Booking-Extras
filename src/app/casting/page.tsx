@@ -25,6 +25,7 @@ import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { CASTING_MODE_LABELS, CASTING_STATUTS, CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
@@ -76,7 +77,7 @@ export default async function CastingPage({
     roles,
     entries,
     origin,
-    { data: allFigurants },
+    { data: allFigurantsRls },
     { data: templates },
     signature,
     presentielJournees,
@@ -93,6 +94,7 @@ export default async function CastingPage({
     getPresentielAssignmentsByRole(currentProjetId),
     getRetourReel(currentProjetId),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const roleIdsParCategorie = new Map<CategorieCachet, Set<string>>(CATEGORIES.map((c) => [c, new Set<string>()]));
   for (const role of roles) roleIdsParCategorie.get(role.categorie_cachet)?.add(role.id);

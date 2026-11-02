@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { AVERTISSEMENT_EXPEDITEUR } from "@/lib/email/authentification";
 
 // Heuristique par mots-clés uniquement — un simple indice affiché à l'écran,
 // jamais utilisé pour changer automatiquement un statut de booking.
@@ -42,6 +43,8 @@ function normalize(s: string) {
 export type Sentiment = "positif" | "negatif" | null;
 
 export function guessSentiment(text: string): Sentiment {
+  // Expéditeur non vérifié : pas d'indice « oui / non », la personne doit être recontactée.
+  if (text.startsWith(AVERTISSEMENT_EXPEDITEUR)) return null;
   const n = normalize(text);
   const hasPositive = POSITIVE_WORDS.some((w) => n.includes(w));
   const hasNegative = NEGATIVE_WORDS.some((w) => n.includes(w));
