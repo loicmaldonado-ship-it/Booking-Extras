@@ -293,7 +293,9 @@ export default async function PartageCastingPage({
 
       {/* Profils pas encore validés : sous les validés, en mode casting (un
           bloc par rôle avec ses profils), tant que l'équipe ne les a pas mis
-          en invisible. Le bloc s'adapte à son contenu. */}
+          en invisible. Le bloc prend toute la largeur : la grille de profils
+          s'y étale en colonnes comme celle des profils validés (un bloc
+          « à la largeur du contenu » la réduisait à une seule colonne). */}
       {enCours.length > 0 && (
         <section className="flex flex-col gap-4 sm:rounded-2xl sm:border sm:border-border sm:bg-ink-raised sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -308,7 +310,7 @@ export default async function PartageCastingPage({
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-text-muted">{CATEGORIE_CACHET_LABELS[g.cat]}s</h3>
               )}
               {g.roles.map((b) => (
-                <div key={b.role.id} className="flex w-full flex-col gap-3 sm:w-fit sm:max-w-full sm:rounded-xl sm:border sm:border-border sm:bg-ink sm:p-4">
+                <div key={b.role.id} className="flex w-full flex-col gap-3 sm:rounded-xl sm:border sm:border-border sm:bg-ink sm:p-4">
                   <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-border pb-2 sm:border-0 sm:pb-0">
                     <h3 className="text-lg font-semibold">{b.role.nom}</h3>
                     {dateDuRole(b.role) && <span className="text-xs text-text-muted">{dateDuRole(b.role)}</span>}
