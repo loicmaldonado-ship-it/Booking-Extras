@@ -51,6 +51,9 @@ mkdirSync(join(local,'supabase/migrations'),{recursive:true});
 for(const n of migrationNames)copyFileSync(join(root,'supabase/migrations',n),join(local,'supabase/migrations',n));
 copyFileSync(join(root,'supabase/seed.sql'),join(local,'supabase/seed.sql'));
 let config=readFileSync(join(root,'supabase/config.toml'),'utf8').replace(/^project_id\s*=.*$/m,`project_id = "${projectPrefix}_${fingerprint.slice(0,12)}"`);
+// L'appli de recette tourne sur http://localhost:3100 : les liens d'invitation et de mot de passe oublié de l'équipe
+// doivent y revenir (avant le 02/11/2026 ils renvoyaient vers le port 3000, où rien ne tourne).
+config=config.replace(/^site_url\s*=.*$/m,'site_url = "http://localhost:3100"').replace(/^additional_redirect_urls\s*=.*$/m,'additional_redirect_urls = ["http://localhost:3100/**", "http://127.0.0.1:3100/**"]');
 for(const [a,b] of [['54321','29194'],['54322','29242'],['54320','29240'],['54323','29243'],['54324','29244'],['54325','29245'],['54327','29247'],['54329','29249']])config=config.replaceAll(a,b);
 writeFileSync(join(local,'supabase/config.toml'),config);
 console.log('Préparation de la base de démonstration. Le premier démarrage peut prendre plusieurs minutes.');
@@ -70,7 +73,10 @@ if(!anon||!service)fail('Les clés de démonstration locales sont manquantes.');
 const old=existsSync(envPath)?readFileSync(envPath,'utf8'):'';
 const secret=old.match(/^SECRETS_ENCRYPTION_KEY=(.+)$/m)?.[1]??randomBytes(32).toString('base64');
 const authSecret=old.match(/^AUTH_RATE_LIMIT_SECRET=(.+)$/m)?.[1]??randomBytes(32).toString('hex');
-const values={BOOKING_TEST_MODE:'1',NEXT_PUBLIC_SUPABASE_URL:url.origin,NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,SUPABASE_SERVICE_ROLE_KEY:service,NEXT_PUBLIC_SITE_URL:'http://localhost:3100',SECRETS_ENCRYPTION_KEY:secret,AUTH_RATE_LIMIT_SECRET:authSecret};
+const values={BOOKING_TEST_MODE:'1',NEXT_PUBLIC_SUPABASE_URL:url.origin,NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,SUPABASE_SERVICE_ROLE_KEY:service,NEXT_PUBLIC_SITE_URL:'http://localhost:3100',SECRETS_ENCRYPTION_KEY:secret,AUTH_RATE_LIMIT_SECRET:authSecret,
+ // Emails de l'appli (convocations, candidature reçue, liens candidats) capturés dans la boîte locale de cette copie
+ // (http://localhost:29244) au lieu d'être jetés ; le mode test refuse tout serveur SMTP qui ne serait pas local.
+ BOOKING_TEST_SMTP_URL:'smtp://127.0.0.1:29245'};
 writeFileSync(envPath,managed+'\n'+Object.entries(values).map(([k,v])=>`${k}=${v}`).join('\n')+'\n',{mode:0o600});
 if(process.platform!=='win32')chmodSync(envPath,0o600);
 writeFileSync(marker,fingerprint+'\n');
@@ -81,7 +87,7 @@ if(!existsSync(join(root,'node_modules/next'))||!existsSync(dependenciesMarker)|
 }
 // Photo fictive de la cheffe du seed (sinon « ? » à la place de son avatar). Facultatif : un échec n'arrête pas la recette.
 command(process.execPath,[join(root,'scripts/seed-medias-local.mjs')],{capture:true,allowFailure:true});
-console.log('\nOuvrez http://localhost:3100 dans votre navigateur.\nGardez cette fenêtre ouverte. Pour arrêter : Ctrl+C.\nLes emails, SMS, notifications et accès Gmail réels sont désactivés.\n');
+console.log('\nOuvrez http://localhost:3100 dans votre navigateur.\nGardez cette fenêtre ouverte. Pour arrêter : Ctrl+C.\nLes emails, SMS, notifications et accès Gmail réels sont désactivés.\nLes emails de test sont lisibles sur http://localhost:29244.\n');
 const next=spawn(process.execPath,[join(root,'node_modules/next/dist/bin/next'),'dev','--hostname','127.0.0.1','--port','3100'],{cwd:root,stdio:'inherit',env:{...process.env,...values}});
 next.on('error',()=>fail('Le site n’a pas démarré. Vérifiez qu’aucun autre test n’utilise le port 3100.'));
 next.on('exit',code=>process.exit(code??1));

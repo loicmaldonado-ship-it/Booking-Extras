@@ -21,7 +21,7 @@ for t in qa06-mobile-a11y storage-isolation-local auth-e2e-local bug11-upload-va
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
 done
-for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e annonces-can05-met02 routes-export-acces textos-rattachement securite-entetes csp-navigateur sec06-audit-2026-10-31 sec07-base-profils-section sec08-limite-inscriptions sec09-passe-boite-noire passe-complete; do
+for t in med01-compression-images med02-envoi-video bug13-erreurs-mutations leg-mineurs-rgpd-e2e annonces-can05-met02 routes-export-acces textos-rattachement securite-entetes csp-navigateur sec06-audit-2026-10-31 sec07-base-profils-section sec08-limite-inscriptions sec09-passe-boite-noire mineurs-entree-menu invitation-cheffe-e2e passe-complete; do
   if node "tests/$t.mjs" > "/tmp/integration-$t.log" 2>&1; then echo "OK  $t"; else echo "KO  $t"; tail -5 "/tmp/integration-$t.log"; fail=1; fi
   # Compteurs anti-abus remis à zéro entre deux tests indépendants (tous partagent la connexion locale).
   docker exec -i "$DB" psql -U postgres -d postgres -qc "delete from candidate_auth_attempts; delete from limites_publiques" >/dev/null
