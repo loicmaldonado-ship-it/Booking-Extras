@@ -50,6 +50,19 @@
 | 45 | Réponses par email rattachées sur la seule adresse « De » (falsifiable) | SEC | résultat SPF/DKIM/DMARC lu dans le premier en-tête `Authentication-Results` de Gmail : sans validation alignée, le message est importé avec l'avertissement « Expéditeur non vérifié » et sans indice oui/non ; `tests/email-expediteur-authentifie.test.mjs` |
 | 46 | ffmpeg 4.1 (2018) pour l'allègement des vidéos | SEC | remplacé par ffmpeg 7.0.2 (`ffmpeg-static`, binaire téléchargé pour la plateforme à l'installation) |
 | 47 | Politique de contenu (CSP) sans `script-src` : un script injecté dans une page se serait exécuté | SEC | CSP complète posée par le middleware avec un nonce par requête (`src/lib/securite/csp.ts`) : scripts de Next seuls, gestionnaires d'événements injectés et `eval` bloqués, connexions limitées au site et à Supabase ; conversion HEIC passée sur la version « csp » de heic-to ; `tests/csp-navigateur.mjs` (Chromium, WebKit, Firefox), `tests/securite-entetes.mjs` |
+| 48 | Boutons « Rechercher » (raccourci ⌘K lu dans le nom) et « Notifications » (compteur absent du nom) : nom accessible différent du texte affiché (Lighthouse) | QA-07 | `aria-hidden` sur ⌘K ; « Notifications, N non lues » |
+
+### Passe de sécurité et Lighthouse du 02/11/2026 (après les bugs 43 à 48)
+- **Boîte noire** (`tests/sec09-passe-boite-noire.mjs`, 11/11) : aucune des 77 tables lisible ou modifiable anonymement, stockage
+  non listable ; une assistante sans « Base Profils » n'obtient rien d'une personne de la base dans aucune des 23 tables liées
+  aux profils ; pas d'auto-élévation de droits ; pas de redirection ouverte ; action serveur refusée depuis une autre origine ;
+  CSP présente aussi sur les erreurs ; aucun secret serveur dans les 93 fichiers envoyés au navigateur. Seule fonction
+  appelable anonymement : `nom_onglet_journee` (nom d'onglet d'une date, sans donnée).
+- **Lighthouse** (10 écrans × téléphone et ordinateur) : bonnes pratiques 100 ; accessibilité 96–100 (le 96 = mot « EXTRAS »
+  du logo, hors périmètre) ; performance 81–100 (77–100 le 30/10) ; audit CSP/XSS désormais réussi partout. Pages
+  « Base Profils » et « Candidatures » sur téléphone en 4G simulée : texte principal affiché vers 4 s.
+- **Navigateurs** : parcours complet de 96 adresses × 4 rôles sans problème sous Chromium (460 visites), Firefox (230) et WebKit
+  (230, via le relais HTTPS) ; CSP vérifiée aussi en mode développement (`next dev`, lanceur de recette) dans les trois moteurs.
 
 ## 2. Smoke test des écrans (ENV-04)
 Appli construite (`npm start`), base locale neuve, 3 rôles fictifs.

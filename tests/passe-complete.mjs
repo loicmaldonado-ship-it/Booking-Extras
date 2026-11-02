@@ -93,7 +93,9 @@ const audit = () => {
     coupable = pire?.d || "";
   }
   return { overflow, coupable,
-    erreurNext: /Application error|Internal Server Error|Unhandled Runtime Error/.test(texte), introuvable: /This page could not be found|404/.test(document.title + " " + texte.slice(0, 200)) };
+    erreurNext: /Application error|Internal Server Error|Unhandled Runtime Error/.test(texte), // « 404 » seul donnait de faux positifs (numéro de téléphone fictif contenant 404 en haut d'une fiche) : la page
+    // introuvable de Next affiche toujours « This page could not be found ».
+    introuvable: /This page could not be found/.test(document.title + " " + texte.slice(0, 400)) };
 };
 const lignes = [];
 const browser = await navigateur.launch();
