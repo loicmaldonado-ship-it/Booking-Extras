@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { creerOnglet, renommerOnglet, supprimerOnglet, rangerRoles } from "@/lib/casting/onglet-actions";
-import { setCastingRolePosition } from "@/lib/casting/actions";
-import type { CategorieCachet } from "@/lib/casting/types";
+import { setCastingRolePosition, updateCastingRoleVisiblePartage, updateCastingRolesVisiblePartage } from "@/lib/casting/actions";
+import { CASTING_MODE_LABELS, type CastingMode, type CategorieCachet } from "@/lib/casting/types";
 import { cn } from "@/lib/cn";
 
 // Où en est un rôle : de ce qui demande de l'action à ce qui est fini.
@@ -28,6 +28,9 @@ export type ItemRole = {
   ongletId: string | null;
   // Numéro d'ordre du rôle dans sa catégorie (celui qu'on peut changer).
   position: number;
+  // Mode du rôle (selftape ou présentiel) et visibilité sur le lien réal.
+  mode: CastingMode;
+  visible: boolean;
   // Initiales des premiers profils, pour la carte.
   initiales: string[];
   // Carte complète du rôle (profils, vidéos, invitation…), affichée au clic.
@@ -42,7 +45,8 @@ const boutonClair =
   "rounded-full border-2 border-border-strong px-4 py-1.5 text-sm font-semibold hover:border-text disabled:opacity-40";
 
 // Page Casting : des onglets créés par la cheffe, et dans chacun une grille de
-// cartes (une par rôle). Un clic sur une carte ouvre le rôle en grand.
+// cartes (une par rôle). Un clic sur une carte la déploie sur place, sur toute la
+// largeur : les cartes suivantes passent en dessous.
 export function CastingRolesListe({
   projetId,
   categorie,
@@ -60,7 +64,13 @@ export function CastingRolesListe({
   const [filtre, setFiltre] = useState<EtatRole | null>(null);
   const [recherche, setRecherche] = useState("");
   const [parAction, setParAction] = useState(false);
-  const [detail, setDetail] = useState<string | null>(null);
+  const [modeFiltre, setModeFiltre] = useState<CastingMode | null>(null);
+  const [visFiltre, setVisFiltre] = useState<boolean | null>(null);
+  // Visibilités changées à l'écran, affichées tout de suite avant le retour du serveur.
+  const [visibilites, setVisibilites] = useState<Record<string, boolean>>({});
+  const [ouverts, setOuverts] = useState<Set<string>>(new Set());
+  // Rôle qu'on vient d'ouvrir : l'écran défile pour le caler en haut, une seule fois.
+  const aDefiler = useRef<string | null>(null);
   const [panneau, setPanneau] = useState<"nouveau" | "renommer" | null>(null);
   const [nomSaisi, setNomSaisi] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -69,6 +79,7 @@ export function CastingRolesListe({
 
   const vueEffective: Vue = vue === "all" || vue === "none" || onglets.some((o) => o.id === vue) ? vue : "all";
   const ongletCourant = onglets.find((o) => o.id === vueEffective) ?? null;
+  const estVisible = (it: ItemRole) => (it.id in visibilites ? visibilites[it.id] : it.visible);
   const ongletDe = (it: ItemRole) => (it.id in rangements ? rangements[it.id] : it.ongletId);
   // Dans l'onglet « Le Migrant », inutile de répéter « Le Migrant · » devant chaque rôle importé.
   const nomAffiche = (it: ItemRole) =>
@@ -91,11 +102,17 @@ export function CastingRolesListe({
 
   const visibles = useMemo(() => {
     const q = recherche.trim().toLowerCase();
-    const filtres = dansVue.filter((it) => (!filtre || it.etat === filtre) && (!q || it.nom.toLowerCase().includes(q)));
+    const filtres = dansVue.filter(
+      (it) =>
+        (!filtre || it.etat === filtre) &&
+        (!modeFiltre || it.mode === modeFiltre) &&
+        (visFiltre === null || (it.id in visibilites ? visibilites[it.id] : it.visible) === visFiltre) &&
+        (!q || it.nom.toLowerCase().includes(q))
+    );
     if (!parAction) return filtres;
     const rang = new Map(ETATS.map((e, i) => [e.value, i]));
     return [...filtres].sort((a, b) => rang.get(a.etat)! - rang.get(b.etat)!);
-  }, [dansVue, filtre, recherche, parAction]);
+  }, [dansVue, filtre, recherche, parAction, modeFiltre, visFiltre, visibilites]);
 
   const sansOnglet = items.filter((it) => !(it.id in rangements ? rangements[it.id] : it.ongletId)).length;
   const nbDans = (id: string) => items.filter((it) => (it.id in rangements ? rangements[it.id] : it.ongletId) === id).length;
@@ -105,6 +122,31 @@ export function CastingRolesListe({
     setRangements((prev) => ({ ...prev, ...Object.fromEntries(roleIds.map((id) => [id, ongletId])) }));
     startTransition(async () => {
       const res = await rangerRoles(projetId, roleIds, ongletId);
+      if (res.error) setErreur(res.error);
+      router.refresh();
+    });
+  }
+
+  function changerVisible(roleId: string, visible: boolean) {
+    setErreur(null);
+    setVisibilites((prev) => ({ ...prev, [roleId]: visible }));
+    startTransition(async () => {
+      const res = await updateCastingRoleVisiblePartage(roleId, visible);
+      if (res.error) setErreur(res.error);
+      router.refresh();
+    });
+  }
+
+  // Visibilité en masse : les rôles affichés (onglet, filtres et recherche compris).
+  function tousVisibles(visible: boolean, profils: boolean) {
+    const ids = visibles.map((it) => it.id);
+    if (ids.length === 0) return;
+    const quoi = profils ? `les profils de ${ids.length} rôle${ids.length > 1 ? "s" : ""}` : `${ids.length} rôle${ids.length > 1 ? "s" : ""}`;
+    if (!window.confirm(`Rendre ${visible ? "visibles" : "invisibles"} sur le lien réal ${quoi} (ceux affichés ici) ?`)) return;
+    setErreur(null);
+    if (!profils) setVisibilites((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, visible])) }));
+    startTransition(async () => {
+      const res = await updateCastingRolesVisiblePartage(projetId, ids, visible, profils);
       if (res.error) setErreur(res.error);
       router.refresh();
     });
@@ -148,7 +190,7 @@ export function CastingRolesListe({
         onClick={() => {
           setVue(id);
           setPanneau(null);
-          setDetail(null);
+          setOuverts(new Set());
         }}
         onDragOver={(e) => id !== "all" && e.preventDefault()}
         onDrop={(e) => {
@@ -183,58 +225,54 @@ export function CastingRolesListe({
     });
   }
 
-  // ----- Vue détail : un rôle en grand -----
-  if (detail) {
-    const idx = visibles.findIndex((it) => it.id === detail);
-    const it = items.find((x) => x.id === detail);
-    if (it) {
-      const etat = ETATS.find((e) => e.value === it.etat)!;
-      return (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className={boutonClair} onClick={() => setDetail(null)}>
-              ‹ Retour aux cartes
-            </button>
-            <span className={cn("rounded-full px-3 py-1 text-xs font-medium", etat.badge)}>{etat.label}</span>
-            {idx >= 0 && (
-              <span className="text-sm text-text-muted">
-                {idx + 1} sur {visibles.length}
-              </span>
-            )}
-            <span className="flex-1" />
-            <label className="flex items-center gap-2 text-sm">
-              Ranger dans
-              <select
-                value={ongletDe(it) ?? ""}
-                onChange={(e) => ranger([it.id], e.target.value || null)}
-                className="rounded-lg border border-border bg-ink px-3 py-1.5 text-sm outline-none focus:border-coral"
-              >
-                <option value="">Aucun onglet</option>
-                {onglets.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nom}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" className={boutonClair} disabled={idx <= 0} onClick={() => setDetail(visibles[idx - 1].id)}>
-              ‹
-            </button>
-            <button
-              type="button"
-              className={boutonClair}
-              disabled={idx < 0 || idx >= visibles.length - 1}
-              onClick={() => setDetail(visibles[idx + 1].id)}
-            >
-              ›
-            </button>
-          </div>
-          {erreur && <p className="text-sm text-danger">{erreur}</p>}
-          <div key={it.id}>{it.carte}</div>
-        </div>
-      );
-    }
+  function basculer(id: string) {
+    if (!ouverts.has(id)) aDefiler.current = id;
+    setOuverts((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
+
+  useEffect(() => {
+    const id = aDefiler.current;
+    if (!id) return;
+    aDefiler.current = null;
+    document.getElementById(`role-ouvert-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [ouverts]);
+
+  // Le rôle déployé : il prend la place de sa carte, sur toute la largeur.
+  const blocOuvert = (it: ItemRole) => (
+    <div
+      key={it.id}
+      id={`role-ouvert-${it.id}`}
+      className="col-span-full flex scroll-mt-4 flex-col gap-3 rounded-2xl border-2 border-coral/60 bg-ink p-3"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" className={boutonClair} onClick={() => basculer(it.id)}>
+          ▲ Replier
+        </button>
+        <span className="flex-1" />
+        <label className="flex items-center gap-2 text-sm">
+          Ranger dans
+          <select
+            value={ongletDe(it) ?? ""}
+            onChange={(e) => ranger([it.id], e.target.value || null)}
+            className="rounded-lg border border-border bg-ink px-3 py-1.5 text-sm outline-none focus:border-coral"
+          >
+            <option value="">Aucun onglet</option>
+            {onglets.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.nom}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {it.carte}
+    </div>
+  );
 
   // ----- Vue grille : onglets + cartes -----
   return (
@@ -328,12 +366,67 @@ export function CastingRolesListe({
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium">Mode :</span>
+        {([null, "selftape", "presentiel"] as const).map((m) => (
+          <button
+            key={m ?? "tous"}
+            type="button"
+            aria-pressed={modeFiltre === m}
+            onClick={() => setModeFiltre(m)}
+            className={cn(
+              "rounded-full border-2 px-3.5 py-1.5 text-sm font-semibold transition-colors",
+              modeFiltre === m ? "border-text bg-text text-ink" : "border-border-strong text-text hover:border-text"
+            )}
+          >
+            {m ? CASTING_MODE_LABELS[m] : "Tous"}
+          </button>
+        ))}
+        <span className="ml-2 text-sm font-medium">Sur le lien réal :</span>
+        {([null, true, false] as const).map((v) => (
+          <button
+            key={String(v)}
+            type="button"
+            aria-pressed={visFiltre === v}
+            onClick={() => setVisFiltre(v)}
+            className={cn(
+              "rounded-full border-2 px-3.5 py-1.5 text-sm font-semibold transition-colors",
+              visFiltre === v ? "border-text bg-text text-ink" : "border-border-strong text-text hover:border-text"
+            )}
+          >
+            {v === null ? "Tous" : v ? "👁️ Visibles" : "🙈 Invisibles"}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={parAction} onChange={(e) => setParAction(e.target.checked)} className="accent-coral" />
           Ce qui demande une action d&apos;abord
         </label>
         <span className="flex-1" />
+        <details className="relative">
+          <summary className={cn(boutonClair, "cursor-pointer list-none [&::-webkit-details-marker]:hidden")}>
+            👁️ Visibilité au réal ▾
+          </summary>
+          <div className="absolute right-0 top-11 z-20 flex w-72 flex-col gap-1 rounded-2xl border border-border-strong bg-ink p-2 shadow-lg">
+            <p className="px-3 py-1 text-xs text-text-muted">
+              S&apos;applique aux {visibles.length} rôle{visibles.length > 1 ? "s" : ""} affiché{visibles.length > 1 ? "s" : ""} (onglet, filtres et recherche).
+            </p>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousVisibles(true, false)}>
+              👁️ Rôles : tout visible
+            </button>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousVisibles(false, false)}>
+              🙈 Rôles : tout invisible
+            </button>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousVisibles(true, true)}>
+              👁️ Profils de ces rôles : tous visibles
+            </button>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousVisibles(false, true)}>
+              🙈 Profils de ces rôles : tous invisibles
+            </button>
+          </div>
+        </details>
         {ongletCourant && (
           <>
             <button
@@ -365,6 +458,7 @@ export function CastingRolesListe({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibles.map((it) => {
+            if (ouverts.has(it.id)) return blocOuvert(it);
             const etat = ETATS.find((e) => e.value === it.etat)!;
             const o = ongletDe(it);
             return (
@@ -374,9 +468,13 @@ export function CastingRolesListe({
                 tabIndex={0}
                 draggable
                 onDragStart={(e) => e.dataTransfer.setData("text/plain", it.id)}
-                onClick={() => setDetail(it.id)}
-                onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && setDetail(it.id)}
-                className="flex min-h-28 cursor-pointer flex-col items-stretch gap-2 rounded-2xl border border-border bg-ink-raised p-3 text-left transition-colors hover:border-border-strong"
+                aria-expanded={ouverts.has(it.id)}
+                onClick={() => basculer(it.id)}
+                onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && basculer(it.id)}
+                className={cn(
+                  "flex min-h-28 cursor-pointer flex-col items-stretch gap-2 rounded-2xl border bg-ink-raised p-3 text-left transition-colors",
+                  ouverts.has(it.id) ? "border-2 border-coral" : "border-border hover:border-border-strong"
+                )}
               >
                 <span className="flex items-center justify-between gap-2">
                   <input
@@ -394,7 +492,24 @@ export function CastingRolesListe({
                     onBlur={(e) => changerNumero(it.id, e.currentTarget.value, it.position)}
                     className="w-14 rounded-lg border-2 border-border-strong bg-ink px-2 py-0.5 text-sm font-semibold tabular-nums outline-none focus:border-coral"
                   />
-                  <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", etat.badge)}>{etat.label}</span>
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changerVisible(it.id, !estVisible(it));
+                      }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      title={estVisible(it) ? "Visible sur le lien réal : cliquer pour cacher" : "Invisible sur le lien réal : cliquer pour montrer"}
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-xs font-medium",
+                        estVisible(it) ? "border-turquoise/60 bg-turquoise/10 text-turquoise" : "border-border-strong text-text-muted"
+                      )}
+                    >
+                      {estVisible(it) ? "👁️ Visible" : "🙈 Invisible"}
+                    </button>
+                    <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", etat.badge)}>{etat.label}</span>
+                  </span>
                 </span>
                 <span className="flex-1 text-sm font-semibold leading-snug">{nomAffiche(it)}</span>
                 <span className="flex items-center justify-between gap-2">
@@ -415,7 +530,7 @@ export function CastingRolesListe({
                   </span>
                   <span className="truncate text-xs text-text-muted">
                     {vueEffective === "all" && o ? `🗂️ ${onglets.find((x) => x.id === o)?.nom} · ` : ""}
-                    {it.nbProfils > 0 ? `${it.nbProfils} profil${it.nbProfils > 1 ? "s" : ""}` : "—"}
+                    {CASTING_MODE_LABELS[it.mode]} · {it.nbProfils > 0 ? `${it.nbProfils} profil${it.nbProfils > 1 ? "s" : ""}` : "—"}
                   </span>
                 </span>
               </div>

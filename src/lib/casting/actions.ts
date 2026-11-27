@@ -530,6 +530,62 @@ export async function updateAllCastingEntriesVisiblePartage(
   return { success: true };
 }
 
+// Rend visibles (ou invisibles) sur le lien réal plusieurs rôles d'un coup — ceux
+// affichés à l'écran dans l'onglet ouvert. `profils` : fait de même pour tous
+// les profils de ces rôles (sinon seuls les rôles changent).
+export async function updateCastingRolesVisiblePartage(
+  projetId: string,
+  roleIds: string[],
+  visible: boolean,
+  profils = false
+): Promise<{ error?: string; success?: true }> {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+  if (roleIds.length === 0) return { success: true };
+
+  const supabase = createAdminClient();
+  for (let i = 0; i < roleIds.length; i += 100) {
+    const lot = roleIds.slice(i, i + 100);
+    // Le projet est vérifié sur les rôles eux-mêmes : on n'écrit jamais ailleurs.
+    const requete = profils
+      ? supabase.from("casting_entries").update({ visible_partage: visible }).eq("projet_id", projetId).in("role_id", lot)
+      : supabase.from("casting_roles").update({ visible_partage: visible }).eq("projet_id", projetId).in("id", lot);
+    const { error } = await requete;
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Retire (ou remet) une photo ou une vidéo du lien réal, pour un profil. Rien
+// n'est supprimé : le média reste dans la fiche, il n'est juste plus montré au
+// réal. `cle` : « p:<id photo> » ou « v:<chemin vidéo> ».
+export async function basculerMediaReel(
+  entryId: string,
+  cle: string,
+  masque: boolean
+): Promise<{ error?: string; success?: true }> {
+  if (!/^[pv]:.{1,400}$/.test(cle)) return { error: "Média invalide." };
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, medias_masques")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const actuels: string[] = entry.medias_masques ?? [];
+  const suivants = masque ? Array.from(new Set([...actuels, cle])) : actuels.filter((c) => c !== cle);
+  const { error } = await supabase.from("casting_entries").update({ medias_masques: suivants }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting/apercu");
+  return { success: true };
+}
+
 // Changement de statut groupé — depuis une sélection multiple sur la page
 // Casting, plutôt que profil par profil.
 export async function updateCastingEntriesStatutBulk(

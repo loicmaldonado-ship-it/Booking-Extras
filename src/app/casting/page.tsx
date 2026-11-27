@@ -178,6 +178,15 @@ export default async function CastingPage({
           <details className="relative">
             <summary className="inline-flex cursor-pointer list-none items-center justify-center gap-2 rounded-full border-2 border-text bg-ink px-5 py-2.5 text-sm font-semibold text-coral shadow-sm hover:bg-coral/10 [&::-webkit-details-marker]:hidden">Partager au réal</summary>
             <div className="absolute right-0 top-12 z-20 flex w-[min(44rem,90vw)] flex-col gap-4 rounded-2xl border border-border-strong bg-ink p-4 shadow-lg">
+              <div className="flex flex-wrap items-center gap-2">
+                <ButtonLink href={`/casting/apercu?cat=${categorie}`} variant="secondary">
+                  👁️ Aperçu du lien : {CATEGORIE_CACHET_LABELS[categorie]}s
+                </ButtonLink>
+                <ButtonLink href="/casting/apercu" variant="secondary">
+                  👁️ Aperçu : tout le casting
+                </ButtonLink>
+                <span className="text-xs text-text-muted">Ce que voit le·la réal, et retirer une photo ou une vidéo du lien.</span>
+              </div>
               {[liensCategorie, lienTout].map((lien) => (
                 <PartageCard
                   key={lien.cat ?? "tout"}
@@ -342,6 +351,8 @@ export default async function CastingPage({
             etat,
             ongletId: role.onglet_id,
             position: i + 1,
+            mode: role.mode,
+            visible: role.visible_partage,
             initiales: profils
               .slice(0, 3)
               .map((e) => `${(e.figurants?.prenom ?? "?")[0] ?? ""}${(e.figurants?.nom ?? "")[0] ?? ""}`.toUpperCase()),

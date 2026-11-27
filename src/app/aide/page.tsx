@@ -525,7 +525,15 @@ export default function AidePage() {
                 change-le (par exemple le Préfet en 3), il se place là et les autres se décalent. Les quatre boutons à
                 côté de la recherche (<UI>À traiter</UI>, <UI>Sans profil</UI>, <UI>En attente de retour</UI>,{" "}
                 <UI>Validé</UI>) comptent et filtrent ; la case <UI>Ce qui demande une action d&apos;abord</UI> remet en
-                tête ce qui attend ta réponse.
+                tête ce qui attend ta réponse. <UI>Mode</UI> trie les rôles Selftape ou Présentiel, et{}
+                <UI>Sur le lien réal</UI> ne garde que les visibles ou les invisibles.
+              </>,
+              <>
+                <strong className="text-text">Visible ou invisible pour le réal :</strong> le bouton{" "}
+                <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> sur chaque carte change un rôle d&apos;un clic, et{" "}
+                <UI>👁️ Visibilité au réal</UI> rend visibles ou invisibles d&apos;un coup tous les rôles affichés (ou leurs
+                profils) — l&apos;onglet, les filtres et la recherche en cours comptent, et une confirmation s&apos;affiche
+                avant d&apos;appliquer.
               </>,
             ]}
           />
@@ -612,6 +620,14 @@ export default function AidePage() {
           <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
           liens séparés — chaque lien a ses propres réglages, son titre et son suivi, et les avis reçus restent sur le
           profil dans l&apos;espace casting.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Aperçu du lien réal.</strong> Dans <UI>Partager au réal</UI>, les boutons{" "}
+          <UI>👁️ Aperçu du lien</UI> ouvrent une page qui montre exactement ce que le·la réal voit : les rôles et les
+          profils marqués visibles, avec les infos cochées dans les réglages du lien (âge, ville, taille…). Sous chaque
+          photo et chaque vidéo, <UI>✕ Retirer du lien</UI> la cache au réal — elle reste grisée sur cette page et dans la
+          fiche du profil, rien n&apos;est supprimé — et <UI>↩ Remettre</UI> la montre de nouveau. Ça vaut pour tous les
+          liens où ce profil apparaît.
         </Callout>
         <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Dans <UI>Partager au réal</UI> (en haut à droite de la page
