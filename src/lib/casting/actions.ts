@@ -86,8 +86,20 @@ export async function createCastingRole(
   const questions = parseQuestions(formData);
   const messageCorps = String(formData.get("message_corps") ?? "").trim() || null;
   const visiblePartage = formData.get("visible_partage") === "on";
+  const ongletBrut = String(formData.get("onglet_id") ?? "").trim();
 
   const supabase = createAdminClient();
+  // L'onglet ouvert au moment de la création, s'il appartient bien à ce projet.
+  let ongletId: string | null = null;
+  if (ongletBrut) {
+    const { data: onglet } = await supabase
+      .from("casting_onglets")
+      .select("id")
+      .eq("id", ongletBrut)
+      .eq("projet_id", projetId)
+      .maybeSingle();
+    ongletId = onglet?.id ?? null;
+  }
   // Nouveau rôle toujours en dernier dans l'ordre d'affichage — le staff
   // réordonne ensuite à la main si besoin (voir setCastingRolePosition).
   const { data: maxOrdreRow } = await supabase
@@ -116,6 +128,7 @@ export async function createCastingRole(
       questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
+      onglet_id: ongletId,
     })
     .select("id")
     .single();
@@ -457,31 +470,39 @@ export async function setCastingRolePosition(
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
-    .select("projet_id")
+    .select("projet_id, categorie_cachet")
     .eq("id", roleId)
     .maybeSingle();
   if (!role) return { error: "Introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
+  if (!Number.isFinite(position)) return { error: "Numéro invalide." };
 
+  // Les numéros affichés sont ceux de la catégorie ouverte (Rôles, Silhouettes,
+  // Doublures) : on réordonne cette catégorie, les autres gardent leur place.
   const { data: roles } = await supabase
     .from("casting_roles")
-    .select("id")
+    .select("id, categorie_cachet")
     .eq("projet_id", role.projet_id)
-    .order("ordre", { ascending: true });
-  const list = roles ?? [];
-  const currentIndex = list.findIndex((r) => r.id === roleId);
+    .order("ordre", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  const tous = roles ?? [];
+  const membres = tous.filter((r) => r.categorie_cachet === role.categorie_cachet);
+  const currentIndex = membres.findIndex((r) => r.id === roleId);
   if (currentIndex === -1) return { success: true };
 
-  const targetIndex = Math.min(Math.max(Math.trunc(position) - 1, 0), list.length - 1);
+  const targetIndex = Math.min(Math.max(Math.trunc(position) - 1, 0), membres.length - 1);
   if (targetIndex === currentIndex) return { success: true };
 
-  const [moved] = list.splice(currentIndex, 1);
-  list.splice(targetIndex, 0, moved);
+  const [moved] = membres.splice(currentIndex, 1);
+  membres.splice(targetIndex, 0, moved);
 
-  const results = await Promise.all(
-    list.map((r, i) => supabase.from("casting_roles").update({ ordre: i }).eq("id", r.id))
-  );
+  // Les places occupées par la catégorie sont réattribuées dans le nouvel ordre,
+  // puis tout le projet est renuméroté 0..n-1 (jamais de doublon ni de trou).
+  let suivant = 0;
+  const finale = tous.map((r) => (r.categorie_cachet === role.categorie_cachet ? membres[suivant++] : r));
+  const results = await Promise.all(finale.map((r, i) => supabase.from("casting_roles").update({ ordre: i }).eq("id", r.id)));
   const failed = results.find((r) => r.error);
   if (failed?.error) return { error: failed.error.message };
 

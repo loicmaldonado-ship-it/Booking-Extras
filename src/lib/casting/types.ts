@@ -84,7 +84,11 @@ export type CastingRole = {
   lien_public_actif: boolean;
   // Questions oui / non posées sur la page d'envoi.
   questions: string[];
+  // Onglet de casting dans lequel le rôle est rangé (null = aucun).
+  onglet_id: string | null;
 };
+
+export type CastingOnglet = { id: string; projet_id: string; nom: string; ordre: number };
 
 export type ReponseCasting = { question: string; reponse: "oui" | "non"; precision?: string | null };
 

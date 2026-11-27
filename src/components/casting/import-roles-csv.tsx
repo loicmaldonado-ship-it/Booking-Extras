@@ -26,7 +26,16 @@ async function lireFichierTexte(file: File): Promise<string> {
   }
 }
 
-export function ImportRolesCsv({ projetId }: { projetId: string }) {
+export function ImportRolesCsv({
+  projetId,
+  ongletId = null,
+  nomOnglet = null,
+}: {
+  projetId: string;
+  // Onglet ouvert : les rôles importés y sont rangés (sauf « un onglet par épisode »).
+  ongletId?: string | null;
+  nomOnglet?: string | null;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -35,6 +44,7 @@ export function ImportRolesCsv({ projetId }: { projetId: string }) {
   const [lignes, setLignes] = useState<LigneImport[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resultat, setResultat] = useState<string | null>(null);
+  const [parEpisode, setParEpisode] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function reinitialiser() {
@@ -69,7 +79,7 @@ export function ImportRolesCsv({ projetId }: { projetId: string }) {
   function creer() {
     if (!csv) return;
     startTransition(async () => {
-      const res = await importerRoles(projetId, csv);
+      const res = await importerRoles(projetId, csv, { ongletId, parEpisode });
       if (res.error) {
         setError(res.error);
         return;
@@ -92,6 +102,7 @@ export function ImportRolesCsv({ projetId }: { projetId: string }) {
   }
 
   const aCreer = lignes?.filter((l) => l.etat === "ok").length ?? 0;
+  const episodes = new Set((lignes ?? []).filter((l) => l.etat === "ok" && l.episode).map((l) => l.episode)).size;
   const ecartees = (lignes?.length ?? 0) - aCreer;
 
   return (
@@ -132,6 +143,15 @@ export function ImportRolesCsv({ projetId }: { projetId: string }) {
             )}
             .
           </p>
+          {episodes > 0 && (
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input type="checkbox" checked={parEpisode} onChange={(e) => setParEpisode(e.target.checked)} className="accent-coral" />
+              Créer un onglet par épisode ({episodes} onglet{episodes > 1 ? "s" : ""}) et y ranger les rôles
+            </label>
+          )}
+          {!parEpisode && nomOnglet && (
+            <p className="text-sm text-text-muted">Les rôles seront rangés dans l&apos;onglet « {nomOnglet} ».</p>
+          )}
           <div className="max-h-96 overflow-auto rounded-lg border border-border">
             <table className="w-full text-left text-sm">
               <thead className="sticky top-0 bg-ink-raised-2 text-xs uppercase tracking-wide text-text-muted">

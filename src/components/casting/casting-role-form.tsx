@@ -12,12 +12,15 @@ export function CastingRoleForm({
   projetId,
   role,
   categorieParDefaut = "role",
+  ongletId,
   onDone,
 }: {
   projetId: string;
   role?: CastingRole;
   // Catégorie proposée pour un nouveau casting (celle de l'onglet ouvert).
   categorieParDefaut?: CategorieCachet;
+  // Onglet ouvert : le nouveau rôle y est rangé.
+  ongletId?: string | null;
   onDone?: () => void;
 }) {
   const action = role ? updateCastingRoleCalibration.bind(null, role.id) : createCastingRole.bind(null, projetId);
@@ -44,6 +47,7 @@ export function CastingRoleForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      {ongletId && <input type="hidden" name="onglet_id" value={ongletId} />}
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
       {state?.success && role && <p className="text-sm text-turquoise">Rôle mis à jour.</p>}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
