@@ -505,6 +505,28 @@ export default function AidePage() {
           />
         </div>
         <div>
+          <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
+          <Steps
+            items={[
+              <>
+                <UI>Importer des rôles (CSV)</UI>, à côté de <UI>+ Nouveau casting</UI>, puis choisis ton
+                fichier. Une ligne du fichier = un rôle, avec les colonnes{" "}
+                <strong className="text-text">Épisode, Rôle, Catégorie, Profil, Texte d&apos;essai</strong> (les
+                lignes du haut — compteurs, ligne vide — sont passées toutes seules).
+              </>,
+              <>
+                Le nom du rôle devient « Épisode · Rôle ». <strong className="text-text">Petit rôle</strong> et{" "}
+                <strong className="text-text">Voix</strong> donnent la catégorie Rôle ;{" "}
+                <strong className="text-text">Silhouette parlante</strong> et{" "}
+                <strong className="text-text">Silhouette</strong> donnent Silhouette. Profil et texte d&apos;essai
+                sont repris dans le mail d&apos;invitation du rôle, avec le lien d&apos;envoi ; les colonnes
+                Remarques, Propositions et Statut n&apos;y sont jamais.
+              </>,
+              "Avant de créer quoi que ce soit, un aperçu liste tous les rôles. Les doublons (même nom dans le fichier, ou rôle déjà présent sur le projet) et les lignes incomplètes sont signalés et simplement passés. Les autres réglages prennent leurs valeurs par défaut — tu les ajustes ensuite avec Calibrer.",
+            ]}
+          />
+        </div>
+        <div>
           <p className="mb-2 text-sm font-semibold">Ajouter des profils et inviter</p>
           <Steps
             items={[
