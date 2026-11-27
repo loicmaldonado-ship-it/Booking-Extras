@@ -7,11 +7,10 @@ import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth
 import { isOwner } from "@/lib/auth/owner";
 import { getCastingRoles, getCastingEntries, getCastingVideoUrlPairsByEntries, getCastingEntryPhotos } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
 import { getReelOptions, type OptionsReel } from "@/lib/partage/data";
 import { computeAge } from "@/lib/documents/fields";
 import { nomComplet } from "@/lib/noms";
-import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil } from "@/lib/casting/reel-affichage";
+import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil, vignetteReel } from "@/lib/casting/reel-affichage";
 import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import { ApercuReel, type ApercuBloc, type ApercuProfil } from "@/components/casting/apercu-reel";
 import { cn } from "@/lib/cn";
@@ -79,7 +78,7 @@ export default async function ApercuReelPage({ searchParams }: { searchParams: P
       options.ville ? entry.figurants?.ville?.trim() || null : null,
       ...mensurationsDe(entry.figurants, options).map((m) => `${LIBELLES_MENSURATION[m.cle] ?? m.cle} ${m.valeur}`),
     ].filter((x): x is string => !!x);
-    const portrait = vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projetId);
+    const portrait = vignetteReel(entry, photosByFigurant.get(entry.figurant_id), projetId);
     return {
       id: entry.id,
       nom: nomComplet(entry.figurants).trim(),

@@ -627,7 +627,8 @@ export default function AidePage() {
           profils marqués visibles, avec les infos cochées dans les réglages du lien (âge, ville, taille…). Sous chaque
           photo et chaque vidéo, <UI>✕ Retirer du lien</UI> la cache au réal — elle reste grisée sur cette page et dans la
           fiche du profil, rien n&apos;est supprimé — et <UI>↩ Remettre</UI> la montre de nouveau. Ça vaut pour tous les
-          liens où ce profil apparaît.
+          liens où ce profil apparaît, et aussi pour la liste artistique, les fiches rôles, la distribution et les fiches
+          mensuration du lien.
         </Callout>
         <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Dans <UI>Partager au réal</UI> (en haut à droite de la page

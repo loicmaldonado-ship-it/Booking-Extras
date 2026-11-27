@@ -5,7 +5,7 @@ import { AnchorButton } from "@/components/ui/button";
 import { ListeArtistiqueSheet } from "@/components/casting/liste-artistique-sheet";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
+import { vignetteReel } from "@/lib/casting/reel-affichage";
 import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -38,7 +38,7 @@ export default async function PartageListeArtistiquePage({ params }: { params: P
   const items = await getListeArtistiqueItems(projet.id, await getCategorieLienCasting(token));
   const portraitByFigurant = await getPhotosByFigurantId(items.map((i) => i.entry.figurant_id));
   const portraitUrlByFigurant = new Map(
-    items.map((i) => [i.entry.figurant_id, vignetteCasting(i.entry, portraitByFigurant.get(i.entry.figurant_id), projet.id)])
+    items.map((i) => [i.entry.figurant_id, vignetteReel(i.entry, portraitByFigurant.get(i.entry.figurant_id), projet.id)])
   );
   const pages = chunk(items, ROLES_PAR_PAGE);
   const nom = projetNomPublic(projet);

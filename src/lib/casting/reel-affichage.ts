@@ -1,4 +1,6 @@
 import type { CastingEntry } from "./types";
+import { vignetteCasting } from "./vignette";
+import type { FigurantPhotoWithUrl } from "@/lib/documents/data";
 import type { OptionsReel } from "@/lib/partage/data";
 import type { CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
 
@@ -42,4 +44,18 @@ export function photosDuProfil(
   return (photos ?? [])
     .filter((p) => p.url && p.type in LIBELLES_PHOTO && (p.type !== "tenue" || p.projet_id === projetId))
     .map((p) => ({ id: p.id, label: LIBELLES_PHOTO[p.type][lang], url: p.url! }));
+}
+
+// Photo principale d'un profil telle que le·la réal la voit : le choix habituel
+// (vignette), sauf si l'équipe a retiré cette photo du lien — alors aucune photo
+// plutôt qu'une autre choisie à sa place.
+export function vignetteReel(
+  entry: { photo_vignette_id: string | null; medias_masques?: string[] | null },
+  photos: FigurantPhotoWithUrl[] | undefined,
+  projetId: string
+): string | null {
+  const url = vignetteCasting(entry, photos, projetId);
+  if (!url) return null;
+  const masques = new Set(entry.medias_masques ?? []);
+  return (photos ?? []).some((p) => p.url === url && masques.has(clePhotoReel(p.id))) ? null : url;
 }

@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
-import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getCategorieLienCasting, getReelOptions, type OptionsReel } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getCategorieLienCasting, getReelOptions } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -8,7 +8,6 @@ import {
   getCastingEntryPhotos,
 } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
 import { Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
@@ -18,10 +17,10 @@ import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CATEGORIE_CACHET_LABELS, type CastingEntry, type CategorieCachet } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
-import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil } from "@/lib/casting/reel-affichage";
+import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil, vignetteReel } from "@/lib/casting/reel-affichage";
 
 // Salle de visionnage : thème sombre propre à cette page (les couleurs du site
 // sont des variables, redéfinies ici seulement ; la fenêtre de profil, rendue
@@ -121,13 +120,6 @@ export default async function PartageCastingPage({
         : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")
       : null;
 
-  // La vignette n'est pas montrée si sa photo a été retirée du lien.
-  const portraitVisible = (entry: (typeof visibleEntries)[number]) => {
-    const url = vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id);
-    const retirees = (photosByFigurant.get(entry.figurant_id) ?? []).filter((p) => masquesDe.get(entry.id)!.has(clePhotoReel(p.id)));
-    return url && retirees.some((p) => p.url === url) ? null : url;
-  };
-
   // Un profil du lien, avec seulement ce que l'équipe a choisi de montrer.
   // Dans la section « Profils validés » (avecRole), le rôle et sa date
   // s'affichent sur chaque profil.
@@ -141,7 +133,7 @@ export default async function PartageCastingPage({
     valide: entry.statut === "valide",
     role: avecRole ? role.nom : null,
     roleDate: avecRole ? dateDuRole(role) : null,
-    portraitUrl: portraitVisible(entry),
+    portraitUrl: vignetteReel(entry, photosByFigurant.get(entry.figurant_id), projet.id),
     videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
     photos: [
       ...(entryPhotosByEntry.get(entry.id) ?? []),
