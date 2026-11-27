@@ -12,6 +12,7 @@ import { getReelOptions } from "@/lib/partage/data";
 import { getRetourReel } from "@/lib/casting/reel-data";
 import {
   getCastingRoles,
+  getCastingOnglets,
   getCastingEntries,
   getCastingVideoUrlPairsByEntries,
   getCastingEntryPhotos,
@@ -20,7 +21,7 @@ import { getPresentielJourneesWithCreneaux, getPresentielAssignmentsByRole } fro
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import { photosPourVignette, vignetteCasting } from "@/lib/casting/vignette";
 import { CastingRoleSection } from "@/components/casting/casting-role-section";
-import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
+import { CastingRolesListe, type EtatRole } from "@/components/casting/casting-roles-liste";
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
@@ -72,6 +73,7 @@ export default async function CastingPage({
 
   const [
     roles,
+    onglets,
     entries,
     origin,
     { data: allFigurants },
@@ -82,6 +84,7 @@ export default async function CastingPage({
     retourReel,
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
+    getCastingOnglets(currentProjetId),
     getCastingEntries(currentProjetId),
     getSiteOrigin(),
     allFigurantsQuery,
@@ -171,28 +174,70 @@ export default async function CastingPage({
             {entriesFiltered ? ` sur ${totalCategorie}` : ""}
           </p>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <details className="relative">
+            <summary className="inline-flex cursor-pointer list-none items-center justify-center gap-2 rounded-full border-2 border-text bg-ink px-5 py-2.5 text-sm font-semibold text-coral shadow-sm hover:bg-coral/10 [&::-webkit-details-marker]:hidden">Partager au réal</summary>
+            <div className="absolute right-0 top-12 z-20 flex w-[min(44rem,90vw)] flex-col gap-4 rounded-2xl border border-border-strong bg-ink p-4 shadow-lg">
+              {[liensCategorie, lienTout].map((lien) => (
+                <PartageCard
+                  key={lien.cat ?? "tout"}
+                  projetId={currentProjetId}
+                  type="casting"
+                  categorie={lien.cat}
+                  label={
+                    lien.cat
+                      ? `Partage réal — ${CATEGORIE_CACHET_LABELS[lien.cat]}s « ${projet.nom} »`
+                      : `Partage réal — Tout le casting « ${projet.nom} »`
+                  }
+                  description={
+                    lien.cat
+                      ? `Lien séparé : uniquement les ${CATEGORIE_CACHET_LABELS[lien.cat].toLowerCase()}s, classées par rôle.`
+                      : "Un seul lien pour les rôles, les silhouettes et les doublures, rangés par catégorie."
+                  }
+                  token={lien.token}
+                  publicBaseUrl={`${origin}/partage/casting`}
+                  titre={lien.titre}
+                  titrePlaceholder={lien.cat ? `${CATEGORIE_CACHET_LABELS[lien.cat]}s — ${projet.nom}` : `Casting — ${projet.nom}`}
+                >
+                  <CastingDocsVisibilityToggle
+                    projetId={currentProjetId}
+                    categorie={lien.cat}
+                    listeArtistique={lien.docs.listeArtistique}
+                    fichesRoles={lien.docs.fichesRoles}
+                    distribution={lien.docs.distribution}
+                    fichesRolesMasquerContact={lien.docs.fichesRolesMasquerContact}
+                  />
+                  <CastingReelOptions projetId={currentProjetId} categorie={lien.cat} options={lien.options} />
+                </PartageCard>
+              ))}
+            </div>
+          </details>
+          <details className="relative">
+            <summary className="inline-flex cursor-pointer list-none items-center justify-center gap-2 rounded-full border-2 border-text bg-ink px-5 py-2.5 text-sm font-semibold text-coral shadow-sm hover:bg-coral/10 [&::-webkit-details-marker]:hidden">Documents ▾</summary>
+            <div className="absolute right-0 top-12 z-20 flex min-w-52 flex-col gap-1 rounded-2xl border border-border-strong bg-ink p-2 shadow-lg">
+              <Link href="/casting/trombis" className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-ink-raised-2">
+                🖼️ Trombis
+              </Link>
+              <Link href="/casting/liste-artistique" className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-ink-raised-2">
+                📋 Liste artistique
+              </Link>
+              <Link href="/casting/fiches-roles" className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-ink-raised-2">
+                🪪 Fiches rôles validés
+              </Link>
+              <Link href="/casting/distribution" className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-ink-raised-2">
+                🎬 Distribution
+              </Link>
+            </div>
+          </details>
+          <ButtonLink href="/casting/presentiel" variant="secondary">
+            📅 Présentiel
+          </ButtonLink>
           <ButtonLink
             href="/figurants?profil=comediens&vue=liste"
             variant="secondary"
             title="Ta base privée : comédien·nes et personnes venues par un lien de casting sans compte"
           >
             📇 Base casting
-          </ButtonLink>
-          <ButtonLink href="/casting/trombis" variant="secondary">
-            🖼️ Trombis
-          </ButtonLink>
-          <ButtonLink href="/casting/presentiel" variant="secondary">
-            📅 Présentiel
-          </ButtonLink>
-          <ButtonLink href="/casting/liste-artistique" variant="secondary">
-            📋 Liste artistique
-          </ButtonLink>
-          <ButtonLink href="/casting/fiches-roles" variant="secondary">
-            🪪 Fiches rôles validés
-          </ButtonLink>
-          <ButtonLink href="/casting/distribution" variant="secondary">
-            🎬 Distribution
           </ButtonLink>
           <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
             <Button type="submit" variant="secondary">
@@ -224,7 +269,11 @@ export default async function CastingPage({
         })}
       </nav>
 
-      {/* Filtres en boutons : un clic et c'est appliqué. */}
+      <details className="group" open={Boolean(entriesFiltered)}>
+        <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-full border border-border-strong px-4 py-2 text-sm font-semibold hover:border-coral [&::-webkit-details-marker]:hidden">
+          Filtres des profils{entriesFiltered ? " · actifs" : ""}
+        </summary>
+        <div className="mt-3 flex flex-col gap-3">
       {[
         {
           cle: "mode" as const,
@@ -269,30 +318,58 @@ export default async function CastingPage({
         </Link>
       )}
 
-      <NewCastingRoleCard projetId={currentProjetId} categorie={categorie} />
+        </div>
+      </details>
 
-      {rolesCategorie.map((role, i) => (
-        <CastingRoleSection
-          key={role.id}
-          projetId={currentProjetId}
-          projetNom={projet.nom}
-          origin={origin}
-          signature={signature}
-          role={role}
-          entries={entriesByRole.get(role.id) ?? []}
-          vignetteByEntry={vignetteByEntry}
-          photosVignetteByEntry={photosVignetteByEntry}
-          videoUrlsByEntry={videoUrlsByEntry}
-          entryPhotosByEntry={entryPhotosByEntry}
-          allFigurants={allFigurants ?? []}
-          templates={templates ?? []}
-          presentielJournees={presentielJournees}
-          presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
-          avisReelByEntry={retourReel.avisParEntry}
-          commentairesReelByEntry={retourReel.commentairesParEntry}
-          position={i + 1}
-        />
-      ))}
+      <CastingRolesListe
+        projetId={currentProjetId}
+        categorie={categorie}
+        onglets={onglets.map((o) => ({ id: o.id, nom: o.nom }))}
+        items={rolesCategorie.map((role, i) => {
+          const profils = entries.filter((e) => e.role_id === role.id);
+          const etat: EtatRole =
+            profils.length === 0
+              ? "sans_profil"
+              : profils.some((e) => e.statut === "envoyé")
+                ? "a_traiter"
+                : profils.some((e) => e.statut === "valide" || e.statut === "confirmé")
+                  ? "valide"
+                  : "en_attente";
+          return {
+            id: role.id,
+            nom: role.nom,
+            nbProfils: profils.length,
+            etat,
+            ongletId: role.onglet_id,
+            position: i + 1,
+            initiales: profils
+              .slice(0, 3)
+              .map((e) => `${(e.figurants?.prenom ?? "?")[0] ?? ""}${(e.figurants?.nom ?? "")[0] ?? ""}`.toUpperCase()),
+            carte: (
+              <CastingRoleSection
+                projetId={currentProjetId}
+                projetNom={projet.nom}
+                origin={origin}
+                signature={signature}
+                role={role}
+                entries={entriesByRole.get(role.id) ?? []}
+                vignetteByEntry={vignetteByEntry}
+                photosVignetteByEntry={photosVignetteByEntry}
+                videoUrlsByEntry={videoUrlsByEntry}
+                entryPhotosByEntry={entryPhotosByEntry}
+                allFigurants={allFigurants ?? []}
+                templates={templates ?? []}
+                presentielJournees={presentielJournees}
+                presentielAssignments={presentielAssignments.get(role.id) ?? new Map()}
+                avisReelByEntry={retourReel.avisParEntry}
+                commentairesReelByEntry={retourReel.commentairesParEntry}
+                position={i + 1}
+                defaultOpen
+              />
+            ),
+          };
+        })}
+      />
 
       {rolesCategorie.length === 0 && (
         <Card>
@@ -303,38 +380,6 @@ export default async function CastingPage({
         </Card>
       )}
 
-      {[liensCategorie, lienTout].map((lien) => (
-        <PartageCard
-          key={lien.cat ?? "tout"}
-          projetId={currentProjetId}
-          type="casting"
-          categorie={lien.cat}
-          label={
-            lien.cat
-              ? `Partage réal — ${CATEGORIE_CACHET_LABELS[lien.cat]}s « ${projet.nom} »`
-              : `Partage réal — Tout le casting « ${projet.nom} »`
-          }
-          description={
-            lien.cat
-              ? `Lien séparé : uniquement les ${CATEGORIE_CACHET_LABELS[lien.cat].toLowerCase()}s, classées par rôle.`
-              : "Un seul lien pour les rôles, les silhouettes et les doublures, rangés par catégorie."
-          }
-          token={lien.token}
-          publicBaseUrl={`${origin}/partage/casting`}
-          titre={lien.titre}
-          titrePlaceholder={lien.cat ? `${CATEGORIE_CACHET_LABELS[lien.cat]}s — ${projet.nom}` : `Casting — ${projet.nom}`}
-        >
-          <CastingDocsVisibilityToggle
-            projetId={currentProjetId}
-            categorie={lien.cat}
-            listeArtistique={lien.docs.listeArtistique}
-            fichesRoles={lien.docs.fichesRoles}
-            distribution={lien.docs.distribution}
-            fichesRolesMasquerContact={lien.docs.fichesRolesMasquerContact}
-          />
-          <CastingReelOptions projetId={currentProjetId} categorie={lien.cat} options={lien.options} />
-        </PartageCard>
-      ))}
     </div>
   );
 }

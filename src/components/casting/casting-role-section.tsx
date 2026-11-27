@@ -65,6 +65,7 @@ export function CastingRoleSection({
   avisReelByEntry,
   commentairesReelByEntry,
   position,
+  defaultOpen = false,
 }: {
   projetId: string;
   projetNom: string;
@@ -87,9 +88,11 @@ export function CastingRoleSection({
   // juste role.ordre brut (qui peut être décalé/non contigu) : ce que le
   // champ numéro doit montrer et permettre de changer directement.
   position: number;
+  // Ouvert dès l'affichage (depuis la liste compacte des rôles).
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState(!defaultOpen);
   const [calibrateOpen, setCalibrateOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<Set<string>>(new Set());

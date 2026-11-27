@@ -505,6 +505,32 @@ export default function AidePage() {
           />
         </div>
         <div>
+          <p className="mb-2 text-sm font-semibold">Ranger les rôles dans des onglets</p>
+          <Steps
+            items={[
+              <>
+                Les rôles s&apos;affichent en <strong className="text-text">cartes</strong> (nom, état, initiales des
+                profils). Clique sur une carte pour ouvrir le rôle en grand — <UI>Retour aux cartes</UI> et les flèches ‹ ›
+                te ramènent à la grille ou passent au rôle voisin.
+              </>,
+              <>
+                <UI>＋ Onglet</UI> crée un onglet à ton nom (« Épisode 1 », « Session 2 »…), propre au projet.
+                <UI>👥 Tous</UI> montre tout, <UI>📥 Sans onglet</UI> les rôles pas encore rangés. Glisse une carte sur
+                un onglet pour la ranger, ou choisis-le dans <UI>Ranger dans</UI> quand le rôle est ouvert. Supprimer
+                un onglet ne supprime pas ses rôles. <UI>+ Nouveau casting</UI> range le nouveau rôle dans l&apos;onglet
+                ouvert.
+              </>,
+              <>
+                Le <strong className="text-text">numéro</strong> en haut à gauche de chaque carte est l&apos;ordre du rôle :
+                change-le (par exemple le Préfet en 3), il se place là et les autres se décalent. Les quatre boutons à
+                côté de la recherche (<UI>À traiter</UI>, <UI>Sans profil</UI>, <UI>En attente de retour</UI>,{" "}
+                <UI>Validé</UI>) comptent et filtrent ; la case <UI>Ce qui demande une action d&apos;abord</UI> remet en
+                tête ce qui attend ta réponse.
+              </>,
+            ]}
+          />
+        </div>
+        <div>
           <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
           <Steps
             items={[
@@ -522,7 +548,7 @@ export default function AidePage() {
                 sont repris dans le mail d&apos;invitation du rôle, avec le lien d&apos;envoi ; les colonnes
                 Remarques, Propositions et Statut n&apos;y sont jamais.
               </>,
-              "Avant de créer quoi que ce soit, un aperçu liste tous les rôles. Les doublons (même nom dans le fichier, ou rôle déjà présent sur le projet) et les lignes incomplètes sont signalés et simplement passés. Les autres réglages prennent leurs valeurs par défaut — tu les ajustes ensuite avec Calibrer.",
+              "Avant de créer quoi que ce soit, un aperçu liste tous les rôles. Les doublons (même nom dans le fichier, ou rôle déjà présent sur le projet) et les lignes incomplètes sont signalés et simplement passés. Les autres réglages prennent leurs valeurs par défaut — tu les ajustes ensuite avec Calibrer. Si le fichier a une colonne Épisode, une case te propose de créer un onglet par épisode et d'y ranger les rôles ; sinon les rôles vont dans l'onglet ouvert.",
             ]}
           />
         </div>
@@ -580,7 +606,7 @@ export default function AidePage() {
           <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
           Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de rôles et de profils) : chaque
           onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
-          Tout en bas, deux liens <UI>Partage réal</UI> : un <strong className="text-text">lien séparé</strong> pour la
+          Le bouton <UI>Partager au réal</UI> (en haut à droite) ouvre deux liens : un <strong className="text-text">lien séparé</strong> pour la
           catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}
           <UI>Tout le casting</UI> qui range les profils par catégorie (Rôles, Silhouettes, Doublures) dans{" "}
           <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
@@ -588,7 +614,7 @@ export default function AidePage() {
           profil dans l&apos;espace casting.
         </Callout>
         <Callout>
-          <strong className="text-text">Réglages du lien réal.</strong> Sous <UI>Partage réal</UI> (bas de la page
+          <strong className="text-text">Réglages du lien réal.</strong> Dans <UI>Partager au réal</UI> (en haut à droite de la page
           Casting), tu choisis ce que le·la réal voit : <UI>Âge</UI>, <UI>Ville</UI>, <UI>Taille</UI>,{" "}
           <UI>Autres mensurations</UI>, <UI>Réponses aux questions du rôle</UI> (le nom, les vidéos et les photos
           sont toujours montrés ; une info décochée n&apos;est même pas envoyée à la page), et ce qu&apos;il·elle peut
@@ -666,12 +692,12 @@ export default function AidePage() {
         </Callout>
         <Callout>
           <strong className="text-text">📋 Liste artistique / 🪪 Fiches rôles validés.</strong> Deux documents
-          exportables en PDF et en Excel, sous la liste des rôles — tous deux ne gardent que les rôles avec un
+          exportables en PDF et en Excel, dans le menu <UI>Documents</UI> en haut de la page — tous deux ne gardent que les rôles avec un
           comédien validé (les rôles pas encore tranchés n&apos;y apparaissent pas). La{" "}
           <UI>Liste artistique</UI> reprend ces rôles dans leur ordre d&apos;affichage, avec la photo du
           comédien et son agent. Les <UI>Fiches rôles validés</UI> font une fiche par rôle (grande photo,
           coordonnées, agent). Rends-les visibles et téléchargeables sur le lien réal via les cases à cocher
-          sous <UI>Partage réal</UI>, en bas de la page.
+          dans <UI>Partager au réal</UI>, en haut à droite de la page.
         </Callout>
         <Callout>
           <strong className="text-text">📅 Présentiel.</strong> Pour organiser une session de casting en

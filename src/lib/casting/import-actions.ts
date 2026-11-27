@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess } from "@/lib/auth/session";
-import { analyserCsv, marquerDoublonsProjet, type LigneImport } from "./import-roles";
+import { analyserCsv, marquerDoublonsProjet, normaliser, type LigneImport } from "./import-roles";
 
 // Noms des rôles déjà présents sur le projet (la limite de 1000 lignes de
 // PostgREST ne concerne pas un projet de casting, mais on pagine par sécurité).
@@ -48,7 +48,10 @@ export async function apercuImportRoles(
 // affichée par le navigateur), seules les lignes « ok » sont créées.
 export async function importerRoles(
   projetId: string,
-  csv: string
+  csv: string,
+  // ongletId : onglet d'arrivée de tous les rôles. parEpisode : un onglet par
+  // valeur de la colonne « Épisode » (créé s'il n'existe pas encore).
+  options: { ongletId?: string | null; parEpisode?: boolean } = {}
 ): Promise<{ crees?: number; ignorees?: number; error?: string }> {
   const { lignes, error } = await preparer(projetId, csv);
   if (error) return { error };
@@ -58,6 +61,40 @@ export async function importerRoles(
   if (aCreer.length === 0) return { crees: 0, ignorees };
 
   const supabase = createAdminClient();
+
+  // Onglet de chaque rôle : un par épisode, ou l'onglet choisi, ou aucun.
+  const ongletParEpisode = new Map<string, string>();
+  let ongletCommun: string | null = null;
+  if (options.parEpisode) {
+    const { data: existants } = await supabase.from("casting_onglets").select("id, nom, ordre").eq("projet_id", projetId);
+    const parNom = new Map((existants ?? []).map((o) => [normaliser(o.nom), o.id]));
+    let ordre = Math.max(-1, ...(existants ?? []).map((o) => o.ordre)) + 1;
+    for (const l of aCreer) {
+      const cle = normaliser(l.episode);
+      if (!cle || ongletParEpisode.has(cle)) continue;
+      const trouve = parNom.get(cle);
+      if (trouve) {
+        ongletParEpisode.set(cle, trouve);
+        continue;
+      }
+      const { data: cree, error: ongletError } = await supabase
+        .from("casting_onglets")
+        .insert({ projet_id: projetId, nom: l.episode.slice(0, 60), ordre: ordre++ })
+        .select("id")
+        .single();
+      if (ongletError) return { error: ongletError.message };
+      ongletParEpisode.set(cle, cree.id);
+    }
+  } else if (options.ongletId) {
+    const { data: onglet } = await supabase
+      .from("casting_onglets")
+      .select("id")
+      .eq("id", options.ongletId)
+      .eq("projet_id", projetId)
+      .maybeSingle();
+    ongletCommun = onglet?.id ?? null;
+  }
+
   // Nouveaux rôles en dernier dans l'ordre d'affichage, dans l'ordre du fichier.
   const { data: maxOrdreRow } = await supabase
     .from("casting_roles")
@@ -76,6 +113,7 @@ export async function importerRoles(
     categorie_cachet: l.categorie!,
     ordre: premierOrdre + i,
     message_corps: l.messageCorps,
+    onglet_id: options.parEpisode ? (ongletParEpisode.get(normaliser(l.episode)) ?? null) : ongletCommun,
   }));
 
   let crees = 0;
