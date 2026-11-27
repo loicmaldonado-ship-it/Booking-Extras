@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CastingRoleForm } from "@/components/casting/casting-role-form";
+import { ImportRolesCsv } from "@/components/casting/import-roles-csv";
 import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 
 export function NewCastingRoleCard({ projetId, categorie = "role" }: { projetId: string; categorie?: CategorieCachet }) {
@@ -11,9 +12,12 @@ export function NewCastingRoleCard({ projetId, categorie = "role" }: { projetId:
 
   if (!open) {
     return (
-      <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-        + Nouveau casting
-      </Button>
+      <div className="flex flex-wrap items-start gap-2">
+        <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
+          + Nouveau casting
+        </Button>
+        <ImportRolesCsv projetId={projetId} />
+      </div>
     );
   }
 
