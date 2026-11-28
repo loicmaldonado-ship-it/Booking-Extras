@@ -265,34 +265,6 @@ export default async function CastingPage({
           </form>
         </div>
       </div>
-      {roles.length > 0 && (
-        <details className="rounded-2xl border border-border bg-ink-raised/50 p-4">
-          <summary className="cursor-pointer font-medium">Documents, exports et outils du casting</summary>
-          <p className="mt-2 mb-3 text-sm text-text-muted">Trombinoscopes, casting présentiel, distribution et documents à partager.</p>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/casting/trombis" variant="secondary">
-              🖼️ Trombis
-            </ButtonLink>
-            <ButtonLink href="/casting/presentiel" variant="secondary">
-              📅 Présentiel
-            </ButtonLink>
-            <ButtonLink href="/casting/liste-artistique" variant="secondary">
-              📋 Liste artistique
-            </ButtonLink>
-            <ButtonLink href="/casting/fiches-roles" variant="secondary">
-              🪪 Fiches rôles validés
-            </ButtonLink>
-            <ButtonLink href="/casting/distribution" variant="secondary">
-              🎬 Distribution
-            </ButtonLink>
-            <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
-              <Button type="submit" variant="secondary">
-                📋 Bookings
-              </Button>
-            </form>
-          </div>
-        </details>
-      )}
 
       <nav className="flex flex-wrap gap-2" aria-label="Catégories de casting">
         {CATEGORIES.map((c) => {
