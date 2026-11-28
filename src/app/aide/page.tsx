@@ -547,6 +547,34 @@ export default function AidePage() {
           rôle sans effacer la photo de son profil.
         </Callout>
         <div>
+          <p className="mb-2 text-sm font-semibold">Lien spécial agent</p>
+          <Steps
+            items={[
+              <>
+                <UI>🤝 Agents</UI> (en haut de Casting) : <UI>Créer son lien</UI> pour chaque agent. Chaque agent a{" "}
+                <strong className="text-text">son propre lien</strong> et ne voit jamais les propositions des autres. Coupe le lien
+                quand tu veux ; le supprimer efface ses propositions en attente.
+              </>,
+              <>
+                Choisis les rôles qu&apos;il voit : <UI>🤝 Agents</UI> sur chaque carte, ou <UI>👁️ Visibilité au réal</UI> →{" "}
+                <UI>🤝 Ouvrir ces rôles aux agents</UI> pour tous les rôles affichés d&apos;un coup. Il voit le nom, la description du
+                profil, l&apos;âge et la séquence (à renseigner dans <UI>Calibrer</UI> ou par l&apos;import CSV). Les{" "}
+                <strong className="text-text">répliques d&apos;essai</strong> ne s&apos;affichent que si tu l&apos;autorises pour cet agent.
+              </>,
+              <>
+                L&apos;agent ouvre un rôle, <strong className="text-text">glisse les photos</strong> du comédien ou de la comédienne,
+                indique prénom, nom, âge, taille, le lien vers sa page de comédien·ne et sa bande démo, et envoie. Une
+                notification te prévient.
+              </>,
+              <>
+                Les propositions arrivent d&apos;abord dans <UI>Propositions à traiter</UI> : <UI>Ajouter au rôle</UI> crée (ou reprend)
+                la fiche dans ta base privée, avec les photos, les liens, l&apos;agent et ses notes, et met le profil dans le rôle
+                (invisible du réal tant que tu ne le rends pas visible). <UI>Refuser</UI> efface les photos reçues.
+              </>,
+            ]}
+          />
+        </div>
+        <div>
           <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
           <Steps
             items={[

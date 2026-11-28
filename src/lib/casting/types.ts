@@ -86,6 +86,42 @@ export type CastingRole = {
   questions: string[];
   // Onglet de casting dans lequel le rôle est rangé (null = aucun).
   onglet_id: string | null;
+  // Lien agent : rôle ouvert aux agents + fiche breakdown qu'ils voient.
+  ouvert_agents: boolean;
+  agents_description: string | null;
+  agents_age: string | null;
+  agents_sequence: string | null;
+  agents_repliques: string | null;
+};
+
+export type CastingAgent = {
+  id: string;
+  projet_id: string;
+  nom: string;
+  agence: string | null;
+  email: string | null;
+  token: string;
+  actif: boolean;
+  afficher_repliques: boolean;
+  created_at: string;
+};
+
+export type PropositionAgent = {
+  id: string;
+  projet_id: string;
+  agent_id: string;
+  role_id: string;
+  prenom: string;
+  nom: string;
+  age: string | null;
+  taille: string | null;
+  lien_page: string | null;
+  lien_bande_demo: string | null;
+  note: string | null;
+  photos: string[];
+  statut: "en_attente" | "acceptee" | "refusee";
+  entry_id: string | null;
+  created_at: string;
 };
 
 export type CastingOnglet = { id: string; projet_id: string; nom: string; ordre: number };

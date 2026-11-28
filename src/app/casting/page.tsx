@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { ProjetPicker } from "@/components/bookings/projet-picker";
 import { PartageCard } from "@/components/partage/partage-card";
+import { compterPropositionsEnAttente } from "@/lib/casting/agents-data";
 import { getPartageToken, getPartageTitre } from "@/lib/partage/actions";
 import { getSiteOrigin, getCastingDocsVisibility } from "@/lib/partage/data";
 import { CastingDocsVisibilityToggle } from "@/components/casting/casting-docs-visibility-toggle";
@@ -74,6 +75,7 @@ export default async function CastingPage({
   const [
     roles,
     onglets,
+    nbPropositions,
     entries,
     origin,
     { data: allFigurants },
@@ -85,6 +87,7 @@ export default async function CastingPage({
   ] = await Promise.all([
     getCastingRoles(currentProjetId),
     getCastingOnglets(currentProjetId),
+    compterPropositionsEnAttente(currentProjetId),
     getCastingEntries(currentProjetId),
     getSiteOrigin(),
     allFigurantsQuery,
@@ -238,6 +241,9 @@ export default async function CastingPage({
               </Link>
             </div>
           </details>
+          <ButtonLink href="/casting/agents" variant="secondary">
+            🤝 Agents{nbPropositions > 0 ? ` · ${nbPropositions} à traiter` : ""}
+          </ButtonLink>
           <ButtonLink href="/casting/presentiel" variant="secondary">
             📅 Présentiel
           </ButtonLink>
@@ -353,6 +359,7 @@ export default async function CastingPage({
             position: i + 1,
             mode: role.mode,
             visible: role.visible_partage,
+            ouvertAgents: role.ouvert_agents,
             initiales: profils
               .slice(0, 3)
               .map((e) => `${(e.figurants?.prenom ?? "?")[0] ?? ""}${(e.figurants?.nom ?? "")[0] ?? ""}`.toUpperCase()),

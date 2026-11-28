@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { NewCastingRoleCard } from "@/components/casting/new-casting-role-card";
 import { creerOnglet, renommerOnglet, supprimerOnglet, rangerRoles } from "@/lib/casting/onglet-actions";
 import { setCastingRolePosition, updateCastingRoleVisiblePartage, updateCastingRolesVisiblePartage } from "@/lib/casting/actions";
+import { ouvrirRolesAuxAgents } from "@/lib/casting/agents-actions";
 import { CASTING_MODE_LABELS, type CastingMode, type CategorieCachet } from "@/lib/casting/types";
 import { cn } from "@/lib/cn";
 
@@ -31,6 +32,8 @@ export type ItemRole = {
   // Mode du rôle (selftape ou présentiel) et visibilité sur le lien réal.
   mode: CastingMode;
   visible: boolean;
+  // Ouvert aux agents (visible sur leurs liens).
+  ouvertAgents: boolean;
   // Initiales des premiers profils, pour la carte.
   initiales: string[];
   // Carte complète du rôle (profils, vidéos, invitation…), affichée au clic.
@@ -68,6 +71,7 @@ export function CastingRolesListe({
   const [visFiltre, setVisFiltre] = useState<boolean | null>(null);
   // Visibilités changées à l'écran, affichées tout de suite avant le retour du serveur.
   const [visibilites, setVisibilites] = useState<Record<string, boolean>>({});
+  const [agentsOuverts, setAgentsOuverts] = useState<Record<string, boolean>>({});
   const [ouverts, setOuverts] = useState<Set<string>>(new Set());
   // Rôle qu'on vient d'ouvrir : l'écran défile pour le caler en haut, une seule fois.
   const aDefiler = useRef<string | null>(null);
@@ -79,6 +83,7 @@ export function CastingRolesListe({
 
   const vueEffective: Vue = vue === "all" || vue === "none" || onglets.some((o) => o.id === vue) ? vue : "all";
   const ongletCourant = onglets.find((o) => o.id === vueEffective) ?? null;
+  const ouvertAuxAgents = (it: ItemRole) => (it.id in agentsOuverts ? agentsOuverts[it.id] : it.ouvertAgents);
   const estVisible = (it: ItemRole) => (it.id in visibilites ? visibilites[it.id] : it.visible);
   const ongletDe = (it: ItemRole) => (it.id in rangements ? rangements[it.id] : it.ongletId);
   // Dans l'onglet « Le Migrant », inutile de répéter « Le Migrant · » devant chaque rôle importé.
@@ -132,6 +137,30 @@ export function CastingRolesListe({
     setVisibilites((prev) => ({ ...prev, [roleId]: visible }));
     startTransition(async () => {
       const res = await updateCastingRoleVisiblePartage(roleId, visible);
+      if (res.error) setErreur(res.error);
+      router.refresh();
+    });
+  }
+
+  function changerAgents(roleId: string, ouvert: boolean) {
+    setErreur(null);
+    setAgentsOuverts((prev) => ({ ...prev, [roleId]: ouvert }));
+    startTransition(async () => {
+      const res = await ouvrirRolesAuxAgents(projetId, [roleId], ouvert);
+      if (res.error) setErreur(res.error);
+      router.refresh();
+    });
+  }
+
+  // Ouvre (ou ferme) aux agents tous les rôles affichés.
+  function tousAgents(ouvert: boolean) {
+    const ids = visibles.map((it) => it.id);
+    if (ids.length === 0) return;
+    if (!window.confirm(`${ouvert ? "Ouvrir" : "Fermer"} aux agents ${ids.length} rôle${ids.length > 1 ? "s" : ""} (ceux affichés ici) ?`)) return;
+    setErreur(null);
+    setAgentsOuverts((prev) => ({ ...prev, ...Object.fromEntries(ids.map((id) => [id, ouvert])) }));
+    startTransition(async () => {
+      const res = await ouvrirRolesAuxAgents(projetId, ids, ouvert);
       if (res.error) setErreur(res.error);
       router.refresh();
     });
@@ -425,6 +454,13 @@ export function CastingRolesListe({
             <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousVisibles(false, true)}>
               🙈 Profils de ces rôles : tous invisibles
             </button>
+            <p className="mt-1 border-t border-border px-3 pt-2 text-xs text-text-muted">Lien des agents</p>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousAgents(true)}>
+              🤝 Ouvrir ces rôles aux agents
+            </button>
+            <button type="button" className="rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-ink-raised-2" onClick={() => tousAgents(false)}>
+              ✕ Fermer ces rôles aux agents
+            </button>
           </div>
         </details>
         {ongletCourant && (
@@ -507,6 +543,21 @@ export function CastingRolesListe({
                       )}
                     >
                       {estVisible(it) ? "👁️ Visible" : "🙈 Invisible"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changerAgents(it.id, !ouvertAuxAgents(it));
+                      }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      title={ouvertAuxAgents(it) ? "Ouvert aux agents : cliquer pour fermer" : "Fermé aux agents : cliquer pour ouvrir"}
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-xs font-medium",
+                        ouvertAuxAgents(it) ? "border-coral/60 bg-coral/10 text-coral" : "border-border-strong text-text-muted"
+                      )}
+                    >
+                      🤝 {ouvertAuxAgents(it) ? "Agents" : "—"}
                     </button>
                     <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium", etat.badge)}>{etat.label}</span>
                   </span>

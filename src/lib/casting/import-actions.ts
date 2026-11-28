@@ -113,6 +113,10 @@ export async function importerRoles(
     categorie_cachet: l.categorie!,
     ordre: premierOrdre + i,
     message_corps: l.messageCorps,
+    agents_description: l.agents.description,
+    agents_age: l.agents.age,
+    agents_sequence: l.agents.sequence,
+    agents_repliques: l.agents.repliques,
     onglet_id: options.parEpisode ? (ongletParEpisode.get(normaliser(l.episode)) ?? null) : ongletCommun,
   }));
 
