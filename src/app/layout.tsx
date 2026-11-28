@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/site-url";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import localFont from "next/font/local";
@@ -26,8 +27,17 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Booking Extras",
-  description: "Gestion de casting figuration — figurant·es, projets, annonces, bookings.",
+  description:
+    "Booking Extras, le site de casting rôles, silhouettes et figuration, créé et géré par des chargé·es de casting. Crée ton compte gratuit et candidate aux annonces ouvertes.",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "Booking Extras",
+    title: "Booking Extras — casting rôles, silhouettes et figuration",
+    description: "Crée ton compte gratuit et candidate aux annonces de casting ouvertes.",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
