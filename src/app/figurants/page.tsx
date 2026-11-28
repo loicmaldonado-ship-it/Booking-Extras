@@ -58,7 +58,8 @@ export default async function FigurantsPage({
       ["oui", "non", "voiture", "velo", "moto", "scooter"].includes(filters.vehicule ?? "") || filters.age_min || filters.age_max) ||
     hasActiveMensurationFilters(filters);
   const typeRecherche = lancee === "1" && ["figurants", "comediens"].includes(filters.profil ?? "");
-  const peutChercher = maySearchProfiles(recherche, parCriteres, typeRecherche);
+  // Accès complet (Loïc, Mathieu, Éléa) : la liste s'affiche sans recherche ; les autres comptes doivent chercher.
+  const peutChercher = libreService || maySearchProfiles(recherche, parCriteres, typeRecherche);
   const criteresActifs = Boolean(recherche || parCriteres || filters.genre);
   const pageParamNum = libreService ? Math.max(1, Number(pageParam) || 1) : 1;
   const parPage = libreService ? FIGURANTS_PAR_PAGE : RESULTATS_MAX;

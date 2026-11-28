@@ -33,9 +33,13 @@ export function buildFigurantsQuery(
     .from("figurants")
     .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
-    .eq("acces_compte", true)
     .order("nom", { ascending: true })
     .order("prenom", { ascending: true });
+
+  // Base partagée des figurant·es : seulement les profils avec un accès compte. La base casting
+  // (comédien·nes, personnes venues par un lien sans compte) n'a pas de compte : elle reste visible,
+  // limitée à la base privée de chaque chef·fe (comedienPoolClause ci-dessous).
+  if (params.profil !== "comediens") query = query.eq("acces_compte", true);
 
   // Séparation figurant·es de figuration / comédien·nes (profils "rôle") —
   // deux pools distincts, jamais mélangés dans une même liste : les

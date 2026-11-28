@@ -50,7 +50,7 @@ export default function ConfidentialitePage() {
           d&apos;identité pour la paie...) ne vous sera jamais demandé ici.
         </p>
         <p className="text-sm">
-          L&apos;inscription et la candidature sur Booking Extras sont entièrement gratuites.
+          L&apos;inscription et la candidature sur Booking Extras sont entièrement gratuites. Aucune somme d&apos;argent ne vous sera jamais demandée.
         </p>
       </Card>
 
