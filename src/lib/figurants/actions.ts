@@ -1,5 +1,6 @@
 "use server";
 
+import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -346,10 +347,8 @@ export async function deletePhoto(photoId: string, figurantId: string) {
     .eq("id", photoId)
     .single();
 
-  if (photo) {
-    await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
-  }
   await supabase.from("figurant_photos").delete().eq("id", photoId);
+  if (photo) await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
   revalidatePath(`/figurants/${figurantId}`);
 }
 

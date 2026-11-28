@@ -72,7 +72,13 @@ export default async function ApercuReelPage({ searchParams }: { searchParams: P
 
   const profilDe = (entry: (typeof entriesVisibles)[number]): ApercuProfil => {
     const masques = new Set(entry.medias_masques ?? []);
-    const photos = [...(entryPhotos.get(entry.id) ?? []), ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projetId, "fr")];
+    // Photos envoyées (ou reprises) pour le rôle, puis celles du profil — sans montrer deux fois le même fichier.
+    const pourLeRole = entryPhotos.get(entry.id) ?? [];
+    const dejaVues = new Set(pourLeRole.map((x) => x.url));
+    const photos = [
+      ...pourLeRole,
+      ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projetId, "fr").filter((x) => !dejaVues.has(x.url)),
+    ];
     const infos = [
       options.age ? (computeAge(entry.figurants?.date_naissance ?? null) ? `${computeAge(entry.figurants?.date_naissance ?? null)} ans` : null) : null,
       options.ville ? entry.figurants?.ville?.trim() || null : null,

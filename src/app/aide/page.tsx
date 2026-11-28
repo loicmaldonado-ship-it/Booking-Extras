@@ -538,6 +538,14 @@ export default function AidePage() {
             ]}
           />
         </div>
+        <Callout>
+          <strong className="text-text">📂 Reprendre une photo du profil ou d&apos;une candidature.</strong> Dans la carte d&apos;un
+          profil, sous chaque emplacement de photo vide (Portrait, Pied…), <UI>📂 Depuis son profil</UI> ouvre ses photos : celles de
+          son profil, puis celles de chacune de ses candidatures, rangées par annonce. Un clic sur une photo la met à cet
+          emplacement, comme si la personne l&apos;avait envoyée pour ce rôle — elle n&apos;a rien à renvoyer.{" "}
+          <UI>📂 Ajouter une photo de son profil ou de sa candidature</UI> en ajoute une de plus. La croix <UI>×</UI> la retire du
+          rôle sans effacer la photo de son profil.
+        </Callout>
         <div>
           <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
           <Steps

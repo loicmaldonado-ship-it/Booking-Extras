@@ -1,5 +1,6 @@
 "use server";
 
+import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers";
 import { formatPrenom } from "@/lib/noms";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { aAccesComplet } from "@/lib/auth/owner";
@@ -527,8 +528,8 @@ export async function deleteMaPhoto(photoId: string) {
     .maybeSingle();
   if (!photo) return { error: "Photo introuvable." };
 
-  await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
   await supabase.from("figurant_photos").delete().eq("id", photoId);
+  await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
 
   revalidatePath("/compte");
   return { success: true as const };

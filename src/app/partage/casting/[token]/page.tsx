@@ -120,6 +120,13 @@ export default async function PartageCastingPage({
         : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")
       : null;
 
+  // Photos envoyées (ou reprises) pour le rôle, puis celles du profil — sans montrer deux fois le même fichier.
+  const photosDeLEntree = (entry: (typeof visibleEntries)[number], l: "fr" | "en") => {
+    const pourLeRole = entryPhotosByEntry.get(entry.id) ?? [];
+    const dejaVues = new Set(pourLeRole.map((p) => p.url));
+    return [...pourLeRole, ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, l).filter((p) => !dejaVues.has(p.url))];
+  };
+
   // Un profil du lien, avec seulement ce que l'équipe a choisi de montrer.
   // Dans la section « Profils validés » (avecRole), le rôle et sa date
   // s'affichent sur chaque profil.
@@ -135,10 +142,7 @@ export default async function PartageCastingPage({
     roleDate: avecRole ? dateDuRole(role) : null,
     portraitUrl: vignetteReel(entry, photosByFigurant.get(entry.figurant_id), projet.id),
     videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
-    photos: [
-      ...(entryPhotosByEntry.get(entry.id) ?? []),
-      ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
-    ].filter((p) => !masquesDe.get(entry.id)!.has(clePhotoReel(p.id))),
+    photos: photosDeLEntree(entry, lang).filter((p) => !masquesDe.get(entry.id)!.has(clePhotoReel(p.id))),
     age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
     ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
     mensurations: mensurationsDe(entry.figurants, options),
