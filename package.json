@@ -23,7 +23,7 @@
     "mailparser": "3.12.4",
     "mp4-muxer": "^5.2.2",
     "mp4box": "^2.4.1",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "nodemailer": "10.2.1",
     "qrcode": "^1.5.4",
     "react": "19.2.8",
@@ -42,7 +42,7 @@
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
-    "eslint-config-next": "16.4.3",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
