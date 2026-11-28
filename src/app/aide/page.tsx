@@ -944,8 +944,10 @@ export default function AidePage() {
           l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
           du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.{" "}
           <UI>📷 Aperçu des photos</UI>, dans l&apos;onglet Documents de la journée, montre d&apos;un coup les photos retenues pour
-          toutes les personnes (la 1 sur le trombi, les 3 sur la fiche mensuration) : <UI>★ Photo du trombi</UI> promeut une photo,{" "}
-          <UI>✕ Retirer</UI> l&apos;enlève, un clic sur <UI>＋</UI> en ajoute une autre (essayage, candidature ou compte), et{" "}
+          toutes les personnes (la 1 sur le trombi, les 3 sur la fiche mensuration). <strong className="text-text">Glisse</strong> une photo
+          de son profil, de sa candidature ou de l&apos;essayage sur une case pour l&apos;y mettre (elle remplace celle qui y est si les 3
+          sont prises), glisse les cases pour les réordonner, ou glisse une photo retenue sur la zone du dessous pour la retirer.
+          Sans souris : <UI>★ Photo du trombi</UI>, <UI>✕ Retirer</UI> et un clic sur <UI>＋</UI> font la même chose, et{" "}
           <UI>Revenir au choix par défaut</UI> annule. Les trombis et les fiches changent aussitôt.
         </p>
         <p className="text-sm text-text-muted">

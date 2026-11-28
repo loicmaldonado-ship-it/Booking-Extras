@@ -42,8 +42,8 @@ export default async function ApercuPhotosDocsPage({
       selection: (d?.selection ?? []).map(versPhoto),
       groupes: [
         { titre: "Essayage sur ce projet", photos: (d?.essayage ?? []).map(versPhoto) },
-        { titre: "Candidature", photos: (d?.candidature ?? []).map(versPhoto) },
-        { titre: "Compte", photos: (d?.compte ?? []).map(versPhoto) },
+        { titre: "Photos de sa candidature", photos: (d?.candidature ?? []).map(versPhoto) },
+        { titre: "Photos de son profil", photos: (d?.compte ?? []).map(versPhoto) },
       ].filter((g) => g.photos.length > 0),
     };
   });
@@ -55,7 +55,7 @@ export default async function ApercuPhotosDocsPage({
         <h1 className="text-2xl font-semibold">Aperçu des photos — trombis et fiches mensuration</h1>
         <p className="mt-1 text-text-muted">
           {projet?.nom} · {formatDateLong(date)} — voilà les photos qui sortent pour chaque personne : la 1<sup>re</sup> sur le trombi, les
-          trois sur la fiche mensuration. Change-les d&apos;un clic, c&apos;est enregistré pour tout le projet.
+          trois sur la fiche mensuration. Glisse une photo (de son profil, de sa candidature ou de l&apos;essayage) sur une case, ou réordonne les cases : c&apos;est enregistré pour tout le projet.
         </p>
       </div>
       <StatutChips baseParams={{ projet_id, date }} current={docStatut.key} />

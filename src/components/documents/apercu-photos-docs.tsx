@@ -19,6 +19,21 @@ const TYPE_LABEL: Record<string, string> = {
 const ROLE_EMPLACEMENT = ["Trombi + fiche", "Fiche", "Fiche"];
 
 type Photo = { id: string; url: string; type: string };
+
+// Place une photo à la position voulue (0 = photo du trombi). Une photo déjà
+// retenue change de place ; une nouvelle s'insère, ou remplace celle de la case
+// quand les 3 sont déjà prises.
+function placer(ids: string[], photoId: string, pos: number): string[] {
+  const sans = ids.filter((x) => x !== photoId);
+  if (!ids.includes(photoId) && sans.length >= MAX) {
+    const r = [...sans];
+    r.splice(Math.min(pos, r.length - 1), 1, photoId);
+    return r;
+  }
+  const r = [...sans];
+  r.splice(Math.min(pos, r.length), 0, photoId);
+  return r.slice(0, MAX);
+}
 export type ApercuPersonne = {
   figurantId: string;
   nom: string;
@@ -44,6 +59,8 @@ export function ApercuPhotosDocs({
   // Sélections modifiées à l'écran, affichées tout de suite avant le retour du serveur.
   const [choix, setChoix] = useState<Record<string, string[]>>({});
   const [manuels, setManuels] = useState<Record<string, boolean>>({});
+  // Case survolée pendant un glisser (« personne|index » ou « personne|autres »).
+  const [survol, setSurvol] = useState<string | null>(null);
 
   if (personnes.length === 0) {
     return <p className="text-sm text-text-muted">Aucune personne ({libelleQui}) pour cette journée.</p>;
@@ -102,12 +119,30 @@ export function ApercuPhotosDocs({
               {Array.from({ length: MAX }, (_, i) => {
                 const photo = ids[i] ? parId.get(ids[i]) : undefined;
                 return (
-                  <div key={i} className="flex flex-col gap-1.5">
+                  <div
+                    key={i}
+                    className={cn("flex flex-col gap-1.5 rounded-xl p-1", survol === `${p.figurantId}|${i}` && "bg-coral/15 outline-2 outline-dashed outline-coral")}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setSurvol(`${p.figurantId}|${i}`);
+                    }}
+                    onDragLeave={() => setSurvol((v) => (v === `${p.figurantId}|${i}` ? null : v))}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setSurvol(null);
+                      const id = e.dataTransfer.getData("text/plain");
+                      if (id && parId.has(id)) enregistrer(p, placer(ids, id, i));
+                    }}
+                  >
                     <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">{i + 1} · {ROLE_EMPLACEMENT[i]}</p>
                     {photo ? (
                       <>
-                        <span className="relative block aspect-[3/4] w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                          <Image src={photo.url} alt="" fill sizes="200px" className="object-cover" unoptimized />
+                        <span
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData("text/plain", photo.id)}
+                          className="relative block aspect-[3/4] w-full cursor-grab overflow-hidden rounded-lg bg-ink-raised-2"
+                        >
+                          <Image src={photo.url} alt="" fill sizes="200px" className="object-cover" unoptimized draggable={false} />
                           <span className="absolute left-1 top-1 rounded-full bg-ink/80 px-2 py-0.5 text-[10px] font-medium">
                             {TYPE_LABEL[photo.type] ?? photo.type}
                           </span>
@@ -135,7 +170,7 @@ export function ApercuPhotosDocs({
                       </>
                     ) : (
                       <span className="flex aspect-[3/4] w-full items-center justify-center rounded-lg border-2 border-dashed border-border text-center text-[11px] text-text-muted">
-                        Libre : ajoute une photo ci-dessous
+                        Libre : glisse une photo ici ou clique ci-dessous
                       </span>
                     )}
                   </div>
@@ -147,25 +182,38 @@ export function ApercuPhotosDocs({
               <p className="text-xs text-text-muted">Aucune autre photo pour cette personne.</p>
             ) : (
               autres.map((g) => (
-                <div key={g.titre} className="flex flex-col gap-1.5">
+                <div
+                  key={g.titre}
+                  className={cn("flex flex-col gap-1.5 rounded-xl p-1", survol === `${p.figurantId}|autres|${g.titre}` && "bg-ink-raised-2 outline-2 outline-dashed outline-border-strong")}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setSurvol(`${p.figurantId}|autres|${g.titre}`);
+                  }}
+                  onDragLeave={() => setSurvol((v) => (v === `${p.figurantId}|autres|${g.titre}` ? null : v))}
+                  onDrop={(e) => {
+                    // Déposer une photo retenue ici la retire des documents (il en reste toujours une).
+                    e.preventDefault();
+                    setSurvol(null);
+                    const id = e.dataTransfer.getData("text/plain");
+                    if (id && ids.includes(id) && ids.length > 1) enregistrer(p, ids.filter((x) => x !== id));
+                  }}
+                >
                   <h3 className="text-sm font-semibold">{g.titre}</h3>
                   <div className="flex flex-wrap gap-2">
                     {g.photos.map((x) => (
                       <button
                         key={x.id}
                         type="button"
-                        disabled={ids.length >= MAX}
-                        onClick={() => enregistrer(p, [...ids, x.id])}
-                        title={ids.length >= MAX ? "3 photos au maximum : retire-en une d'abord" : "Ajouter aux documents"}
-                        className={cn(
-                          "flex w-20 flex-col gap-1 rounded-lg border-2 border-transparent p-0.5 text-left text-[10px] text-text-muted",
-                          ids.length >= MAX ? "opacity-50" : "hover:border-coral"
-                        )}
+                        draggable
+                        onDragStart={(e) => e.dataTransfer.setData("text/plain", x.id)}
+                        onClick={() => ids.length < MAX && enregistrer(p, [...ids, x.id])}
+                        title={ids.length >= MAX ? "Glisse-la sur une case pour remplacer la photo qui s'y trouve" : "Clique pour l'ajouter, ou glisse-la sur une case"}
+                        className="flex w-20 cursor-grab flex-col gap-1 rounded-lg border-2 border-transparent p-0.5 text-left text-[10px] text-text-muted hover:border-coral"
                       >
                         <span className="relative block aspect-[3/4] w-full overflow-hidden rounded-md bg-ink-raised-2">
-                          <Image src={x.url} alt="" fill sizes="80px" className="object-cover" unoptimized />
+                          <Image src={x.url} alt="" fill sizes="80px" className="object-cover" unoptimized draggable={false} />
                         </span>
-                        ＋ {TYPE_LABEL[x.type] ?? x.type}
+                        {ids.length < MAX ? "＋ " : "⇄ "}{TYPE_LABEL[x.type] ?? x.type}
                       </button>
                     ))}
                   </div>
