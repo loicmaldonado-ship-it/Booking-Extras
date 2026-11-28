@@ -942,7 +942,11 @@ export default function AidePage() {
           Photos des trombis et fiches : dans la journée, <UI>📷 Photos</UI> à côté d&apos;un nom permet de choisir
           jusqu&apos;à 3 photos dans l&apos;ordre (la 1 est la photo principale du trombi). Sans choix : photos de
           l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
-          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.
+          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.{" "}
+          <UI>📷 Aperçu des photos</UI>, dans l&apos;onglet Documents de la journée, montre d&apos;un coup les photos retenues pour
+          toutes les personnes (la 1 sur le trombi, les 3 sur la fiche mensuration) : <UI>★ Photo du trombi</UI> promeut une photo,{" "}
+          <UI>✕ Retirer</UI> l&apos;enlève, un clic sur <UI>＋</UI> en ajoute une autre (essayage, candidature ou compte), et{" "}
+          <UI>Revenir au choix par défaut</UI> annule. Les trombis et les fiches changent aussitôt.
         </p>
         <p className="text-sm text-text-muted">
           Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}
