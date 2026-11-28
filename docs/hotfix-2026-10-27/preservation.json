@@ -1,0 +1,38 @@
+{
+  "base_sha": "855b0217fe73ea4dba33eda71f468cd30c2e6b95",
+  "source_head": "489b6bbc6f363d8ca968fe5bfecce3ada6acac34",
+  "source_diff_sha256": "1b6fbf08e7ac1a288d0070a87f1c85089ded3fdb396dda84dbea4c0aa204d1fa",
+  "bundle_restore_source_head_matches": true,
+  "branch": "hotfix/securite-urgente-2026-10-27",
+  "original_database_fingerprint": "2|d343fff7f09ee0411271a6d37a1aca2a",
+  "synthetic_300_before_after": "300|0bd2fd85df51b32592224fd9092dfffb",
+  "no_push": true,
+  "no_deployment": true,
+  "production_database_not_accessed": true,
+  "initial_four_file_patches_unchanged": {
+    "src/components/admin/agents-admin-panel.tsx": true,
+    "src/components/figurants/figurant-form.tsx": true,
+    "src/lib/agents/actions.ts": true,
+    "src/lib/figurants/actions.ts": true
+  },
+  "source_concurrent_extra_changes": [
+    "AGENTS.md",
+    "next.config.ts"
+  ],
+  "source_current_diff_sha256": "9b92eb9d63cb21c18e6994d0c52698c39a68eda6f850368c87af21c7a6989794",
+  "source_head_still_489b6bb": true,
+  "source_initial_four_file_patches_preserved": true,
+  "source_full_diff_unchanged": false,
+  "source_other_changes_not_imported": [
+    "AGENTS.md",
+    "next.config.ts",
+    "scripts/check-agents-failures-local.mjs",
+    "tests/agents-errors.test.mjs"
+  ],
+  "final_replay_fingerprints_unchanged": true,
+  "commits_before_documentation": [
+    "423751b9c81bf5af70866bbb5de8aed4f01835ad fix(security): restrict SMTP secret reads and candidate table grants",
+    "ff94ba61509d2230896b2e1cef048b35c9eccd40 fix(security): port validated integration guards onto verified main"
+  ],
+  "vercel_deployed_sha_verification": "Unavailable: connected account has no Booking Extras project"
+}

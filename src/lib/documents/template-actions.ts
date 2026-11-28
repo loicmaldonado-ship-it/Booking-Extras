@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess } from "@/lib/auth/session";
 
 function str(fd: FormData, key: string): string | null {
@@ -27,11 +28,13 @@ export async function updateDocumentTemplate(projetId: string, formData: FormDat
   };
 
   if (logo instanceof File && logo.size > 0) {
-    const ext = logo.name.split(".").pop() || "png";
+    const validated = await validateImageUpload(logo);
+    if (validated.error) return { error: validated.error };
+    const ext = validated.extension;
     const path = `${projetId}/logo-${crypto.randomUUID()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from("document-templates")
-      .upload(path, logo, { contentType: logo.type, upsert: false });
+      .upload(path, logo, { contentType: validated.mimeType, upsert: false });
     if (uploadError) return { error: uploadError.message };
     payload.logo_storage_path = path;
   }
@@ -39,7 +42,10 @@ export async function updateDocumentTemplate(projetId: string, formData: FormDat
   const { error } = await supabase
     .from("document_templates")
     .upsert(payload, { onConflict: "projet_id" });
-  if (error) return { error: error.message };
+  if (error) {
+    if (payload.logo_storage_path) await supabase.storage.from("document-templates").remove([payload.logo_storage_path]);
+    return { error: error.message };
+  }
 
   revalidatePath(`/projets/${projetId}`);
   return { success: true as const };

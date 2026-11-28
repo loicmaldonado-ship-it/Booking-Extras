@@ -1,3 +1,4 @@
+import { ageOnDate } from "@/lib/minors/model";
 import { nomComplet } from "@/lib/noms";
 import { getCandidatureParFigurant } from "@/lib/candidatures/documents";
 import { getLiens, dernierVoteParProfil } from "@/lib/validation/data";
@@ -8,6 +9,7 @@ import Link from "next/link";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { getPhotosDocumentsProjet } from "@/lib/documents/photos-projet";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -29,10 +31,12 @@ import { formatDateShort } from "@/lib/format-date";
 import { getUnreviewedReplies } from "@/lib/email/inbox";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 import { isOwner } from "@/lib/auth/owner";
 import { getIndisponibilitesForFigurants } from "@/lib/figurants/disponibilites";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import type { ProjetIndemnite } from "@/lib/indemnites/types";
+import { baremePourEquipes, cleEquipeProjet } from "@/lib/bareme/equipe";
 import type { BaremeMajoration, MajorationValeurType } from "@/lib/bareme/types";
 import type { CovoiturageRole } from "@/lib/bookings/types";
 
@@ -69,10 +73,11 @@ export default async function JourneeDashboardPage({
   const profile = await getCurrentProfile();
 
   const supabase = createAdminClient();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
-  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurants }, { data: projetIndemnites }, resolvedSignature] =
+  const [{ data: projet }, { data: bookingsRaw }, { data: templates }, { data: allFigurantsRls }, { data: projetIndemnites }, resolvedSignature] =
     await Promise.all([
     supabase
       .from("projets")
@@ -98,6 +103,16 @@ export default async function JourneeDashboardPage({
       .returns<ProjetIndemnite[]>(),
     getProjetSignatureOrOwnerName(supabase, projet_id),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
+
+  const ageAlerts = await Promise.all((bookingsRaw ?? []).filter(b => b.statut !== "annulé").map(async b => {
+    const age = ageOnDate(b.figurants?.date_naissance, b.date);
+    if (age === null) return `${nomComplet(b.figurants ?? { prenom: "Profil", nom: "" })} : date de naissance à compléter`;
+    if (age >= 18) return null;
+    const { data: complete, error } = await supabase.rpc("minor_dossier_complete", { p_project: projet_id, p_child: b.figurant_id, p_date: b.date });
+    return error || complete !== true ? `${nomComplet(b.figurants ?? { prenom: "Profil", nom: "" })} : dossier mineur incomplet ou non vérifié` : null;
+  }));
+  const unresolvedAgeAlerts = ageAlerts.filter((message): message is string => message !== null);
 
   const [journees, fonctionsProjet, envois, liensMes, candidatureParFigurant] = await Promise.all([
     getJournees(projet_id),
@@ -164,7 +179,7 @@ export default async function JourneeDashboardPage({
           .in("figurant_id", figurantIds)
       : { data: [] as { figurant_id: string; numero_costume: string }[] };
   const numeroCostumeByFigurant = new Map((costumesRaw ?? []).map((c) => [c.figurant_id, c.numero_costume]));
-  const indispoMap = await getIndisponibilitesForFigurants(figurantIds);
+const indispoMap = await getIndisponibilitesForFigurants(projet_id, figurantIds);
 
   // Raccord = personne CONFIRMÉE ce jour-là et confirmée sur au moins une
   // autre journée du même projet (badge R, dates déroulables), même si elle
@@ -207,13 +222,13 @@ export default async function JourneeDashboardPage({
   }
 
   const [{ data: baremeMajorations }, { data: bookingMajorationsRaw }] = await Promise.all([
-    projet?.convention
-      ? supabase
-          .from("bareme_majorations")
-          .select("*")
-          .eq("convention", projet.convention)
-          .order("type")
-          .returns<BaremeMajoration[]>()
+    // Barème de l'équipe du projet (barème par équipe).
+    projet?.convention && projet_id
+      ? (async () => {
+          const cle = await cleEquipeProjet(supabase, projet_id);
+          const { majorations } = cle ? await baremePourEquipes(supabase, [cle], projet.convention) : { majorations: [] };
+          return { data: majorations as BaremeMajoration[] };
+        })()
       : Promise.resolve({ data: [] as BaremeMajoration[] }),
     bookingIds.length > 0
       ? supabase
@@ -294,16 +309,16 @@ export default async function JourneeDashboardPage({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
+        <div className="min-w-0">
+          <p className="flex flex-wrap gap-x-3 text-xs font-medium uppercase tracking-wide text-text-muted">
             <Link href="/bookings" className="hover:text-text">
               ← Bookings
             </Link>
-            <Link href="/bookings?switch=1" className="ml-3 text-coral hover:underline">
+            <Link href="/bookings?switch=1" className="text-coral hover:underline">
               Changer de projet
             </Link>
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {prevJournee ? (
               <Link
                 href={`/bookings/documents?projet_id=${projet_id}&date=${prevJournee.date}`}
@@ -314,7 +329,7 @@ export default async function JourneeDashboardPage({
             ) : (
               <span className="text-sm text-text-muted/30">← Journée précédente</span>
             )}
-            <h1 className="text-3xl font-semibold">
+            <h1 className="break-words text-3xl font-semibold">
               {projet?.nom} — {formatDateShort(date)}
             </h1>
             {nextJournee ? (
@@ -328,6 +343,13 @@ export default async function JourneeDashboardPage({
               <span className="text-sm text-text-muted/30">Journée suivante →</span>
             )}
           </div>
+          {unresolvedAgeAlerts.length > 0 && (
+            <div role="status" className="mt-3 rounded-xl border border-yellow/50 bg-yellow/10 p-3 text-sm">
+              <p className="font-semibold">Âge ou dossier à vérifier avant convocation</p>
+              <ul className="mt-1 list-disc pl-5">{unresolvedAgeAlerts.map((message, index) => <li key={index}>{message}</li>)}</ul>
+              <Link className="mt-2 inline-block text-coral underline" href={`/projets/${projet_id}/mineurs`}>Ouvrir les dossiers mineurs</Link>
+            </div>
+          )}
           <div className="mt-2 flex gap-2">
             <Badge tone="turquoise">{confirmes} confirmé·e{confirmes > 1 ? "s" : ""}</Badge>
             <Badge tone="yellow">{enAttente} en attente</Badge>

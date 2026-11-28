@@ -91,11 +91,12 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={openPalette}
+        aria-label="Rechercher"
         className="flex items-center gap-2 rounded-xl border border-border-strong px-3 py-2 text-sm text-text transition-colors hover:border-coral/60 hover:text-text"
       >
         <Search size={16} strokeWidth={1.75} />
         <span className="hidden sm:inline">Rechercher</span>
-        <kbd className="hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-text-muted sm:inline">⌘K</kbd>
+        <kbd aria-hidden="true" className="hidden rounded border border-border px-1.5 py-0.5 text-[10px] text-text-muted sm:inline">⌘K</kbd>
       </button>
 
       {open && (

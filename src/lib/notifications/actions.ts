@@ -159,30 +159,32 @@ export async function getNotificationsPanel(): Promise<{
 // d'un autre projet passé à la main est simplement ignoré.
 export async function markNotificationsLues(ids: string[]) {
   const profile = await getCurrentProfile();
-  if (!profile || ids.length === 0) return;
+  if (!profile || ids.length === 0) return {};
   // Mode support : on regarde sans toucher à ce que l'équipe de la cheffe a lu.
-  if (await getSupportChefId(profile)) return;
+  if (await getSupportChefId(profile)) return {};
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
-  await supabase
+  const { error } = await supabase
     .from("notifications")
     .update({ lu_at: new Date().toISOString() })
     .in("id", ids)
     .is("lu_at", null)
     .or(visibleToProfileFilter(accessibleIds));
+  return error ? { error: "Les notifications n'ont pas pu être marquées comme lues." } : {};
 }
 
 export async function markAllNotificationsLues() {
   const profile = await getCurrentProfile();
-  if (!profile) return;
-  if (await getSupportChefId(profile)) return;
+  if (!profile) return {};
+  if (await getSupportChefId(profile)) return {};
 
   const supabase = createAdminClient();
   const accessibleIds = (await getAccessibleProjetIds(profile)) ?? [];
-  await supabase
+  const { error } = await supabase
     .from("notifications")
     .update({ lu_at: new Date().toISOString() })
     .is("lu_at", null)
     .or(visibleToProfileFilter(accessibleIds));
+  return error ? { error: "Les notifications n'ont pas pu être marquées comme lues." } : {};
 }

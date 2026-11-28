@@ -156,7 +156,7 @@ export function ModifierPdt({
                     </p>
                   )}
                   {bilan.echecs.length > 0 && (
-                    <p className="text-sm text-danger">Non envoyés : {bilan.echecs.join(", ")}</p>
+                    <p className="text-sm text-danger">Alertes : {bilan.echecs.join(", ")}</p>
                   )}
                   <p className="text-xs text-text-muted">
                     Dès que tu changes le statut d&apos;un profil sur la nouvelle journée (CONFIRMÉ, Indisponible…), il

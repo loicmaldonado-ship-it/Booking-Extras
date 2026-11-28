@@ -1,0 +1,33 @@
+# Isolation des suggestions et ajouts rapides — 27 octobre 2026
+
+Défauts réellement reproduits avec Auth/REST locaux : un profil non visible par la policy figurants ressortait dans findPossibleDuplicates ; un identifiant privé étranger envoyé dans reprendre:id permettait un booking via le service. Les sentinelles du test ont échoué avant correction. Fixtures et bookings supprimés après chaque essai ; aucune invitation réelle.
+
+Les deux recherches de doublons utilisent désormais le client de la session et la RLS, y compris la fiche source. Les quatre recherches de profils de l’ajout rapide (email, téléphone, choix id, relecture fiche) utilisent aussi ce client. Les opérations administratives nécessaires sont conservées après ces contrôles.
+
+Le script scripts/check-private-duplicates-local.mjs exécute les vrais modules compilés avec client admin local et client Auth assistant réel. Il fournit six profils fictifs : partagé, privé autre projet, comédien autre pool, privé projet courant, second partagé, comédien pool courant. La RLS de référence est contrôlée avant les suggestions. Après correction : aucun profil étranger dans les doublons ; profils locaux/partagés et comédien du pool conservés pour la recherche correspondante ; exclusion des comédiens conservée pour l’ajout rapide ; source invisible ne renvoie rien. Reprise forgée refusée sans booking ni invitation ; profil privé du projet courant accepté. Photos non utilisées dans cette épreuve, résolution photo remplacée par une map vide ; transport invitation remplacé par un compteur. Auth, requêtes et écritures métier sont réels.
+
+186/186 tests Node, types, ESLint et build réussis. Trois tests d’âge ont nécessité d’ajouter le client de session au banc d’essai ; leurs critères et assertions d’âge sont conservés.
+
+BUG-03/SEC-04/BUG-02 restent partiels : autres pickers, exports et actions à vérifier. Un test SQL additionnel a également reproduit la création directe d’un booking vers un profil caché ; sa protection plus générale est le lot suivant. Cette preuve ne signifie pas que l’audit global des viviers est terminé.
+
+## Références métier et voies privilégiées de booking
+
+Le test SQL a réellement permis l’insertion directe d’un booking vers une fiche cachée avant correction. La migration182 contrôle les références de personnes avant INSERT/UPDATE dans bookings, essayages, casting_entries, casting_presentiel_entries et candidatures. Une association ne peut donc pas créer elle-même le droit de voir une personne inconnue. Les conducteurs de covoiturage sont aussi contrôlés sur bookings. Le trigger est invoker, sans privilège ajouté, et applique la visibilité RLS au rôle authenticated ; les parcours administratifs service_role conservent leurs validations serveur distinctes.
+
+La RLS conserve explicitement les comédiens du pool propre même sans compte candidat : leur appartenance au vivier suffit, tandis que les profils ordinaires sans compte restent réservés aux projets liés. Les profils comédiens sans pool restent réservés au propriétaire.
+
+Les actions privilégiées de création/édition de booking et transfert simple/groupé vérifient la visibilité des personnes avant mutation. Le conducteur des éditions simples/groupées est vérifié. Le lot d’accès compte vérifie aussi que chaque personne figure dans les bookings du projet, avant toute activation ou transport. Les sélections sont bornées et découpées par400 pour conserver les grands transferts autorisés sans dépendre du plafond REST1000lignes.
+
+Preuves : script réel Auth/REST, deux personnes étrangères ordinaires/comédiennes refusées dans création/édition/drop/bulk, REST direct, conducteur simple/groupé, activation privée et invitation d’un profil partagé absent du projet. Booking initial conservé ; profil du projet courant et comédien propre sans compte acceptés. Aucun transport réel ; fixtures nettoyées. SQL : cinq tables, insertions/modifications cachées refusées, créations visibles réussies ; la règle compte obligatoire CAN-02 est conservée. Les fixtures de candidature utilisent un compte valide pour ne pas confondre ce refus avec la confidentialité.
+
+Double reconstruction182migrations+seed réussie. Après la seconde, **19scénariosSQL DO**, trois scripts API réels (viviers, deux cheffes casting RLS et casting avec JPEG/MP4/anciennes signatures/cinq courses) réussis ; conseiller sécurité sans avertissement. Application de182 et cinqSQL ciblés sur la principale locale27194 après vérification de connexion, sans reset. **191/191tests Node, types, ESLint et build réussis**.
+
+Limites : toutes les autres actions utilisant service_role ne sont pas encore couvertes ; en particulier les associations via certaines actions casting/essayage et tous les exports restent à auditer. Les gardes DB pour authenticated ne prétendent pas contrôler un service_role légitimement privilégié. BUG-02/03 et SEC-03/04 restent partiels ; aucune nouvelle coche Trello accordée pour ce lot. L’archive c01c092 est un snapshot antérieur : elle ne contient pas ces nouvelles corrections et doit être remplacée avant une nouvelle diffusion.
+
+## Extension des contrôles serveur aux autres parcours
+
+La garde de visibilité est maintenant appliquée aux actions de création/édition/ajout simple/groupé d’essayage, de photo tenue, d’ajout simple/groupé en présentiel et à la création d’entrée/ajout groupé de casting. Les sélections mélangées sont vérifiées avant d’insérer la première personne. Les parcours publics candidats gardent leur contrôle de session/token propre : ce helper staff ne leur est pas imposé.
+
+Le script réel a exécuté toutes ces voies sur deux profils cachés (ordinaire privé et comédien autre pool), puis a contrôlé qu’aucun essayage/entrée/photo partiel n’était créé pour une sélection mélangée. Cas positifs : création et maintien d’un essayage avec profil partagé, refus d’une substitution en édition, ajout du profil privé du projet à l’essayage et au présentiel, ajout du comédien propre sans compte au présentiel et au casting, vrai JPEG24x24 envoyé dans Storage puis référencé en tenue. Fichiers et seules fixtures ensuite nettoyés. Auth/RLS/Storage/écritures réels ; contrôle de projet injecté en s’appuyant sur la lecture REST autorisée, revalidation Next neutralisée, aucun transport réel. Cela ne remplace pas une recette navigateur de tous les écrans.
+
+Suite complète après cette extension :191/191tests, types/lint/build réussis. Le nouvel inventaire statique recense286fonctions exportées d’actions/routes, dont255utilisent directement createAdminClient. Cet inventaire ne compte pas tous les helpers transitifs ou actions inline et ne valide aucune permission à lui seul. Il reste une base de travail pour finir BUG-02 ; la carte n’est pas cochée.

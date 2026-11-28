@@ -1,14 +1,14 @@
 import "server-only";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { sansBaseProfils } from "@/lib/figurants/choix";
+import { normalizeTelephoneForDuplicate } from "./duplicate-normalization";
 
 export type PossibleDuplicate = {
   figurant: { id: string; prenom: string; nom: string; email: string | null; telephone: string | null; ville: string | null };
   reason: "telephone" | "date_naissance_nom";
 };
-
-function normalizeTelephone(tel: string | null) {
-  return tel ? tel.replace(/\s+/g, "") : null;
-}
 
 const DIACRITICS = /[̀-ͯ]/g;
 
@@ -45,7 +45,8 @@ function nomsProches(a: string, b: string): boolean {
 // automatiquement, contrairement au rapprochement par email/nom+tél exact
 // déjà fait à la candidature (voir postulerAnnonce).
 export async function findPossibleDuplicates(figurantId: string): Promise<PossibleDuplicate[]> {
-  const supabase = createAdminClient();
+  // Suggestions must obey the same row visibility as the current staff session.
+  const supabase = await createServerSupabaseClient();
   const { data: figurant } = await supabase
     .from("figurants")
     .select("id, prenom, nom, telephone, date_naissance")
@@ -54,30 +55,41 @@ export async function findPossibleDuplicates(figurantId: string): Promise<Possib
   if (!figurant) return [];
 
   const results = new Map<string, PossibleDuplicate>();
+  // Sans la section Base Profils, la base partagée n'est plus lisible sous RLS : on y cherche aussi (fiches avec compte,
+  // hors comédien·nes), sans montrer l'email ni le téléphone des fiches que la session ne voit pas.
+  const baseAussi = sansBaseProfils(await getCurrentProfile());
+  type Ligne = PossibleDuplicate["figurant"];
+  type Filtre = (q: { eq: (c: string, v: unknown) => unknown; not: (c: string, o: string, v: unknown) => unknown }) => unknown;
+  const sources = async (filtre: Filtre) => {
+    const lire = async (client: typeof supabase | ReturnType<typeof createAdminClient>, baseSeule: boolean) => {
+      let q = client.from("figurants").select("id, prenom, nom, email, telephone, ville").neq("id", figurantId);
+      if (baseSeule) q = q.eq("acces_compte", true).eq("est_comedien", false);
+      const { data } = await (filtre(q as never) as PromiseLike<{ data: Ligne[] | null }>);
+      return data ?? [];
+    };
+    const rls = await lire(supabase, false);
+    const lignes = rls.map((c) => ({ c, masque: false }));
+    if (!baseAussi) return lignes;
+    const vus = new Set(rls.map((c) => c.id));
+    for (const c of await lire(createAdminClient(), true)) {
+      if (!vus.has(c.id)) lignes.push({ c, masque: true });
+    }
+    return lignes;
+  };
 
-  const tel = normalizeTelephone(figurant.telephone);
+  const tel = normalizeTelephoneForDuplicate(figurant.telephone);
   if (tel) {
-    const { data: candidats } = await supabase
-      .from("figurants")
-      .select("id, prenom, nom, email, telephone, ville")
-      .neq("id", figurantId)
-      .not("telephone", "is", null);
-    for (const c of candidats ?? []) {
-      if (normalizeTelephone(c.telephone) === tel) {
-        results.set(c.id, { figurant: c, reason: "telephone" });
+    for (const { c, masque } of await sources((q) => q.not("telephone", "is", null))) {
+      if (normalizeTelephoneForDuplicate(c.telephone) === tel) {
+        results.set(c.id, { figurant: masque ? { ...c, email: null, telephone: null } : c, reason: "telephone" });
       }
     }
   }
 
   if (figurant.date_naissance) {
-    const { data: candidats } = await supabase
-      .from("figurants")
-      .select("id, prenom, nom, email, telephone, ville")
-      .neq("id", figurantId)
-      .eq("date_naissance", figurant.date_naissance);
-    for (const c of candidats ?? []) {
+    for (const { c, masque } of await sources((q) => q.eq("date_naissance", figurant.date_naissance))) {
       if (!results.has(c.id) && nomsProches(`${c.prenom} ${c.nom}`, `${figurant.prenom} ${figurant.nom}`)) {
-        results.set(c.id, { figurant: c, reason: "date_naissance_nom" });
+        results.set(c.id, { figurant: masque ? { ...c, email: null, telephone: null } : c, reason: "date_naissance_nom" });
       }
     }
   }

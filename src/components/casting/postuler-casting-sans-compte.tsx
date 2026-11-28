@@ -43,6 +43,11 @@ export function PostulerCastingSansCompte({ token }: { token: string }) {
         </label>
       </div>
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+      {state?.envoye && (
+        <p className="text-sm" role="status">
+          Une fiche existe déjà avec cette adresse : ton lien d’envoi personnel vient de partir à {state.envoye}. Ouvre-le pour envoyer tes photos et vidéos.
+        </p>
+      )}
       <Button type="submit" disabled={pending} className="self-start">
         {pending ? "Un instant…" : "Continuer : envoyer mes photos et vidéos →"}
       </Button>

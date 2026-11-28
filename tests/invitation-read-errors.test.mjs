@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/candidats/invitation.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){let writes=0;const db={from(){return{select(){return this},eq(){return this},is(){return this},gt(){return this},limit(){return Promise.resolve({data:null,error:failure==='recent'?{message:'offline'}:null})},maybeSingle(){return Promise.resolve(failure==='profile'?{data:null,error:{message:'offline'}}:{data:{id:'person',prenom:'Test',email:'test@example.test'},error:null})},insert(){writes++;throw Error('unexpected write')}}}};const exports={};new Function('require','exports',code)(n=>n==='crypto'?{randomUUID:()=> '00000000-0000-4000-8000-000000000001'}:n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='@/lib/candidats/mot-de-passe'?{aCreeSonCompte:async()=>{if(failure==='account')throw Error('offline');return false}}:{},exports);return{action:exports.envoyerInvitationCompte,get writes(){return writes}};}
+for(const failure of ['profile','account','recent'])test(`invitation stops before creating a token when ${failure} lookup fails`,async()=>{const f=fixture(failure);const result=await f.action('person','project');assert.ok(typeof result==='object' && result.erreur);assert.equal(f.writes,0)});

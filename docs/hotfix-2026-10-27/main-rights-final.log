@@ -1,0 +1,5 @@
+BEGIN
+NOTICE:  BLOCKER REPRODUCED: authenticated staff can read another profile SMTP field (synthetic sentinel)
+NOTICE:  PASS: private pools, own access, direct write denials, share isolation, sessions, deletion RPC, anon
+DO
+ROLLBACK

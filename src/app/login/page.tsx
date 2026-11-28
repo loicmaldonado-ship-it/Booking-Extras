@@ -1,5 +1,6 @@
 import { LoginForm } from "@/components/auth/login-form";
 import { Logo } from "@/components/ui/logo";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 export default async function LoginPage({
   searchParams,
@@ -14,7 +15,7 @@ export default async function LoginPage({
         <div className="mb-8 text-center">
           <Logo iconSize={48} stacked textClassName="text-2xl" />
         </div>
-        <LoginForm next={next ?? "/"} />
+        <LoginForm next={safeNextPath(next)} />
       </div>
     </div>
   );

@@ -102,7 +102,7 @@ export default async function AgentPage({ params }: { params: Promise<{ token: s
         <p className="mt-1 text-text-muted">
           Bonjour {agent.nom}{agent.agence ? ` (${agent.agence})` : ""}. Voici les rôles à pourvoir. Pour proposer un
           comédien ou une comédienne, ouvre le rôle, glisse ses photos et renseigne ses infos et le lien vers sa page.
-          Seule la production voit tes propositions.
+          Tu peux proposer plusieurs profils pour un même rôle.
         </p>
       </div>
 
@@ -142,7 +142,7 @@ export default async function AgentPage({ params }: { params: Promise<{ token: s
                     Déjà proposé·es : {deja.map((p) => `${p.prenom} ${p.nom}`).join(", ")}
                   </p>
                 )}
-                {ferme ? null : <ProposerProfilAgent token={token} roleId={r.id} roleNom={nomRole(r, g.titre)} />}
+                {ferme ? null : <ProposerProfilAgent token={token} roleId={r.id} roleNom={nomRole(r, g.titre)} dejaPropose={deja.length} />}
               </Card>
             );
           })}

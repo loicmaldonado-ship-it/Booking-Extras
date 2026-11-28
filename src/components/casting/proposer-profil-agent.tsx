@@ -13,7 +13,18 @@ const MAX_PHOTOS = 8;
 type PhotoChoisie = { cle: string; fichier: File; apercu: string };
 
 // Proposer un profil pour un rôle : photos glissées (ou choisies), infos, liens.
-export function ProposerProfilAgent({ token, roleId, roleNom }: { token: string; roleId: string; roleNom: string }) {
+export function ProposerProfilAgent({
+  token,
+  roleId,
+  roleNom,
+  dejaPropose = 0,
+}: {
+  token: string;
+  roleId: string;
+  roleNom: string;
+  // Nombre de profils que cet agent a déjà proposés pour ce rôle.
+  dejaPropose?: number;
+}) {
   const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const [photos, setPhotos] = useState<PhotoChoisie[]>([]);
@@ -68,7 +79,7 @@ export function ProposerProfilAgent({ token, roleId, roleNom }: { token: string;
       setEnvoye(
         echecs > 0
           ? `${nom} est proposé·e, mais ${echecs} photo${echecs > 1 ? "s n'ont" : " n'a"} pas pu être envoyée${echecs > 1 ? "s" : ""}.`
-          : `${nom} est proposé·e pour « ${roleNom} ». Merci !`
+          : `${nom} est proposé·e pour « ${roleNom} ». Merci ! Tu peux en proposer un autre pour ce rôle juste en dessous.`
       );
       formRef.current?.reset();
       photos.forEach((p) => URL.revokeObjectURL(p.apercu));
@@ -83,7 +94,7 @@ export function ProposerProfilAgent({ token, roleId, roleNom }: { token: string;
         {envoye && <p className="text-sm font-medium text-turquoise">{envoye}</p>}
         <div>
           <Button type="button" variant="secondary" onClick={() => setOuvert(true)}>
-            Proposer un profil
+            {dejaPropose > 0 ? "Proposer un autre profil" : "Proposer un profil"}
           </Button>
         </div>
       </div>
@@ -92,7 +103,9 @@ export function ProposerProfilAgent({ token, roleId, roleNom }: { token: string;
 
   return (
     <form ref={formRef} onSubmit={envoyer} className="flex flex-col gap-3 rounded-xl border border-border-strong bg-ink p-3">
-      <h4 className="text-sm font-semibold">Proposer un profil pour « {roleNom} »</h4>
+      <h4 className="text-sm font-semibold">
+        {dejaPropose > 0 || envoye ? "Proposer un autre profil" : "Proposer un profil"} pour « {roleNom} »
+      </h4>
       {envoye && <p className="text-sm font-medium text-turquoise">{envoye}</p>}
       {erreur && <p className="text-sm text-danger">{erreur}</p>}
 

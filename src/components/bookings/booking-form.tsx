@@ -28,8 +28,8 @@ export function BookingForm({
   action: Action;
   booking?: Booking;
   figurants: { id: string; prenom: string; nom: string }[];
-  projets: { id: string; nom: string; convention: string | null }[];
-  bareme: BaremeCachet[];
+  projets: { id: string; nom: string; convention: string | null; equipe_cle?: string | null }[];
+  bareme: (BaremeCachet & { equipe_cle?: string })[];
   defaultFigurantId?: string;
   defaultProjetId?: string;
   defaultDate?: string;
@@ -41,8 +41,12 @@ export function BookingForm({
   const [projetId, setProjetId] = useState(booking?.projet_id ?? defaultProjetId ?? "");
 
   const selectedProjet = projets.find((p) => p.id === projetId);
+  // Barème de l'équipe du projet choisi (barème par équipe depuis le 30/10/2026).
   const tarifRef = bareme.find(
-    (b) => b.cachet === cachet && b.convention === selectedProjet?.convention
+    (b) =>
+      b.cachet === cachet &&
+      b.convention === selectedProjet?.convention &&
+      (!b.equipe_cle || b.equipe_cle === selectedProjet?.equipe_cle)
   );
 
   return (
@@ -201,8 +205,8 @@ export function BookingForm({
       </Card>
 
       <Card className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">Notes</h2>
-        <Textarea name="notes" defaultValue={booking?.notes ?? ""} />
+        <h2 id="booking-notes-titre" className="text-lg font-semibold">Notes</h2>
+        <Textarea name="notes" aria-labelledby="booking-notes-titre" defaultValue={booking?.notes ?? ""} />
       </Card>
 
       <div className="flex gap-3">

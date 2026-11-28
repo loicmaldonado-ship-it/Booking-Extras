@@ -38,15 +38,6 @@ export async function getQuestionTemplates(annonceId: string): Promise<QuestionT
     .map((q) => ({ id: q.id, label: q.label }));
 }
 
-export async function getAnnonceQuestions(annonceId: string): Promise<AnnonceQuestion[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("annonce_questions")
-    .select("id, annonce_id, label, ordre")
-    .eq("annonce_id", annonceId)
-    .order("ordre");
-  return data ?? [];
-}
 
 export async function addAnnonceQuestion(annonceId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkAnnonceAccess(annonceId);
@@ -71,6 +62,8 @@ export async function addAnnonceQuestion(annonceId: string, _prevState: unknown,
 
   const equipeId = await equipeDeLAnnonce(annonceId);
   if (equipeId) {
+    // Mémorisation facultative de la question comme modèle d'équipe : la question est déjà ajoutée à l'annonce,
+    // un échec ici ne doit pas l'annuler ni être présenté comme une erreur (BUG-13 : cas volontairement toléré).
     await supabase
       .from("question_templates")
       .upsert({ label, equipe_id: equipeId }, { onConflict: "equipe_id,label", ignoreDuplicates: true });
@@ -85,6 +78,7 @@ export async function removeAnnonceQuestion(id: string, annonceId: string) {
   if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
-  await supabase.from("annonce_questions").delete().eq("id", id).eq("annonce_id", annonceId);
+  const { error } = await supabase.from("annonce_questions").delete().eq("id", id).eq("annonce_id", annonceId);
+  if (error) throw new Error(error.message);
   revalidatePath(`/annonces/${annonceId}`);
 }

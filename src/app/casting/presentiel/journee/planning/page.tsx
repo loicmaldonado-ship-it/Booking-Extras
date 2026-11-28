@@ -1,6 +1,6 @@
 import { nomComplet, trierParNom } from "@/lib/noms";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PrintSheet } from "@/components/documents/print-sheet";
 import { PrintButton } from "@/components/documents/print-button";
@@ -53,7 +53,7 @@ export default async function CastingPresentielPlanningPage({
   const [{ data: entries }, { data: creneaux }] = await Promise.all([
     supabase
       .from("casting_presentiel_entries")
-      .select("id, creneau_id, statut, figurant_id, figurants(prenom, nom, telephone), casting_roles(nom)")
+      .select("id, creneau_id, statut, figurant_id, figurants(prenom, nom, telephone), casting_roles!casting_presentiel_entries_role_id_fkey(nom)")
       .eq("journee_id", journee.id)
       .returns<EntryRow[]>(),
     supabase
@@ -79,11 +79,11 @@ export default async function CastingPresentielPlanningPage({
             <Image src={portraitUrl(r.figurant_id)!} alt="" fill className="object-cover" />
           )}
         </div>
-        <span className="block w-24 truncate text-[10px] font-medium leading-tight">
+        <span className="block w-24 break-words text-[10px] font-medium leading-tight">
           {r.figurants ? nomComplet(r.figurants) : "—"}
         </span>
         {r.casting_roles?.nom && (
-          <span className="block w-24 truncate text-[8px] leading-tight text-gray-500">{r.casting_roles.nom}</span>
+          <span className="block w-24 break-words text-[8px] leading-tight text-gray-500">{r.casting_roles.nom}</span>
         )}
       </div>
     );
@@ -91,7 +91,7 @@ export default async function CastingPresentielPlanningPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="print-hide flex items-center justify-between gap-3">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <BackLink href={`/casting/presentiel/journee?projet_id=${projet_id}&date=${date}`} label="Retour à la journée" />
         <ButtonLink href="/casting" variant="ghost">
           🎬 Casting
@@ -100,7 +100,7 @@ export default async function CastingPresentielPlanningPage({
 
       <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Planning — Casting présentiel</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex gap-2">
             <Link
               href={baseUrl}

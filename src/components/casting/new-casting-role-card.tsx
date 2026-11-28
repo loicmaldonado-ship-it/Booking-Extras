@@ -24,7 +24,7 @@ export function NewCastingRoleCard({
     return (
       <div className="flex flex-wrap items-start gap-2">
         <Button type="button" variant="secondary" onClick={() => setOpen(true)}>
-          + Nouveau casting
+          + Créer un rôle
         </Button>
         <ImportRolesCsv projetId={projetId} ongletId={ongletId ?? null} nomOnglet={nomOnglet ?? null} />
       </div>

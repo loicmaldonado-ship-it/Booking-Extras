@@ -3,6 +3,7 @@ export type Convention = "Cinéma" | "Audiovisuelle";
 
 export type Projet = {
   id: string;
+  owner_id?: string | null;
   nom: string;
   type: ProjetType | null;
   convention: Convention | null;

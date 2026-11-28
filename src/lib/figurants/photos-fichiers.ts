@@ -14,3 +14,20 @@ export async function supprimerFichierPhotoSiOrphelin(
     .eq("storage_path", storagePath);
   if (!count) await supabase.storage.from("figurant-photos").remove([storagePath]);
 }
+
+// Avant de supprimer le fichier d'une photo : une autre fiche s'en sert-elle encore
+// (photo reprise du profil sur un profil de casting, ou l'inverse) ?
+export async function fichierPartageParUneAutreFiche(
+  supabase: ReturnType<typeof createAdminClient>,
+  storagePath: string,
+  photoId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("figurant_photos")
+    .select("id")
+    .eq("storage_path", storagePath)
+    .neq("id", photoId)
+    .limit(1)
+    .maybeSingle();
+  return !!data;
+}

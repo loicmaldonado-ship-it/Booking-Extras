@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { isOwner } from "@/lib/auth/owner";
 import { REFERENCE_TYPES, type ReferenceType } from "./types";
@@ -36,13 +37,11 @@ function lireChamps(fd: FormData): { titre: string; type: ReferenceType; annee: 
 
 async function envoyerAffiche(fichier: FormDataEntryValue | null): Promise<{ path?: string; error?: string }> {
   if (!(fichier instanceof File) || fichier.size === 0) return {};
-  if (!["image/jpeg", "image/png", "image/webp"].includes(fichier.type)) {
-    return { error: "L'affiche doit être une image JPEG, PNG ou WebP." };
-  }
-  if (fichier.size > 4 * 1024 * 1024) return { error: "Affiche trop lourde (4 Mo maximum)." };
-  const ext = fichier.type === "image/png" ? "png" : fichier.type === "image/webp" ? "webp" : "jpg";
+  const validated = await validateImageUpload(fichier, 4 * 1024 * 1024);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
   const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await createAdminClient().storage.from(BUCKET).upload(path, fichier, { contentType: fichier.type });
+  const { error } = await createAdminClient().storage.from(BUCKET).upload(path, fichier, { contentType: validated.mimeType });
   return error ? { error: error.message } : { path };
 }
 
@@ -51,20 +50,23 @@ export async function ajouterReference(_prev: unknown, fd: FormData): Promise<{ 
   if (refus) return { error: refus };
   const champs = lireChamps(fd);
   if ("error" in champs) return champs;
-  const affiche = await envoyerAffiche(fd.get("affiche"));
-  if (affiche.error) return { error: affiche.error };
-
   const supabase = createAdminClient();
-  const { data: dernier } = await supabase
+  const { data: dernier, error: lectureError } = await supabase
     .from("references_accueil")
     .select("ordre")
     .order("ordre", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (lectureError) return { error: "Impossible de vérifier l’ordre des références. Réessaie." };
+  const affiche = await envoyerAffiche(fd.get("affiche"));
+  if (affiche.error) return { error: affiche.error };
   const { error } = await supabase
     .from("references_accueil")
     .insert({ ...champs, affiche_storage_path: affiche.path ?? null, ordre: (dernier?.ordre ?? 0) + 1 });
-  if (error) return { error: error.message };
+  if (error) {
+    // Une panne réseau peut masquer une insertion réussie : conserver l’affiche.
+    return { error: "Impossible de confirmer la création. Recharge la page et vérifie la référence avant de réessayer." };
+  }
   revalider();
   return { success: true };
 }
@@ -78,49 +80,67 @@ export async function modifierReference(
   if (refus) return { error: refus };
   const champs = lireChamps(fd);
   if ("error" in champs) return champs;
+  const supabase = createAdminClient();
+  const { data: avant, error: lectureError } = await supabase.from("references_accueil").select("id").eq("id", id).maybeSingle();
+  if (lectureError || !avant) return { error: "Impossible de vérifier cette référence. Recharge la page avant de réessayer." };
   const affiche = await envoyerAffiche(fd.get("affiche"));
   if (affiche.error) return { error: affiche.error };
 
-  const supabase = createAdminClient();
-  const { data: avant } = await supabase.from("references_accueil").select("affiche_storage_path").eq("id", id).maybeSingle();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("references_accueil")
     .update({ ...champs, ...(affiche.path ? { affiche_storage_path: affiche.path } : {}) })
-    .eq("id", id);
-  if (error) return { error: error.message };
-  if (affiche.path && avant?.affiche_storage_path) {
-    await supabase.storage.from(BUCKET).remove([avant.affiche_storage_path]);
+    .eq("id", id).select("id").maybeSingle();
+  if (error || !updated) {
+    // Une réponse perdue peut masquer une écriture réussie : garder les fichiers.
+    return { error: "Impossible de confirmer la modification. Recharge la page et vérifie la référence avant de réessayer." };
   }
+  // L’ancienne affiche peut être partagée ; un nettoyage sûr doit vérifier les références.
   revalider();
   return { success: true };
 }
 
 export async function basculerReferenceVisible(id: string, visible: boolean) {
-  if (await exigerProprietaire()) return;
-  await createAdminClient().from("references_accueil").update({ visible }).eq("id", id);
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
+  const { data, error } = await createAdminClient().from("references_accueil").update({ visible }).eq("id", id).select("id").maybeSingle();
+  if (error || !data) return { error: "Impossible de confirmer la visibilité de cette référence. Réessaie." };
   revalider();
+  return { success: true };
 }
 
 export async function supprimerReference(id: string) {
-  if (await exigerProprietaire()) return;
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
   const supabase = createAdminClient();
-  const { data } = await supabase.from("references_accueil").select("affiche_storage_path").eq("id", id).maybeSingle();
-  await supabase.from("references_accueil").delete().eq("id", id);
-  if (data?.affiche_storage_path) await supabase.storage.from(BUCKET).remove([data.affiche_storage_path]);
+  const { data, error } = await supabase.from("references_accueil").delete().eq("id", id).select("id, affiche_storage_path").maybeSingle();
+  if (error || !data) return { error: "Impossible de confirmer la suppression de cette référence. Recharge la page avant de réessayer." };
+  if (data.affiche_storage_path) {
+    const { error: storageError } = await supabase.storage.from(BUCKET).remove([data.affiche_storage_path]);
+    if (storageError) {
+      revalider();
+      return { error: "La référence a été supprimée, mais la suppression de son affiche n’a pas pu être confirmée." };
+    }
+  }
   revalider();
+  return { success: true };
 }
 
 // Échange la place de la référence avec sa voisine (« monter » / « descendre »).
 export async function deplacerReference(id: string, sens: "haut" | "bas") {
-  if (await exigerProprietaire()) return;
+  const refus = await exigerProprietaire();
+  if (refus) return { error: refus };
   const supabase = createAdminClient();
-  const { data: toutes } = await supabase.from("references_accueil").select("id, ordre").order("ordre").order("created_at");
-  const liste = toutes ?? [];
+  const { data: toutes, count, error } = await supabase.from("references_accueil").select("id, ordre", { count: "exact" }).order("ordre").order("created_at");
+  if (error || !toutes || count !== toutes.length) return { error: "Impossible de vérifier l’ordre des références. Réessaie." };
+  const liste = toutes;
   const i = liste.findIndex((r) => r.id === id);
   const j = sens === "haut" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= liste.length) return;
+  if (i < 0 || j < 0 || j >= liste.length) return { error: "Impossible de déplacer cette référence. Recharge la page." };
   [liste[i], liste[j]] = [liste[j], liste[i]];
-  // Renumérote tout : des ordres égaux (ajouts anciens) se départagent ainsi.
-  await Promise.all(liste.map((r, k) => supabase.from("references_accueil").update({ ordre: k + 1 }).eq("id", r.id)));
+  const resultats = await Promise.allSettled(liste.map((r, k) => Promise.resolve(supabase.from("references_accueil").update({ ordre: k + 1 }).eq("id", r.id).select("id").maybeSingle())));
   revalider();
+  if (resultats.some((r) => r.status === "rejected" || r.value.error || !r.value.data)) {
+    return { error: "L’ordre a pu être partiellement modifié. Vérifie la liste avant de réessayer." };
+  }
+  return { success: true };
 }

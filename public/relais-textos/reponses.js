@@ -66,6 +66,8 @@ function dateIso(valeur) {
   return new Date((secondes + 978307200) * 1000).toISOString();
 }
 
+// Point d’entrée appelé par osascript (JXA), hors du module JavaScript.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function run(argv) {
   const entree = argv[0];
   const sortie = argv[1];
@@ -74,7 +76,7 @@ function run(argv) {
   try {
     const brut = lire(entree).trim();
     lignes = brut ? JSON.parse(brut) : [];
-  } catch (e) {
+  } catch {
     lignes = [];
   }
   const reponses = [];

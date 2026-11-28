@@ -1,5 +1,8 @@
 "use server";
 
+import { consumePublicSignupAttempt, MESSAGE_LIMITE_PUBLIQUE } from "@/lib/candidats/rate-limit";
+import { readGuardians } from "@/lib/minors/model";
+import { saveGuardiansFromForm } from "@/lib/minors/data";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -8,8 +11,11 @@ import { definirMotDePasse } from "@/lib/candidats/mot-de-passe";
 import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
 import { lireProfil, emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { LIEN_BANDE_DEMO, MAX_PHOTOS_PAR_FIGURANT } from "@/lib/figurants/types";
+// Échappement local (même règle que @/lib/texte/motif) : les tests de ce module chargent ses imports un par un.
+const echapperMotif = (valeur: string) => valeur.replace(/[\\%_]/g, "\\$&");
 
 // Création d'un compte candidat·e sans passer par une annonce (page
 // /compte/inscription) : profil complet + photos + mot de passe, puis
@@ -24,10 +30,9 @@ export async function inscrireCandidat(
 ): Promise<{ error?: string; compteExistant?: boolean; invitationEnvoyee?: boolean }> {
   const lu = lireProfil(formData);
   if ("error" in lu) return { error: lu.error };
-  const { profil, age } = lu;
-  if (age < 16) {
-    return { error: "L'inscription en ligne est réservée aux 16 ans et plus. Pour un·e mineur·e, contacte le casting." };
-  }
+  const { profil } = lu;
+  const guardians = readGuardians(formData, profil.date_naissance, profil.email);
+  if ("error" in guardians) return guardians;
 
   const motDePasse = String(formData.get("password") ?? "");
   const confirmation = String(formData.get("password_confirmation") ?? "");
@@ -44,19 +49,30 @@ export async function inscrireCandidat(
   if (!Object.values(photos).every((p) => p instanceof File && p.size > 0)) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
   }
+  const photosSupplementaires = [formData.get("photo_vehicule"), ...formData.getAll("photo_extra")]
+    .filter((photo): photo is File => photo instanceof File && photo.size > 0);
+  const photosAValider = [...Object.values(photos) as File[], ...photosSupplementaires];
+  if (photosAValider.length > MAX_PHOTOS_PAR_FIGURANT) return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos.` };
+  for (const photo of photosAValider) {
+    const validation = await validateImageUpload(photo);
+    if (validation.error) return { error: validation.error };
+  }
   const selfieDate = String(formData.get("selfie_date") ?? "").trim();
   if (!selfieDate) return { error: "La date du selfie est obligatoire." };
+
+  if (!(await consumePublicSignupAttempt(profil.email))) return { error: MESSAGE_LIMITE_PUBLIQUE };
 
   const supabase = createAdminClient();
 
   // Fiche figurant·e déjà connue (déjà postulé, déjà booké·e) : même email,
   // ou même nom + même téléphone avec une autre adresse.
-  const { data: memeEmail } = await supabase
+  const { data: memeEmail, error: emailError } = await supabase
     .from("figurants")
     .select("id")
-    .ilike("email", profil.email)
+    .ilike("email", echapperMotif(profil.email))
     .eq("est_comedien", false)
     .maybeSingle();
+  if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
   const retour = retourAutorise(formData.get("retour"));
   if (memeEmail) {
     // Fiche ajoutée par l'équipe, sans compte : lien « Crée ton compte ».
@@ -69,11 +85,12 @@ export async function inscrireCandidat(
     };
   }
   const telephoneNormalise = profil.telephone.replace(/\s+/g, "");
-  const { data: memeNom } = await supabase
+  const { data: memeNom, error: nomError } = await supabase
     .from("figurants")
     .select("id, email, telephone")
-    .ilike("nom", profil.nom)
+    .ilike("nom", echapperMotif(profil.nom))
     .eq("est_comedien", false);
+  if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
   const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
   if (doublon) {
     const invitation = doublon.email ? await invitationPourFicheSansCompte(doublon.id, null, retour) : null;
@@ -97,9 +114,16 @@ export async function inscrireCandidat(
     }
     return { error: error?.message ?? "Création du compte impossible." };
   }
+  const legal = await saveGuardiansFromForm(figurant.id, formData, profil.date_naissance, profil.email);
+  if (legal.error) {
+    const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurant.id);
+    if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
+    return legal;
+  }
   const mdp = await definirMotDePasse(figurant.id, motDePasse);
   if (mdp.error) {
-    await supabase.from("figurants").delete().eq("id", figurant.id);
+    const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurant.id);
+    if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
     return { error: "Création du compte impossible, réessaie." };
   }
 
@@ -117,7 +141,10 @@ export async function inscrireCandidat(
     if (extra instanceof File && extra.size > 0) fichiers.push({ file: extra, type: "autre" });
   }
   for (const { file, type, priseLe } of fichiers.slice(0, MAX_PHOTOS_PAR_FIGURANT)) {
-    await insertFigurantPhoto(supabase, figurant.id, type, file, { priseLe });
+    const photo = await insertFigurantPhoto(supabase, figurant.id, type, file, { priseLe });
+    if (photo.error) {
+      return { compteExistant: true, error: "Ton compte a été créé, mais une photo n’a pas pu être enregistrée. Connecte-toi avec ton mot de passe pour compléter tes photos." };
+    }
   }
 
   await createFigurantSession(figurant.id);

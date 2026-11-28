@@ -1,0 +1,37 @@
+PASS anonymous searches/upserts and assistant administrative CRUD refused before admin access
+Cleanup only uniquely prefixed fictional agents; no messages sent
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Literal underscore overwrote a different agent
++ actual - expected
+
+  {
++   agence: 'Litteral fictif',
++   email: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248_mail@example.test',
++   nom: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248_nom'
+-   agence: 'Original fictif',
+-   email: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248Xmail@example.test',
+-   nom: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248Xnom'
+  }
+
+    at file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/scripts/check-agents-local.mjs:24:108
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: {
+    nom: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248_nom',
+    email: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248_mail@example.test',
+    agence: 'Litteral fictif'
+  },
+  expected: {
+    nom: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248Xnom',
+    email: 'agent-138792a4-12b1-488a-8a2d-d41237bb4248Xmail@example.test',
+    agence: 'Original fictif'
+  },
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.16.0

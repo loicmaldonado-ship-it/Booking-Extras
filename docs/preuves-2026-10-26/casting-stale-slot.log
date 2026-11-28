@@ -1,0 +1,20 @@
+PASS: réponses incomplètes refusées sans mutation métier
+PASS: chemin d’une autre entrée et fichier absent refusés sans mutation
+PASS: première soumission complète, seconde et nouveau slot refusés sans duplication
+PASS nettoyage: seules les données et images fictives de cette recette retirées
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: BUG-14 : une signature obtenue avant finalisation doit refuser un dépôt après finalisation
+    at file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/scripts/check-casting-finalization-local.mjs:42:10
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: null,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.16.0

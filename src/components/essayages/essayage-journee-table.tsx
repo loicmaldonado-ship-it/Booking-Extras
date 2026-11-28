@@ -3,7 +3,7 @@
 import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Button } from "@/components/ui/button";
@@ -104,7 +104,8 @@ export function EssayageJourneeTable({
 
   function saveLieu(id: string) {
     startTransition(async () => {
-      await updateEssayageLieu(id, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      const result = await updateEssayageLieu(id, lieuDraft.trim() || null, adresseDraft.trim() || null);
+      if (result?.error) { setSendError(result.error); return; }
       setLieuEditingId(null);
       router.refresh();
     });
@@ -143,21 +144,24 @@ export function EssayageJourneeTable({
 
   function setStatut(id: string, statut: EssayageStatut) {
     startTransition(async () => {
-      await updateEssayageStatutInline(id, statut);
+      const result = await updateEssayageStatutInline(id, statut);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
 
   function setReponseRecue(id: string, value: boolean) {
     startTransition(async () => {
-      await updateEssayageReponseRecue(id, value);
+      const result = await updateEssayageReponseRecue(id, value);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
 
   function remove(id: string) {
     startTransition(async () => {
-      await removeEssayageFromJournee(id);
+      const result = await removeEssayageFromJournee(id);
+      if (result?.error) { setSendError(result.error); return; }
       router.refresh();
     });
   }
@@ -281,10 +285,11 @@ export function EssayageJourneeTable({
         </Modale>
       )}
       <div className="flex flex-col gap-1">
-        <label className="text-xs font-medium text-text-muted">
+        <label htmlFor="essayage-consigne" className="text-xs font-medium text-text-muted">
           Consigne à ajouter aux messages de confirmation (optionnel)
         </label>
         <input
+          id="essayage-consigne"
           value={consigne}
           onChange={(e) => setConsigne(e.target.value)}
           placeholder="Ex : merci de venir avec les cheveux propres"
@@ -300,6 +305,7 @@ export function EssayageJourneeTable({
           >
             <input
               type="checkbox"
+              aria-label={`Sélectionner ${r.figurants ? nomComplet(r.figurants) : "ce profil"}`}
               checked={selected.has(r.id)}
               onChange={() => toggleSelected(r.id)}
               className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
@@ -307,28 +313,33 @@ export function EssayageJourneeTable({
             <button
               type="button"
               onClick={() => remove(r.id)}
+              aria-label={`Retirer ${r.figurants ? nomComplet(r.figurants) : "ce profil"} de la journée`}
               disabled={pending}
               className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text hover:bg-danger hover:text-ink"
               title="Retirer de cette journée"
             >
               ×
             </button>
-            <Link href={`/figurants/${r.figurant_id}`} className="flex w-full flex-col items-center gap-2">
+            <div className="flex w-full flex-col items-center gap-2">
               <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-ink-raised-2">
-                {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
+                <Link href={`/figurants/${r.figurant_id}`} aria-label={`Voir le profil de ${r.figurants ? nomComplet(r.figurants) : "cette personne"}`} className="absolute inset-0">
+                  {r.portraitUrl && <Image src={r.portraitUrl} alt="" fill className="object-cover" />}
+                </Link>
                 {r.portraitUrl && (() => {
                   const gallery = toGalleryPhotos(r.photos);
                   return <ZoomButton src={r.portraitUrl!} gallery={gallery} index={galleryIndexOfUrl(gallery, r.portraitUrl)} />;
                 })()}
               </div>
-              <div className="text-sm font-medium">
-                {r.figurants ? nomComplet(r.figurants) : "—"}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-text-muted">
-                {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}
-                {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
-              </div>
-            </Link>
+              <Link href={`/figurants/${r.figurant_id}`} className="flex flex-col items-center gap-2">
+                <div className="text-sm font-medium">
+                  {r.figurants ? nomComplet(r.figurants) : "—"}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-text-muted">
+                  {heureFor(r) && <span>{heureFor(r)!.slice(0, 5)}</span>}
+                  {r.numero_costume && <span className="text-coral">· {r.numero_costume}</span>}
+                </div>
+              </Link>
+            </div>
             <div className="flex items-center gap-1">
               <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} />
               <PreviewButton items={previewItems} index={i} />
@@ -368,13 +379,13 @@ export function EssayageJourneeTable({
               </div>
             )}
             {projetId && (
-              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text">
+              <label className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-border-strong py-1.5 text-xs font-medium text-text hover:border-coral/60 hover:text-text focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
                 📷 Photo en tenue
                 <input
                   type="file"
                   accept="image/*"
                   disabled={pending}
-                  className="hidden"
+                  className="sr-only"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) uploadTenue(r, file);
@@ -384,6 +395,7 @@ export function EssayageJourneeTable({
               </label>
             )}
             <StatusSelect
+              aria-label={`Statut d'essayage : ${r.figurants ? nomComplet(r.figurants) : "profil"}`}
               tone={STATUT_TONE[r.statut]}
               value={r.statut}
               disabled={pending}

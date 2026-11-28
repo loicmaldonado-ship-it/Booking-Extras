@@ -1,0 +1,6 @@
+seed-local-verification.sql DO
+profile-privileges-local.sql DO
+casting-atomic-local.sql DO
+rls-integration-local.sql DO
+auth-hardening-local.sql DO
+{"results":[],"message":"db advisors"}

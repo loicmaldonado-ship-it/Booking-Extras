@@ -1,7 +1,10 @@
 "use server";
 
+import { consumePublicSignupAttempt, MESSAGE_LIMITE_PUBLIQUE } from "@/lib/candidats/rate-limit";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { readGuardians } from "@/lib/minors/model";
+import { saveGuardiansFromForm } from "@/lib/minors/data";
 import { computeAge } from "@/lib/documents/fields";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { createFigurantSession, getCurrentFigurant } from "@/lib/candidats/session";
@@ -11,12 +14,17 @@ import { emailMasque, MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
 import { LIEN_BANDE_DEMO } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { createNotification } from "@/lib/notifications/create";
 import { checkProjetAccess } from "@/lib/auth/session";
 import { getPhotosByFigurantId, getPhotosParCandidature } from "@/lib/documents/data";
+import { validateCandidatureChoices } from "./validation";
+import { validateCandidatureBulkIds } from "./bulk-guard";
 import { getTournagesConfirmesCount } from "./onglets";
 import { appliquerMessagesOut, lireOngletsAvant } from "./out";
 import type { Cachet, TriCandidature } from "./types";
+// Échappement local (même règle que @/lib/texte/motif) : les tests de ce module chargent ses imports un par un.
+const echapperMotif = (valeur: string) => valeur.replace(/[\\%_]/g, "\\$&");
 
 // candidatures n'a pas de projet_id direct — il vit sur son annonce.
 async function checkCandidatureAccess(candidatureId: string): Promise<string | null> {
@@ -26,13 +34,13 @@ async function checkCandidatureAccess(candidatureId: string): Promise<string | n
     .select("annonce_id")
     .eq("id", candidatureId)
     .maybeSingle();
-  if (!candidature) return null;
+  if (!candidature) return "Élément introuvable.";
   const { data: annonce } = await supabase
     .from("annonces")
     .select("projet_id")
     .eq("id", candidature.annonce_id)
     .maybeSingle();
-  if (!annonce) return null;
+  if (!annonce) return "Annonce introuvable.";
   return checkProjetAccess(annonce.projet_id);
 }
 
@@ -43,7 +51,30 @@ export async function recordCandidatureMessage(
   subject?: string,
   projetId?: string | null
 ) {
-  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email, subject, projetId });
+  // The action is callable directly from the web, not only from staff UI.
+  if (!projetId) return { error: "Projet requis pour envoyer un message." };
+  const denied = await checkProjetAccess(projetId);
+  if (denied) return { error: denied };
+  const supabase = createAdminClient();
+  // Neither the recipient address nor their candidate ID may be freely
+  // replaced by a direct Server Action caller.
+  const { data: candidature } = await supabase
+    .from("candidatures")
+    .select("id, annonces!inner(projet_id)")
+    .eq("figurant_id", figurantId)
+    .eq("annonces.projet_id", projetId)
+    .limit(1)
+    .maybeSingle();
+  if (!candidature) return { error: "Candidature introuvable pour ce projet." };
+  const { data: recipient } = await supabase
+    .from("figurants")
+    .select("email")
+    .eq("id", figurantId)
+    .maybeSingle();
+  if (!recipient?.email || (email && recipient.email.toLowerCase() !== email.toLowerCase())) {
+    return { error: "Adresse du destinataire invalide." };
+  }
+  return recordFigurantMessage({ figurantId, corps, categorie: "libre", email: recipient.email, subject, projetId });
 }
 
 function str(fd: FormData, key: string): string | null {
@@ -134,6 +165,18 @@ export async function postulerAnnonce(
   if (!photoFournie("photo_portrait") || !photoFournie("photo_pied") || !photoFournie("photo_selfie")) {
     return { error: "Les 3 photos (portrait, pied, selfie) sont obligatoires." };
   }
+  const champsPhotos = ["photo_portrait", "photo_pied", "photo_selfie", "photo_vehicule", "photo_extra"];
+  for (const champ of champsPhotos) {
+    if (!session && formData.getAll(`${champ}__existante`).some((v) => typeof v === "string" && v.trim())) {
+      return { error: "Connecte-toi pour utiliser les photos de ton compte." };
+    }
+    for (const fichier of formData.getAll(champ)) {
+      if (fichier instanceof File && fichier.size > 0) {
+        const validation = await validateImageUpload(fichier);
+        if (validation.error) return { error: validation.error };
+      }
+    }
+  }
   if (!str(formData, "selfie_date")) {
     return { error: "La date du selfie est obligatoire." };
   }
@@ -150,11 +193,18 @@ export async function postulerAnnonce(
     }
   }
 
+  if (session) {
+    const { data: ownProfile, error: ownError } = await createAdminClient().from("figurants").select("date_naissance").eq("id", session.id).single();
+    if (ownError || !ownProfile) return { error: "Profil indisponible. Réessaie plus tard." };
+    if (ownProfile.date_naissance !== dateNaissance) return { error: "Modifie d’abord ta date de naissance depuis ta fiche dans ton compte." };
+  }
   const age = computeAge(dateNaissance);
   if (age === null || age < 0 || age > 120) {
     return { error: "Date de naissance invalide." };
   }
 
+  const guardians = readGuardians(formData, dateNaissance, session?.email ?? email);
+  if ("error" in guardians) return guardians;
   const motDePasse = String(formData.get("password") ?? "");
   if (!session) {
     if (motDePasse.length < MOT_DE_PASSE_MIN) {
@@ -164,6 +214,8 @@ export async function postulerAnnonce(
       return { error: "Les deux mots de passe ne sont pas identiques." };
     }
   }
+  // Sans session, la candidature crée un compte : limite de débit (pas pour un·e candidat·e déjà connecté·e).
+  if (!session && !(await consumePublicSignupAttempt(email))) return { error: MESSAGE_LIMITE_PUBLIQUE };
 
   const supabase = createAdminClient();
 
@@ -190,37 +242,40 @@ export async function postulerAnnonce(
     return { error: "Merci de renseigner ton agent ou de cocher « Je n'ai pas d'agent »." };
   }
   if (annonce.limite_candidatures !== null) {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("candidatures")
       .select("id", { count: "exact", head: true })
       .eq("annonce_id", annonce.id);
-    if ((count ?? 0) >= annonce.limite_candidatures) {
+    // Une panne de lecture ne doit pas autoriser une candidature au-delà de la limite.
+    if (countError || count === null) return { error: "Nombre de candidatures indisponible. Réessaie plus tard." };
+    if (count >= annonce.limite_candidatures) {
       return { error: "Cette annonce a atteint son nombre maximum de candidatures." };
     }
   }
 
-  const [{ data: questions }, { data: annonceDates }] = await Promise.all([
+  const [questionsResult, datesResult] = await Promise.all([
     supabase.from("annonce_questions").select("id").eq("annonce_id", annonce.id),
     supabase.from("annonce_dates").select("id").eq("annonce_id", annonce.id),
   ]);
-
-  for (const q of questions ?? []) {
-    if (!str(formData, `question_${q.id}`)) {
-      return { error: "Merci de répondre à toutes les questions." };
-    }
+  // Une lecture incomplète rendrait les questions/dates obligatoires invisibles.
+  if (questionsResult.error || datesResult.error || !questionsResult.data || !datesResult.data) {
+    return { error: "Formulaire momentanément indisponible. Réessaie plus tard." };
   }
-  // Période de tournage : seuls les jours d'indispo sont cochés (champ
-  // `indispos`), tous les autres jours comptent comme disponibles.
-  const indispos = new Set((str(formData, "indispos") ?? "").split(",").filter(Boolean));
-  const estDispo = (dateId: string) =>
-    annonce.dispos_par_calendrier ? !indispos.has(dateId) : str(formData, `date_${dateId}`) === "oui";
-  if (!annonce.dispos_par_calendrier) {
-    for (const d of annonceDates ?? []) {
-      if (!str(formData, `date_${d.id}`)) {
-        return { error: "Merci d'indiquer ta disponibilité pour toutes les dates proposées." };
-      }
-    }
+  const questions = questionsResult.data;
+  const annonceDates = datesResult.data;
+  // Le nouveau calendrier encode les jours d'indisponibilité.
+  // Conserver le validateur elea après normalisation des réponses.
+  const validatedForm = new FormData();
+  for (const [key, value] of formData.entries()) validatedForm.append(key, value);
+  if (annonce.dispos_par_calendrier) {
+    const allowedIds = new Set(annonceDates.map((d) => d.id));
+    const indispos = (str(formData, "indispos") ?? "").split(",").filter(Boolean);
+    if (indispos.some((id) => !allowedIds.has(id))) return { error: "Date de disponibilité invalide." };
+    const indisponibles = new Set(indispos);
+    for (const date of annonceDates) validatedForm.set(`date_${date.id}`, indisponibles.has(date.id) ? "non" : "oui");
   }
+  const choix = validateCandidatureChoices(validatedForm, questions, annonceDates);
+  if (!choix.ok) return { error: choix.error };
 
   const champsProfil = {
     ville,
@@ -251,21 +306,21 @@ export async function postulerAnnonce(
     // Connecté·e : la candidature va sur son compte, quel que soit l'email
     // tapé ; la fiche est mise à jour avec ce qui vient d'être confirmé.
     figurantId = session.id;
-    await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+    const { error: profilError } = await supabase.from("figurants").update(champsProfil).eq("id", figurantId);
+    if (profilError) return { error: "Impossible d'actualiser ton profil. Réessaie plus tard." };
   } else {
     // Pas connecté·e : un email déjà connu (ou même nom + même téléphone) ne
     // se rattache jamais sans connexion — sinon n'importe qui pourrait
     // postuler, modifier la fiche et entrer dans l'espace d'un·e autre.
     // Fiches comédien·nes exclues (privées à leur pool, comedien-privacy.ts).
-    const { data: memeEmail } = await supabase
+    const { data: memeEmail, error: emailError } = await supabase
       .from("figurants")
       .select("id")
-      .ilike("email", email)
+      .ilike("email", echapperMotif(email))
       .eq("est_comedien", false)
       .maybeSingle();
+    if (emailError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
     if (memeEmail) {
-      // Fiche ajoutée par l'équipe, sans compte : lien « Crée ton compte »
-      // envoyé à cette adresse (preuve qu'elle est la sienne), retour ici.
       const invitation = await invitationPourFicheSansCompte(memeEmail.id, annonce.projet_id, `/postuler/${publicToken}`);
       if (invitation) return invitation;
       return {
@@ -275,11 +330,12 @@ export async function postulerAnnonce(
       };
     }
     const telephoneNormalise = telephone.replace(/\s+/g, "");
-    const { data: memeNom } = await supabase
+    const { data: memeNom, error: nomError } = await supabase
       .from("figurants")
       .select("id, email, telephone")
-      .ilike("nom", nom)
+      .ilike("nom", echapperMotif(nom))
       .eq("est_comedien", false);
+    if (nomError) return { error: "Impossible de vérifier ton compte pour le moment. Réessaie." };
     const doublon = (memeNom ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);
     if (doublon) {
       const invitation = doublon.email
@@ -316,9 +372,16 @@ export async function postulerAnnonce(
       return { error: figurantError?.message ?? "Création du compte impossible." };
     }
     figurantId = newFigurant.id;
+    const legal = await saveGuardiansFromForm(figurantId, formData, dateNaissance, email);
+    if (legal.error) {
+      const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurantId);
+      if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
+      return legal;
+    }
     const mdp = await definirMotDePasse(figurantId, motDePasse);
     if (mdp.error) {
-      await supabase.from("figurants").delete().eq("id", figurantId);
+      const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", figurantId);
+      if (cleanupError) return { error: "La création du compte est incomplète. Contacte le casting avant de réessayer." };
       return { error: "Création du compte impossible, réessaie." };
     }
     compteCree = true;
@@ -328,10 +391,16 @@ export async function postulerAnnonce(
     await createFigurantSession(figurantId);
   }
 
+  if (session) {
+    const legal = await saveGuardiansFromForm(figurantId, formData, dateNaissance, session.email ?? email);
+    if (legal.error) return legal;
+  }
+
   // On n'écrase le lien existant que si un nouveau a été fourni — sinon un
   // candidat qui repostule sans le ressaisir (formulaire pas pré-rempli, pas
   // connecté) ne doit pas effacer celui déjà enregistré sur sa fiche.
   if (lienBandeDemo) {
+    // Le lien est secondaire : son échec ne doit pas empêcher la candidature (BUG-13 : toléré volontairement).
     await upsertFigurantLienByLabel(supabase, figurantId, LIEN_BANDE_DEMO, lienBandeDemo);
   }
 
@@ -353,26 +422,36 @@ export async function postulerAnnonce(
     return { error: candidatureError?.message ?? "Erreur inconnue." };
   }
 
-  const reponses = (questions ?? []).map((q) => ({
-    candidature_id: candidature.id,
-    annonce_question_id: q.id,
-    reponse: str(formData, `question_${q.id}`) === "oui",
-  }));
-  if (reponses.length > 0) await supabase.from("candidature_reponses").insert(reponses);
+  const reponses = choix.reponses.map((r) => ({ candidature_id: candidature.id, ...r }));
+  if (reponses.length > 0) {
+    const { error: reponsesError } = await supabase.from("candidature_reponses").insert(reponses);
+    if (reponsesError) {
+      const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+      return { error: rollbackError
+        ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+        : "Réponses non enregistrées. Réessaie ta candidature." };
+    }
+  }
 
-  const disponibilites = (annonceDates ?? []).map((d) => ({
-    candidature_id: candidature.id,
-    annonce_date_id: d.id,
-    disponible: estDispo(d.id),
-  }));
-  if (disponibilites.length > 0) await supabase.from("candidature_disponibilites").insert(disponibilites);
+  const disponibilites = choix.disponibilites.map((d) => ({ candidature_id: candidature.id, ...d }));
+  if (disponibilites.length > 0) {
+    const { error: disponibilitesError } = await supabase.from("candidature_disponibilites").insert(disponibilites);
+    if (disponibilitesError) {
+      const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+      return { error: rollbackError
+        ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+        : "Disponibilités non enregistrées. Réessaie ta candidature." };
+    }
+  }
 
   const photosResultat = await enregistrerPhotosCandidature(figurantId, candidature.id, formData);
   if (photosResultat.error) {
     // Candidature annulée (réponses et dispos suivent en cascade) : un
     // nouvel essai repart de zéro au lieu de « déjà postulé ».
-    await supabase.from("candidatures").delete().eq("id", candidature.id);
-    return { error: photosResultat.error };
+    const { error: rollbackError } = await supabase.from("candidatures").delete().eq("id", candidature.id);
+    return { error: rollbackError
+      ? "Enregistrement incomplet : contacte l'équipe de casting avant de réessayer."
+      : photosResultat.error };
   }
 
   await createNotification("candidature", `${prenom} ${nom} a postulé à ${annonce.titre}`, {
@@ -412,7 +491,7 @@ async function enregistrerPhotosCandidature(
       .filter((v): v is string => typeof v === "string" && v.length > 0)
       .map((id) => ({ id, type }))
   );
-  const { data: autorisees } =
+  const { data: autorisees, error: photosError } =
     existantes.length > 0
       ? await supabase
           .from("figurant_photos")
@@ -422,8 +501,10 @@ async function enregistrerPhotosCandidature(
             "id",
             existantes.map((e) => e.id)
           )
-      : { data: [] as { id: string }[] };
-  const idsAutorises = new Set((autorisees ?? []).map((p) => p.id));
+      : { data: [] as { id: string }[], error: null };
+  if (photosError || !autorisees) return { error: "Impossible de vérifier les photos de ton compte. Réessaie." };
+  const idsAutorises = new Set(autorisees.map((p) => p.id));
+  if (existantes.some((p) => !idsAutorises.has(p.id))) return { error: "Certaines photos ne sont plus disponibles sur ton compte. Choisis-les à nouveau." };
 
   const liens: { candidature_id: string; photo_id: string; emplacement: string; ordre: number }[] = [];
   const ajouter = (photoId: string, emplacement: string) => {
@@ -463,7 +544,9 @@ export async function updateCandidature(id: string, formData: FormData) {
   const cachet_assigne = str(formData, "cachet_assigne") as Cachet | null;
 
   const supabase = createAdminClient();
-  await supabase.from("candidatures").update({ fonction_assignee, cachet_assigne }).eq("id", id);
+  const { error } = await supabase.from("candidatures")
+    .update({ fonction_assignee, cachet_assigne }).eq("id", id);
+  if (error) throw new Error("Impossible de mettre à jour la candidature.");
 
   revalidatePath("/candidatures");
 }
@@ -481,38 +564,65 @@ export async function setCandidatureOnglet(id: string, ongletId: string | null) 
     if (ongletError) return { error: ongletError };
   }
   const avant = await lireOngletsAvant([id]);
+  if (avant.length !== 1 || avant[0].id !== id) return { error: "Impossible de vérifier l’état de la candidature. Réessaie." };
   const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).eq("id", id);
+  if (error) return { error: "Impossible de ranger la candidature. Réessaie." };
   revalidatePath("/candidatures");
-  if (error) return { error: error.message };
-  await appliquerMessagesOut(avant, ongletId);
+  try {
+    await appliquerMessagesOut(avant, ongletId);
+  } catch {
+    return { error: "La candidature a été rangée, mais le message associé n’a pas pu être mis à jour. Vérifie sa messagerie." };
+  }
   return { success: true as const };
 }
 
 export async function setCandidaturesOngletBulk(ids: string[], ongletId: string | null) {
-  if (ids.length === 0) return { success: true as const };
-  const supabase = createAdminClient();
+  const selected = validateCandidatureBulkIds(ids);
+  if (!selected.ok) return { error: selected.error };
+  if (selected.ids.length === 0) return { success: true as const };
 
-  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", ids);
-  const annonceIds = Array.from(new Set((candidatures ?? []).map((c) => c.annonce_id)));
-  if (annonceIds.length > 0) {
-    const { data: annonces } = await supabase.from("annonces").select("projet_id").in("id", annonceIds);
-    const projetIds = Array.from(new Set((annonces ?? []).map((a) => a.projet_id)));
-    for (const projetId of projetIds) {
-      const accessError = await checkProjetAccess(projetId);
-      if (accessError) return { error: accessError };
-    }
+  const supabase = createAdminClient();
+  // service_role bypasses RLS: prove that *every* requested row exists, and
+  // resolve its project, before updating even one candidature.
+  const { data: candidatures, error: candidaturesError } = await supabase
+    .from("candidatures").select("id, annonce_id").in("id", selected.ids);
+  if (candidaturesError || !candidatures || candidatures.length !== selected.ids.length ||
+      new Set(candidatures.map((c) => c.id)).size !== selected.ids.length) {
+    return { error: "Sélection de candidatures incomplète ou indisponible." };
+  }
+  const annonceIds = Array.from(new Set(candidatures.map((c) => c.annonce_id)));
+  const { data: annonces, error: annoncesError } = await supabase
+    .from("annonces").select("id, projet_id").in("id", annonceIds);
+  if (annoncesError || !annonces || annonces.length !== annonceIds.length ||
+      new Set(annonces.map((a) => a.id)).size !== annonceIds.length) {
+    return { error: "Impossible de vérifier les projets des candidatures." };
+  }
+  for (const projetId of new Set(annonces.map((a) => a.projet_id))) {
+    const accessError = await checkProjetAccess(projetId);
+    if (accessError) return { error: accessError };
   }
 
   if (ongletId) {
-    const ongletError = await checkOngletMatchesAnnonces(ongletId, ids);
+    const ongletError = await checkOngletMatchesAnnonces(ongletId, selected.ids);
     if (ongletError) return { error: ongletError };
   }
 
-  const avant = await lireOngletsAvant(ids);
-  const { error } = await supabase.from("candidatures").update({ onglet_id: ongletId }).in("id", ids);
+  const avant = await lireOngletsAvant(selected.ids);
+  const avantIds = new Set(avant.map((c) => c.id));
+  if (avant.length !== selected.ids.length || avantIds.size !== selected.ids.length || selected.ids.some((id) => !avantIds.has(id))) {
+    return { error: "Impossible de vérifier l’état des candidatures. Réessaie." };
+  }
+  const { data: updated, error } = await supabase.from("candidatures")
+    .update({ onglet_id: ongletId }).in("id", selected.ids).select("id");
+  if (error || !updated || updated.length !== selected.ids.length) {
+    return { error: "Rangement incomplet. Actualise la liste avant de réessayer." };
+  }
   revalidatePath("/candidatures");
-  if (error) return { error: error.message };
-  await appliquerMessagesOut(avant, ongletId);
+  try {
+    await appliquerMessagesOut(avant, ongletId);
+  } catch {
+    return { error: "Les candidatures ont été rangées, mais les messages associés n’ont pas tous pu être mis à jour. Vérifie les messageries." };
+  }
   return { success: true as const };
 }
 
@@ -527,8 +637,12 @@ async function checkOngletMatchesAnnonces(ongletId: string, candidatureIds: stri
     .maybeSingle();
   if (!onglet) return "Onglet introuvable.";
   if (!onglet.annonce_id) return null;
-  const { data: candidatures } = await supabase.from("candidatures").select("annonce_id").in("id", candidatureIds);
-  if ((candidatures ?? []).some((c) => c.annonce_id !== onglet.annonce_id)) {
+  const { data: candidatures, error } = await supabase.from("candidatures")
+    .select("annonce_id").in("id", candidatureIds);
+  if (error || !candidatures || candidatures.length !== candidatureIds.length) {
+    return "Impossible de vérifier les candidatures de cet onglet.";
+  }
+  if (candidatures.some((c) => c.annonce_id !== onglet.annonce_id)) {
     return "Cet onglet appartient à une autre annonce.";
   }
   return null;
@@ -719,10 +833,23 @@ export async function getCandidatureTriData(id: string): Promise<{ error?: strin
 
 export async function deleteCandidatureOnglet(id: string) {
   const supabase = createAdminClient();
-  const { data: onglet } = await supabase.from("candidature_onglets").select("fixe").eq("id", id).single();
-  if (onglet?.fixe) return { error: "Cet onglet ne peut pas être supprimé." };
+  const { data: onglet, error: lookupError } = await supabase.from("candidature_onglets")
+    .select("fixe, annonce_id").eq("id", id).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier cet onglet." };
+  // Shared tabs and fixed tabs are part of the application's global workflow.
+  if (!onglet || onglet.fixe || !onglet.annonce_id) {
+    return { error: "Cet onglet ne peut pas être supprimé." };
+  }
+  const { data: annonce, error: annonceError } = await supabase.from("annonces")
+    .select("projet_id").eq("id", onglet.annonce_id).maybeSingle();
+  if (annonceError || !annonce) return { error: "Projet de l'onglet introuvable." };
+  const denied = await checkProjetAccess(annonce.projet_id);
+  if (denied) return { error: denied };
 
-  await supabase.from("candidature_onglets").delete().eq("id", id);
+  const { data: deleted, error } = await supabase.from("candidature_onglets")
+    .delete().eq("id", id).eq("fixe", false).eq("annonce_id", onglet.annonce_id)
+    .select("id").maybeSingle();
+  if (error || !deleted) return { error: "Suppression impossible. Réessaie." };
   revalidatePath("/candidatures");
   return { success: true as const };
 }

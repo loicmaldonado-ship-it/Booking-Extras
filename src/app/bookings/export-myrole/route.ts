@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkProjetAccess } from "@/lib/auth/session";
 import { buildMyroleCsv } from "@/lib/export/myrole";
 import type { Figurant } from "@/lib/figurants/types";
 
@@ -13,6 +14,11 @@ export async function GET(request: Request) {
       status: 400,
     });
   }
+
+  // Faille corrigée le 30/10/2026 : aucune vérification d'accès, toute personne connectée (y compris une cheffe d'une
+  // autre équipe) pouvait télécharger l'export complet des figurants confirmés d'un projet en changeant projet_id.
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return new Response(accessError, { status: 403 });
 
   const supabase = createAdminClient();
 

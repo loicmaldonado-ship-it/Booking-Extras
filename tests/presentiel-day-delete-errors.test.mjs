@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/casting-presentiel/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){const writes=[],refresh=[];const db={from(table){let op='read';const q={select(){return this},eq(){return this},delete(){op='delete';writes.push(table);return this},maybeSingle(){return Promise.resolve({data:failure==='day'?null:{projet_id:'project'},error:failure==='day'?{message:'offline'}:null})},then(ok,bad){const error=(failure==='count'&&op==='read')||(failure==='delete'&&op==='delete');return Promise.resolve({count:error?null:failure==='occupied'?1:0,error:error?{message:'offline'}:null}).then(ok,bad)}};return q}};const exports={};new Function('require','exports',code)(n=>n==='@/lib/supabase/admin'?{createAdminClient:()=>db}:n==='@/lib/auth/session'?{checkProjetAccess:async()=>null}:n==='next/cache'?{revalidatePath:p=>refresh.push(p)}:{},exports);return{action:exports.deletePresentielJournee,writes,refresh}}
+for(const failure of ['day','count','occupied','delete'])test(`casting day deletion reports ${failure}`,async()=>{const f=fixture(failure);const r=await f.action('day');assert.ok(r.error);assert.equal(f.refresh.length,0);if(failure!=='delete')assert.equal(f.writes.length,0)});

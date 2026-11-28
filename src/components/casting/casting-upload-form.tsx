@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -31,6 +31,11 @@ function FileSlot({
   const [preview, setPreview] = useState<{ name: string; isImage: boolean; url: string | null } | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
+  useEffect(() => {
+    const url = preview?.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [preview?.url]);
+
   function selectFile(file: File | null) {
     onSelect(file);
     if (!file) {
@@ -47,7 +52,9 @@ function FileSlot({
         {label}
         {required ? " *" : ""}
       </span>
-      <div
+      <button
+        type="button"
+        aria-label={`Choisir le fichier : ${label}${required ? " (obligatoire)" : ""}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -61,7 +68,7 @@ function FileSlot({
           if (file) selectFile(file);
         }}
         className={cn(
-          "relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 px-4 text-center transition-colors",
+          "relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 px-4 text-center transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral",
           dragOver ? "border-coral bg-coral/10" : "border-border hover:border-coral/60"
         )}
       >
@@ -77,12 +84,14 @@ function FileSlot({
             <span className="text-xs text-text-muted">Choisir ou glisser</span>
           </>
         )}
-      </div>
+      </button>
       <input
         ref={inputRef}
         type="file"
         accept={accept}
-        className="hidden"
+        aria-label={`Fichier : ${label}`}
+        tabIndex={-1}
+        className="sr-only"
         onChange={(e) => selectFile(e.target.files?.[0] ?? null)}
       />
     </div>
@@ -129,6 +138,7 @@ function VideoSlot({
       {video.statut === "vide" ? (
         <button
           type="button"
+          aria-label={`Choisir une vidéo : ${label}${required ? " (obligatoire)" : ""}`}
           onClick={() => inputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();
@@ -246,35 +256,45 @@ export function CastingUploadForm({
   // Photos uniquement — les vidéos partent dès qu'elles sont choisies
   // (envoyerVideo, mutualisé avec la carte équipe).
   async function uploadOnePhoto(slot: string, file: File, signal: AbortSignal) {
-    const attempt = (async () => {
-      const target = await createCastingUploadSlot(token, "photo", slot);
-      if (target.error || !target.bucket || !target.path || !target.token) {
-        throw new Error(target.error ?? "Impossible de préparer l'envoi.");
-      }
-      const supabase = createBrowserSupabaseClient();
-      const { error: uploadError } = await supabase.storage
-        .from(target.bucket)
-        .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
-      if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
-      return target.path;
-    })();
+    if (signal.aborted) throw new DOMException("Annulé", "AbortError");
+    let finished = false;
     return new Promise<string>((resolve, reject) => {
-      const timeoutId = setTimeout(
-        () => reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie.")),
-        120_000
-      );
-      signal.addEventListener(
-        "abort",
-        () => {
-          clearTimeout(timeoutId);
-          reject(new DOMException("Annulé", "AbortError"));
-        },
-        { once: true }
-      );
-      attempt.then((p) => {
+      const cleanUp = () => {
+        finished = true;
         clearTimeout(timeoutId);
-        resolve(p);
-      }, reject);
+        signal.removeEventListener("abort", onAbort);
+      };
+      const onAbort = () => {
+        cleanUp();
+        reject(new DOMException("Annulé", "AbortError"));
+      };
+      const timeoutId = setTimeout(() => {
+        cleanUp();
+        reject(new Error("L'envoi prend trop de temps — vérifie ta connexion et réessaie."));
+      }, 120_000);
+      signal.addEventListener("abort", onAbort, { once: true });
+      (async () => {
+        const target = await createCastingUploadSlot(token, "photo", slot);
+        // An abandoned slot must not start an upload after the user cancels.
+        if (finished || signal.aborted) throw new DOMException("Annulé", "AbortError");
+        if (target.error || !target.bucket || !target.path || !target.token) {
+          throw new Error(target.error ?? "Impossible de préparer l'envoi.");
+        }
+        const supabase = createBrowserSupabaseClient();
+        const { error: uploadError } = await supabase.storage
+          .from(target.bucket)
+          .uploadToSignedUrl(target.path, target.token, file, { contentType: file.type });
+        if (uploadError) throw new Error(translateUploadErrorMessage(uploadError.message));
+        return target.path;
+      })().then((path) => {
+        if (finished) return;
+        cleanUp();
+        resolve(path);
+      }, (error) => {
+        if (finished) return;
+        cleanUp();
+        reject(error);
+      });
     });
   }
 
@@ -413,11 +433,14 @@ export function CastingUploadForm({
           setStep(null);
           return;
         }
+        if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
         setStep(`Envoi de la photo « ${label} »...`);
         uploadedPhotos.push({ label, path: await uploadOnePhoto(label, prepare.file, controller.signal) });
       }
 
       if (controller.signal.aborted) throw new DOMException("Annulé", "AbortError");
+      // La finalisation serveur ne peut pas être annulée une fois lancée.
+      abortRef.current = null;
       setStep("Finalisation...");
       const result = await finalizeCastingUpload(token, { videoPaths, photos: uploadedPhotos, bandeDemo, fiche: ficheRemplie, reponses: reponses ?? [] });
       if (result?.error) {
@@ -578,7 +601,7 @@ export function CastingUploadForm({
               ? `Vidéo en cours d'envoi… ${videos.find((v) => v.statut === "envoi")?.progression?.pct ?? 0} %`
               : "Envoyer"}
         </Button>
-        {pending && (
+        {pending && step !== "Finalisation..." && (
           <Button type="button" variant="ghost" onClick={() => abortRef.current?.abort()}>
             Annuler
           </Button>

@@ -1,9 +1,12 @@
+import { ReprendreJours } from "@/components/candidatures/reprendre-jours";
+import { construireJoursReprise } from "@/lib/candidatures/jours-panel-snapshot";
 import { comparerNoms, nomComplet } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Badge } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { AnchorButton, Button, ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
 import { setCurrentProjet } from "@/lib/projet-context";
 import { cn } from "@/lib/cn";
 import { CandidaturesTable, type Row, type CandidatureSummary } from "@/components/candidatures/candidatures-table";
@@ -29,8 +32,8 @@ import { fetchAll } from "@/lib/supabase/fetch-all";
 import { computeAge } from "@/lib/documents/fields";
 import { formatDateLong, formatDateShort, formatDayMonth } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
-import { getAnnonceQuestions } from "@/lib/annonces/questions";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceQuestions } from "@/lib/annonces/data";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getProjetSignaturesOrOwnerNames } from "@/lib/projets/signature";
 import { FileText } from "lucide-react";
 
@@ -132,7 +135,8 @@ export default async function CandidaturesPage({
   const params = await searchParams;
   const supabase = createAdminClient();
   const profile = await getCurrentProfile();
-  const accessibleIds = profile ? await getAccessibleProjetIds(profile) : null;
+  if (!profile) redirect("/compte/connexion");
+  const accessibleIds = await getAccessibleProjetIds(profile);
 
   let annoncesQuery = supabase
     .from("annonces")
@@ -152,7 +156,21 @@ export default async function CandidaturesPage({
     }[]
   >();
 
-  const { data: allCandidatures } = await supabase.from("candidatures").select("annonce_id");
+  // Le client admin contourne la RLS : refuser toute annonce hors périmètre
+  // avant d'interroger ses candidatures ou ses autres données.
+  if (params.annonce_id && !(annonces ?? []).some((a) => a.id === params.annonce_id)) notFound();
+
+  const annonceIdsAutorises = (annonces ?? []).map((a) => a.id);
+  const { data: allCandidatures } = annonceIdsAutorises.length > 0
+    ? await fetchAll((from, to) =>
+        supabase.from("candidatures")
+          .select("id, annonce_id")
+          .in("annonce_id", annonceIdsAutorises)
+          .order("id")
+          .range(from, to)
+          .returns<{ id: string; annonce_id: string }[]>()
+      )
+    : { data: [] as { id: string; annonce_id: string }[] };
   const countByAnnonce = new Map<string, number>();
   for (const c of allCandidatures ?? []) {
     countByAnnonce.set(c.annonce_id, (countByAnnonce.get(c.annonce_id) ?? 0) + 1);
@@ -316,14 +334,14 @@ export default async function CandidaturesPage({
       ? fetchAll((from, to) =>
           supabase
             .from("candidatures")
-            .select("id, figurants(prenom, nom, email)")
+            .select("id, figurants(id, prenom, nom, email)")
             .eq("annonce_id", annonceId)
             .not("envoyee_en_booking_le", "is", null)
             .order("id")
             .range(from, to)
-            .returns<{ id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[]>()
+            .returns<{ id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null }[]>()
         )
-      : Promise.resolve({ data: [] as { id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[] }),
+      : Promise.resolve({ data: [] as { id: string; figurants: { id: string; prenom: string; nom: string; email: string | null } | null }[] }),
   ]);
 
   // Une journée est un onglet du classeur : « prévu » = rangé dans l'onglet
@@ -331,7 +349,11 @@ export default async function CandidaturesPage({
   // (booking sur ce projet à cette date).
   const dateIsoById = new Map(annonceDates.map((d) => [d.id, d.date]));
   const ongletParDate = new Map(onglets.filter((o) => o.annonce_date_id).map((o) => [o.annonce_date_id!, o.id]));
-  const dansLaJournee = new Set((bookingsJours ?? []).map((b) => `${b.figurant_id}|${b.date}`));
+  const dansLaJournee = new Set(
+    (bookingsJours ?? [])
+      .filter((b) => !HORS_JOURNEE.includes(b.statut))
+      .map((b) => `${b.figurant_id}|${b.date}`)
+  );
   const estTransfere = (figurantId: string | null | undefined, dateId: string) =>
     !!figurantId && dansLaJournee.has(`${figurantId}|${dateIsoById.get(dateId)}`);
 
@@ -715,7 +737,7 @@ export default async function CandidaturesPage({
               </form>
             )}
             {isOwner(profile) && (
-              <ButtonLink
+              <AnchorButton
                 href={`/candidatures/export?${new URLSearchParams(
                   Object.entries({
                     annonce_id: annonceId,
@@ -727,7 +749,7 @@ export default async function CandidaturesPage({
                 variant="secondary"
               >
                 Exporter Excel
-              </ButtonLink>
+              </AnchorButton>
             )}
           </div>
         </div>
@@ -828,24 +850,30 @@ export default async function CandidaturesPage({
       {pucesFiltres}
 
       {(ailleurs.length > 0 || envoyeesTrouvees.length > 0 || reserveesTrouvees.length > 0) && (
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-yellow/40 bg-yellow/10 px-3 py-2 text-xs">
           <span className="font-medium">Aussi trouvé ailleurs :</span>
           {ailleurs.map((a) => (
             <Link key={a.id} href={a.href} className="font-medium text-coral hover:underline">
               {a.nom} → {a.onglet}
             </Link>
           ))}
-          {envoyeesTrouvees.map((c) => (
-            <span key={c.id}>
-              {nomComplet(c.figurants)} → déjà envoyé·e dans une journée
-            </span>
-          ))}
+          {envoyeesTrouvees.map((c) => c.figurants && annonce ? (
+            <ReprendreJours key={c.id} projetId={annonce.projet_id} jours={jours} personne={{
+              id: c.id,
+              nom: nomComplet(c.figurants),
+              jours: construireJoursReprise(
+                annonceDates,
+                datesDispoByCandidature.get(c.id) ?? new Set(),
+                new Set(annonceDates.filter((d) => estTransfere(c.figurants?.id, d.id)).map((d) => d.date))
+              ),
+            }} />
+          ) : null)}
           {reserveesTrouvees.slice(0, 8).map((c) => (
             <Link key={c.id} href={`/bookings/reserve?projet_id=${annonce?.projet_id ?? ""}`} className="font-medium text-coral hover:underline">
               {nomComplet(c.figurants)} → 🗄️ en réserve
             </Link>
           ))}
-        </p>
+        </div>
       )}
 
       {error && (

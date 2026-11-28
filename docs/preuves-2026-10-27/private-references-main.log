@@ -1,0 +1,5 @@
+27194 apply-private-references.sql DO
+27194 private-booking-reference-local.sql DO
+27194 casting-presentiel-rls-local.sql DO
+27194 rls-integration-local.sql DO
+27194 merge-profiles-local.sql DO

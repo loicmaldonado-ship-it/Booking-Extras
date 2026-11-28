@@ -62,13 +62,13 @@ export async function getPhotosProjet(projetId: string, figurantIds: string[]): 
   ]);
 
   for (const figurantId of ids) {
-    const toutes = (photosCompte.get(figurantId) ?? []).filter((p) => p.url);
+    const toutes = (photosCompte.get(figurantId) ?? []).filter((p) => p.url && (p.projet_id === null || p.projet_id === projetId));
     const essayage = toutes
       .filter((p) => p.type === "tenue" && p.projet_id === projetId)
       .sort((a, b) => a.created_at.localeCompare(b.created_at));
     const candidatureId = candidatureParFigurant.get(figurantId);
     const candidature = (candidatureId ? (photosCandidature.get(candidatureId) ?? []) : [])
-      .filter((p) => p.url)
+      .filter((p) => p.url && (p.projet_id === null || p.projet_id === projetId))
       .sort((a, b) => rang(a.type) - rang(b.type));
     const dejaVues = new Set([...essayage, ...candidature].map((p) => p.id));
     const compte = toutes

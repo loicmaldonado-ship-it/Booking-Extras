@@ -1,6 +1,6 @@
 import { comparerNoms } from "@/lib/noms";
 import Link from "next/link";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
 import { computeAge, parseIds } from "@/lib/documents/fields";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -21,7 +21,7 @@ export default async function FigurantsFichesPage({
     return <p className="text-text-muted">Sélectionne des profils depuis Base Profils pour générer leurs fiches.</p>;
   }
 
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabaseClient();
   const { data: figurantsRaw } = await supabase
     .from("figurants")
     .select("*")
@@ -32,8 +32,8 @@ export default async function FigurantsFichesPage({
   const figurantIds = figurants.map((f) => f.id);
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
-    getPhotosByFigurantId(figurantIds),
-    getFutureBookingsByFigurant(figurantIds, today),
+    getPhotosByFigurantId(figurantIds, supabase),
+    getFutureBookingsByFigurant(figurantIds, today, supabase),
   ]);
 
   return (
@@ -42,11 +42,11 @@ export default async function FigurantsFichesPage({
         ← Retour à Base Profils
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           Fiches de renseignements ({figurants.length})
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename="fiches-renseignements.pdf" orientation="landscape" />
           <PrintButton />
         </div>

@@ -6,15 +6,6 @@ import { checkAnnonceAccess } from "./access";
 
 export type AnnonceDate = { id: string; annonce_id: string; date: string };
 
-export async function getAnnonceDates(annonceId: string): Promise<AnnonceDate[]> {
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("annonce_dates")
-    .select("id, annonce_id, date")
-    .eq("annonce_id", annonceId)
-    .order("date");
-  return data ?? [];
-}
 
 export async function addAnnonceDate(annonceId: string, _prevState: unknown, formData: FormData) {
   const accessError = await checkAnnonceAccess(annonceId);
@@ -38,7 +29,8 @@ export async function removeAnnonceDate(id: string, annonceId: string) {
   if (accessError) throw new Error(accessError);
 
   const supabase = createAdminClient();
-  await supabase.from("annonce_dates").delete().eq("id", id);
+  const { error } = await supabase.from("annonce_dates").delete().eq("id", id).eq("annonce_id", annonceId);
+  if (error) throw new Error(error.message);
   revalidatePath(`/annonces/${annonceId}`);
 }
 
@@ -76,7 +68,8 @@ export async function ajouterPeriodeAnnonce(
       .insert(nouvelles.map((date) => ({ annonce_id: annonceId, date })));
     if (error) return { error: error.message };
   }
-  await supabase.from("annonces").update({ dispos_par_calendrier: true }).eq("id", annonceId);
+  const { error: modeError } = await supabase.from("annonces").update({ dispos_par_calendrier: true }).eq("id", annonceId);
+  if (modeError) return { error: "Dates enregistrées, mais le mode calendrier n’a pas pu être activé. Réessaie." };
 
   revalidatePath(`/annonces/${annonceId}`);
   return { ajoutes: nouvelles.length };

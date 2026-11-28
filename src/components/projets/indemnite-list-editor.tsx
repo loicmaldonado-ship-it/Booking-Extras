@@ -50,12 +50,13 @@ export function IndemniteListEditor({ initial }: { initial: Item[] }) {
           ))}
         </div>
       )}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <input
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Ex. Prime nuit"
-          className="flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
+          aria-label="Libellé de l'indemnité"
+          className="min-w-0 flex-1 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
         />
         <input
           type="number"
@@ -64,6 +65,7 @@ export function IndemniteListEditor({ initial }: { initial: Item[] }) {
           value={montant}
           onChange={(e) => setMontant(e.target.value)}
           placeholder="Montant €"
+          aria-label="Montant de l'indemnité en euros"
           className="w-32 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral"
         />
         <Button type="button" variant="secondary" onClick={add} disabled={!label.trim() || montant.trim() === ""}>

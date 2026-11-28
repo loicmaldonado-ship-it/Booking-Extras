@@ -1,0 +1,10 @@
+
+> booking-extras@0.1.0 lint
+> eslint
+
+
+/Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/tests/minor-dossier-boundaries.test.mjs
+  25:179  warning  'table' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+

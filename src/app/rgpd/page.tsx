@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { nomComplet } from "@/lib/noms";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/field";
@@ -15,9 +17,19 @@ export default async function RgpdPage({
 }: {
   searchParams: Promise<{ seuil?: string }>;
 }) {
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner || actor.role !== "chef") notFound();
   const { seuil } = await searchParams;
-  const seuilAns = Number(seuil) > 0 ? Number(seuil) : 3;
-  const figurants = await getFigurantsInactifs(seuilAns);
+  // Keep the displayed option and the query in sync for malformed URLs.
+  const requestedSeuil = Number(seuil);
+  const seuilAns = SEUILS.includes(requestedSeuil) ? requestedSeuil : 3;
+  const result = await getFigurantsInactifs(seuilAns)
+    .then((figurants) => ({ figurants, error: false }))
+    .catch(() => ({ figurants: [], error: true }));
+  if (result.error) {
+    return <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 p-4 text-danger">Impossible de vérifier l&apos;activité des profils. Réessaie avant toute anonymisation.</div>;
+  }
+  const figurants = result.figurants;
 
   return (
     <div className="flex flex-col gap-6">
@@ -31,9 +43,9 @@ export default async function RgpdPage({
       </div>
 
       <Card>
-        <form className="flex items-center gap-3" method="get">
+        <form autoComplete="off" key={seuilAns} className="flex flex-wrap items-center gap-3" method="get">
           <span className="text-sm text-text-muted">Inactifs depuis plus de :</span>
-          <Select name="seuil" defaultValue={String(seuilAns)} className="w-40">
+          <Select aria-label="Inactifs depuis plus de" name="seuil" defaultValue={String(seuilAns)} className="w-40">
             {SEUILS.map((s) => (
               <option key={s} value={s}>
                 {s} an{s > 1 ? "s" : ""}
@@ -49,8 +61,30 @@ export default async function RgpdPage({
         </form>
       </Card>
 
-      <Card className="p-0">
-        <table className="w-full text-sm">
+      <section className="grid gap-3 md:hidden" aria-label="Profils inactifs">
+        {figurants.map((f) => (
+          <Card key={f.id} className="flex flex-col gap-3">
+            <h2 className="break-words font-semibold">{f.prenom} {f.nom}</h2>
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
+              <dt className="text-text-muted">Email</dt>
+              <dd className="min-w-0 break-all">{f.email ?? "—"}</dd>
+              <dt className="text-text-muted">Dernière activité</dt>
+              <dd>{f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}</dd>
+            </dl>
+            <div className="flex flex-wrap items-center gap-2">
+              <AnonymiserButton figurantId={f.id} effacementEnCours={f.effacementEnCours} nom={f.prenom + " " + f.nom} />
+            </div>
+          </Card>
+        ))}
+        {figurants.length === 0 && (
+          <Card className="py-8 text-center text-sm text-text-muted">
+            Aucun profil inactif depuis plus de {seuilAns} an{seuilAns > 1 ? "s" : ""}.
+          </Card>
+        )}
+      </section>
+
+      <Card className="hidden overflow-x-auto p-0 md:block">
+        <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-text-muted">
               <th className="px-6 py-3 font-medium">Profil</th>
@@ -70,7 +104,7 @@ export default async function RgpdPage({
                   {f.derniereActivite ? formatDateShort(f.derniereActivite) : "—"}
                 </td>
                 <td className="px-6 py-3">
-                  <AnonymiserButton figurantId={f.id} nom={nomComplet(f)} />
+                  <AnonymiserButton figurantId={f.id} effacementEnCours={f.effacementEnCours} nom={nomComplet(f)} />
                 </td>
               </tr>
             ))}

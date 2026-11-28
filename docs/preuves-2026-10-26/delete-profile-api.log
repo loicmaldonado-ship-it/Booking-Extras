@@ -1,0 +1,3 @@
+PASS API: assistante refusée, profil vide supprimé, profil avec fichier physique sans ligne photo préservé avec son média
+PASS API: après retrait physique du fichier, suppression du profil vide autorisée
+PASS nettoyage: seuls les profils, média et sessions fictifs de ce script supprimés

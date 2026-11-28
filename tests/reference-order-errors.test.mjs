@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/references/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(kind){let refresh=0,writes=0;const db={from(){let mode='read';const q={select(){return this},order(){return this},update(){mode='write';writes++;return this},eq(){return this},async maybeSingle(){return kind==='missing'?{data:null,error:null}:kind==='write'?{data:null,error:{message:'offline'}}:{data:{id:'reference'},error:null}},then(ok,bad){return Promise.resolve(mode==='read'?(kind==='read'?{data:null,count:null,error:{message:'offline'}}:kind==='truncated'?{data:[{id:'a',ordre:1},{id:'b',ordre:2}],count:3,error:null}:{data:[{id:'a',ordre:1},{id:'b',ordre:2}],count:2,error:null}):{error:kind==='write'?{message:'offline'}:null}).then(ok,bad)}};return q}};const mocks={'@/lib/supabase/admin':{createAdminClient:()=>db},'@/lib/auth/session':{getCurrentProfile:async()=>({id:'owner'})},'@/lib/auth/owner':{isOwner:()=>true},'next/cache':{revalidatePath:()=>refresh++}};const out={};new Function('require','exports',code)(n=>mocks[n]??{},out);return{run:()=>out.deplacerReference('b','haut'),refresh:()=>refresh,writes:()=>writes}}
+for(const kind of ['read','truncated'])test(`${kind} reference list is rejected before writing`,async()=>{const f=fixture(kind);assert.ok((await f.run()).error);assert.equal(f.writes(),0)});
+test('partial write failure is reported and pages refreshed',async()=>{const f=fixture('write');assert.ok((await f.run()).error);assert.equal(f.refresh(),2)});
+test('successful reorder refreshes pages',async()=>{const f=fixture();assert.equal((await f.run()).success,true);assert.equal(f.refresh(),2)});
+test("missing reordered reference is reported",async()=>{const f=fixture("missing");assert.ok((await f.run()).error);assert.equal(f.refresh(),2)});

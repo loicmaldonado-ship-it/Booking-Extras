@@ -13,23 +13,35 @@ export async function POST(request: Request) {
   if (!profileId) return NextResponse.json({ error: "Clé du relais invalide." }, { status: 401 });
   const supabase = createAdminClient();
 
-  await supabase
+  const { error: relanceError } = await supabase
     .from("textos_file")
     .update({ statut: "en_attente", pris_le: null })
     .eq("profile_id", profileId)
     .eq("statut", "envoi")
     .lt("pris_le", new Date(Date.now() - 20 * 60_000).toISOString());
+  if (relanceError) return NextResponse.json({ error: "File textos indisponible." }, { status: 503 });
 
-  const { data: suivants } = await supabase
+  const { data: suivant, error: lectureError } = await supabase
     .from("textos_file")
-    .select("id, telephone, message, destinataire")
+    .select("id")
     .eq("profile_id", profileId)
     .eq("statut", "en_attente")
     .order("created_at")
-    .limit(1);
-  const ids = (suivants ?? []).map((t) => t.id);
-  if (ids.length > 0) {
-    await supabase.from("textos_file").update({ statut: "envoi", pris_le: new Date().toISOString() }).in("id", ids);
-  }
-  return NextResponse.json({ textos: suivants ?? [] });
+    .limit(1)
+    .maybeSingle();
+  if (lectureError) return NextResponse.json({ error: "File textos indisponible." }, { status: 503 });
+  if (!suivant) return NextResponse.json({ textos: [] });
+
+  // La condition sur le statut rend la prise atomique : deux Macs ne
+  // peuvent pas récupérer le même texto, même s'ils interrogent ensemble.
+  const { data: pris, error: priseError } = await supabase
+    .from("textos_file")
+    .update({ statut: "envoi", pris_le: new Date().toISOString() })
+    .eq("id", suivant.id)
+    .eq("profile_id", profileId)
+    .eq("statut", "en_attente")
+    .select("id, telephone, message, destinataire")
+    .maybeSingle();
+  if (priseError) return NextResponse.json({ error: "File textos indisponible." }, { status: 503 });
+  return NextResponse.json({ textos: pris ? [pris] : [] });
 }

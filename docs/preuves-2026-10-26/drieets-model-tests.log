@@ -1,0 +1,17 @@
+(node:31749) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/src/lib/minors/model.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ DRIEETS preparation keeps accented names, sorts dates and remains explicitly incomplete without validated documents (20.777943ms)
+✔ DRIEETS preparation refuses another project or child in its dataset (0.855096ms)
+✔ missing identity, production, guardians, dates and remuneration are named before generation (0.299039ms)
+✔ commission is required under 16, and the eighteenth birthday is excluded from minor preparation (0.37141ms)
+✔ invalid calendar dates, duplicate guardian emails and undocumented exceptions are refused (0.384602ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 760.930197

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/button";
 import { chargerChoixPhotos, enregistrerChoixPhotos, type ChoixPhotos, type PhotoChoix } from "@/lib/bookings/photos-actions";

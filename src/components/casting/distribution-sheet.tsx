@@ -1,5 +1,5 @@
 import { nomComplet } from "@/lib/noms";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import type { ListeArtistiqueItem } from "@/lib/casting/liste-artistique";
 import { computeAge } from "@/lib/documents/fields";
 

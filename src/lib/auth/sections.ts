@@ -11,7 +11,8 @@ export type SectionKey =
   | "/partage"
   | "/modeles"
   | "/bareme"
-  | "/rgpd";
+  | "/rgpd"
+  | "/mineurs";
 
 export const APP_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "/figurants", label: "Base Profils" },
@@ -25,6 +26,7 @@ export const APP_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: "/modeles", label: "Modèles" },
   { key: "/bareme", label: "Barème" },
   { key: "/rgpd", label: "RGPD" },
+  { key: "/mineurs", label: "Mineurs / DRIEETS" },
 ];
 
 // sectionsAutorisees === null → accès complet (comportement historique,

@@ -49,7 +49,12 @@ export function NotificationsBell() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   async function refresh() {
-    const panel = await getNotificationsPanel();
+    let panel;
+    try {
+      panel = await getNotificationsPanel();
+    } catch {
+      return; // appel interrompu (page quittée, réseau coupé) : nouvel essai au tour suivant
+    }
     setGroups(panel.groups);
     setATrier(panel.aTrier);
     setUnreadCount(panel.unreadCount);
@@ -93,8 +98,10 @@ export function NotificationsBell() {
       })
     );
     setUnreadCount((c) => Math.max(0, c - ids.length));
-    startTransition(() => {
-      markNotificationsLues(ids);
+    // Si la base refuse, on recharge l'état réel au lieu d'afficher des notifications lues à tort.
+    startTransition(async () => {
+      const res = await markNotificationsLues(ids);
+      if (res?.error) await refresh();
     });
   }
 
@@ -104,8 +111,9 @@ export function NotificationsBell() {
       prev.map((g) => ({ ...g, nonLu: false, items: g.items.map((n) => ({ ...n, lu_at: n.lu_at ?? now })) }))
     );
     setUnreadCount(0);
-    startTransition(() => {
-      markAllNotificationsLues();
+    startTransition(async () => {
+      const res = await markAllNotificationsLues();
+      if (res?.error) await refresh();
     });
   }
 
@@ -117,7 +125,7 @@ export function NotificationsBell() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-border-strong text-text transition-colors hover:border-coral/60 hover:text-text"
-        aria-label="Notifications"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount > 9 ? "9+" : unreadCount} non lues` : "Notifications"}
       >
         <Bell size={16} strokeWidth={1.75} />
         {unreadCount > 0 && (

@@ -1,0 +1,12 @@
+PASS REST public: profils interdits (42501)
+PASS REST service_role: profiles
+PASS REST service_role: figurants
+PASS REST service_role: figurant_comptes
+PASS REST service_role: figurant_sessions
+PASS REST service_role: projets
+PASS REST service_role: bookings
+PASS REST service_role: reserve_profils
+PASS REST service_role: candidature_etiquettes
+PASS REST service_role: textos_file
+PASS REST cheffe: connexion, projet membre, secrets refusés
+PASS REST assistante: connexion, projet membre, secrets refusés

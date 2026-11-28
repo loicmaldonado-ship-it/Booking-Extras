@@ -1,6 +1,7 @@
 "use client";
 
 import { logCastingUploadEvent } from "@/lib/casting/upload-actions";
+import { translateUploadErrorMessage } from "@/lib/media/upload-error";
 
 // Envoi d'une vidéo : le fichier d'origine part tel quel, directement du
 // navigateur vers le stockage (aucune compression, aucune attente avant
@@ -63,7 +64,7 @@ function messageServeur(status: number, corps: string): ErreurEnvoi {
     );
   }
   const reessayable = status >= 500 || status === 408 || status === 429;
-  return new ErreurEnvoi(detail ? `Envoi refusé (${detail}).` : `Envoi refusé (erreur ${status}).`, reessayable);
+  return new ErreurEnvoi(translateUploadErrorMessage(`${status} ${detail}`), reessayable);
 }
 
 // Un essai : PUT du fichier brut vers l'URL signée, avec progression.
@@ -151,17 +152,22 @@ export async function envoyerVideo({
 }): Promise<string> {
   const debutTotal = Date.now();
   const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : undefined;
-  const journal = (outcome: "reussi" | "erreur" | "annule", errorMessage?: string) =>
-    logCastingUploadEvent({
-      ...logContext,
-      kind: "video",
-      outcome,
-      errorMessage,
-      originalBytes: file.size,
-      finalBytes: file.size,
-      durationMs: Date.now() - debutTotal,
-      userAgent,
-    });
+  const journal = async (outcome: "reussi" | "erreur" | "annule", errorMessage?: string) => {
+    try {
+      await logCastingUploadEvent({
+        ...logContext,
+        kind: "video",
+        outcome,
+        errorMessage,
+        originalBytes: file.size,
+        finalBytes: file.size,
+        durationMs: Date.now() - debutTotal,
+        userAgent,
+      });
+    } catch {
+      // A failed logging request must never retry or change the upload result.
+    }
+  };
 
   if (file.size > VIDEO_MAX_OCTETS) {
     const message = `Cette vidéo fait ${formatTaille(file.size)} : le maximum est ${formatTaille(VIDEO_MAX_OCTETS)}.`;
@@ -174,7 +180,7 @@ export async function envoyerVideo({
     try {
       const slot = await createSlot();
       if (slot.error || !slot.bucket || !slot.path || !slot.token) {
-        throw new ErreurEnvoi(slot.error ?? "Impossible de préparer l'envoi.", false);
+        throw new ErreurEnvoi(translateUploadErrorMessage(slot.error ?? ""), false);
       }
       onProgress({ pct: 0, restant: null, essai });
       await envoyerUneFois({ bucket: slot.bucket, path: slot.path, token: slot.token }, file, signal, (envoyes, total, debut) => {
@@ -186,15 +192,17 @@ export async function envoyerVideo({
           essai,
         });
       });
-      onProgress({ pct: 100, restant: 0, essai });
+      if (signal.aborted) throw new DOMException("Annulé", "AbortError");
       await journal("reussi");
+      if (signal.aborted) throw new DOMException("Annulé", "AbortError");
+      onProgress({ pct: 100, restant: 0, essai });
       return slot.path;
     } catch (e) {
-      if (e instanceof DOMException && e.name === "AbortError") {
+      if (signal.aborted || (e instanceof DOMException && e.name === "AbortError")) {
         await journal("annule");
-        throw e;
+        throw new DOMException("Annulé", "AbortError");
       }
-      derniere = e instanceof Error ? e : new Error(String(e));
+      derniere = e instanceof ErreurEnvoi ? e : new Error(translateUploadErrorMessage(e instanceof Error ? e.message : String(e)));
       const reessayable = e instanceof ErreurEnvoi ? e.reessayable : true;
       if (!reessayable || essai === ESSAIS_MAX) break;
       // Petite pause avant de reprendre, interrompue par une annulation.

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getFutureBookingsByFigurant, getPhotosByFigurantId, pickFichePhotos } from "@/lib/documents/data";
 import { computeAge } from "@/lib/documents/fields";
 import { PrintSheet } from "@/components/documents/print-sheet";
@@ -15,7 +15,7 @@ export default async function FigurantFichePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createAdminClient();
+  const supabase = await createServerSupabaseClient();
 
   const { data: figurant } = await supabase
     .from("figurants")
@@ -27,8 +27,8 @@ export default async function FigurantFichePage({
 
   const today = new Date().toISOString().slice(0, 10);
   const [photosByFigurant, futureBookingsByFigurant] = await Promise.all([
-    getPhotosByFigurantId([id]),
-    getFutureBookingsByFigurant([id], today),
+    getPhotosByFigurantId([id], supabase),
+    getFutureBookingsByFigurant([id], today, supabase),
   ]);
   const photos = pickFichePhotos(photosByFigurant.get(id));
   const age = computeAge(figurant.date_naissance);
@@ -44,9 +44,9 @@ export default async function FigurantFichePage({
     <div className="flex flex-col gap-4">
       <BackLink href={`/figurants/${id}`} label="Retour au profil" />
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Fiche mensuration</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton
             filename={`fiche-mensuration-${figurant.prenom}-${figurant.nom}.pdf`}
             orientation="landscape"

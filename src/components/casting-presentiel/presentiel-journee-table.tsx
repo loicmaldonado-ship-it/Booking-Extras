@@ -3,7 +3,7 @@
 import { nomComplet, formatPrenom } from "@/lib/noms";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Select, Input } from "@/components/ui/field";
 import { Modale } from "@/components/ui/modale";
@@ -61,6 +61,7 @@ export function PresentielJourneeTable({
   const [sendError, setSendError] = useState<string | null>(null);
   const [bulkStatut, setBulkStatut] = useState<BookingStatut | "">("");
   const [bulkStatutError, setBulkStatutError] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   const previewItems: PreviewItem[] = rows.map((r) => ({
     id: r.figurant_id,
@@ -72,15 +73,17 @@ export function PresentielJourneeTable({
 
   function remove(id: string) {
     startTransition(async () => {
-      await removePresentielEntry(id);
-      router.refresh();
+      const result = await removePresentielEntry(id);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
   function changeStatut(id: string, statut: BookingStatut) {
     startTransition(async () => {
-      await updatePresentielStatut(id, statut);
-      router.refresh();
+      const result = await updatePresentielStatut(id, statut);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
@@ -100,8 +103,9 @@ export function PresentielJourneeTable({
 
   function changeRole(id: string, roleId: string) {
     startTransition(async () => {
-      await updatePresentielEntryRole(id, roleId || null);
-      router.refresh();
+      const result = await updatePresentielEntryRole(id, roleId || null);
+      setRoleError(result.error ?? null);
+      if (!result.error) router.refresh();
     });
   }
 
@@ -153,7 +157,8 @@ export function PresentielJourneeTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {roleError && <p role="alert" className="text-sm text-danger">{roleError}</p>}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {rows.map((r, i) => (
           <div
             key={r.id}
@@ -161,6 +166,7 @@ export function PresentielJourneeTable({
           >
             <input
               type="checkbox"
+              aria-label={`Sélectionner ${r.figurants ? nomComplet(r.figurants) : "ce profil"}`}
               checked={selected.has(r.id)}
               onChange={() => toggleSelect(r.id)}
               className="absolute left-2 top-2 z-10 h-4 w-4 rounded border-border accent-coral"
@@ -168,6 +174,7 @@ export function PresentielJourneeTable({
             <button
               type="button"
               onClick={() => remove(r.id)}
+              aria-label={`Retirer ${r.figurants ? nomComplet(r.figurants) : "ce profil"} de la journée`}
               disabled={pending}
               className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-ink/80 text-xs text-text hover:bg-danger hover:text-ink"
               title="Retirer de cette journée"
@@ -190,6 +197,7 @@ export function PresentielJourneeTable({
             </div>
             {roles.length > 0 ? (
               <Select
+                aria-label={`Rôle : ${r.figurants ? nomComplet(r.figurants) : "profil"}`}
                 value={r.role_id ?? ""}
                 onChange={(e) => changeRole(r.id, e.target.value)}
                 disabled={pending}
@@ -206,6 +214,7 @@ export function PresentielJourneeTable({
               r.casting_roles && <div className="text-[10px] text-coral">{r.casting_roles.nom}</div>
             )}
             <StatusSelect
+              aria-label={`Statut du casting : ${r.figurants ? nomComplet(r.figurants) : "profil"}`}
               value={r.statut}
               tone={statutTone(r.statut)}
               disabled={pending}

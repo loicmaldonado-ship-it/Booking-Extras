@@ -11,7 +11,7 @@ import {
   SupprimerProjetButton,
 } from "@/components/projets/archiver-projet-button";
 import { formatDateShort } from "@/lib/format-date";
-import { requireProjetAccess } from "@/lib/auth/session";
+import { getCurrentProfile, requireProjetAccess } from "@/lib/auth/session";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { DocumentTemplatePanel } from "@/components/projets/document-template-panel";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
@@ -34,7 +34,10 @@ export default async function ProjetDetailPage({
 
   if (!projet) notFound();
 
-  const temporaireCount = projet.archive ? 0 : await countProjetTemporaires(id);
+  const temporaireCount = await countProjetTemporaires(id);
+  // MET-01 : archiver / désarchiver / supprimer réservés à la créatrice du projet (ou au compte propriétaire).
+  const profile = await getCurrentProfile();
+  const peutArchiver = !!profile && (profile.isOwner || projet.owner_id === profile.id);
   const supprimableDepuis = projetSupprimableDepuis(projet.archive_le);
   const supprimable = projetEstSupprimable(projet);
   const documentTemplate = await getDocumentTemplate(supabase, id);
@@ -43,7 +46,7 @@ export default async function ProjetDetailPage({
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/projets" label="Projets" />
 
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold">{projet.nom}</h1>
@@ -59,18 +62,20 @@ export default async function ProjetDetailPage({
             {projet.lieu ? ` · ${projet.lieu}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={`/projets/${id}/mineurs`} variant="secondary">Mineurs / DRIEETS</ButtonLink>
           <ButtonLink href={`/projets/${id}/modifier`} variant="secondary">
             Modifier
           </ButtonLink>
-          {projet.archive ? (
+          {peutArchiver && (projet.archive ? (
             <>
               <DesarchiverProjetButton projetId={id} />
+              {temporaireCount > 0 && <ArchiverProjetButton projetId={id} temporaireCount={temporaireCount} dejaArchive />}
               {supprimable && <SupprimerProjetButton projetId={id} nom={projet.nom} />}
             </>
           ) : (
             <ArchiverProjetButton projetId={id} temporaireCount={temporaireCount} />
-          )}
+          ))}
         </div>
       </div>
 

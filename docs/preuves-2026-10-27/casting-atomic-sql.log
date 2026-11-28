@@ -1,0 +1,2 @@
+PASS casting-atomic-local.sql : DO, fixtures annulées
+PASS casting-storage-state-local.sql : DO, fixtures annulées

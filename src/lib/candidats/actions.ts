@@ -1,115 +1,24 @@
 "use server";
 
-import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers";
-import { formatPrenom } from "@/lib/noms";
-import { getCurrentProfile } from "@/lib/auth/session";
+import { fichierPartageParUneAutreFiche } from "@/lib/figurants/photos-fichiers";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
+import { readGuardians } from "@/lib/minors/model";
 import { aAccesComplet } from "@/lib/auth/owner";
-import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retourAutorise } from "@/lib/candidats/retour";
 import { aCreeSonCompte, definirMotDePasse, motDePasseCorrect } from "@/lib/candidats/mot-de-passe";
 import { invitationPourFicheSansCompte } from "@/lib/candidats/invitation";
-import { getSiteOrigin } from "@/lib/partage/data";
-import { sendEmail } from "@/lib/email/send";
-import { getProjetEmailCredentials } from "@/lib/projets/email";
-import { getEmailTemplate, applyEmailTemplate } from "@/lib/projets/email-templates";
 import { LIEN_BANDE_DEMO, LIEN_INSTAGRAM, MAX_PHOTOS_PAR_FIGURANT, type PhotoType } from "@/lib/figurants/types";
 import { upsertFigurantLienByLabel } from "@/lib/figurants/liens";
 import { countFigurantPhotos, insertFigurantPhoto } from "@/lib/figurants/photos";
-import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant } from "./session";
-
-const TOKEN_TTL_MS = 30 * 60 * 1000;
-
-function genToken() {
-  return randomUUID().replace(/-/g, "");
-}
-
-async function createMagicLinkToken(figurantId: string, retour?: string | null) {
-  const supabase = createAdminClient();
-  const token = genToken();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-
-  const { error } = await supabase
-    .from("figurant_auth_tokens")
-    .insert({ figurant_id: figurantId, token, expires_at: expiresAt.toISOString() });
-  if (error) return { error: "Une erreur est survenue, réessayez." };
-
-  const origin = await getSiteOrigin();
-  const suite = retourAutorise(retour);
-  return { link: `${origin}/compte/verifier?token=${token}${suite ? `&retour=${encodeURIComponent(suite)}` : ""}` };
-}
-
-// Envoi réel (Gmail SMTP) du lien de connexion — utilisé pour une demande
-// volontaire du candidat déjà actif (/compte/connexion). projetId absent
-// (demande publique, sans contexte cheffe) => boîte partagée par défaut.
-export async function sendMagicLinkEmail(
-  figurant: { id: string; prenom: string; email: string },
-  projetId?: string | null,
-  retour?: string | null
-) {
-  const { link, error: linkError } = await createMagicLinkToken(figurant.id, retour);
-  if (linkError || !link) return { error: linkError };
-
-  const supabaseForTemplate = createAdminClient();
-  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "magic_link");
-
-  const subject = "Booking Extras — votre lien de connexion";
-  const body = customTemplate
-    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
-    : [
-        `Bonjour ${formatPrenom(figurant.prenom)},`,
-        "",
-        "Voici votre lien de connexion à votre espace Booking Extras (valable 30 minutes) :",
-        link,
-        "",
-        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-      ].join("\n");
-
-  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
-  if (credError) return { error: credError };
-  const result = await sendEmail(figurant.email, subject, body, credentials);
-  if (result.error) return { error: result.error };
-  return { success: true as const };
-}
-
-// Envoyé une seule fois, au moment où l'accès à l'espace personnel s'active
-// (candidature passée à "retenu", ou activation manuelle par le staff) —
-// texte différent du simple renvoi de lien : explique le statut "retenu"
-// et à quoi sert l'espace.
-export async function sendAccesCompteActiveEmail(
-  figurant: { id: string; prenom: string; email: string },
-  projetId?: string | null
-) {
-  const { link, error: linkError } = await createMagicLinkToken(figurant.id);
-  if (linkError || !link) return { error: linkError };
-
-  const supabaseForTemplate = createAdminClient();
-  const customTemplate = await getEmailTemplate(supabaseForTemplate, projetId, "espace_perso");
-
-  const subject = "Booking Extras — votre espace personnel est prêt";
-  const body = customTemplate
-    ? applyEmailTemplate(customTemplate, { prenom: figurant.prenom, lien: link })
-    : [
-        `Bonjour ${formatPrenom(figurant.prenom)},`,
-        "",
-        "Vous avez été ajouté·e à une date de tournage.",
-        "",
-        "Merci d'accéder à votre espace personnel : vous y retrouverez vos dates et les échanges de messages avec nous.",
-        "",
-        `Voici votre lien de connexion (valable 30 minutes) :`,
-        link,
-        "",
-        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
-      ].join("\n");
-
-  const { credentials, error: credError } = await getProjetEmailCredentials(createAdminClient(), projetId);
-  if (credError) return { error: credError };
-  const result = await sendEmail(figurant.email, subject, body, credentials);
-  if (result.error) return { error: result.error };
-  return { success: true as const };
-}
+import { clearFigurantSessionCookie, createFigurantSession, getCurrentFigurant, setFigurantSessionCookie } from "./session";
+import { getCurrentProfile, checkProjetAccess } from "@/lib/auth/session";
+import { consumeCandidateLoginAttempt } from "@/lib/candidats/rate-limit";
+import { MOT_DE_PASSE_MIN } from "@/lib/candidats/profil";
+import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/email";
 
 export async function requestMagicLink(
   _prevState: unknown,
@@ -118,38 +27,31 @@ export async function requestMagicLink(
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email) return { error: "Merci de renseigner votre email." };
 
+  // BUG-09: never disclose whether an address exists, is disabled, or whether
+  // SMTP is currently configured. Apply a shared rate limit before lookup.
+  const permitted = await consumeCandidateLoginAttempt(email);
+  if (!permitted) return { sentTo: email };
   const supabase = createAdminClient();
-  // L'espace personnel (disponibilités, candidatures) est toujours la
-  // fiche figurant·e, jamais une éventuelle fiche comédien·ne partageant
-  // le même email (voir comedien-privacy.ts) — sans ce filtre, une
-  // personne ayant les deux fiches ferait planter la recherche (deux
-  // lignes pour un seul email attendu).
-  const { data: figurant } = await supabase
+  const { data: figurant, error: lookupError } = await supabase
     .from("figurants")
     .select("id, prenom, email, acces_compte")
-    .ilike("email", email)
+    .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
     .eq("est_comedien", false)
     .maybeSingle();
 
-  if (!figurant?.email) {
-    return {
-      error: "Aucun compte ne correspond à cet email. Crée ton compte (gratuit) pour postuler aux annonces.",
-    };
+  if (!lookupError && figurant?.email) {
+    if (figurant.acces_compte) {
+      try {
+        const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
+        if (result.error) console.error("Échec de l'envoi du lien de connexion candidat.");
+      } catch { console.error("Échec de l'envoi du lien de connexion candidat."); }
+    } else {
+      // Invitation possible, sans révéler au demandeur si cette fiche existe.
+      try { await invitationPourFicheSansCompte(figurant.id, null, retourAutorise(formData.get("retour"))); }
+      catch { console.error("Échec de l'invitation au compte candidat."); }
+    }
   }
-  if (!figurant.acces_compte) {
-    // Fiche de la base sans compte (ajoutée par l'équipe) : lien « Crée ton
-    // compte » plutôt qu'une connexion.
-    const invitation = await invitationPourFicheSansCompte(figurant.id, null, retourAutorise(formData.get("retour")));
-    if (invitation) return invitation;
-    return {
-      error: "Votre espace n'est pas encore activé. Contactez le casting si besoin.",
-    };
-  }
-
-  const result = await sendMagicLinkEmail(figurant, null, retourAutorise(formData.get("retour")));
-  if (result.error) return { error: result.error };
-
-  return { sentTo: figurant.email };
+  return { sentTo: email };
 }
 
 // Alternative au lien magique quand un mot de passe a déjà été défini
@@ -161,17 +63,21 @@ export async function loginWithPassword(
 ): Promise<{ error?: string } | void> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) return { error: "Email et mot de passe requis." };
+  if (!email || !password || email.length > 254 || password.length > 1024) return { error: "Email ou mot de passe incorrect." };
+  if (!(await consumeCandidateLoginAttempt(email))) {
+    return { error: "Connexion momentanément indisponible. Réessayez dans 15 minutes." };
+  }
 
   const supabase = createAdminClient();
   const { data: figurant } = await supabase
     .from("figurants")
-    .select("id")
-    .ilike("email", email)
+    .select("id, acces_compte")
+    .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
     .eq("est_comedien", false)
     .maybeSingle();
 
-  if (!figurant || !(await motDePasseCorrect(figurant.id, password))) {
+  const correct = await motDePasseCorrect(figurant?.id ?? "00000000-0000-0000-0000-000000000000", password);
+  if (!figurant?.acces_compte || !correct) {
     return { error: "Email ou mot de passe incorrect." };
   }
 
@@ -191,15 +97,35 @@ export async function setMaPassword(
   if (!session) return { error: "Non connecté." };
 
   const password = String(formData.get("password") ?? "");
-  if (password.length < 6) return { error: "Le mot de passe doit faire au moins 6 caractères." };
+  if (password.length < MOT_DE_PASSE_MIN) {
+    return { error: `Le mot de passe doit faire au moins ${MOT_DE_PASSE_MIN} caractères.` };
+  }
+  if (password.length > 1024) return { error: "Mot de passe trop long." };
+  const confirmation = formData.get("password_confirmation");
+  if (confirmation !== null && String(confirmation) !== password) {
+    return { error: "Les deux mots de passe ne sont pas identiques." };
+  }
 
-  const { error } = await definirMotDePasse(session.id, password);
+  const { error, session: renewed } = await definirMotDePasse(session.id, password, true, (await cookies()).get("figurant_session")?.value);
   if (error) return { error };
-
+  if (!renewed) return { error: "Session non créée. Reconnecte-toi." };
+  // Nouvelle session créée sous le même verrou que la révocation des anciennes.
+  await setFigurantSessionCookie(renewed.token, new Date(renewed.expiresAt));
   return { success: true };
 }
 
 export async function logoutFigurant() {
+  // Destroy the server-side session as well as the browser cookie.
+  const { cookies } = await import("next/headers");
+  const token = (await cookies()).get("figurant_session")?.value;
+  if (token) {
+    try {
+      const { error } = await createAdminClient().from("figurant_sessions").delete().eq("token", token);
+      if (error) return { error: "La déconnexion a échoué. Veuillez réessayer." };
+    } catch {
+      return { error: "La déconnexion a échoué. Veuillez réessayer." };
+    }
+  }
   await clearFigurantSessionCookie();
   redirect("/compte/connexion");
 }
@@ -221,10 +147,16 @@ export async function markMessageBienRecu(messageId: string) {
   if (error) return { error: error.message };
 
   if (message?.booking_id) {
-    await supabase
+    // The message is authenticated, but its booking reference is still
+    // untrusted. Never mutate another candidate's booking via service_role.
+    const { data: updatedBooking, error: bookingError } = await supabase
       .from("bookings")
       .update({ reponse_recue: true, reponse_recue_le: new Date().toISOString() })
-      .eq("id", message.booking_id);
+      .eq("id", message.booking_id)
+      .eq("figurant_id", figurant.id)
+      .select("id")
+      .maybeSingle();
+    if (bookingError || !updatedBooking) return { error: "Message reçu, mais mise à jour du booking impossible." };
     revalidatePath("/bookings/documents");
   }
 
@@ -256,7 +188,8 @@ export async function unsubscribeFromPush(endpoint: string) {
   if (!figurant) return { error: "Non connecté." };
 
   const supabase = createAdminClient();
-  await supabase.from("push_subscriptions").delete().eq("figurant_id", figurant.id).eq("endpoint", endpoint);
+  const { error } = await supabase.from("push_subscriptions").delete().eq("figurant_id", figurant.id).eq("endpoint", endpoint);
+  if (error) return { error: error.message };
   return { success: true };
 }
 
@@ -269,6 +202,18 @@ export async function unsubscribeFromPush(endpoint: string) {
 // l'ancien comportement : idempotent une seule fois pour toute la vie du
 // profil.
 export async function activerAccesCompte(figurantId: string, projetId?: string | null) {
+  // Publicly callable Server Actions must never use service_role unauthenticated.
+  const staff = await getCurrentProfile();
+  if (!staff) return { error: "Non autorisé." };
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied };
+  } else if (staff.role !== "chef") {
+    return { error: "Réservé au·à la chef·fe." };
+  }
+  // Une écriture service_role doit d'abord vérifier que ce profil est bien visible pour la personne connectée.
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
   const supabase = createAdminClient();
   const { data: figurant } = await supabase
     .from("figurants")
@@ -280,7 +225,14 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 
   const etaitDejaActif = figurant.acces_compte;
   if (!etaitDejaActif) {
-    await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+    const { error: activationError } = await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+    if (activationError) return { error: activationError.message };
+  }
+  // Compte créé par la personne elle-même : pas de lien « espace prêt »,
+  // réservé aux profils ajoutés à la main.
+  if (await aCreeSonCompte(figurantId)) {
+    revalidatePath(`/figurants/${figurantId}`);
+    return { success: true as const };
   }
   // Compte créé par la personne elle-même : pas de lien « espace prêt »,
   // réservé aux profils ajoutés à la main.
@@ -317,7 +269,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     }
   }
 
-  await supabase.from("figurant_messages").insert({
+  const { error: messageError } = await supabase.from("figurant_messages").insert({
     figurant_id: figurantId,
     projet_id: projetId ?? null,
     sender: "staff",
@@ -325,6 +277,7 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
     corps: "Lien d'accès à l'espace personnel envoyé.",
     categorie: "espace_perso",
   });
+  if (messageError) return { error: "Accès activé, mais historique de l'envoi non enregistré." };
 
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const };
@@ -336,12 +289,28 @@ export async function activerAccesCompte(figurantId: string, projetId?: string |
 // Gmail (et la même obligation de config pour les cheffes non-admin) que le
 // reste de la messagerie sur cette fiche partagée.
 export async function toggleAccesCompte(figurantId: string, value: boolean, projetId?: string | null) {
-  const supabase = createAdminClient();
+  const staff = await getCurrentProfile();
+  if (!staff) return { error: "Non autorisé." };
+  if (projetId) {
+    const denied = await checkProjetAccess(projetId);
+    if (denied) return { error: denied };
+  } else if (staff.role !== "chef") {
+    return { error: "Réservé au·à la chef·fe." };
+  }
   if (value) return activerAccesCompte(figurantId, projetId);
   // Révoquer l'accès d'un compte : réservé aux comptes à accès complet.
   if (!aAccesComplet(await getCurrentProfile())) return { error: "Seuls Loïc, Mathieu et Eléa peuvent révoquer un accès." };
 
-  await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
+  const supabase = createAdminClient();
+  const { error: updateError } = await supabase.from("figurants").update({ acces_compte: false }).eq("id", figurantId);
+  if (updateError) return { error: updateError.message };
+  // Invalidate both active sessions and unused login links upon revocation.
+  const { error: sessionsError } = await supabase.from("figurant_sessions").delete().eq("figurant_id", figurantId);
+  const { error: tokensError } = await supabase.from("figurant_auth_tokens").delete().eq("figurant_id", figurantId);
+  if (sessionsError || tokensError) return { error: "Accès désactivé, mais la révocation des sessions ou liens doit être vérifiée." };
   revalidatePath(`/figurants/${figurantId}`);
   return { success: true as const };
 }
@@ -374,7 +343,7 @@ function buildVehiculePayload(fd: FormData) {
 // Le candidat ne modifie que sa PROPRE fiche — l'id vient de sa session,
 // jamais d'un champ du formulaire, pour ne jamais pouvoir modifier un autre
 // profil.
-export async function updateMaFiche(_prevState: unknown, formData: FormData) {
+export async function updateMaFiche(_prevState: unknown, formData: FormData): Promise<{ error?: string; success?: true }> {
   const session = await getCurrentFigurant();
   if (!session) return { error: "Non connecté." };
 
@@ -403,17 +372,22 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
     return { error: "La pointure doit être comprise entre 15 et 60." };
   }
 
+  const birth = str(formData, "date_naissance") ?? "";
+  const guardians = readGuardians(formData, birth, email);
+  if ("error" in guardians) return guardians;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { error: "Adresse email invalide." };
   const supabase = createAdminClient();
+  const { error: identityError } = await supabase.rpc("update_candidate_identity", { p_id: session.id, p_email: email, p_birth: birth, p_guardians: guardians.data });
+  if (identityError) return { error: "L’identité n’a pas pu être enregistrée. Vérifie la date de naissance et les trois emails." };
   const { error } = await supabase
     .from("figurants")
     .update({
-      email,
       telephone,
       ville,
       adresse,
       code_postal: codePostal,
       commune_naissance: communeNaissance,
-      date_naissance: str(formData, "date_naissance"),
+
       genre,
       pronom,
       taille_cm: num(formData, "taille_cm"),
@@ -444,12 +418,13 @@ export async function updateMaFiche(_prevState: unknown, formData: FormData) {
     return { error: error.message };
   }
 
-  await Promise.all([
+  const liens = await Promise.all([
     upsertFigurantLienByLabel(supabase, session.id, LIEN_BANDE_DEMO, str(formData, "lien_bande_demo")),
     upsertFigurantLienByLabel(supabase, session.id, LIEN_INSTAGRAM, str(formData, "lien_instagram")),
   ]);
 
   revalidatePath("/compte");
+  if (liens.some((r) => r.error)) return { error: "Profil enregistré, mais tes liens (bande démo, Instagram) n'ont pas pu être mis à jour. Réessaie." };
   return { success: true as const };
 }
 
@@ -479,11 +454,12 @@ export async function removeIndisponibiliteSelf(date: string) {
   if (!session) return { error: "Non connecté." };
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("figurant_indisponibilites")
     .delete()
     .eq("figurant_id", session.id)
     .eq("date", date);
+  if (error) return { error: "Impossible de retirer cette indisponibilité. Réessaie." };
 
   revalidatePath("/compte");
   return { success: true as const };
@@ -503,6 +479,7 @@ export async function uploadMaPhoto(_prevState: unknown, formData: FormData) {
 
   const supabase = createAdminClient();
   const existing = await countFigurantPhotos(supabase, session.id);
+  if (existing === null) return { error: "Impossible de vérifier le nombre de photos. Réessaie." };
   if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
     return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos.` };
   }
@@ -520,16 +497,22 @@ export async function deleteMaPhoto(photoId: string) {
   if (!session) return { error: "Non connecté." };
 
   const supabase = createAdminClient();
-  const { data: photo } = await supabase
+  const { data: photo, error: readError } = await supabase
     .from("figurant_photos")
     .select("storage_path")
     .eq("id", photoId)
     .eq("figurant_id", session.id)
     .maybeSingle();
+  if (readError) return { error: "Impossible de vérifier cette photo. Réessaie." };
   if (!photo) return { error: "Photo introuvable." };
 
-  await supabase.from("figurant_photos").delete().eq("id", photoId);
-  await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
+  // Le fichier part d'abord (erreur signalée), sauf s'il sert encore à une autre fiche (ex. un profil de casting).
+  if (!(await fichierPartageParUneAutreFiche(supabase, photo.storage_path, photoId))) {
+    const { error: storageError } = await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
+    if (storageError) return { error: "Impossible de confirmer la suppression du fichier. Recharge la page avant de réessayer." };
+  }
+  const { error: deleteError } = await supabase.from("figurant_photos").delete().eq("id", photoId).eq("figurant_id", session.id);
+  if (deleteError) return { error: "Le retrait de la photo n’a pas pu être confirmé. Recharge la page avant de réessayer." };
 
   revalidatePath("/compte");
   return { success: true as const };

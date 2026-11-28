@@ -14,7 +14,8 @@ export async function findOrInviteProfile(
 ): Promise<{ id: string | null; invited: boolean; error: string | null }> {
   const admin = createAdminClient();
 
-  const { data: profil } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
+  const { data: profil, error: profilError } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
+  if (profilError) return { id: null, invited: false, error: "Impossible de vérifier ce compte. Réessaie." };
   if (profil) return { id: profil.id, invited: false, error: null };
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";

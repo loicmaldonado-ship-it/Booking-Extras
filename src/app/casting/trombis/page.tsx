@@ -1,7 +1,7 @@
 import { nomComplet, comparerNoms } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Select } from "@/components/ui/field";
 import { BackLink } from "@/components/ui/back-link";
@@ -118,7 +118,7 @@ export default async function CastingTrombisPage({
             {filtered.length} profil{filtered.length > 1 ? "s" : ""} sur {roles.length} rôle{roles.length > 1 ? "s" : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`trombis-casting-${projet?.nom ?? "projet"}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

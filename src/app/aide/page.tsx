@@ -448,6 +448,13 @@ export default function AidePage() {
               message est retiré.
             </>,
             <>
+              <strong className="text-text">OUT</strong> : la candidature disparaît de l&apos;annonce (« Tous » et
+              les autres onglets) et n&apos;en reste la trace que dans l&apos;onglet <UI>OUT</UI>. La personne reçoit
+              dans son espace : « Désolé, vous n&apos;avez pas été retenu·e pour l&apos;annonce … Un grand merci pour
+              votre candidature, et à tout bientôt ! L&apos;équipe Booking Extras ». Sortie de OUT par erreur, le
+              message est retiré.
+            </>,
+            <>
               Depuis la fiche, <UI>+ Ajouter à un booking</UI> pour la faire passer directement en tournage, ou
               envoie-la vers <strong className="text-text">Casting</strong> si tu veux d&apos;abord une vidéo.
             </>,
@@ -474,7 +481,7 @@ export default function AidePage() {
           <Steps
             items={[
               <>
-                <UI>+ Nouveau casting</UI>, donne-lui un nom, une{" "}
+                <UI>+ Créer un rôle</UI>, donne-lui un nom, une{" "}
                 <strong className="text-text">catégorie de cachet</strong> (Rôle / Silhouette / Doublure) et un{" "}
                 <strong className="text-text">mode de casting</strong> (Présentiel / Selftape) — indicatif
                 seulement, l&apos;envoi du lien selftape et l&apos;ajout au planning présentiel restent tous les
@@ -517,7 +524,7 @@ export default function AidePage() {
                 <UI>＋ Onglet</UI> crée un onglet à ton nom (« Épisode 1 », « Session 2 »…), propre au projet.
                 <UI>👥 Tous</UI> montre tout, <UI>📥 Sans onglet</UI> les rôles pas encore rangés. Glisse une carte sur
                 un onglet pour la ranger, ou choisis-le dans <UI>Ranger dans</UI> quand le rôle est ouvert. Supprimer
-                un onglet ne supprime pas ses rôles. <UI>+ Nouveau casting</UI> range le nouveau rôle dans l&apos;onglet
+                un onglet ne supprime pas ses rôles. <UI>+ Créer un rôle</UI> range le nouveau rôle dans l&apos;onglet
                 ouvert.
               </>,
               <>
@@ -587,7 +594,7 @@ export default function AidePage() {
           <Steps
             items={[
               <>
-                <UI>Importer des rôles (CSV)</UI>, à côté de <UI>+ Nouveau casting</UI>, puis choisis ton
+                <UI>Importer des rôles (CSV)</UI>, à côté de <UI>+ Créer un rôle</UI>, puis choisis ton
                 fichier. Une ligne du fichier = un rôle, avec les colonnes{" "}
                 <strong className="text-text">Épisode, Rôle, Catégorie, Profil, Texte d&apos;essai</strong> (les
                 lignes du haut — compteurs, ligne vide — sont passées toutes seules).
@@ -657,7 +664,7 @@ export default function AidePage() {
         <Callout>
           <strong className="text-text">Rôles, silhouettes, doublures : trois onglets.</strong> En haut de la page
           Casting, <UI>Rôles</UI> / <UI>Silhouettes</UI> / <UI>Doublures</UI> (avec le nombre de rôles et de profils) : chaque
-          onglet a ses propres castings, et <UI>+ Nouveau casting</UI> propose la catégorie de l&apos;onglet ouvert.
+          onglet a ses propres castings, et <UI>+ Créer un rôle</UI> propose la catégorie de l&apos;onglet ouvert.
           Le bouton <UI>Partager au réal</UI> (en haut à droite) ouvre deux liens : un <strong className="text-text">lien séparé</strong> pour la
           catégorie de l&apos;onglet (le·la réal ne voit que les silhouettes, par exemple), et un lien{" "}
           <UI>Tout le casting</UI> qui range les profils par catégorie (Rôles, Silhouettes, Doublures) dans{" "}

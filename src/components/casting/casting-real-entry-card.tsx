@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Badge } from "@/components/ui/card";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { cn } from "@/lib/cn";
@@ -362,7 +362,6 @@ function CastingRealMediaModal({
           {video ? (
             <>
               <div className="relative">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
                 <video
                   ref={videoRef}
                   src={video.url}

@@ -1,4 +1,5 @@
-import Image from "next/image";
+import { getGuardiansForVerifiedCandidate } from "@/lib/minors/data";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, Badge } from "@/components/ui/card";
@@ -7,8 +8,8 @@ import { PostulerForm, type PhotoDuCompte } from "@/components/candidatures/post
 import { getPhotosByFigurantId } from "@/lib/documents/data";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { projetNomPublic } from "@/lib/projets/types";
-import { getAnnonceQuestions } from "@/lib/annonces/questions";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceQuestions } from "@/lib/annonces/data";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { getCurrentFigurant } from "@/lib/candidats/session";
@@ -196,6 +197,7 @@ export default async function PostulerPage({
       {annonce.statut === "ouverte" && !complet ? (
         <PostulerForm
           publicToken={annonce.public_token}
+          guardians={session ? await getGuardiansForVerifiedCandidate(session.id) : undefined}
           questions={await getAnnonceQuestions(annonce.id)}
           dates={annonceDates}
           disposParCalendrier={annonce.dispos_par_calendrier}

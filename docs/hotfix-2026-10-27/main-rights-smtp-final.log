@@ -1,0 +1,5 @@
+BEGIN
+NOTICE:  PASS: SMTP secret denied for self/foreign/anon; team and login fields/self-edit preserved; TRUNCATE denied
+NOTICE:  PASS: private pools, own access, direct write denials, share isolation, sessions, deletion RPC, anon
+DO
+ROLLBACK

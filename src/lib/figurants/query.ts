@@ -1,6 +1,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS, type MensurationFilters } from "@/lib/figurants/mensuration-filters";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { buildProfileSearchFilter } from "./search-filter";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 export type FigurantFilters = {
@@ -35,6 +36,11 @@ export function buildFigurantsQuery(
     .order("nom", { ascending: true })
     .order("prenom", { ascending: true });
 
+  // Base partagée des figurant·es : seulement les profils avec un accès compte. La base casting
+  // (comédien·nes, personnes venues par un lien sans compte) n'a pas de compte : elle reste visible,
+  // limitée à la base privée de chaque chef·fe (comedienPoolClause ci-dessous).
+  if (params.profil !== "comediens") query = query.eq("acces_compte", true);
+
   // Séparation figurant·es de figuration / comédien·nes (profils "rôle") —
   // deux pools distincts, jamais mélangés dans une même liste : les
   // comédien·nes ont souvent des fiches minimales (juste le nom) qui
@@ -50,11 +56,8 @@ export function buildFigurantsQuery(
     if (clause) query = query.or(clause);
   }
 
-  if (params.q) {
-    query = query.or(
-      `nom.ilike.%${params.q}%,prenom.ilike.%${params.q}%,email.ilike.%${params.q}%,telephone.ilike.%${params.q}%`
-    );
-  }
+  const searchFilter = buildProfileSearchFilter(params.q);
+  if (searchFilter) query = query.or(searchFilter);
   if (params.ville) {
     query = query.ilike("ville", `%${params.ville}%`);
   }

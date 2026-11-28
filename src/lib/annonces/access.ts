@@ -7,6 +7,6 @@ import { checkProjetAccess } from "@/lib/auth/session";
 export async function checkAnnonceAccess(annonceId: string): Promise<string | null> {
   const supabase = createAdminClient();
   const { data: annonce } = await supabase.from("annonces").select("projet_id").eq("id", annonceId).maybeSingle();
-  if (!annonce) return null;
+  if (!annonce) return "Élément introuvable.";
   return checkProjetAccess(annonce.projet_id);
 }

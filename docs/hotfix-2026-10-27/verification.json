@@ -1,0 +1,44 @@
+{
+  "node_tests": {
+    "command": "npm test",
+    "exit_code": 0,
+    "tests": 49,
+    "passed": 49,
+    "failed": 0
+  },
+  "typecheck": {
+    "command": "npm run typecheck",
+    "exit_code": 0
+  },
+  "dependency_audit": {
+    "command": "npm audit --json",
+    "exit_code": 0,
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "sql_replay": {
+    "main_migrations": 154,
+    "hotfix_migrations": 11,
+    "result": "success",
+    "fingerprints_identical": true
+  },
+  "lint": {
+    "command": "npm run lint",
+    "exit_code": 0,
+    "errors": 0,
+    "warnings": 4
+  },
+  "build": {
+    "command": "npm run build -- --webpack",
+    "result": "success",
+    "build_id": "KFHF7HjFgvGTDYHiei182",
+    "production_configuration_used": false
+  },
+  "all_required_local_checks_finished": true
+}

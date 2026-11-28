@@ -52,7 +52,11 @@ export async function creerEnvoi(params: {
     .insert(params.destinataires.map((d) => ({ envoi_id: envoi.id, figurant_id: d.figurantId, booking_id: d.bookingId })))
     .select("id, figurant_id, token");
   if (errLignes) {
-    await supabase.from("envois").delete().eq("id", envoi.id);
+    const { error: cleanupError } = await supabase.from("envois").delete().eq("id", envoi.id);
+    if (cleanupError) {
+      revalidatePath("/bookings/documents");
+      return { error: "Le suivi a été créé, mais les destinataires et son nettoyage ont échoué. Vérifie le suivi avant de réessayer." };
+    }
     return { error: "Destinataires impossibles à enregistrer, réessaie." };
   }
 
@@ -74,13 +78,28 @@ export async function envoyerEnvoiEmail(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError, envoyes: 0, echecs: 0 };
 
+  if (!Array.isArray(items) || items.length === 0 || items.length > 500 || new Set(items.map((it) => it.destinataireId)).size !== items.length) {
+    return { error: "Sélection de destinataires invalide.", envoyes: 0, echecs: 0 };
+  }
   const supabase = createAdminClient();
+  const { data: destinataires, error: destinatairesError } = await supabase
+    .from("envoi_destinataires")
+    .select("id, figurant_id, booking_id, envoye_le")
+    .eq("envoi_id", envoiId)
+    .in("id", items.map((it) => it.destinataireId));
+  if (destinatairesError || !destinataires || destinataires.length !== items.length || items.some((it) => {
+    const d = destinataires.find((row) => row.id === it.destinataireId);
+    return !d || d.figurant_id !== it.figurantId || d.booking_id !== it.bookingId || (!relance && !!d.envoye_le);
+  })) {
+    return { error: "Impossible de vérifier tous les destinataires ou certains sont déjà envoyés. Aucun email envoyé pour ce lot.", envoyes: 0, echecs: 0 };
+  }
   let envoyes = 0;
   let echecs = 0;
   for (const it of items) {
     if (!it.email) {
-      await supabase.from("envoi_destinataires").update({ erreur: "Pas d'email" }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      const { error: suiviError } = await supabase.from("envoi_destinataires").update({ erreur: "Pas d'email" }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
       echecs += 1;
+      if (suiviError) return { error: "Suivi impossible à enregistrer. Vérifie les envois avant de réessayer.", envoyes, echecs };
       continue;
     }
     const res = await recordFigurantMessage({
@@ -95,23 +114,27 @@ export async function envoyerEnvoiEmail(
     const maintenant = new Date().toISOString();
     if (res.error) {
       echecs += 1;
-      await supabase.from("envoi_destinataires").update({ erreur: res.error }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      const { error: suiviError } = await supabase.from("envoi_destinataires").update({ erreur: res.error }).eq("id", it.destinataireId).eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Message possiblement enregistré, mais son suivi a échoué. Vérifie avant de réessayer.", envoyes, echecs };
       continue;
     }
     envoyes += 1;
     if (relance) {
-      const { data: ligne } = await supabase.from("envoi_destinataires").select("relances").eq("id", it.destinataireId).maybeSingle();
-      await supabase
+      const { data: ligne, error: lectureError } = await supabase.from("envoi_destinataires").select("relances").eq("id", it.destinataireId).eq("envoi_id", envoiId).maybeSingle();
+      if (lectureError || !ligne) return { error: "Email envoyé mais suivi impossible à vérifier. Vérifie avant de réessayer.", envoyes, echecs };
+      const { error: suiviError } = await supabase
         .from("envoi_destinataires")
         .update({ relances: (ligne?.relances ?? 0) + 1, derniere_relance_le: maintenant, erreur: null })
         .eq("id", it.destinataireId)
         .eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Email envoyé mais suivi non enregistré. Vérifie avant de réessayer.", envoyes, echecs };
     } else {
-      await supabase
+      const { error: suiviError } = await supabase
         .from("envoi_destinataires")
         .update({ envoye_le: maintenant, erreur: null })
         .eq("id", it.destinataireId)
         .eq("envoi_id", envoiId);
+      if (suiviError) return { error: "Email envoyé mais suivi non enregistré. Vérifie avant de réessayer.", envoyes, echecs };
     }
   }
   revalidatePath("/bookings/documents");
@@ -129,15 +152,23 @@ export async function marquerEnvoiTextos(
   if (!projetId) return { error: "Envoi introuvable." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+  if (!Array.isArray(destinataireIds) || new Set(destinataireIds).size !== destinataireIds.length) return { error: "Sélection de destinataires invalide." };
+  if (destinataireIds.length === 0) return {};
   const supabase = createAdminClient();
   const maintenant = new Date().toISOString();
   if (relance) {
-    const { data: lignes } = await supabase.from("envoi_destinataires").select("id, relances").in("id", destinataireIds).eq("envoi_id", envoiId);
-    for (const l of lignes ?? []) {
-      await supabase.from("envoi_destinataires").update({ relances: l.relances + 1, derniere_relance_le: maintenant }).eq("id", l.id);
+    const { data: lignes, error: lectureError } = await supabase.from("envoi_destinataires").select("id, relances").in("id", destinataireIds).eq("envoi_id", envoiId);
+    if (lectureError || !lignes || lignes.length !== destinataireIds.length) return { error: "Impossible de vérifier tous les destinataires des relances." };
+    for (const l of lignes) {
+      const { error } = await supabase.from("envoi_destinataires").update({ relances: l.relances + 1, derniere_relance_le: maintenant }).eq("id", l.id).eq("envoi_id", envoiId);
+      if (error) {
+        revalidatePath("/bookings/documents");
+        return { error: "Le suivi des relances est incomplet." };
+      }
     }
   } else {
-    await supabase.from("envoi_destinataires").update({ envoye_le: maintenant, erreur: null }).in("id", destinataireIds).eq("envoi_id", envoiId);
+    const { error } = await supabase.from("envoi_destinataires").update({ envoye_le: maintenant, erreur: null }).in("id", destinataireIds).eq("envoi_id", envoiId);
+    if (error) return { error: "Le suivi des textos n’a pas pu être enregistré." };
   }
   revalidatePath("/bookings/documents");
   return {};
@@ -147,15 +178,18 @@ export async function marquerEnvoiTextos(
 // ou annulée.
 export async function marquerRecu(destinataireId: string, recu: boolean): Promise<{ error?: string }> {
   const supabase = createAdminClient();
-  const { data: ligne } = await supabase.from("envoi_destinataires").select("envoi_id").eq("id", destinataireId).maybeSingle();
+  const { data: ligne, error: lookupError } = await supabase.from("envoi_destinataires").select("envoi_id").eq("id", destinataireId).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier le destinataire." };
   if (!ligne) return { error: "Introuvable." };
   const projetId = await projetDeLEnvoi(ligne.envoi_id);
+  if (!projetId) return { error: "Impossible de vérifier le projet de cet envoi." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
-  await supabase
+  const { error } = await supabase
     .from("envoi_destinataires")
     .update({ accuse_le: recu ? new Date().toISOString() : null })
     .eq("id", destinataireId);
+  if (error) return { error: "Impossible de modifier la confirmation de réception." };
   revalidatePath("/bookings/documents");
   return {};
 }
@@ -165,7 +199,8 @@ export async function supprimerEnvoi(envoiId: string): Promise<{ error?: string 
   if (!projetId) return { error: "Envoi introuvable." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
-  await createAdminClient().from("envois").delete().eq("id", envoiId);
+  const { error } = await createAdminClient().from("envois").delete().eq("id", envoiId);
+  if (error) return { error: "Impossible de supprimer ce suivi." };
   revalidatePath("/bookings/documents");
   return {};
 }
@@ -175,10 +210,12 @@ export async function supprimerEnvoi(envoiId: string): Promise<{ error?: string 
 export async function confirmerReception(token: string): Promise<{ error?: string }> {
   if (!/^[0-9a-f-]{36}$/i.test(token)) return { error: "Lien invalide." };
   const supabase = createAdminClient();
-  const { data: ligne } = await supabase.from("envoi_destinataires").select("id, accuse_le").eq("token", token).maybeSingle();
+  const { data: ligne, error: lookupError } = await supabase.from("envoi_destinataires").select("id, accuse_le").eq("token", token).maybeSingle();
+  if (lookupError) return { error: "Impossible de vérifier le lien. Réessaie." };
   if (!ligne) return { error: "Lien invalide ou expiré." };
   if (!ligne.accuse_le) {
-    await supabase.from("envoi_destinataires").update({ accuse_le: new Date().toISOString() }).eq("id", ligne.id);
+    const { error } = await supabase.from("envoi_destinataires").update({ accuse_le: new Date().toISOString() }).eq("id", ligne.id);
+    if (error) return { error: "Impossible d’enregistrer la confirmation. Réessaie." };
   }
   return {};
 }

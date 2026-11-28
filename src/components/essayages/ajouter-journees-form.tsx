@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 
 const MOIS = [
@@ -27,9 +27,10 @@ export function AjouterJourneesForm({
   action,
   existingDates,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (state: { error: string }, formData: FormData) => Promise<{ error: string }>;
   existingDates: string[];
 }) {
+  const [result, formAction, pending] = useActionState(action, { error: "" });
   const today = useMemo(() => {
     const t = new Date();
     t.setHours(0, 0, 0, 0);
@@ -66,7 +67,7 @@ export function AjouterJourneesForm({
   const sortedSelected = Array.from(selected).sort();
 
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={formAction} className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -133,12 +134,13 @@ export function AjouterJourneesForm({
         <input key={iso} type="hidden" name="date" value={iso} />
       ))}
 
+      {result.error && <p role="alert" className="text-sm text-danger">{result.error}</p>}
       <button
         type="submit"
-        disabled={sortedSelected.length === 0}
+        disabled={pending || sortedSelected.length === 0}
         className="self-start rounded-full bg-coral px-5 py-2 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-40"
       >
-        Créer {sortedSelected.length > 0 ? `(${sortedSelected.length})` : ""}
+        {pending ? "Création…" : `Créer ${sortedSelected.length > 0 ? `(${sortedSelected.length})` : ""}`}
       </button>
     </form>
   );

@@ -33,9 +33,13 @@ export function IndisponibilitesPanel({ indisponibilites }: { indisponibilites: 
   }
 
   function remove(date: string) {
+    setError(null);
     startTransition(async () => {
-      await removeIndisponibiliteSelf(date);
-      router.refresh();
+      try {
+        const result = await removeIndisponibiliteSelf(date);
+        if (result?.error) { setError(result.error); return; }
+        router.refresh();
+      } catch { setError("Impossible de retirer cette indisponibilité. Réessaie."); }
     });
   }
 
@@ -75,9 +79,10 @@ export function IndisponibilitesPanel({ indisponibilites }: { indisponibilites: 
         </ul>
       )}
 
+      {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+
       {adding && (
         <form action={add} className="flex flex-col gap-2 border-t border-border pt-3">
-          {error && <p className="text-xs text-danger">{error}</p>}
           <div className="grid grid-cols-2 gap-2">
             <Field label="Date">
               <Input type="date" name="date" required min={today} />
