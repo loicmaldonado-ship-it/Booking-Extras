@@ -185,7 +185,7 @@ export function ProjetForm({
                 href="https://myaccount.google.com/apppasswords"
                 target="_blank"
                 rel="noreferrer"
-                className="text-coral hover:underline"
+                className="break-all text-coral hover:underline"
               >
                 myaccount.google.com/apppasswords
               </a>

@@ -4,12 +4,15 @@ import { nomComplet } from "@/lib/noms";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
-import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/actions";
+import { sendMagicLinkEmail, sendAccesCompteActiveEmail } from "@/lib/candidats/email";
 import { aCreeSonCompte } from "@/lib/candidats/mot-de-passe";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import type { BookingStatut } from "./types";
 import type { Cachet } from "@/lib/candidatures/types";
+import { validateBookingDropSelection, isValidBookingDate } from "./drop-guard";
+import { validateBookingBulkIds, validateBookingBulkChanges } from "./bulk-guard";
 
 function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -53,20 +56,24 @@ export async function createBooking(_prevState: unknown, formData: FormData) {
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([payload.figurant_id, ...(payload.covoiturage_conducteur_id ? [payload.covoiturage_conducteur_id] : [])]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
-  await supabase
+  const { error: journeeError } = await supabase
     .from("journees")
     .upsert({ projet_id: payload.projet_id, date: payload.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { error: "Impossible de préparer la journée de booking." };
   const { data, error } = await supabase.from("bookings").insert(payload).select("id").single();
 
   if (error) {
     return { error: friendlyError(error.message) };
   }
 
-  await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
+  const { error: profilError } = await supabase.from("figurants").update({ confirme: true }).eq("id", payload.figurant_id);
   revalidatePath("/figurants");
-
   revalidatePath("/bookings");
+  if (profilError) return { error: "Le booking a été créé, mais le profil n’a pas pu être mis à jour. Vérifie le booking existant avant de réessayer." };
   redirect(`/bookings/${data.id}`);
 }
 
@@ -78,17 +85,20 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
   const accessError = await checkProjetAccess(payload.projet_id);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants([payload.figurant_id, ...(payload.covoiturage_conducteur_id ? [payload.covoiturage_conducteur_id] : [])]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const existingAccessError = await checkProjetAccess(existing.projet_id);
-    if (existingAccessError) return { error: existingAccessError };
-  }
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier ce booking." };
+  const existingAccessError = await checkProjetAccess(existing.projet_id);
+  if (existingAccessError) return { error: existingAccessError };
   // Une date changée ici doit exister comme journée, sinon le booking
   // n'apparaît plus dans aucune vue par journée.
-  await supabase
+  const { error: journeeError } = await supabase
     .from("journees")
     .upsert({ projet_id: payload.projet_id, date: payload.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { error: "Impossible de préparer la journée de booking." };
   const { error } = await supabase.from("bookings").update(payload).eq("id", id);
 
   if (error) {
@@ -102,14 +112,39 @@ export async function updateBooking(id: string, _prevState: unknown, formData: F
 
 export async function deleteBooking(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) throw new Error(accessError);
-  }
-  await supabase.from("bookings").delete().eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) throw new Error("Impossible de vérifier ce booking.");
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("bookings").delete().eq("id", id);
+  if (error) throw new Error("Impossible de supprimer ce booking.");
   revalidatePath("/bookings");
   redirect("/bookings");
+}
+
+// A candidate reference is not an authorization grant. The caller can forge
+// the mapping, so match every referenced candidature to the intended person
+// and project before writing any booking with service_role.
+async function checkDropCandidatureReferences(
+  supabase: ReturnType<typeof createAdminClient>,
+  projetId: string,
+  byFigurant: Record<string, string>
+): Promise<string | null> {
+  const ids = [...new Set(Object.values(byFigurant))];
+  if (ids.length === 0) return null;
+  const { data, error } = await supabase.from("candidatures")
+    .select("id, figurant_id, annonces!inner(projet_id)")
+    .in("id", ids)
+    .returns<{ id: string; figurant_id: string; annonces: { projet_id: string } | null }[]>();
+  if (error || !data || data.length !== ids.length) return "Candidature liée introuvable ou indisponible.";
+  const byId = new Map(data.map((c) => [c.id, c]));
+  for (const [figurantId, candidatureId] of Object.entries(byFigurant)) {
+    const row = byId.get(candidatureId);
+    if (!row || row.figurant_id !== figurantId || row.annonces?.projet_id !== projetId) {
+      return "Cette candidature ne correspond pas au figurant ou au projet sélectionné.";
+    }
+  }
+  return null;
 }
 
 export async function createBookingFromDrop(
@@ -120,12 +155,21 @@ export async function createBookingFromDrop(
   fonction?: string,
   cachet?: Cachet | ""
 ) {
+  const selection = validateBookingDropSelection([figurantId], [date],
+    candidatureId ? { [figurantId]: candidatureId } : undefined);
+  if (!selection.ok) return { error: selection.error };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
-  const supabase = createAdminClient();
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
 
-  const { data: existing } = await supabase
+  const supabase = createAdminClient();
+  const candidatureError = await checkDropCandidatureReferences(
+    supabase, projetId, candidatureId ? { [figurantId]: candidatureId } : {});
+  if (candidatureError) return { error: candidatureError };
+
+  const { data: existing, error: existingError } = await supabase
     .from("bookings")
     .select("id")
     .eq("figurant_id", figurantId)
@@ -133,9 +177,12 @@ export async function createBookingFromDrop(
     .eq("date", date)
     .maybeSingle();
 
+  if (existingError) return { error: "Impossible de vérifier les bookings existants." };
   if (existing) return { error: "Ce figurant est déjà booké ce jour-là sur ce projet." };
 
-  await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  const { error: journeeError } = await supabase.from("journees")
+    .upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { error: "Impossible de préparer la journée de booking." };
 
   const { error } = await supabase.from("bookings").insert({
     figurant_id: figurantId,
@@ -151,11 +198,13 @@ export async function createBookingFromDrop(
   // Transfert vers une journée = le figurant devient "confirmé" (visible
   // dans Base Profils). L'accès à l'espace personnel, lui, ne s'active que
   // lorsque le booking passe réellement au statut "confirmé".
-  await supabase.from("figurants").update({ confirme: true }).eq("id", figurantId);
+  const { error: confirmedError } = await supabase.from("figurants")
+    .update({ confirme: true }).eq("id", figurantId);
 
   revalidatePath("/bookings/planning");
   revalidatePath("/candidatures");
   revalidatePath("/figurants");
+  if (confirmedError) return { error: "Booking créé, mais la fiche figurant n'a pas pu être confirmée." };
   return { success: true };
 }
 
@@ -176,6 +225,8 @@ export async function createBookingsFromDropBulk(
   // Depuis Candidatures, la fonction peut attendre (cachet obligatoire).
   fonctionFacultative = false
 ): Promise<{ ok: number; deja: number; error?: string }> {
+  const selection = validateBookingDropSelection(figurantIds, dates, candidatureIdByFigurant);
+  if (!selection.ok) return { ok: 0, deja: 0, error: selection.error };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { ok: 0, deja: 0, error: accessError };
   if (figurantIds.length === 0 || dates.length === 0) return { ok: 0, deja: 0 };
@@ -183,22 +234,30 @@ export async function createBookingsFromDropBulk(
   if (!cachet) return { ok: 0, deja: 0, error: "Choisis un cachet." };
   if (!fonctionFacultative && !fonction.trim()) return { ok: 0, deja: 0, error: "Choisis une fonction." };
 
-  const supabase = createAdminClient();
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { ok: 0, deja: 0, error: personError };
 
-  const { data: existingRows } = await supabase
+  const supabase = createAdminClient();
+  const candidatureError = await checkDropCandidatureReferences(
+    supabase, projetId, candidatureIdByFigurant ?? {});
+  if (candidatureError) return { ok: 0, deja: 0, error: candidatureError };
+
+  const { data: existingRows, error: existingError } = await supabase
     .from("bookings")
     .select("figurant_id, date")
     .eq("projet_id", projetId)
     .in("figurant_id", figurantIds)
     .in("date", dates);
-  const existingKeys = new Set((existingRows ?? []).map((r) => `${r.figurant_id}|${r.date}`));
+  if (existingError || !existingRows) return { ok: 0, deja: 0, error: "Bookings existants indisponibles." };
+  const existingKeys = new Set(existingRows.map((r) => `${r.figurant_id}|${r.date}`));
 
-  await supabase
+  const { error: journeesError } = await supabase
     .from("journees")
     .upsert(
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
+  if (journeesError) return { ok: 0, deja: 0, error: "Création des journées impossible." };
 
   const payload: {
     figurant_id: string;
@@ -229,7 +288,14 @@ export async function createBookingsFromDropBulk(
   if (payload.length > 0) {
     const { error } = await supabase.from("bookings").insert(payload);
     if (error) return { ok: 0, deja, error: error.message };
-    await supabase.from("figurants").update({ confirme: true }).in("id", figurantIds);
+    const { error: confirmedError } = await supabase.from("figurants")
+      .update({ confirme: true }).in("id", figurantIds);
+    if (confirmedError) {
+      revalidatePath("/bookings/planning");
+      revalidatePath("/candidatures");
+      return { ok: payload.length, deja,
+        error: "Bookings créés, mais la confirmation des fiches a échoué. Vérifie les profils." };
+    }
   }
 
   revalidatePath("/bookings/planning");
@@ -238,15 +304,16 @@ export async function createBookingsFromDropBulk(
   return { ok: payload.length, deja };
 }
 
-export async function createJournee(projetId: string, formData: FormData) {
+export async function createJournee(projetId: string, _prevState: { error: string }, formData: FormData): Promise<{ error: string }> {
   const accessError = await checkProjetAccess(projetId);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const date = str(formData, "date");
-  if (!date) return;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: "Choisis une date valide." };
 
   const supabase = createAdminClient();
-  await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  const { error } = await supabase.from("journees").upsert({ projet_id: projetId, date }, { onConflict: "projet_id,date" });
+  if (error) return { error: "Impossible de créer la journée. Réessaie." };
 
   revalidatePath("/bookings");
   redirect(`/bookings/documents?projet_id=${projetId}&date=${date}`);
@@ -264,12 +331,13 @@ export async function deleteJournee(journeeId: string) {
   const accessError = await checkProjetAccess(journee.projet_id);
   if (accessError) return { error: accessError };
 
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("bookings")
     .select("id", { count: "exact", head: true })
     .eq("projet_id", journee.projet_id)
     .eq("date", journee.date);
-  if (count && count > 0) return { error: "Cette journée contient encore des bookings." };
+  if (countError || count === null) return { error: "Impossible de vérifier si la journée est vide." };
+  if (count > 0) return { error: "Cette journée contient encore des bookings." };
 
   const { error } = await supabase.from("journees").delete().eq("id", journeeId);
   if (error) return { error: error.message };
@@ -281,14 +349,16 @@ export async function deleteJournee(journeeId: string) {
 export async function updateTotalJournee(journeeId: string, _prevState: unknown, formData: FormData) {
   const raw = str(formData, "total_requis");
   const total = raw ? Number(raw) : null;
-  if (raw && (!total || total <= 0)) return { error: "Total invalide." };
+  if (raw && (!Number.isInteger(total) || total === null || total <= 0 || total > 100000)) {
+    return { error: "Total invalide." };
+  }
 
   const supabase = createAdminClient();
-  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
-  if (journee) {
-    const accessError = await checkProjetAccess(journee.projet_id);
-    if (accessError) return { error: accessError };
-  }
+  const { data: journee, error: lookupError } = await supabase.from("journees")
+    .select("projet_id").eq("id", journeeId).maybeSingle();
+  if (lookupError || !journee) return { error: "Journée introuvable ou indisponible." };
+  const accessError = await checkProjetAccess(journee.projet_id);
+  if (accessError) return { error: accessError };
   const { error } = await supabase.from("journees").update({ total_requis: total }).eq("id", journeeId);
   if (error) return { error: error.message };
 
@@ -298,11 +368,11 @@ export async function updateTotalJournee(journeeId: string, _prevState: unknown,
 
 export async function updateConvocationSettings(journeeId: string, _prevState: unknown, formData: FormData) {
   const supabase = createAdminClient();
-  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
-  if (journee) {
-    const accessError = await checkProjetAccess(journee.projet_id);
-    if (accessError) return { error: accessError };
-  }
+  const { data: journee, error: lookupError } = await supabase.from("journees")
+    .select("projet_id").eq("id", journeeId).maybeSingle();
+  if (lookupError || !journee) return { error: "Journée introuvable ou indisponible." };
+  const accessError = await checkProjetAccess(journee.projet_id);
+  if (accessError) return { error: accessError };
   const { error } = await supabase
     .from("journees")
     .update({
@@ -338,18 +408,23 @@ export async function retirerBookings(ids: string[]): Promise<{ retires: number;
   const { error } = await supabase.from("bookings").delete().in("id", list.map((b) => b.id));
   if (error) return { retires: 0, error: error.message };
 
+  let covoiturageEchec = false;
   for (const date of Array.from(new Set(list.map((b) => b.date)))) {
-    await supabase
+    const { error: covoiturageError } = await supabase
       .from("bookings")
       .update({ covoiturage_conducteur_id: null })
       .eq("projet_id", projetIds[0])
       .eq("date", date)
       .in("covoiturage_conducteur_id", list.filter((b) => b.date === date).map((b) => b.figurant_id));
+    if (covoiturageError) covoiturageEchec = true;
   }
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath("/bookings/planning");
+  if (covoiturageEchec) {
+    return { retires: list.length, error: `${list.length} profil(s) retiré(s), mais le covoiturage n'a pas pu être mis à jour : vérifie les conducteurs de la journée.` };
+  }
   return { retires: list.length };
 }
 
@@ -369,11 +444,24 @@ export async function bulkUpdateBookings(
     notes: string | null;
   }>
 ) {
-  if (ids.length === 0) return {};
+  const selection = validateBookingBulkIds(ids);
+  if (!selection.ok) return { error: selection.error };
+  if (selection.ids.length === 0) return {};
+  const update = validateBookingBulkChanges(changes);
+  if (!update.ok) return { error: update.error };
+  if (changes.covoiturage_conducteur_id) {
+    const personError = await checkVisibleFigurants([changes.covoiturage_conducteur_id]);
+    if (personError) return { error: personError };
+  }
   const supabase = createAdminClient();
 
-  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", ids);
-  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
+  const { data: targeted, error: lookupError } = await supabase.from("bookings")
+    .select("id, projet_id").in("id", selection.ids);
+  if (lookupError || !targeted || targeted.length !== selection.ids.length ||
+      new Set(targeted.map((r) => r.id)).size !== selection.ids.length) {
+    return { error: "Sélection de bookings incomplète ou indisponible." };
+  }
+  const projetIds = Array.from(new Set(targeted.map((b) => b.projet_id)));
   for (const projetId of projetIds) {
     const accessError = await checkProjetAccess(projetId);
     if (accessError) return { error: accessError };
@@ -392,8 +480,11 @@ export async function bulkUpdateBookings(
     if (changes.reponse_booking) payload.statut = "confirmé";
   }
 
-  const { error } = await supabase.from("bookings").update(payload).in("id", ids);
-  if (error) return { error: friendlyError(error.message) };
+  const { data: updated, error } = await supabase.from("bookings")
+    .update(payload).in("id", selection.ids).select("id");
+  if (error || !updated || updated.length !== selection.ids.length) {
+    return { error: error ? friendlyError(error.message) : "Mise à jour incomplète. Actualise la liste." };
+  }
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
@@ -413,7 +504,9 @@ export async function moveBookingsToDate(
 ): Promise<{ moved: number; conflits: string[]; restantIds: string[]; error?: string }> {
   const vide = { moved: 0, conflits: [] as string[], restantIds: ids };
   if (ids.length === 0) return vide;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return { ...vide, error: "Date invalide." };
+  if (!isValidBookingDate(newDate)) return { ...vide, error: "Date invalide." };
+  const selection = validateBookingBulkIds(ids);
+  if (!selection.ok) return { ...vide, error: selection.error };
 
   const supabase = createAdminClient();
   const { data: bookings, error: readError } = await supabase
@@ -421,8 +514,10 @@ export async function moveBookingsToDate(
     .select("id, projet_id, date, figurant_id, figurants!bookings_figurant_id_fkey(prenom, nom)")
     .in("id", ids)
     .returns<{ id: string; projet_id: string; date: string; figurant_id: string; figurants: { prenom: string; nom: string } | null }[]>();
-  if (readError) return { ...vide, error: readError.message };
-  const list = bookings ?? [];
+  if (readError || !bookings || bookings.length !== ids.length) {
+    return { ...vide, error: "Sélection de bookings incomplète ou indisponible." };
+  }
+  const list = bookings;
   const projetIds = Array.from(new Set(list.map((b) => b.projet_id)));
   if (projetIds.length !== 1) return { ...vide, error: "Sélection sur plusieurs projets." };
   const projetId = projetIds[0];
@@ -430,13 +525,14 @@ export async function moveBookingsToDate(
   if (accessError) return { ...vide, error: accessError };
 
   const aDeplacer = list.filter((b) => b.date !== newDate);
-  const { data: dejaLa } = await supabase
+  const { data: dejaLa, error: conflictsError } = await supabase
     .from("bookings")
     .select("figurant_id")
     .eq("projet_id", projetId)
     .eq("date", newDate)
     .in("figurant_id", aDeplacer.map((b) => b.figurant_id));
-  const dejaLaIds = new Set((dejaLa ?? []).map((b) => b.figurant_id));
+  if (conflictsError || !dejaLa) return { ...vide, error: "Impossible de vérifier les conflits de dates." };
+  const dejaLaIds = new Set(dejaLa.map((b) => b.figurant_id));
   const conflits = aDeplacer
     .filter((b) => dejaLaIds.has(b.figurant_id))
     .map((b) => (b.figurants ? nomComplet(b.figurants) : "?"));
@@ -444,7 +540,9 @@ export async function moveBookingsToDate(
   const restantIds = list.filter((b) => !moves.includes(b)).map((b) => b.id);
   if (moves.length === 0) return { moved: 0, conflits, restantIds };
 
-  await supabase.from("journees").upsert({ projet_id: projetId, date: newDate }, { onConflict: "projet_id,date" });
+  const { error: upsertError } = await supabase.from("journees")
+    .upsert({ projet_id: projetId, date: newDate }, { onConflict: "projet_id,date" });
+  if (upsertError) return { ...vide, error: "Impossible de préparer la journée cible." };
 
   const { error } = await supabase
     .from("bookings")
@@ -460,51 +558,60 @@ export async function moveBookingsToDate(
     .in("id", moves.map((b) => b.id));
   if (error) return { moved: 0, conflits, restantIds: ids, error: friendlyError(error.message) };
 
+  let covoiturageEchec = false;
   for (const oldDate of Array.from(new Set(moves.map((b) => b.date)))) {
-    await supabase
+    const { error: covoiturageError } = await supabase
       .from("bookings")
       .update({ covoiturage_conducteur_id: null })
       .eq("projet_id", projetId)
       .eq("date", oldDate)
       .in("covoiturage_conducteur_id", moves.filter((b) => b.date === oldDate).map((b) => b.figurant_id));
+    if (covoiturageError) covoiturageEchec = true;
   }
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath("/bookings/planning");
+  if (covoiturageEchec) {
+    return { moved: moves.length, conflits, restantIds, error: `${moves.length} profil(s) déplacé(s), mais le covoiturage de l'ancienne date n'a pas pu être mis à jour : vérifie les conducteurs.` };
+  }
   return { moved: moves.length, conflits, restantIds };
 }
 
 export async function markConvocationEnvoyee(id: string) {
   const supabase = createAdminClient();
-  const { data: existing } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
-  if (existing) {
-    const accessError = await checkProjetAccess(existing.projet_id);
-    if (accessError) return { error: accessError };
-  }
-  await supabase
-    .from("bookings")
-    .update({ convocation_envoyee: true, convocation_envoyee_le: new Date().toISOString() })
-    .eq("id", id);
+  const { data: existing, error: lookupError } = await supabase.from("bookings").select("projet_id").eq("id", id).maybeSingle();
+  if (lookupError || !existing) return { error: "Impossible de vérifier ce booking." };
+  const accessError = await checkProjetAccess(existing.projet_id);
+  if (accessError) return { error: accessError };
+  const { error } = await supabase.from("bookings")
+    .update({ convocation_envoyee: true, convocation_envoyee_le: new Date().toISOString() }).eq("id", id);
+  if (error) return { error: "Impossible d’enregistrer le statut de convocation." };
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   revalidatePath(`/bookings/${id}`);
+  return { success: true as const };
 }
 
 // Permet de renvoyer une convocation déjà reçue — geste explicite du staff,
 // distinct d'un simple bouton "renvoyer" pour éviter les doublons accidentels.
 export async function resetConvocationEnvoyee(ids: string[]) {
-  if (ids.length === 0) return {};
+  const selection = validateBookingBulkIds(ids);
+  if (!selection.ok) return { error: selection.error };
+  if (selection.ids.length === 0) return {};
   const supabase = createAdminClient();
-
-  const { data: targeted } = await supabase.from("bookings").select("projet_id").in("id", ids);
-  const projetIds = Array.from(new Set((targeted ?? []).map((b) => b.projet_id)));
-  for (const projetId of projetIds) {
+  const { data: targeted, error: lookupError } = await supabase.from("bookings").select("id, projet_id").in("id", selection.ids);
+  const returnedIds = new Set((targeted ?? []).map((b) => b.id));
+  if (lookupError || !targeted || targeted.length !== selection.ids.length ||
+      returnedIds.size !== selection.ids.length || selection.ids.some((id) => !returnedIds.has(id))) {
+    return { error: "Impossible de vérifier tous les bookings sélectionnés." };
+  }
+  for (const projetId of new Set(targeted.map((b) => b.projet_id))) {
     const accessError = await checkProjetAccess(projetId);
     if (accessError) return { error: accessError };
   }
-
-  await supabase.from("bookings").update({ convocation_envoyee: false, convocation_envoyee_le: null }).in("id", ids);
+  const { error } = await supabase.from("bookings").update({ convocation_envoyee: false, convocation_envoyee_le: null }).in("id", selection.ids);
+  if (error) return { error: "Impossible de réinitialiser les convocations." };
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
   return { success: true as const };
@@ -619,16 +726,23 @@ export async function sendBulkConvocations(
   rows: { bookingId: string; figurantId: string; email: string; corps: string; subject: string }[],
   projetId?: string | null
 ) {
+  const failedResult = { sent: 0, failed: Array.isArray(rows) ? rows.length : 0, skipped: 0, unmarked: 0, partiels: 0 };
+  const actor = await getCurrentProfile();
+  if (!actor || !Array.isArray(rows) || !rows.length || rows.length > 500 || new Set(rows.map(r => r.bookingId)).size !== rows.length) return failedResult;
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
-    .from("bookings")
-    .select("id, convocation_envoyee")
-    .in("id", rows.map((r) => r.bookingId));
-  const dejaEnvoyees = new Set((existing ?? []).filter((b) => b.convocation_envoyee).map((b) => b.id));
+  const { data: existing, error: lookupError } = await supabase.from("bookings")
+    .select("id, projet_id, figurant_id, convocation_envoyee").in("id", rows.map(r => r.bookingId));
+  if (lookupError || !existing || existing.length !== rows.length) return failedResult;
+  for (const booking of existing) {
+    if ((projetId && booking.projet_id !== projetId) || rows.find(r => r.bookingId === booking.id)?.figurantId !== booking.figurant_id || await checkProjetAccess(booking.projet_id)) return failedResult;
+  }
+  const dejaEnvoyees = new Set(existing.filter(b => b.convocation_envoyee).map(b => b.id));
 
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let unmarked = 0;
+  let partiels = 0;
   for (const r of rows) {
     if (dejaEnvoyees.has(r.bookingId)) {
       skipped += 1;
@@ -644,15 +758,17 @@ export async function sendBulkConvocations(
       projetId,
     });
     if (result.error) {
-      failed += 1;
+      if (result.messageEnregistre) partiels += 1;
+      else failed += 1;
       continue;
     }
-    await markConvocationEnvoyee(r.bookingId);
+    const marked = await markConvocationEnvoyee(r.bookingId);
+    if (marked.error) unmarked += 1;
     sent += 1;
   }
   revalidatePath("/bookings");
   revalidatePath("/bookings/documents");
-  return { sent, failed, skipped };
+  return { sent, failed, skipped, unmarked, partiels };
 }
 
 // Envoi manuel du lien d'espace perso à toute une sélection (ex. au moment
@@ -665,32 +781,51 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
   const supabase = createAdminClient();
+  const { data: linked, error: linkError } = await supabase.from("bookings")
+    .select("figurant_id").eq("projet_id", projetId).in("figurant_id", figurantIds);
+  if (linkError || !linked || new Set(linked.map((row) => row.figurant_id)).size !== new Set(figurantIds).size) {
+    return { error: "La sélection contient un profil absent de ce projet." };
+  }
   let sent = 0;
   let failed = 0;
   let dejaCompte = 0;
   let lastError: string | undefined;
 
   for (const figurantId of Array.from(new Set(figurantIds))) {
-    const { data: figurant } = await supabase
+    const { data: figurant, error: profilError } = await supabase
       .from("figurants")
       .select("id, prenom, email, acces_compte")
       .eq("id", figurantId)
       .maybeSingle();
 
-    if (!figurant?.email) {
+    if (profilError || !figurant?.email) {
       failed += 1;
+      lastError = profilError ? "Impossible de vérifier le profil." : "Adresse email absente.";
       continue;
     }
     // Compte créé par la personne elle-même (mot de passe) : elle se
     // connecte seule, le lien ne sert qu'aux profils ajoutés à la main.
-    if (await aCreeSonCompte(figurant.id)) {
-      dejaCompte += 1;
+    try {
+      if (await aCreeSonCompte(figurant.id)) {
+        dejaCompte += 1;
+        continue;
+      }
+    } catch {
+      failed += 1;
+      lastError = "Impossible de vérifier le compte candidat.";
       continue;
     }
 
     if (!figurant.acces_compte) {
-      await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+      const { error: activationError } = await supabase.from("figurants").update({ acces_compte: true }).eq("id", figurantId);
+      if (activationError) {
+        failed += 1;
+        lastError = "Impossible d’activer l’accès candidat.";
+        continue;
+      }
     }
 
     const result = figurant.acces_compte
@@ -706,7 +841,7 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       continue;
     }
 
-    await supabase.from("figurant_messages").insert({
+    const { error: traceError } = await supabase.from("figurant_messages").insert({
       figurant_id: figurantId,
       projet_id: projetId,
       sender: "staff",
@@ -714,6 +849,8 @@ export async function sendEspacePersoLinkBulk(figurantIds: string[], projetId: s
       corps: "Lien d'accès à l'espace personnel envoyé.",
       categorie: "espace_perso",
     });
+    // L'email est parti : on le compte, mais on signale que la trace manque (pas de renvoi en double).
+    if (traceError) lastError = "Lien envoyé, mais sa trace dans les messages n'a pas pu être enregistrée.";
     sent += 1;
   }
 

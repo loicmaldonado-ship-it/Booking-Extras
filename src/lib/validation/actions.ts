@@ -67,8 +67,10 @@ export async function supprimerLienValidation(lienId: string): Promise<{ error?:
   const res = await lienAvecAcces(lienId);
   if ("error" in res) return { error: res.error };
   const supabase = createAdminClient();
-  await supabase.from("partage_commentaires").delete().eq("lien_type", "validation").eq("lien_id", lienId);
-  await supabase.from("partage_visites").delete().eq("lien_type", "validation").eq("lien_id", lienId);
+  const { error: commentairesError } = await supabase.from("partage_commentaires").delete().eq("lien_type", "validation").eq("lien_id", lienId);
+  if (commentairesError) return { error: "Impossible de supprimer les commentaires du lien. Le lien n'a pas été supprimé." };
+  const { error: visitesError } = await supabase.from("partage_visites").delete().eq("lien_type", "validation").eq("lien_id", lienId);
+  if (visitesError) return { error: "Impossible de supprimer les visites du lien. Le lien n'a pas été supprimé." };
   const { error } = await supabase.from("liens_validation").delete().eq("id", lienId);
   if (error) return { error: error.message };
   revalidatePath("/candidatures");

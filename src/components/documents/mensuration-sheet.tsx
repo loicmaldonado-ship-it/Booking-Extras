@@ -1,5 +1,5 @@
 import { nomComplet } from "@/lib/noms";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import type { Figurant } from "@/lib/figurants/types";
 import type { FigurantPhotoWithUrl, FutureBooking } from "@/lib/documents/data";
 import { formatDateShort } from "@/lib/format-date";

@@ -58,11 +58,11 @@ export default async function CandidaturesTrombisPage({
         ← Retour aux candidatures
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           Trombi · {data.items.length} candidature{data.items.length > 1 ? "s" : ""}
         </h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename="trombi-candidatures.pdf" orientation="landscape" />
           <PrintButton />
         </div>

@@ -1,0 +1,3 @@
+PASS API: deux cheffes non propriétaires ; SELECT/INSERT/UPDATE/DELETE propres autorisés, croisés refusés sur créneaux et entrées
+PASS API: données étrangères conservées après toutes tentatives
+PASS nettoyage: seuls les comptes, projets et profils fictifs créés par ce test supprimés

@@ -77,9 +77,9 @@ export default async function SuiviEssayagesPage({
         ← Retour aux essayages
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Suivi des essayages — fiches mensuration</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <DownloadPdfButton filename={`suivi-essayages-${projet_id}.pdf`} orientation="landscape" />
           <PrintButton />
         </div>

@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { formatDayMonth, formatDateLong } from "@/lib/format-date";
 import { envoyerCandidaturesDansJour } from "@/lib/candidatures/jours";
 import { CACHETS, type Cachet } from "@/lib/candidatures/types";
-import type { JourCandidature } from "@/components/candidatures/jour-chips";
+import { marquerJoursEnvoyes, type SelectionJours } from "@/lib/candidatures/jours-panel-snapshot";
 
 export type JourPanneau = {
   id: string;
@@ -22,7 +22,6 @@ export type JourPanneau = {
   bookingHref: string;
 };
 
-export type SelectionJours = { id: string; nom: string; jours: JourCandidature[] };
 
 const champ = "w-full rounded-lg border border-border-strong bg-ink px-2.5 py-1.5 text-sm outline-none focus:border-coral";
 
@@ -40,6 +39,7 @@ export function JoursPanneau({
   selection: SelectionJours[];
   onEnvoye: () => void;
 }) {
+  const [selectionFigee, setSelectionFigee] = useState(selection);
   const [envoi, setEnvoi] = useState<{ jourId: string } | null>(null);
   const [fonction, setFonction] = useState("");
   const [cachet, setCachet] = useState<Cachet | "">("");
@@ -58,6 +58,7 @@ export function JoursPanneau({
       const res = await envoyerCandidaturesDansJour(jour.id, ids, fonction, cachet);
       setResultat({ jourId: jour.id, ...res });
       if (!res.error) {
+        setSelectionFigee((avant) => marquerJoursEnvoyes(avant, jour.id, ids));
         setEnvoi(null);
         onEnvoye();
       }
@@ -71,7 +72,7 @@ export function JoursPanneau({
         rien n&apos;est envoyé aux figurant·es). Besoins saisis dans Bookings.
       </p>
       {jours.map((j) => {
-        const pasEncore = selection.filter((s) => !s.jours.find((x) => x.id === j.id)?.dansLaJournee);
+        const pasEncore = selectionFigee.filter((s) => !s.jours.find((x) => x.id === j.id)?.dansLaJournee);
         const dispo = pasEncore.filter((s) => s.jours.find((x) => x.id === j.id)?.disponible);
         const pasDispo = pasEncore.filter((s) => !s.jours.find((x) => x.id === j.id)?.disponible);
         const aEnvoyer = aussiPasDispo ? pasEncore : dispo;
@@ -112,9 +113,9 @@ export function JoursPanneau({
                       ? "✓ Complet"
                       : `Il manque ${j.besoin - j.dansLaJournee}`}
                 </span>
-                {selection.length > 0 && (
+                {selectionFigee.length > 0 && (
                   <span>
-                    {dispo.length}/{selection.length} coché{selection.length > 1 ? "s" : ""} dispo
+                    {dispo.length}/{selectionFigee.length} coché{selectionFigee.length > 1 ? "s" : ""} dispo
                   </span>
                 )}
               </span>
@@ -221,7 +222,7 @@ export function JoursPanneau({
                   </button>
                 </div>
               </div>
-            ) : selection.length > 0 ? (
+            ) : selectionFigee.length > 0 ? (
               <button
                 type="button"
                 disabled={pasEncore.length === 0}

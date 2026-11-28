@@ -1,3 +1,6 @@
+BEGIN;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+
 -- Données de test pour la base LOCALE uniquement : rechargées à chaque
 -- `npx supabase db reset` (voir [db.seed] dans config.toml). Jamais
 -- appliquées en production (`db push` n'exécute pas ce fichier).
@@ -65,8 +68,8 @@ insert into public.annonce_questions (id, annonce_id, label)
 values ('00000000-0000-4000-8000-00000000a0e1', '00000000-0000-4000-8000-00000000a000', 'As-tu une tenue de soirée ?');
 
 -- Candidate existante : espace perso activé, mot de passe "booking-test"
--- (hash scrypt, même format que src/lib/candidats/password.ts, rangé dans
--- figurant_comptes), et une candidature sur l'annonce de test.
+-- (hash scrypt, même format que src/lib/candidats/password.ts), et une
+-- candidature sur l'annonce de test.
 insert into public.figurants (
   id, prenom, nom, email, telephone, genre, pronom, date_naissance, adresse, code_postal, ville,
   commune_naissance, taille_cm, poids_kg, pointure, veste, pantalon, acces_compte
@@ -75,7 +78,9 @@ insert into public.figurants (
   'Femme', 'Elle', '1995-06-15', '1 rue de Test', '75011', 'Paris', 'Lyon', 168, 60, 38, '38', '38', true
 );
 
-insert into public.figurant_comptes (figurant_id, password_hash) values (
+
+insert into public.figurant_comptes (figurant_id, password_hash)
+values (
   '00000000-0000-4000-8000-00000000f001',
   '06f49f5d2d8223a96f38abafaefc2919:9e1542dc0918657e0eab7b090c2bea4152532f59e3bdb0b2431b2a2944a2660d288ae6ced798f80c2de49290b93ed5cfe6c5a1c36573f421a6b862e7eeb32cb0'
 );
@@ -90,3 +95,5 @@ insert into public.candidature_disponibilites (candidature_id, annonce_date_id, 
 
 insert into public.candidature_reponses (candidature_id, annonce_question_id, reponse)
 values ('00000000-0000-4000-8000-00000000cd01', '00000000-0000-4000-8000-00000000a0e1', true);
+
+COMMIT;

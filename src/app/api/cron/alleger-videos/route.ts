@@ -10,7 +10,7 @@ export const maxDuration = 300;
 // trop tôt, délai dépassé, erreur). Une vidéo par passage.
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
   const [path] = await prochainesAAlleger(1);

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { SESSION_STARTED_AT_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-timeout";
 import { APP_SECTIONS, hasSectionAccess } from "@/lib/auth/sections";
+import { nouveauNonce, politiqueContenu } from "@/lib/securite/csp";
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -22,13 +23,20 @@ const PUBLIC_PREFIXES = [
   "/api/relais-textos",
   "/api/cron/",
   "/api/videos/alleger",
+  "/api/erreurs-client",
   "/relais-textos",
   "/recu/",
   "/compte",
-  "/manifest.ts",
+  "/mineurs/depot/",
+  "/mineurs/partage/",
+  // Adresses réellement servies (corrigé le 30/10/2026 : "/manifest.ts" ne correspondait à rien, le manifeste et ses
+  // icônes redirigeaient vers /login pour un visiteur non connecté → installation de l'appli cassée sur mobile).
+  "/manifest.webmanifest",
+  "/manifest-icon",
   "/icon",
   "/apple-icon",
   "/offline",
+  "/robots.txt",
 ];
 
 // « / » est l'accueil public pour un·e visiteur·se non connecté·e (et le
@@ -37,8 +45,39 @@ function isPublic(pathname: string) {
   return pathname === "/" || PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+// Site public en HTTPS (pas localhost) : les ressources http:// sont forcées en https://.
+function sitePublicHttps(): boolean {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+    return u.protocol === "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // CSP avec nonce (audit du 31/10/2026) : Next lit le nonce dans l'en-tête de la requête et l'applique à ses scripts.
+  const nonce = nouveauNonce();
+  const csp = politiqueContenu({
+    nonce,
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    dev: process.env.NODE_ENV === "development",
+    https: sitePublicHttps(),
+  });
+  // Recalculé après chaque écriture de cookie de session : les en-têtes transmis aux pages restent à jour.
+  const suivant = () => {
+    const headers = new Headers(request.headers);
+    headers.set("x-nonce", nonce);
+    headers.set("content-security-policy", csp);
+    return NextResponse.next({ request: { headers } });
+  };
+  const reponse = await traiter(request, suivant);
+  reponse.headers.set("Content-Security-Policy", csp);
+  return reponse;
+}
+
+async function traiter(request: NextRequest, suivant: () => NextResponse): Promise<NextResponse> {
+  let response = suivant();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +91,7 @@ export async function middleware(request: NextRequest) {
           for (const { name, value } of cookiesToSet) {
             request.cookies.set(name, value);
           }
-          response = NextResponse.next({ request });
+          response = suivant();
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }
@@ -66,22 +105,19 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user) {
-    const startedAtRaw = request.cookies.get(SESSION_STARTED_AT_COOKIE)?.value;
-    const startedAt = startedAtRaw ? Number(startedAtRaw) : null;
-    const sessionAgeMs = startedAt ? Date.now() - startedAt : 0;
-
-    if (startedAt && sessionAgeMs > SESSION_MAX_AGE_SECONDS * 1000) {
+    const { data: active, error: sessionError } = await supabase.rpc("staff_session_is_current");
+    if (sessionError || active !== true) {
       await supabase.auth.signOut();
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.search = "";
-      const signedOutResponse = NextResponse.redirect(url);
+      const signedOutResponse = NextResponse.redirect(new URL("/login", request.url));
+      // Preserve the auth cookie removals written by Supabase on the redirect.
+      for (const cookie of response.cookies.getAll()) signedOutResponse.cookies.set(cookie);
       signedOutResponse.cookies.delete(SESSION_STARTED_AT_COOKIE);
       return signedOutResponse;
     }
+    const startedAt = request.cookies.get(SESSION_STARTED_AT_COOKIE)?.value;
 
-    // Pas de cookie (session déjà ouverte avant ce déploiement, ou perdu) —
-    // on redémarre le compte à zéro plutôt que de déconnecter à froid.
+    // Cookie indicatif seulement : son absence ne prolonge pas la session,
+    // dont la durée est contrôlée en base.
     if (!startedAt) {
       response.cookies.set(SESSION_STARTED_AT_COOKIE, Date.now().toString(), {
         path: "/",

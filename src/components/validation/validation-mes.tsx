@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -82,11 +82,13 @@ export function ValidationMes({
   // rafraîchit en même temps (votes des autres, réponses de l'équipe).
   useEffect(() => {
     if (apercu) return;
+    // Appel interrompu (page quittée, réseau coupé) : ignoré, le signalement repart au tour suivant.
+    const signaler = () => { if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role).catch(() => {}); };
     const tic = () => {
-      if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role);
+      signaler();
       router.refresh();
     };
-    if (moi) signalerVisite(token, moi.id, moi.prenom, moi.role);
+    signaler();
     const id = setInterval(tic, 30_000);
     return () => clearInterval(id);
   }, [apercu, moi, token, router]);

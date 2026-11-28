@@ -11,6 +11,7 @@ function str(fd: FormData, key: string): string {
 }
 
 export async function createTemplate(_prevState: unknown, formData: FormData) {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
   const nom = str(formData, "nom");
   const sujet = str(formData, "sujet");
   const corps = str(formData, "corps");
@@ -33,6 +34,7 @@ export async function createTemplate(_prevState: unknown, formData: FormData) {
 }
 
 export async function updateTemplate(id: string, _prevState: unknown, formData: FormData) {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
   const nom = str(formData, "nom");
   const sujet = str(formData, "sujet");
   const corps = str(formData, "corps");
@@ -62,11 +64,13 @@ export async function updateTemplate(id: string, _prevState: unknown, formData: 
 
 export async function deleteTemplate(id: string) {
   const { lecture } = await equipesModeles(await getCurrentProfile());
-  if (lecture.length === 0) return;
+  if (lecture.length === 0) return { error: "Non autorisé." };
   const supabase = createAdminClient();
-  await supabase.from("message_templates").delete().eq("id", id).in("equipe_id", lecture);
+  const { error } = await supabase.from("message_templates").delete().eq("id", id).in("equipe_id", lecture);
+  if (error) return { error: "Impossible de supprimer ce modèle." };
   revalidatePath("/modeles");
   revalidatePath("/bookings/documents");
+  return { success: true as const };
 }
 
 // Copie un modèle prêt à l'emploi dans les modèles de l'équipe, pour le

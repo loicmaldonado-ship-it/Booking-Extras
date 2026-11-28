@@ -58,7 +58,7 @@ export default async function CreerComptePage({
               compléter ta fiche et postuler à nos annonces.
             </p>
           </div>
-          <CreerCompteForm token={token!} email={invitation.email} retour={retour} min={MOT_DE_PASSE_MIN} />
+          <CreerCompteForm dateNaissance={invitation.dateNaissance} token={token!} email={invitation.email} retour={retour} min={MOT_DE_PASSE_MIN} />
         </>
       )}
 

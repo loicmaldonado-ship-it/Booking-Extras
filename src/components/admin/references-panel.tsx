@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition, startTransition } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
@@ -56,7 +56,7 @@ function ReferenceForm({
       }}
       className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr]"
     >
-      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border-strong bg-ink-raised-2 text-center text-xs text-text hover:border-coral/60">
+      <label className="relative flex aspect-[2/3] w-[120px] cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-border-strong bg-ink-raised-2 text-center text-xs text-text hover:border-coral/60 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
         {apercu ? (
           // eslint-disable-next-line @next/next/no-img-element -- aperçu local (blob) ou affiche déjà en ligne
           <img src={apercu} alt="Affiche" className="absolute inset-0 h-full w-full object-cover" />
@@ -66,8 +66,9 @@ function ReferenceForm({
         <input
           type="file"
           name="affiche_fichier"
+          aria-label="Choisir une affiche (optionnelle)"
           accept={ACCEPT_IMAGES}
-          className="hidden"
+          className="sr-only"
           onChange={async (e) => {
             const fichier = e.target.files?.[0];
             if (!fichier) return;
@@ -119,9 +120,20 @@ function ReferenceForm({
   );
 }
 
-function ReferenceLigne({ reference, premiere, derniere }: { reference: Reference; premiere: boolean; derniere: boolean }) {
+function ReferenceLigne({ reference, premiere, derniere, onError }: { reference: Reference; premiere: boolean; derniere: boolean; onError: (message: string | null) => void }) {
   const [edition, setEdition] = useState(false);
   const [pending, demarrer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  function deplacer(sens: "haut" | "bas") {
+    setErreur(null);
+    demarrer(async () => {
+      try {
+        const result = await deplacerReference(reference.id, sens);
+        if (result.error) setErreur(result.error);
+      } catch { setErreur("Impossible de confirmer l’ordre. Recharge la page avant de réessayer."); }
+    });
+  }
 
   if (edition) {
     return (
@@ -146,10 +158,10 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-1 text-xs">
-        <button type="button" disabled={premiere || pending} onClick={() => demarrer(() => deplacerReference(reference.id, "haut"))} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Monter">
+        <button type="button" disabled={premiere || pending} onClick={() => deplacer("haut")} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Monter">
           ↑
         </button>
-        <button type="button" disabled={derniere || pending} onClick={() => demarrer(() => deplacerReference(reference.id, "bas"))} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Descendre">
+        <button type="button" disabled={derniere || pending} onClick={() => deplacer("bas")} className="rounded-full border border-border px-2 py-1 disabled:opacity-30" aria-label="Descendre">
           ↓
         </button>
         <button type="button" onClick={() => setEdition(true)} className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text">
@@ -158,7 +170,15 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
         <button
           type="button"
           disabled={pending}
-          onClick={() => demarrer(() => basculerReferenceVisible(reference.id, !reference.visible))}
+          onClick={() => {
+            setErreur(null);
+            demarrer(async () => {
+              try {
+                const result = await basculerReferenceVisible(reference.id, !reference.visible);
+                if (result.error) setErreur(result.error);
+              } catch { setErreur("Impossible de confirmer la visibilité. Réessaie."); }
+            });
+          }}
           className="rounded-full border border-border-strong px-3 py-1 font-medium text-text hover:text-text"
         >
           {reference.visible ? "Masquer" : "Afficher"}
@@ -167,18 +187,28 @@ function ReferenceLigne({ reference, premiere, derniere }: { reference: Referenc
           type="button"
           disabled={pending}
           onClick={() => {
-            if (confirm(`Supprimer « ${reference.titre} » des références ?`)) demarrer(() => supprimerReference(reference.id));
+            if (confirm(`Supprimer « ${reference.titre} » des références ?`)) {
+              onError(null);
+              demarrer(async () => {
+                try {
+                  const result = await supprimerReference(reference.id);
+                  if (result.error) onError(result.error);
+                } catch { onError("Impossible de confirmer la suppression. Recharge la page avant de réessayer."); }
+              });
+            }
           }}
           className="rounded-full border border-border px-3 py-1 font-medium text-danger hover:border-danger/60"
         >
           Supprimer
         </button>
       </div>
+      {erreur && <p role="alert" className="text-xs text-danger">{erreur}</p>}
     </Card>
   );
 }
 
 export function ReferencesPanel({ references }: { references: Reference[] }) {
+  const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-6">
       <Card className="flex flex-col gap-3">
@@ -188,13 +218,14 @@ export function ReferencesPanel({ references }: { references: Reference[] }) {
 
       <div className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold">Sur l&apos;accueil ({references.filter((r) => r.visible).length})</h2>
+        {erreurSuppression && <p role="alert" className="text-sm text-danger">{erreurSuppression}</p>}
         {references.length === 0 && (
           <Card>
             <p className="text-sm text-text-muted">Aucune référence pour l&apos;instant : le bandeau n&apos;apparaît pas sur l&apos;accueil.</p>
           </Card>
         )}
         {references.map((r, i) => (
-          <ReferenceLigne key={r.id} reference={r} premiere={i === 0} derniere={i === references.length - 1} />
+          <ReferenceLigne key={r.id} reference={r} premiere={i === 0} derniere={i === references.length - 1} onError={setErreurSuppression} />
         ))}
       </div>
     </div>

@@ -5,15 +5,23 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { anonymiserFigurant } from "@/lib/rgpd/actions";
 
-export function AnonymiserButton({ figurantId, nom }: { figurantId: string; nom: string }) {
+export function AnonymiserButton({ figurantId, nom, effacementEnCours = false }: { figurantId: string; nom: string; effacementEnCours?: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function anonymiser() {
     startTransition(async () => {
-      await anonymiserFigurant(figurantId);
-      router.refresh();
+      setError(null);
+      try {
+        const result = await anonymiserFigurant(figurantId);
+        if ("error" in result && result.error) { setError(result.error); setConfirming(false); if (result.refresh) router.refresh(); return; }
+        router.refresh();
+      } catch {
+        setError("Nettoyage interrompu. Aucune réussite confirmée. Réessaie.");
+        setConfirming(false);
+      }
     });
   }
 
@@ -32,8 +40,9 @@ export function AnonymiserButton({ figurantId, nom }: { figurantId: string; nom:
   }
 
   return (
-    <Button type="button" variant="ghost" onClick={() => setConfirming(true)} title={`Anonymiser ${nom}`}>
-      Anonymiser
-    </Button>
+    <div className="flex flex-col gap-2">
+      <Button type="button" variant="ghost" onClick={() => { setError(null); if (effacementEnCours) anonymiser(); else setConfirming(true); }} title={`Anonymiser ${nom}`}>{effacementEnCours ? "Reprendre le nettoyage" : "Anonymiser"}</Button>
+      {error && <p role="alert" className="max-w-sm text-sm text-danger">{error}</p>}
+    </div>
   );
 }

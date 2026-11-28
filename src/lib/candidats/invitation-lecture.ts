@@ -10,13 +10,14 @@ export async function invitationValide(token: string): Promise<{
   figurantId: string;
   prenom: string;
   email: string | null;
+  dateNaissance: string | null;
   compteExistant: boolean;
 } | null> {
   if (!TOKEN_RE.test(token)) return null;
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("figurant_auth_tokens")
-    .select("id, figurant_id, expires_at, used_at, figurants(prenom, email)")
+    .select("id, figurant_id, expires_at, used_at, figurants(prenom, email, date_naissance)")
     .eq("token", token)
     .eq("objet", "creation_compte")
     .maybeSingle<{
@@ -24,7 +25,7 @@ export async function invitationValide(token: string): Promise<{
       figurant_id: string;
       expires_at: string;
       used_at: string | null;
-      figurants: { prenom: string; email: string | null } | null;
+      figurants: { prenom: string; email: string | null; date_naissance: string | null } | null;
     }>();
   if (!data?.figurants || data.used_at || new Date(data.expires_at) < new Date()) return null;
   return {
@@ -32,6 +33,7 @@ export async function invitationValide(token: string): Promise<{
     figurantId: data.figurant_id,
     prenom: data.figurants.prenom,
     email: data.figurants.email,
+    dateNaissance: data.figurants.date_naissance,
     compteExistant: await aCreeSonCompte(data.figurant_id),
   };
 }

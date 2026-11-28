@@ -1,0 +1,19 @@
+✔ global search does not create a privileged client for an anonymous caller (120.336606ms)
+✔ restricted assistants cannot search hidden sections (27.483858ms)
+✔ test-mode email refuses even explicit project credentials without opening a transport (16.606572ms)
+✔ test-mode blocks push and SMS relay before reading recipients (48.08016ms)
+✔ Field associates its label with generated or explicit input IDs (32.533204ms)
+✔ global anonymisation refuses a non-owner before any privileged mutation (14.207559ms)
+✔ failed minor document purge prevents a successful global anonymisation (9.40998ms)
+✔ global RGPD profile reads refuse anonymous, assistant and non-owner chef accounts before using admin access (31.481575ms)
+✔ anonymisation displays a returned cleanup error instead of refreshing as if it succeeded (105.717168ms)
+✔ anonymisation displays an interruption without claiming success (22.536811ms)
+✔ only successful anonymisation refreshes the profile list (10.399166ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 993.181276

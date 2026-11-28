@@ -1,0 +1,3 @@
+PASS: 20 courses réelles session + lien de connexion + révocation, ordre alterné ; aucun jeton survivant
+PASS: réactivation puis nouvelle session autorisées
+PASS nettoyage: seul le profil fictif du test supprimé

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
@@ -58,9 +58,13 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
   }
 
   function remove(photoId: string) {
+    setError(null);
     startTransition(async () => {
-      await deleteMaPhoto(photoId);
-      router.refresh();
+      try {
+        const result = await deleteMaPhoto(photoId);
+        if (result?.error) { setError(result.error); return; }
+        router.refresh();
+      } catch { setError("Impossible de confirmer la suppression. Recharge la page avant de réessayer."); }
     });
   }
 
@@ -92,7 +96,8 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
               <button
                 type="button"
                 onClick={() => remove(p.id)}
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink"
+                aria-label={`Supprimer la photo : ${TYPE_LABELS[p.type]}`}
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-coral hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral"
               >
                 ×
               </button>
@@ -104,13 +109,14 @@ export function MesPhotosPanel({ photos }: { photos: PhotoWithUrl[] }) {
         </div>
       )}
 
-      {error && <p className="text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
 
       {atCap ? (
         <p className="text-xs text-text-muted">Maximum {MAX_PHOTOS_PAR_FIGURANT} photos atteint.</p>
       ) : (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
+            aria-label="Type de photo"
             value={type}
             onChange={(e) => setType(e.target.value as PhotoType)}
             className="rounded-lg border border-border bg-ink px-2 py-1.5 text-sm"

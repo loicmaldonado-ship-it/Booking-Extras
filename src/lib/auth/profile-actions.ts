@@ -26,8 +26,8 @@ export async function updateMyProfile(_prevState: unknown, formData: FormData) {
   }
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("profiles").update({ prenom, nom, telephone }).eq("id", profile.id);
-  if (error) return { error: error.message };
+  const { data: updated, error } = await supabase.from("profiles").update({ prenom, nom, telephone }).eq("id", profile.id).select("id").maybeSingle();
+  if (error || !updated) return { error: "Impossible d’enregistrer ton profil. Réessaie." };
 
   revalidatePath("/", "layout");
   return { success: true as const };

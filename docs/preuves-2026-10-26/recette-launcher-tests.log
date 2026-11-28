@@ -1,0 +1,15 @@
+✔ recipe launcher preserves an existing personal environment before starting a database (1826.873497ms)
+✔ recipe launcher refuses a non-loopback status without creating app credentials or installing dependencies (1197.154431ms)
+✔ recipe launcher refuses a schema change in an existing copy without a reset (551.466673ms)
+✔ recipe stop refuses a project outside its own local namespace (114.61895ms)
+✔ recipe stop only stops its own stack and preserves data (560.903755ms)
+✔ different schema versions receive different local project identities (2073.088531ms)
+✔ local app startup forces test mode and local credentials despite inherited environment values (1177.304271ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7727.311895

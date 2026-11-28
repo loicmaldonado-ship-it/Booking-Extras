@@ -1,0 +1,4 @@
+PASS anonymous searches/upserts and assistant administrative CRUD refused before admin access
+PASS literal underscore lookup/search preserves other agent and exact repeated upsert remains idempotent
+PASS percent and backslash remain literal in name matching and autocomplete
+Cleanup only uniquely prefixed fictional agents; no messages sent

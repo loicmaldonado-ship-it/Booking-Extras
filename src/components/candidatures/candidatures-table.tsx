@@ -2,7 +2,7 @@
 
 import { nomComplet } from "@/lib/noms";
 import { useState, useTransition, type ReactNode } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
@@ -182,34 +182,51 @@ export function CandidaturesTable({
   }
 
   function rangerUn(r: Row, ongletId: string) {
+    if (enCours.has(r.id)) return;
     const cible = r.onglet_id === ongletId ? null : ongletId;
     setErreur(null);
     setEnCours((prev) => new Set(prev).add(r.id));
     startRanger(async () => {
-      const res = await setCandidatureOnglet(r.id, cible);
-      if (res?.error) setErreur(`${nomComplet(r.figurants)} : ${res.error}`);
-      setSelected((prev) => {
-        const next = new Set(prev);
-        next.delete(r.id);
-        return next;
-      });
-      router.refresh();
-      setEnCours((prev) => {
-        const next = new Set(prev);
-        next.delete(r.id);
-        return next;
-      });
+      try {
+        const res = await setCandidatureOnglet(r.id, cible);
+        if (res?.error) {
+          setErreur(`${nomComplet(r.figurants)} : ${res.error}`);
+          return;
+        }
+        setSelected((prev) => {
+          const next = new Set(prev);
+          next.delete(r.id);
+          return next;
+        });
+        router.refresh();
+      } catch {
+        setErreur("Rangement impossible pour le moment. Réessaie.");
+      } finally {
+        setEnCours((prev) => {
+          const next = new Set(prev);
+          next.delete(r.id);
+          return next;
+        });
+      }
     });
   }
 
   function rangerSelection(ongletId: string | null) {
+    if (bulkPending || selected.size === 0) return;
     const ids = Array.from(selected);
     setErreur(null);
     startBulk(async () => {
-      const res = await setCandidaturesOngletBulk(ids, ongletId);
-      if (res && "error" in res && res.error) setErreur(res.error);
-      setSelected(new Set());
-      router.refresh();
+      try {
+        const res = await setCandidaturesOngletBulk(ids, ongletId);
+        if (res && "error" in res && res.error) {
+          setErreur(res.error);
+          return;
+        }
+        setSelected(new Set());
+        router.refresh();
+      } catch {
+        setErreur("Rangement impossible pour le moment. Réessaie.");
+      }
     });
   }
 
@@ -383,6 +400,22 @@ export function CandidaturesTable({
           </div>
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+              <a
+                href={`/candidatures/documents/trombis?annonce_id=${encodeURIComponent(annonceId)}&ids=${selection.map((r) => r.id).join(",")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                🖼️ Trombi ({selection.length})
+              </a>
+              <a
+                href={`/candidatures/documents/fiches?annonce_id=${encodeURIComponent(annonceId)}&ids=${selection.map((r) => r.id).join(",")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-border-strong px-3 py-1.5 text-xs font-medium hover:border-coral/60"
+              >
+                📏 Fiches mensuration ({selection.length})
+              </a>
               {jours.length > 0 && (
                 <button
                   type="button"
@@ -529,7 +562,7 @@ export function CandidaturesTable({
 
         {outil === "casting" && (
           <Modale titre="🎭 Ajouter au casting" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
-            <AddToCastingBar figurantIds={figee.map((r) => r.figurants!.id)} projets={projets} onDone={apresEnvoi} />
+            <AddToCastingBar figurantIds={Array.from(new Set(figee.map((r) => r.figurants!.id)))} projets={projets} onDone={apresEnvoi} />
           </Modale>
         )}
 
@@ -537,8 +570,11 @@ export function CandidaturesTable({
           <Modale titre="📋 Envoyer en booking sur une autre date" sousTitre={`${figee.length} profil${figee.length > 1 ? "s" : ""}`} onClose={() => setOutil(null)}>
             <AddToJourneeBar
               fonctionFacultative
-              figurantIds={figee.map((r) => r.figurants!.id)}
+              figurantIds={Array.from(new Set(figee.map((r) => r.figurants!.id)))}
               candidatureIdByFigurant={Object.fromEntries(figee.map((r) => [r.figurants!.id, r.id]))}
+              candidatureProjectByFigurant={Object.fromEntries(
+                figee.map((r) => [r.figurants!.id, r.annonces?.projet_id ?? ""])
+              )}
               projets={projets}
               onDone={apresEnvoi}
             />
@@ -547,7 +583,7 @@ export function CandidaturesTable({
 
         {erreur && (
           <Modale titre="Action impossible" onClose={() => setErreur(null)}>
-            <p className="text-sm text-danger">{erreur}</p>
+            <p role="alert" className="text-sm text-danger">{erreur}</p>
             <div className="flex justify-end">
               <Button type="button" onClick={() => setErreur(null)}>
                 Fermer
@@ -609,6 +645,7 @@ export function CandidaturesTable({
                             <Link
                               href={`/candidatures/${r.id}`}
                               onClick={(e) => openFiche(e, r.id)}
+                              aria-label={`Ouvrir la fiche de ${nomComplet(r.figurants)}${message ? " (message)" : ""}`}
                               className="absolute inset-0 overflow-hidden rounded-lg bg-ink-raised-2 [backface-visibility:hidden]"
                             >
                               {r.portraitUrl && (
@@ -675,7 +712,7 @@ export function CandidaturesTable({
                       <Link
                         href={`/candidatures/${r.id}`}
                         onClick={(e) => openFiche(e, r.id)}
-                        className="text-sm font-semibold leading-tight hover:text-coral"
+                        className="min-w-0 break-words text-sm font-semibold leading-tight hover:text-coral"
                       >
                         <Surligne texte={r.figurants ? nomComplet(r.figurants) : "—"} q={recherche} />
                       </Link>

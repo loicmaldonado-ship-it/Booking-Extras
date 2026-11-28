@@ -1,0 +1,3 @@
+PASS API: droits, remplacement actif autorisé, révocation, dépôt et remplacement signés antérieurs refusés, fichier restant bloque la fin, reprise conserve le plan
+PASS API: suppression Storage réelle, finalisation confirmée, autre profil intact
+PASS nettoyage: seuls les profils et fichiers fictifs de ce test supprimés

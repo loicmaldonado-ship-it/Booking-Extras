@@ -267,7 +267,8 @@ export function CastingRoleSection({
 
   function removeRole() {
     startTransition(async () => {
-      await deleteCastingRole(role.id);
+      const res = await deleteCastingRole(role.id);
+      if (res?.error) alert(res.error);
       router.refresh();
     });
   }

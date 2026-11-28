@@ -1,0 +1,17 @@
+User metadata forged privileges ignored; real Auth session created.
+REST protected PATCH acces_complet refused 403/42501.
+REST protected PATCH role refused 403/42501.
+REST protected PATCH is_owner refused 403/42501.
+REST protected PATCH comedien_pool_id refused 403/42501.
+REST protected PATCH sections_autorisees refused 403/42501.
+REST protected PATCH gmail_smtp_user refused 403/42501.
+REST protected PATCH gmail_smtp_app_password refused 403/42501.
+REST protected PATCH email_espace_perso_template refused 403/42501.
+REST protected PATCH email_magic_link_template refused 403/42501.
+REST protected PATCH email refused 403/42501.
+REST protected PATCH id refused 403/42501.
+REST INSERT privileged profile refused 403/42501.
+Legitimate personal PATCH succeeds 200.
+Auth user metadata update has no effect on database privileges.
+Authorized service administrative PATCH succeeds 200.
+Only fictional user and its sessions/profile cleaned.

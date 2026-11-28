@@ -12,6 +12,11 @@ function str(fd: FormData, key: string): string | null {
   return v.trim();
 }
 
+// Names and emails are literal values, never SQL LIKE patterns.
+function literalLike(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
 async function ownerAccessError(): Promise<string | null> {
   const profile = await getCurrentProfile();
   if (!isOwner(profile)) return "Réservé au compte propriétaire.";
@@ -24,6 +29,7 @@ async function ownerAccessError(): Promise<string | null> {
 // l'admin. Ne renvoie rien pour une requête trop courte, pour ne jamais
 // exposer toute la base par une recherche vide.
 export async function searchAgents(query: string): Promise<Agent[]> {
+  if (!(await getCurrentProfile())) return [];
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
@@ -31,50 +37,11 @@ export async function searchAgents(query: string): Promise<Agent[]> {
   const { data } = await supabase
     .from("agents")
     .select("*")
-    .ilike("nom", `%${trimmed}%`)
+    .ilike("nom", `%${literalLike(trimmed)}%`)
     .order("nom")
     .limit(8)
     .returns<Agent[]>();
   return data ?? [];
-}
-
-// Rattache/complète un agent dans la base commune à partir d'une saisie
-// staff (fiche figurant, carte casting) — jamais appelé depuis le
-// formulaire public de candidature. Dédoublonne par email si fourni, sinon
-// par nom (insensible à la casse), pour éviter un doublon "Jean Dupont" /
-// "jean dupont" créé séparément à chaque fiche saisie à la main.
-export async function upsertAgent(agent: {
-  nom: string;
-  agence?: string | null;
-  email?: string | null;
-  telephone?: string | null;
-}): Promise<void> {
-  if (!agent.nom) return;
-  const supabase = createAdminClient();
-
-  let existing: { id: string } | null = null;
-  if (agent.email) {
-    const { data } = await supabase.from("agents").select("id").ilike("email", agent.email).maybeSingle();
-    existing = data;
-  }
-  if (!existing) {
-    const { data } = await supabase.from("agents").select("id").ilike("nom", agent.nom).maybeSingle();
-    existing = data;
-  }
-
-  const payload = {
-    nom: agent.nom,
-    agence: agent.agence ?? null,
-    email: agent.email ?? null,
-    telephone: agent.telephone ?? null,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (existing) {
-    await supabase.from("agents").update(payload).eq("id", existing.id);
-  } else {
-    await supabase.from("agents").insert(payload);
-  }
 }
 
 export async function listAgents(): Promise<Agent[]> {
@@ -138,7 +105,8 @@ export async function deleteAgent(id: string) {
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("agents").delete().eq("id", id);
+  const { error } = await supabase.from("agents").delete().eq("id", id);
+  if (error) return { error: "L'agent n'a pas pu être supprimé." };
   revalidatePath("/admin/agents");
   return { success: true as const };
 }

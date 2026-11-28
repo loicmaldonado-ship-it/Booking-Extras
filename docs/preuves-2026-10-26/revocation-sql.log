@@ -1,0 +1,6 @@
+PASS candidate-revocation-local.sql : DO, fixtures annulées
+PASS auth-hardening-local.sql : DO, fixtures annulées
+PASS invitation-integration-local.sql : DO, fixtures annulées
+PASS guardians-local.sql : DO, fixtures annulées
+PASS minor-dossiers-local.sql : DO, fixtures annulées
+PASS rgpd-transaction-local.sql : DO, fixtures annulées

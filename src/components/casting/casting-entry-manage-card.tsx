@@ -4,7 +4,7 @@ import { nomComplet } from "@/lib/noms";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Button } from "@/components/ui/button";
 import { ZoomButton, type GalleryPhoto } from "@/components/ui/zoomable-image";
 import { ContactIcons } from "@/components/ui/contact-icons";
@@ -70,6 +70,7 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
     <div className="flex flex-col gap-1">
       <button
         type="button"
+        aria-label={`Choisir une photo : ${label}`}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
@@ -197,7 +198,8 @@ function ExistingPhoto({ photo, gallery, index }: { photo: CastingEntryPhoto; ga
 
   function remove() {
     startTransition(async () => {
-      await deleteCastingPhoto(photo.id);
+      const res = await deleteCastingPhoto(photo.id);
+      if (res?.error) alert(res.error);
       router.refresh();
     });
   }
@@ -292,7 +294,6 @@ function VideoWithRemove({
           className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-medium text-text outline-none hover:border-border focus:border-coral focus:bg-ink-raised-2 disabled:opacity-60"
         />
       </div>
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- vidéo de présentation candidat, pas de sous-titres à fournir */}
       <video controls preload="metadata" className="w-full rounded-lg bg-black">
         <source src={url} />
       </video>
@@ -632,7 +633,7 @@ function AgentSection({
           placeholder="Nom de l'agent"
           className={AGENT_INPUT_CLASS}
         />
-        <input value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
+        <input aria-label="Agence" value={agence} onChange={(e) => setAgence(e.target.value)} placeholder="Agence" className={AGENT_INPUT_CLASS} />
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -644,6 +645,7 @@ function AgentSection({
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
           placeholder="Téléphone de l'agent"
+          aria-label="Téléphone de l'agent"
           className={AGENT_INPUT_CLASS}
         />
         {error && <span className="text-xs text-danger">{error}</span>}
@@ -731,7 +733,8 @@ export function CastingEntryManageCard({
 
   function removeEntry() {
     startTransition(async () => {
-      await deleteCastingEntry(entry.id);
+      const res = await deleteCastingEntry(entry.id);
+      if (res?.error) alert(res.error);
       router.refresh();
     });
   }

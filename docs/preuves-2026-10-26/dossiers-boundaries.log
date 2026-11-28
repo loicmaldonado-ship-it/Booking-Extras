@@ -1,0 +1,15 @@
+✔ private dossier reads reject anonymous, section-restricted, foreign-project and invisible-child access (196.989473ms)
+✔ denied dossier actions cannot create links or upload files (70.6592ms)
+✔ a rejected or foreign dossier quota cannot reach Storage (56.300913ms)
+✔ revocation while a file is uploading causes rollback cleanup instead of committing a document (25.217038ms)
+✔ successful replacement stores a received document and removes the previous file (26.28726ms)
+✔ bearer links use random 256-bit tokens while only hashes are persisted (21.784725ms)
+✔ DRIEETS dataset refuses a mismatched project before querying business data (7.07722ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 980.998925

@@ -1,0 +1,18 @@
+
+> booking-extras@0.1.0 lint
+> eslint
+
+
+/Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/public/relais-textos/reponses.js
+  69:10  warning  'run' is defined but never used  @typescript-eslint/no-unused-vars
+  77:12  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/src/components/casting/casting-entry-manage-card.tsx
+  209:8  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/media-has-caption')
+
+/Users/eleagravagna/Documents/ChatGPT/Booking/hotfix-securite-urgente-2026-10-27/src/components/casting/casting-real-entry-card.tsx
+  365:18  warning  Unused eslint-disable directive (no problems were reported from 'jsx-a11y/media-has-caption')
+
+✖ 4 problems (0 errors, 4 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

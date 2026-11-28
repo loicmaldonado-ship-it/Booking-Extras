@@ -2,13 +2,15 @@
 
 import { CalendrierIndispos } from "@/components/candidatures/calendrier-indispos";
 import { createContext, startTransition, useActionState, useContext, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { postulerAnnonce } from "@/lib/candidatures/actions";
+import { GuardianFields } from "@/components/minors/guardian-fields";
+import type { GuardiansData } from "@/lib/minors/model";
 import { inscrireCandidat } from "@/lib/candidats/inscription";
 import { ACCEPT_IMAGES, prepareImage } from "@/lib/media/compress-image";
 import { formatDateShort } from "@/lib/format-date";
@@ -69,8 +71,46 @@ function ChoixMesPhotos({
   onChoisir: (p: PhotoDuCompte) => void;
   onFermer: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onFermerRef = useRef(onFermer);
+  useEffect(() => {
+    onFermerRef.current = onFermer;
+  }, [onFermer]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onFermerRef.current();
+      } else if (event.key === "Tab") {
+        // Le dialogue modal ne doit pas laisser naviguer derrière l'overlay.
+        const controls = Array.from(dialogRef.current?.querySelectorAll<HTMLButtonElement>("button:not([disabled])") ?? []);
+        if (controls.length === 0) return;
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, []);
+
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Mes photos — ${titre}`}
@@ -83,7 +123,7 @@ function ChoixMesPhotos({
       >
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold">Mes photos — {titre}</h3>
-          <button type="button" onClick={onFermer} className="text-sm text-text hover:text-text">
+          <button ref={closeRef} type="button" onClick={onFermer} className="text-sm text-text-muted hover:text-text focus-visible:outline-2 focus-visible:outline-coral">
             Fermer
           </button>
         </div>
@@ -135,33 +175,54 @@ function PhotoSlot({
     return () => photos?.retirer(key);
   }, [photos, key, name, label, required]);
 
+  // Les aperçus créés localement doivent être libérés à chaque remplacement
+  // et au démontage, sinon des dizaines de photos épuisent la mémoire mobile.
+  const objectUrlRef = useRef<string | null>(null);
+  useEffect(() => () => {
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+  }, []);
+  const setSafePreview = (url: string | null, locallyCreated = false) => {
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = locallyCreated ? url : null;
+    setPreview(url);
+  };
+  const labelId = useId();
+  const errorId = useId();
+
   return (
     <div className="flex flex-col gap-1.5" ref={wrapperRef}>
-      <div
-        onClick={() => inputRef.current?.click()}
-        className={
-          "relative aspect-square cursor-pointer overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 transition-colors hover:border-coral/60 " +
-          (erreur ? "border-danger" : "border-border")
-        }
-      >
-        {preview ? (
-          <Image src={preview} alt={label} fill className="object-cover" unoptimized />
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-xs text-text-muted">
-            <span className="text-lg">{preparation ? "…" : "+"}</span>
-            <span>{preparation ? "Préparation" : "Ajouter"}</span>
-          </div>
-        )}
+      <div className={
+        "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed bg-ink-raised-2 " +
+        (erreur ? "border-danger" : "border-border")
+      }>
+        <button
+          type="button"
+          aria-label={`Choisir une photo : ${label}`}
+          aria-describedby={erreur ? errorId : labelId}
+          aria-busy={preparation}
+          disabled={preparation}
+          onClick={() => inputRef.current?.click()}
+          className="absolute inset-0 h-full w-full cursor-pointer transition-colors hover:bg-ink-raised focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-coral disabled:cursor-wait"
+        >
+          {preview ? (
+            <Image src={preview} alt="" fill className="object-cover" unoptimized />
+          ) : (
+            <span className="flex h-full flex-col items-center justify-center gap-1 text-center text-xs text-text-muted">
+              <span className="text-lg">{preparation ? "…" : "+"}</span>
+              <span>{preparation ? "Préparation" : "Ajouter"}</span>
+            </span>
+          )}
+        </button>
         {preview && (
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreview(null);
+            aria-label={`Retirer la photo : ${label}`}
+            onClick={() => {
+              setSafePreview(null);
               photos?.maj(key, { file: null, existante: null });
               if (inputRef.current) inputRef.current.value = "";
             }}
-            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-danger hover:text-ink"
+            className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-ink/80 text-sm text-text hover:bg-danger hover:text-ink focus-visible:outline-2 focus-visible:outline-coral"
           >
             ×
           </button>
@@ -170,6 +231,8 @@ function PhotoSlot({
           ref={inputRef}
           type="file"
           accept={ACCEPT_IMAGES}
+          tabIndex={-1}
+          aria-hidden="true"
           className="hidden"
           onChange={async (e) => {
             const file = e.target.files?.[0];
@@ -177,22 +240,30 @@ function PhotoSlot({
             setErreur(null);
             setPreparation(true);
             photos?.maj(key, { busy: true });
-            // 1400 px : jusqu'à 8 photos doivent tenir sous la limite d'envoi.
-            const res = await prepareImage(file, { maxDimension: 1400 });
-            setPreparation(false);
-            if ("error" in res) {
-              setErreur(res.error);
-              setPreview(null);
-              photos?.maj(key, { busy: false, file: null });
+            try {
+              const res = await prepareImage(file, { maxDimension: 1400 });
+              if ("error" in res) {
+                setErreur(res.error);
+                setSafePreview(null);
+                photos?.maj(key, { file: null, existante: null });
+                e.target.value = "";
+                return;
+              }
+              setSafePreview(URL.createObjectURL(res.file), true);
+              photos?.maj(key, { file: res.file, existante: null });
+            } catch {
+              setErreur("Impossible de préparer la photo. Choisis un autre fichier ou réessaie.");
+              setSafePreview(null);
+              photos?.maj(key, { file: null, existante: null });
               e.target.value = "";
-              return;
+            } finally {
+              setPreparation(false);
+              photos?.maj(key, { busy: false });
             }
-            setPreview(URL.createObjectURL(res.file));
-            photos?.maj(key, { busy: false, file: res.file, existante: null });
           }}
         />
       </div>
-      <span className="text-center text-xs text-text-muted">
+      <span id={labelId} className="text-center text-xs text-text-muted">
         {label}
         {required ? " *" : ""}
       </span>
@@ -205,7 +276,7 @@ function PhotoSlot({
           Mes photos
         </button>
       )}
-      {erreur && <span className="text-center text-xs text-danger">{erreur}</span>}
+      {erreur && <span id={errorId} role="alert" className="text-center text-xs text-danger">{erreur}</span>}
       {choixOuvert && (
         <ChoixMesPhotos
           photos={mesPhotos}
@@ -213,7 +284,7 @@ function PhotoSlot({
           onFermer={() => setChoixOuvert(false)}
           onChoisir={(p) => {
             setErreur(null);
-            setPreview(p.url);
+            setSafePreview(p.url);
             if (inputRef.current) inputRef.current.value = "";
             photos?.maj(key, { file: null, existante: p.id });
             setChoixOuvert(false);
@@ -256,7 +327,9 @@ export function PostulerForm({
   prefill,
   bandeDemoObligatoire = false,
   showAgent = false,
+  guardians,
 }: {
+  guardians?: GuardiansData;
   mode?: "candidature" | "inscription";
   publicToken?: string;
   connecte?: boolean;
@@ -292,6 +365,7 @@ export function PostulerForm({
   bandeDemoObligatoire?: boolean;
   showAgent?: boolean;
 }) {
+  const [birthDate, setBirthDate] = useState(prefill?.date_naissance ?? "");
   const inscription = mode === "inscription";
   // Compte obligatoire pour postuler : sans connexion, le mot de passe se
   // crée en validant la candidature.
@@ -308,6 +382,12 @@ export function PostulerForm({
   // Une erreur renvoyée par le serveur s'affiche en haut du formulaire : on
   // y emmène la personne, qui vient de cliquer tout en bas.
   const erreurServeurRef = useRef<HTMLDivElement>(null);
+  // useActionState's pending flag updates on the next render. A synchronous
+  // ref also blocks a rapid second Enter/click before React has rendered.
+  const soumissionEnCours = useRef(false);
+  useEffect(() => {
+    if (!pending && state !== undefined) soumissionEnCours.current = false;
+  }, [pending, state]);
   useEffect(() => {
     if (state?.error) erreurServeurRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [state]);
@@ -341,6 +421,7 @@ export function PostulerForm({
   // l'envoi sans aucun message (« impossible de valider »).
   function envoyer(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (pending || soumissionEnCours.current) return;
     const form = e.currentTarget;
     const manquants: string[] = [];
     let premier: HTMLElement | null = null;
@@ -400,12 +481,13 @@ export function PostulerForm({
       return;
     }
     setACorriger(null);
+    soumissionEnCours.current = true;
     startTransition(() => formAction(fd));
   }
 
   if (state?.success) {
     return (
-      <Card className="flex flex-col gap-3">
+      <Card className="flex flex-col gap-3" role="status" aria-live="polite">
         <h2 className="text-lg font-semibold text-turquoise">Candidature envoyée</h2>
         <p className="text-sm text-text-muted">
           Merci ! Ta candidature a bien été enregistrée. On te recontacte si ton profil correspond.
@@ -429,7 +511,7 @@ export function PostulerForm({
       {retour && <input type="hidden" name="retour" value={retour} />}
       {state?.error && (
         <div
-          ref={erreurServeurRef}
+          ref={erreurServeurRef} role={state.invitationEnvoyee ? "status" : "alert"}
           className={
             state.invitationEnvoyee
               ? "rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm"
@@ -478,7 +560,8 @@ export function PostulerForm({
           <Field label="Téléphone" required>
             <Input type="tel" name="telephone" required defaultValue={prefill?.telephone ?? undefined} />
           </Field>
-          <DateNaissanceField name="date_naissance" required defaultValue={prefill?.date_naissance} />
+          <DateNaissanceField name="date_naissance" required defaultValue={prefill?.date_naissance} onValueChange={setBirthDate} />
+          <GuardianFields birth={birthDate} initial={guardians} />
           <Field label="Commune de naissance" required>
             <Input name="commune_naissance" required defaultValue={prefill?.commune_naissance ?? undefined} />
           </Field>
@@ -762,7 +845,7 @@ export function PostulerForm({
       )}
 
       {aCorriger && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           <p className="font-medium">
             {aCorriger.length === 1 && aCorriger[0].endsWith(".") ? aCorriger[0] : "Il reste à compléter ou corriger :"}
           </p>
@@ -789,8 +872,7 @@ export function PostulerForm({
       </Button>
 
       <p className="text-center text-xs text-text-muted">
-        {inscription ? "Créer un compte et candidater est" : "Candidater est"} gratuit — aucune somme d&apos;argent ni
-        aucun document de paie ne vous sera jamais demandé sur Booking Extras.
+        {inscription ? "Créer un compte et candidater est" : "Candidater est"} gratuit. Aucun document de paie ne vous sera demandé sur Booking Extras.
       </p>
 
       <p className="text-center text-xs text-text-muted">

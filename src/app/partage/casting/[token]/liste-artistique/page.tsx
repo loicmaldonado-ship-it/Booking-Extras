@@ -47,7 +47,7 @@ export default async function PartageListeArtistiquePage({ params }: { params: P
     <div className="flex flex-col gap-6">
       <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Liste artistique — {nom}</h1>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <AnchorButton href={`/partage/casting/${token}/liste-artistique/export`} variant="secondary">
             Télécharger Excel
           </AnchorButton>

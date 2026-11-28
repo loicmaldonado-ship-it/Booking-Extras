@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
 import { checkProjetAccess } from "@/lib/auth/session";
 import type { BookingStatut } from "@/lib/bookings/types";
 
@@ -15,7 +16,7 @@ function str(fd: FormData, key: string): string | null {
 async function checkEntryAccess(entryId: string): Promise<string | null> {
   const supabase = createAdminClient();
   const { data } = await supabase.from("casting_presentiel_entries").select("projet_id").eq("id", entryId).maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 
@@ -26,24 +27,25 @@ async function checkJourneeAccess(journeeId: string): Promise<string | null> {
     .select("projet_id")
     .eq("id", journeeId)
     .maybeSingle();
-  if (!data) return null;
+  if (!data) return "Élément introuvable.";
   return checkProjetAccess(data.projet_id);
 }
 
-export async function createPresentielJournee(projetId: string, formData: FormData) {
+export async function createPresentielJournee(projetId: string, _previous: { error: string }, formData: FormData): Promise<{ error: string }> {
   const accessError = await checkProjetAccess(projetId);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
   const dates = Array.from(new Set(formData.getAll("date").map((d) => String(d).trim()).filter(Boolean)));
-  if (dates.length === 0) return;
+  if (dates.length === 0) return { error: "Choisis au moins une date." };
 
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("casting_presentiel_journees")
     .upsert(
       dates.map((date) => ({ projet_id: projetId, date })),
       { onConflict: "projet_id,date" }
     );
+  if (error) return { error: "Impossible de créer les journées de casting." };
 
   revalidatePath("/casting/presentiel");
   if (dates.length === 1) {
@@ -54,22 +56,25 @@ export async function createPresentielJournee(projetId: string, formData: FormDa
 
 export async function deletePresentielJournee(journeeId: string) {
   const supabase = createAdminClient();
-  const { data: journee } = await supabase
+  const { data: journee, error: journeeError } = await supabase
     .from("casting_presentiel_journees")
     .select("projet_id")
     .eq("id", journeeId)
     .maybeSingle();
+  if (journeeError) return { error: "Impossible de vérifier cette journée." };
   if (!journee) return { error: "Journée introuvable." };
   const accessError = await checkProjetAccess(journee.projet_id);
   if (accessError) return { error: accessError };
 
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("casting_presentiel_entries")
     .select("id", { count: "exact", head: true })
     .eq("journee_id", journeeId);
-  if (count && count > 0) return { error: "Cette journée contient encore des profils." };
+  if (countError || count === null) return { error: "Impossible de vérifier les profils de la journée." };
+  if (count > 0) return { error: "Cette journée contient encore des profils." };
 
-  await supabase.from("casting_presentiel_journees").delete().eq("id", journeeId);
+  const { error } = await supabase.from("casting_presentiel_journees").delete().eq("id", journeeId);
+  if (error) return { error: "Impossible de supprimer cette journée." };
   revalidatePath("/casting/presentiel");
   return { ok: true };
 }
@@ -94,6 +99,9 @@ export async function addFigurantToPresentielJournee(
 ): Promise<{ error?: string; success?: true }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
 
@@ -123,7 +131,8 @@ export async function updatePresentielEntryRole(entryId: string, roleId: string 
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ role_id: roleId }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ role_id: roleId }).eq("id", entryId);
+  if (error) return { error: "Impossible de modifier le rôle." };
   revalidatePath("/casting/presentiel/journee");
   return { success: true as const };
 }
@@ -133,7 +142,8 @@ export async function updatePresentielEntryNotes(entryId: string, notes: string)
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ notes: notes.trim() || null }).eq("id", entryId);
+  if (error) return { error: "Impossible d’enregistrer les notes." };
   revalidatePath("/casting/presentiel/journee");
   return { success: true as const };
 }
@@ -152,6 +162,9 @@ export async function sendFigurantsToPresentiel(
   if (figurantIds.length === 0) return { error: "Aucun profil sélectionné." };
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
 
   const supabase = createAdminClient();
   let ok = 0;
@@ -188,8 +201,10 @@ export async function removePresentielEntry(entryId: string) {
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").delete().eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").delete().eq("id", entryId);
+  if (error) return { error: "Impossible de retirer ce profil." };
   revalidatePath("/casting/presentiel/journee");
+  return {};
 }
 
 export async function updatePresentielStatut(entryId: string, statut: BookingStatut) {
@@ -197,8 +212,10 @@ export async function updatePresentielStatut(entryId: string, statut: BookingSta
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ statut }).eq("id", entryId);
+  const { error } = await supabase.from("casting_presentiel_entries").update({ statut }).eq("id", entryId);
+  if (error) return { error: "Impossible de modifier le statut." };
   revalidatePath("/casting/presentiel/journee");
+  return {};
 }
 
 // Changement de statut groupé — depuis une sélection multiple sur la
@@ -207,10 +224,11 @@ export async function updatePresentielStatutBulk(
   entryIds: string[],
   statut: BookingStatut
 ): Promise<{ error?: string; ok?: number }> {
-  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+  if (!Array.isArray(entryIds) || entryIds.length === 0 || entryIds.length > 500 || new Set(entryIds).size !== entryIds.length) return { error: "Sélection invalide." };
 
   const supabase = createAdminClient();
-  const { data: entries } = await supabase.from("casting_presentiel_entries").select("id, projet_id").in("id", entryIds);
+  const { data: entries, error: lookupError } = await supabase.from("casting_presentiel_entries").select("id, projet_id").in("id", entryIds);
+  if (lookupError || !entries || entries.length !== entryIds.length || entries.some((e) => !entryIds.includes(e.id))) return { error: "Impossible de vérifier tous les profils sélectionnés." };
   const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
   for (const projetId of projetIds) {
     const accessError = await checkProjetAccess(projetId);
@@ -233,7 +251,9 @@ export async function addPresentielCreneau(journeeId: string, _prevState: unknow
   const capacite = Number(str(formData, "capacite") ?? "1");
 
   if (!heureDebut || !heureFin) return { error: "Heure de début et de fin obligatoires." };
-  if (!Number.isFinite(capacite) || capacite < 1) return { error: "Capacité invalide." };
+  if (!Number.isInteger(capacite) || capacite < 1 || capacite > 10000) return { error: "Capacité invalide." };
+  const formatHeure = /^([01]\d|2[0-3]):[0-5]\d$/;
+  if (!formatHeure.test(heureDebut) || !formatHeure.test(heureFin) || heureFin <= heureDebut) return { error: "Le créneau doit finir après son début." };
 
   const supabase = createAdminClient();
   const { error } = await supabase.from("casting_presentiel_creneaux").insert({
@@ -258,8 +278,10 @@ export async function generatePresentielCreneaux(journeeId: string, _prevState: 
   const capacite = Number(str(formData, "capacite") ?? "3");
 
   if (!heureDebut || !heureFin) return { error: "Heure de début et de fin de journée obligatoires." };
-  if (!Number.isFinite(dureeMinutes) || dureeMinutes < 5) return { error: "Durée par créneau invalide." };
-  if (!Number.isFinite(capacite) || capacite < 1) return { error: "Capacité invalide." };
+  if (!Number.isInteger(dureeMinutes) || dureeMinutes < 5 || dureeMinutes > 1440) return { error: "Durée par créneau invalide." };
+  if (!Number.isInteger(capacite) || capacite < 1 || capacite > 10000) return { error: "Capacité invalide." };
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(heureDebut) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(heureFin)) return { error: "Heure invalide." };
 
   const [startH, startM] = heureDebut.split(":").map(Number);
   const [endH, endM] = heureFin.split(":").map(Number);
@@ -271,10 +293,11 @@ export async function generatePresentielCreneaux(journeeId: string, _prevState: 
   }
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from("casting_presentiel_creneaux")
     .select("heure_debut")
     .eq("journee_id", journeeId);
+  if (existingError || !existing) return { error: "Impossible de vérifier les créneaux existants." };
   const existingSet = new Set((existing ?? []).map((c) => c.heure_debut.slice(0, 5)));
 
   function toHHMM(totalMinutes: number) {
@@ -304,20 +327,22 @@ export async function generatePresentielCreneaux(journeeId: string, _prevState: 
   return { success: true, count: toInsert.length };
 }
 
-export async function removePresentielCreneau(creneauId: string) {
+export async function removePresentielCreneau(creneauId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
-  const { data: creneau } = await supabase
-    .from("casting_presentiel_creneaux")
-    .select("journee_id")
-    .eq("id", creneauId)
-    .maybeSingle();
-  if (creneau) {
-    const accessError = await checkJourneeAccess(creneau.journee_id);
-    if (accessError) throw new Error(accessError);
+  const { data: creneau, error: lookupError } = await supabase
+    .from("casting_presentiel_creneaux").select("journee_id").eq("id", creneauId).maybeSingle();
+  if (lookupError || !creneau) return { error: "Impossible de vérifier ce créneau." };
+  const accessError = await checkJourneeAccess(creneau.journee_id);
+  if (accessError) return { error: accessError };
+  const { error: updateError } = await supabase.from("casting_presentiel_entries").update({ creneau_id: null }).eq("creneau_id", creneauId);
+  if (updateError) return { error: "Impossible de retirer les profils du créneau." };
+  const { error: deleteError } = await supabase.from("casting_presentiel_creneaux").delete().eq("id", creneauId);
+  if (deleteError) {
+    revalidatePath("/casting/presentiel/journee");
+    return { error: "Les profils ont été retirés du créneau, mais sa suppression a échoué. Vérifie le planning." };
   }
-  await supabase.from("casting_presentiel_entries").update({ creneau_id: null }).eq("creneau_id", creneauId);
-  await supabase.from("casting_presentiel_creneaux").delete().eq("id", creneauId);
   revalidatePath("/casting/presentiel/journee");
+  return {};
 }
 
 export async function assignPresentielEntryToCreneau(entryId: string, creneauId: string | null) {
@@ -325,6 +350,14 @@ export async function assignPresentielEntryToCreneau(entryId: string, creneauId:
   if (accessError) return { error: accessError };
 
   const supabase = createAdminClient();
-  await supabase.from("casting_presentiel_entries").update({ creneau_id: creneauId }).eq("id", entryId);
+  if (creneauId) {
+    const [current, target] = await Promise.all([
+      supabase.from("casting_presentiel_entries").select("journee_id").eq("id", entryId).maybeSingle(),
+      supabase.from("casting_presentiel_creneaux").select("journee_id").eq("id", creneauId).maybeSingle(),
+    ]);
+    if (current.error || target.error || !current.data || !target.data || current.data.journee_id !== target.data.journee_id) return { error: "Le créneau doit appartenir à cette journée." };
+  }
+  const { error } = await supabase.from("casting_presentiel_entries").update({ creneau_id: creneauId }).eq("id", entryId);
+  if (error) return { error: "Affectation du créneau impossible." };
   revalidatePath("/casting/presentiel/journee");
 }

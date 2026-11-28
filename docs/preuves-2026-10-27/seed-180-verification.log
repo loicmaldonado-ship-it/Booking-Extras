@@ -1,0 +1,4 @@
+Deux resets complets exit0 ; 180 migrations et données seed : DO.
+cheffe.test@test-chat-charge.fr : connexion Auth + lecture projet REST réussies.
+assistante.test@test-chat-charge.fr : connexion Auth + lecture projet REST réussies.
+Mot de passe candidat seed : scrypt valide (le contrôle crypt SQL initial était inadapté, aucune modification du seed nécessaire).

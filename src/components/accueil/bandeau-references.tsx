@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { referenceTypeLabel, type Reference } from "@/lib/references/types";
 
 function Affiche({ reference }: { reference: Reference }) {

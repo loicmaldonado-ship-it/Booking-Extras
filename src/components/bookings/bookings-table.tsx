@@ -5,7 +5,7 @@ import { PhotosTrombiPicker } from "@/components/bookings/photos-trombi-picker";
 import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { ZoomableImage, ZoomButton } from "@/components/ui/zoomable-image";
 import { StatusSelect } from "@/components/ui/status-select";
 import { Badge } from "@/components/ui/card";
@@ -520,6 +520,8 @@ export function BookingsTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [resetConvocationError, setResetConvocationError] = useState<string | null>(null);
   const [activeFonction, setActiveFonction] = useState<string | null>(null);
   const [activeCachet, setActiveCachet] = useState<string | null>(null);
   const [groupDims, setGroupDims] = useState<Dimension[]>(["fonction", "cachet"]);
@@ -550,11 +552,12 @@ export function BookingsTable({
   const [libreSubject, setLibreSubject] = useState(`Message – ${date ?? ""}`);
   const [libreMessage, setLibreMessage] = useState(DEFAULT_LIBRE_BODY);
   const [sendPending, setSendPending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number } | null>(null);
+  const [sendResult, setSendResult] = useState<{ sent: number; failed: number; skipped?: number; unmarked?: number; partiels?: number } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [repliesPending, setRepliesPending] = useState(false);
   const [replies, setReplies] = useState<InboxReply[]>(initialReplies);
   const [repliesError, setRepliesError] = useState<string | null>(null);
+  const [messageToggleError, setMessageToggleError] = useState<string | null>(null);
   const [lastCheckInfo, setLastCheckInfo] = useState<string | null>(null);
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
   const [expandedRaccord, setExpandedRaccord] = useState<Set<string>>(new Set());
@@ -578,9 +581,13 @@ export function BookingsTable({
   }
 
   function toggleRepondu(messageId: string, value: boolean) {
+    setMessageToggleError(null);
     startTransition(async () => {
-      await toggleMessageRepondu(messageId, value);
-      router.refresh();
+      try {
+        const result = await toggleMessageRepondu(messageId, value);
+        if (result.error) { setMessageToggleError(result.error); return; }
+        router.refresh();
+      } catch { setMessageToggleError("Impossible de confirmer le suivi de réponse. Réessaie."); }
     });
   }
 
@@ -691,7 +698,8 @@ export function BookingsTable({
   }
 
   function applyBulkChanges() {
-    if (selected.size === 0) return;
+    if (selected.size === 0 || pending) return;
+    setBulkError(null);
     const changes: Parameters<typeof bulkUpdateBookings>[1] = {};
     if (bulkStatut) changes.statut = bulkStatut as BookingStatut;
     if (bulkFonction.trim()) changes.fonction = bulkFonction.trim();
@@ -700,13 +708,21 @@ export function BookingsTable({
     if (Object.keys(changes).length === 0) return;
     const ids = Array.from(selected);
     startTransition(async () => {
-      await bulkUpdateBookings(ids, changes);
-      setSelected(new Set());
-      setBulkStatut("");
-      setBulkFonction("");
-      setBulkCachet("");
-      setBulkHeure("");
-      router.refresh();
+      try {
+        const result = await bulkUpdateBookings(ids, changes);
+        if (result.error) {
+          setBulkError(result.error);
+          return;
+        }
+        setSelected(new Set());
+        setBulkStatut("");
+        setBulkFonction("");
+        setBulkCachet("");
+        setBulkHeure("");
+        router.refresh();
+      } catch {
+        setBulkError("Mise à jour impossible. Réessaie lorsque la connexion est rétablie.");
+      }
     });
   }
 
@@ -741,10 +757,8 @@ export function BookingsTable({
     if (!confirm(`Retirer de la journée : ${noms}${suite} ?\n\n${cibles.length > 1 ? "Leurs bookings sont supprimés" : "Son booking est supprimé"} (aucun message n'est envoyé).`)) return;
     startTransition(async () => {
       const res = await retirerBookings(cibles.map((r) => r.id));
-      if (res.error) {
-        alert(res.error);
-        return;
-      }
+      if (res.error) alert(res.error);
+      if (!res.retires) return;
       setSelected(new Set());
       router.refresh();
     });
@@ -840,10 +854,15 @@ export function BookingsTable({
 
   function clearReplies() {
     const ids = replies.map((r) => r.messageId);
+    const avant = replies;
     setReplies([]);
     setLastCheckInfo(null);
     startTransition(async () => {
-      await clearUnreviewedReplies(ids);
+      const res = await clearUnreviewedReplies(ids);
+      if (res?.error) {
+        setReplies(avant);
+        alert(res.error);
+      }
     });
   }
 
@@ -929,7 +948,7 @@ export function BookingsTable({
       );
       setSendPending(false);
       setSendResult(result);
-      if (result.failed === 0) {
+      if (result.failed === 0 && !result.unmarked && !result.partiels) {
         setSelected(new Set());
         setMessageMode("none");
       }
@@ -939,8 +958,10 @@ export function BookingsTable({
 
   function reinitialiserConvocation(ids: string[]) {
     if (ids.length === 0) return;
+    setResetConvocationError(null);
     startTransition(async () => {
-      await resetConvocationEnvoyee(ids);
+      const result = await resetConvocationEnvoyee(ids);
+      if (result.error) { setResetConvocationError(result.error); return; }
       router.refresh();
     });
   }
@@ -1481,6 +1502,7 @@ export function BookingsTable({
         </div>
       )}
 
+      {messageToggleError && <p role="alert" className="text-sm text-danger">{messageToggleError}</p>}
       {(repliesError || lastCheckInfo || replies.length > 0) && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-ink-raised px-4 py-3">
           {repliesError && <p className="text-sm text-danger">Échec de la vérification : {repliesError}</p>}
@@ -1819,6 +1841,7 @@ export function BookingsTable({
               {pending ? "Mise à jour..." : "Appliquer"}
             </Button>
           </div>
+          {bulkError && <p role="alert" className="w-full text-xs text-danger">{bulkError}</p>}
           {(projetIndemnites.length > 0 || baremeMajorations.length > 0) && (
             <select
               onChange={(e) => {
@@ -1949,6 +1972,7 @@ export function BookingsTable({
           {messageMode === "convocation-confirm" && (
             <Modale titre="📨 Envoyer la convocation" onClose={cancelMessageComposer} bloquee={sendPending}>
             <div className="flex flex-col gap-3">
+              {resetConvocationError && <p role="alert" className="text-sm text-danger">{resetConvocationError}</p>}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
                   Envoyer la convocation par email à {convocationAEnvoyer.length} personne
@@ -2004,6 +2028,12 @@ export function BookingsTable({
                     </div>
                   ))}
                 </div>
+              )}
+              {!!sendResult?.partiels && (
+                <p role="alert" className="text-xs text-danger">{sendResult.partiels} message(s) enregistré(s), mais l’email a échoué ou son statut est inconnu. Vérifie les échanges avant tout nouvel envoi pour éviter les doublons.</p>
+              )}
+              {!!sendResult?.unmarked && (
+                <p role="alert" className="text-xs text-danger">{sendResult.unmarked} email(s) envoyé(s), mais leur statut n’a pas pu être enregistré. Vérifie les convocations avant tout nouvel envoi pour éviter les doublons.</p>
               )}
               {sendResult && (
                 <p className="text-xs text-text-muted">

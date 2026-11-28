@@ -2,7 +2,7 @@
 
 import { nomComplet } from "@/lib/noms";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { getCandidatureTriData, setCandidatureOnglet } from "@/lib/candidatures/actions";

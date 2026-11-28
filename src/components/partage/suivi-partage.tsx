@@ -18,6 +18,8 @@ export function SuiviPartageLien({ projetId, type, date, categorie = null }: { p
     lireSuiviPartage(projetId, type, date, categorie).then((res) => {
       if ("error" in res) setErreur(res.error);
       else setSuivi(res);
+    }).catch(() => {
+      // appel interrompu (page quittée, réseau coupé) : nouvel essai au tour suivant
     });
   }, [projetId, type, date, categorie]);
 

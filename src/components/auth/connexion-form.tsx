@@ -31,10 +31,10 @@ export function ConnexionForm({ retour }: { retour?: string | null }) {
   if (magicState?.sentTo) {
     return (
       <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-turquoise">Email envoyé</h2>
+        <h2 className="text-lg font-semibold text-turquoise">Vérifiez votre messagerie</h2>
         <p className="text-sm text-text-muted">
-          Un lien de connexion vient d&apos;être envoyé à <strong>{magicState.sentTo}</strong> (valable 30
-          minutes). Ouvrez-le depuis votre messagerie pour accéder à votre espace.
+          Si un compte actif correspond à <strong>{magicState.sentTo}</strong>, vous recevrez un lien de connexion
+          (valable 30 minutes). Vérifiez également vos courriers indésirables.
         </p>
       </Card>
     );
@@ -48,6 +48,7 @@ export function ConnexionForm({ retour }: { retour?: string | null }) {
       </Suspense>
       {magicState?.error && (
         <div
+          role={magicState.invitationEnvoyee ? "status" : "alert"}
           className={
             magicState.invitationEnvoyee
               ? "rounded-xl border border-turquoise/40 bg-turquoise/10 px-4 py-3 text-sm"
@@ -58,7 +59,7 @@ export function ConnexionForm({ retour }: { retour?: string | null }) {
         </div>
       )}
       {passwordState?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {passwordState.error}
         </div>
       )}

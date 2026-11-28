@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Card, Badge } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { Genre } from "@/lib/figurants/types";
@@ -32,8 +33,11 @@ export function CreneauxPanel({
   assignments: CreneauAssignment[];
   generateCreneaux: CreneauAction;
   addCreneau: CreneauAction;
-  removeCreneau: (creneauId: string) => void | Promise<void>;
+  removeCreneau: (creneauId: string) => Promise<{ error?: string }>;
 }) {
+  const router = useRouter();
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const [removePending, startRemove] = useTransition();
   const [mode, setMode] = useState<"none" | "generate" | "manual">("none");
 
   const [genState, genAction, genPending] = useActionState(generateCreneaux, undefined);
@@ -76,6 +80,7 @@ export function CreneauxPanel({
         )}
       </div>
 
+      {removeError && <p role="alert" className="text-sm text-danger">{removeError}</p>}
       {creneaux.length > 0 ? (
         <div className="flex flex-wrap gap-3">
           {[...creneaux]
@@ -97,11 +102,11 @@ export function CreneauxPanel({
                   <span className="text-xs text-text-muted">
                     {counts.femmes}F · {counts.hommes}H · {counts.nb}NB
                   </span>
-                  <form action={() => removeCreneau(c.id)}>
-                    <button type="submit" className="text-text hover:text-coral" title="Supprimer ce créneau">
-                      ×
-                    </button>
-                  </form>
+                  <button type="button" disabled={removePending} onClick={() => startRemove(async () => {
+                    const result = await removeCreneau(c.id);
+                    setRemoveError(result.error ?? null);
+                    router.refresh();
+                  })} className="text-text hover:text-coral" title="Supprimer ce créneau">×</button>
                 </div>
               );
             })}
@@ -112,8 +117,8 @@ export function CreneauxPanel({
 
       {mode === "generate" && (
         <form ref={genFormRef} action={genAction} className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Début de journée</label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Début de journée</span>
             <input
               name="heure_debut"
               type="time"
@@ -122,9 +127,9 @@ export function CreneauxPanel({
               disabled={genPending}
               className="w-28 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Fin de journée</label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Fin de journée</span>
             <input
               name="heure_fin"
               type="time"
@@ -133,9 +138,9 @@ export function CreneauxPanel({
               disabled={genPending}
               className="w-28 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Durée par créneau (min)</label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Durée par créneau (min)</span>
             <input
               name="duree_minutes"
               type="number"
@@ -146,9 +151,9 @@ export function CreneauxPanel({
               disabled={genPending}
               className="w-24 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Personnes par créneau</label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Personnes par créneau</span>
             <input
               name="capacite"
               type="number"
@@ -158,7 +163,7 @@ export function CreneauxPanel({
               disabled={genPending}
               className="w-24 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
+          </label>
           <Button type="submit" disabled={genPending}>
             {genPending ? "Génération..." : "Générer"}
           </Button>
@@ -174,8 +179,8 @@ export function CreneauxPanel({
 
       {mode === "manual" && (
         <form ref={addFormRef} action={addAction} className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Début</label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Début</span>
             <input
               name="heure_debut"
               type="time"
@@ -183,9 +188,9 @@ export function CreneauxPanel({
               disabled={addPending}
               className="w-28 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Fin</label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Fin</span>
             <input
               name="heure_fin"
               type="time"
@@ -193,9 +198,9 @@ export function CreneauxPanel({
               disabled={addPending}
               className="w-28 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-muted">Capacité</label>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-text-muted">Capacité</span>
             <input
               name="capacite"
               type="number"
@@ -205,7 +210,7 @@ export function CreneauxPanel({
               disabled={addPending}
               className="w-20 rounded-lg border border-border bg-ink px-3 py-2 text-sm outline-none focus:border-coral disabled:opacity-60"
             />
-          </div>
+          </label>
           <Button type="submit" disabled={addPending}>
             {addPending ? "Ajout..." : "Ajouter"}
           </Button>

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { t, DEFAULT_LANG, type Lang } from "@/lib/i18n/partage";
 
 export function DocumentLetterhead({

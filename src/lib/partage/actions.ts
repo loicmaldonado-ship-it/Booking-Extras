@@ -32,11 +32,13 @@ async function requireAccessOrThrow(projetId: string) {
 }
 
 export async function getPartageToken(projetId: string, type: PartageType, categorie: CategorieLien = null) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await dansCategorie(
+  const { data, error } = await dansCategorie(
     supabase.from("partage_liens").select("token").eq("projet_id", projetId).eq("type", type),
     categorie
   ).maybeSingle();
+  if (error) throw new Error("Impossible de consulter le lien de partage.");
   return data?.token ?? null;
 }
 
@@ -44,11 +46,13 @@ export async function getPartageToken(projetId: string, type: PartageType, categ
 // (ex. "Casting — LD"), vide si non renseigné (la page retombe alors sur
 // son titre générique habituel).
 export async function getPartageTitre(projetId: string, type: PartageType, categorie: CategorieLien = null) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await dansCategorie(
+  const { data, error } = await dansCategorie(
     supabase.from("partage_liens").select("titre").eq("projet_id", projetId).eq("type", type),
     categorie
   ).maybeSingle();
+  if (error) throw new Error("Impossible de consulter le lien de partage.");
   return data?.titre ?? null;
 }
 
@@ -56,7 +60,10 @@ export async function updatePartageTitre(projetId: string, type: PartageType, ti
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await dansCategorie(supabase.from("partage_liens").update({ titre }).eq("projet_id", projetId).eq("type", type), categorie);
+  const { error } = await dansCategorie(
+    supabase.from("partage_liens").update({ titre }).eq("projet_id", projetId).eq("type", type), categorie
+  );
+  if (error) throw new Error("Impossible de modifier le titre du partage.");
   revalidatePath("/casting");
 }
 
@@ -66,12 +73,14 @@ export async function createPartageLien(projetId: string, type: PartageType, cat
 
   const supabase = createAdminClient();
   const token = genToken();
-  const { data: existant } = await dansCategorie(
-    supabase.from("partage_liens").select("id").eq("projet_id", projetId).eq("type", type),
-    categorie
+  const { data: existant, error: lookupError } = await dansCategorie(
+    supabase.from("partage_liens").select("id").eq("projet_id", projetId).eq("type", type), categorie
   ).maybeSingle();
-  if (existant) await supabase.from("partage_liens").update({ token }).eq("id", existant.id);
-  else await supabase.from("partage_liens").insert({ projet_id: projetId, type, token, categorie });
+  if (lookupError) throw new Error("Impossible de vérifier le lien existant.");
+  const { error } = existant
+    ? await supabase.from("partage_liens").update({ token }).eq("id", existant.id)
+    : await supabase.from("partage_liens").insert({ projet_id: projetId, type, token, categorie });
+  if (error) throw new Error("Impossible de créer le lien de partage.");
   revalidatePath("/partage");
   revalidatePath("/essayages");
   revalidatePath("/casting");
@@ -90,6 +99,11 @@ export async function updateCastingDocVisible(
   categorie: CategorieLien = null
 ) {
   await requireAccessOrThrow(projetId);
+  // "use server" : TypeScript ne valide pas les arguments désérialisés.
+  if (doc !== "liste_artistique" && doc !== "fiches_roles" && doc !== "distribution") {
+    throw new Error("Document de casting invalide.");
+  }
+  if (typeof visible !== "boolean") throw new Error("Visibilité invalide.");
 
   const supabase = createAdminClient();
   const column =
@@ -98,7 +112,10 @@ export async function updateCastingDocVisible(
       : doc === "fiches_roles"
         ? "fiches_roles_visible"
         : "distribution_visible";
-  await dansCategorie(supabase.from("partage_liens").update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting"), categorie);
+  const { error } = await dansCategorie(
+    supabase.from("partage_liens").update({ [column]: visible }).eq("projet_id", projetId).eq("type", "casting"), categorie
+  );
+  if (error) throw new Error("Impossible de modifier la visibilité du document.");
   revalidatePath("/casting");
 }
 
@@ -106,12 +123,13 @@ export async function updateCastingDocVisible(
 // toucher à la visibilité du document lui-même.
 export async function updateFichesRolesMasquerContact(projetId: string, masquer: boolean, categorie: CategorieLien = null) {
   await requireAccessOrThrow(projetId);
+  if (typeof masquer !== "boolean") throw new Error("Paramètre de confidentialité invalide.");
 
   const supabase = createAdminClient();
-  await dansCategorie(
-    supabase.from("partage_liens").update({ fiches_roles_masquer_contact: masquer }).eq("projet_id", projetId).eq("type", "casting"),
-    categorie
+  const { error } = await dansCategorie(
+    supabase.from("partage_liens").update({ fiches_roles_masquer_contact: masquer }).eq("projet_id", projetId).eq("type", "casting"), categorie
   );
+  if (error) throw new Error("Impossible de modifier la confidentialité des fiches rôles.");
   revalidatePath("/casting");
 }
 
@@ -119,19 +137,24 @@ export async function revokePartageLien(projetId: string, type: PartageType, cat
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await dansCategorie(supabase.from("partage_liens").delete().eq("projet_id", projetId).eq("type", type), categorie);
+  const { error } = await dansCategorie(
+    supabase.from("partage_liens").delete().eq("projet_id", projetId).eq("type", type), categorie
+  );
+  if (error) throw new Error("Impossible de révoquer le lien de partage.");
   revalidatePath("/partage");
   revalidatePath("/essayages");
 }
 
 export async function getJourneePartageLien(projetId: string, date: string) {
+  await requireAccessOrThrow(projetId);
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("partage_journee_liens")
     .select("token, show_contacts")
     .eq("projet_id", projetId)
     .eq("date", date)
     .maybeSingle();
+  if (error) throw new Error("Impossible de consulter le lien de journée.");
   return data ? { token: data.token, showContacts: data.show_contacts } : null;
 }
 
@@ -140,10 +163,11 @@ export async function createJourneePartageLien(projetId: string, date: string, s
 
   const supabase = createAdminClient();
   const token = genToken();
-  await supabase.from("partage_journee_liens").upsert(
+  const { error } = await supabase.from("partage_journee_liens").upsert(
     { projet_id: projetId, date, show_contacts: showContacts, token },
     { onConflict: "projet_id,date" }
   );
+  if (error) throw new Error("Impossible de créer le lien de partage de journée.");
   revalidatePath("/bookings/documents");
   return token;
 }
@@ -152,7 +176,9 @@ export async function revokeJourneePartageLien(projetId: string, date: string) {
   await requireAccessOrThrow(projetId);
 
   const supabase = createAdminClient();
-  await supabase.from("partage_journee_liens").delete().eq("projet_id", projetId).eq("date", date);
+  const { error } = await supabase.from("partage_journee_liens")
+    .delete().eq("projet_id", projetId).eq("date", date);
+  if (error) throw new Error("Impossible de révoquer le lien de journée.");
   revalidatePath("/bookings/documents");
 }
 
@@ -161,11 +187,15 @@ export async function revokeJourneePartageLien(projetId: string, date: string) {
 // peut faire (avis Oui / Peut-être / Non, commentaires par profil).
 export async function updateReelOption(projetId: string, cle: keyof OptionsReel, valeur: boolean, categorie: CategorieLien = null) {
   await requireAccessOrThrow(projetId);
+  if (!Object.prototype.hasOwnProperty.call(COLONNES_OPTIONS_REEL, cle)) {
+    throw new Error("Option de partage invalide.");
+  }
+  if (typeof valeur !== "boolean") throw new Error("Valeur de partage invalide.");
   const colonne = COLONNES_OPTIONS_REEL[cle];
-  if (!colonne) return;
-  await dansCategorie(
+  const { error } = await dansCategorie(
     createAdminClient().from("partage_liens").update({ [colonne]: valeur }).eq("projet_id", projetId).eq("type", "casting"),
     categorie
   );
+  if (error) throw new Error("Impossible de modifier les options du lien réal.");
   revalidatePath("/casting");
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { FonctionsDatalist } from "@/components/projets/fonctions-datalist";
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { createBookingsFromDropBulk } from "@/lib/bookings/actions";
@@ -12,12 +12,14 @@ export function AddToJourneeBar({
   figurantIds,
   projets,
   candidatureIdByFigurant,
+  candidatureProjectByFigurant,
   onDone,
   fonctionFacultative = false,
 }: {
   figurantIds: string[];
   projets: { id: string; nom: string }[];
   candidatureIdByFigurant?: Record<string, string>;
+  candidatureProjectByFigurant?: Record<string, string>;
   onDone?: () => void;
   // Depuis Candidatures : la fonction peut être choisie plus tard.
   fonctionFacultative?: boolean;
@@ -31,6 +33,7 @@ export function AddToJourneeBar({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<{ ok: number; deja: number; error?: string } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const fieldId = useId();
 
   useEffect(() => {
     if (!calendarOpen) return;
@@ -52,31 +55,44 @@ export function AddToJourneeBar({
   }
 
   function submit() {
-    if (!projetId || dates.length === 0 || figurantIds.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())) return;
+    if (pending || !projetId || dates.length === 0 || figurantIds.length === 0 || !cachet || (!fonctionFacultative && !fonction.trim())) return;
     setResult(null);
     startTransition(async () => {
-      const res = await createBookingsFromDropBulk(
-        figurantIds,
-        projetId,
-        dates,
-        candidatureIdByFigurant,
-        fonction,
-        cachet,
-        fonctionFacultative
-      );
-      setResult({ ok: res.ok, deja: res.deja, error: res.error });
-      if (res.error) return;
-      setDates([]);
-      router.refresh();
-      onDone?.();
+      try {
+        // Staff may book a known profile on another project. In that case
+        // don't attach a candidature belonging to the previous project.
+        const referenceIds = candidatureIdByFigurant && candidatureProjectByFigurant
+          ? Object.fromEntries(Object.entries(candidatureIdByFigurant)
+              .filter(([id]) => candidatureProjectByFigurant[id] === projetId))
+          : candidatureIdByFigurant;
+        const res = await createBookingsFromDropBulk(
+          figurantIds,
+          projetId,
+          dates,
+          referenceIds,
+          fonction,
+          cachet,
+          fonctionFacultative
+        );
+        setResult({ ok: res.ok, deja: res.deja, error: res.error });
+        if (res.ok > 0) router.refresh();
+        // Never discard the user's dates or close this panel on partial/failed inserts.
+        if (!res.error) {
+          setDates([]);
+          onDone?.();
+        }
+      } catch {
+        setResult({ ok: 0, deja: 0, error: "Impossible d'ajouter les bookings. Vérifie la connexion puis réessaie." });
+      }
     });
   }
 
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">Projet</label>
+        <label htmlFor={`${fieldId}-projet`} className="text-xs text-text-muted">Projet</label>
         <select
+          id={`${fieldId}-projet`}
           value={projetId}
           onChange={(e) => setProjetId(e.target.value)}
           disabled={pending}
@@ -134,11 +150,10 @@ export function AddToJourneeBar({
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">
-          Fonction {fonctionFacultative ? "(facultatif)" : <span className="text-danger">*</span>}
-        </label>
-        <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
+<label htmlFor={`${fieldId}-fonction`} className="text-xs text-text-muted">Fonction {fonctionFacultative ? "(facultatif)" : <span className="text-danger">*</span>}</label>
+          <FonctionsDatalist id="fonctions-ajout-journee" projetId={projetId} />
         <input
+          id={`${fieldId}-fonction`}
           type="text"
           list="fonctions-ajout-journee"
           value={fonction}
@@ -149,10 +164,9 @@ export function AddToJourneeBar({
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-text-muted">
-          Cachet <span className="text-danger">*</span>
-        </label>
+<label htmlFor={`${fieldId}-cachet`} className="text-xs text-text-muted">Cachet <span className="text-danger">*</span></label>
         <select
+          id={`${fieldId}-cachet`}
           value={cachet}
           onChange={(e) => setCachet(e.target.value as Cachet | "")}
           disabled={pending}
@@ -180,13 +194,14 @@ export function AddToJourneeBar({
             ? `Envoyer dans les ${dates.length} journées de booking`
             : "Envoyer dans la journée de booking"}
       </Button>
-      {(!cachet || (!fonctionFacultative && !fonction.trim())) && (
-        <span className="text-xs text-text-muted">{fonctionFacultative ? "Cachet obligatoire." : "Fonction et cachet obligatoires."}</span>
-      )}
-      {result?.error && <span className="text-xs text-danger">{result.error}</span>}
-      {result && !result.error && (
-        <span className="text-xs text-text-muted">
-          {result.ok} ajouté{result.ok > 1 ? "s" : ""}
+{(!cachet || (!fonctionFacultative && !fonction.trim())) && (
+          <span className="text-xs text-text-muted">{fonctionFacultative ? "Cachet obligatoire." : "Fonction et cachet obligatoires."}</span>
+        )}
+      {result && (
+        <span role={result.error ? "alert" : "status"}
+          className={`text-xs ${result.error ? "text-danger" : "text-text-muted"}`}>
+          {result.error ? `${result.error} ` : ""}
+          {result.ok > 0 ? `${result.ok} ajouté${result.ok > 1 ? "s" : ""}` : ""}
           {result.deja > 0 ? ` · ${result.deja} déjà booké${result.deja > 1 ? "s" : ""}` : ""}
         </span>
       )}

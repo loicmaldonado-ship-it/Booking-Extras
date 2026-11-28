@@ -16,8 +16,9 @@ import { generateQrCodeDataUrl } from "@/lib/annonces/qrcode";
 import { BackLink } from "@/components/ui/back-link";
 import type { AnnonceAvecProjet } from "@/lib/annonces/types";
 import { deleteAnnonce } from "@/lib/annonces/actions";
-import { getAnnonceQuestions, getQuestionTemplates } from "@/lib/annonces/questions";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getQuestionTemplates } from "@/lib/annonces/questions";
+import { getAnnonceQuestions } from "@/lib/annonces/data";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
 import { requireProjetAccess } from "@/lib/auth/session";
@@ -41,7 +42,8 @@ export default async function AnnonceDetailPage({
 
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");
-  const protocol = host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
+  const protoProxy = requestHeaders.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const protocol = protoProxy === "http" || protoProxy === "https" ? protoProxy : host?.startsWith("localhost") || host?.startsWith("127.0.0.1") ? "http" : "https";
   const publicUrl = `${protocol}://${host}/postuler/${annonce.public_token}`;
 
   const { count: candidatureCount } = await supabase
@@ -73,10 +75,10 @@ export default async function AnnonceDetailPage({
     <div className="flex max-w-3xl flex-col gap-6">
       <BackLink href="/annonces" label="Annonces" />
 
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold">{annonce.titre}</h1>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="min-w-0 break-words text-3xl font-semibold">{annonce.titre}</h1>
             <Badge tone={annonce.statut === "ouverte" ? "turquoise" : "default"}>
               {annonce.statut === "ouverte" ? "Ouverte" : "Fermée"}
             </Badge>
@@ -87,7 +89,7 @@ export default async function AnnonceDetailPage({
             {annonce.lieu ? ` · ${annonce.lieu}` : ""}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/candidatures?annonce_id=${id}`}>Voir les candidatures</ButtonLink>
           <ButtonLink href={`/annonces/${id}/modifier`} variant="secondary">
             Modifier

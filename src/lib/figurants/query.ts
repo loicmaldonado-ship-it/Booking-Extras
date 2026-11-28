@@ -1,6 +1,7 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
 import { MENSURATION_RANGE_FIELDS, MENSURATION_TEXT_FIELDS, type MensurationFilters } from "@/lib/figurants/mensuration-filters";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { buildProfileSearchFilter } from "./search-filter";
 import type { CurrentProfile } from "@/lib/auth/session";
 
 export type FigurantFilters = {
@@ -32,6 +33,7 @@ export function buildFigurantsQuery(
     .from("figurants")
     .select("*", options?.withCount ? { count: "exact" } : undefined)
     .eq("confirme", true)
+    .eq("acces_compte", true)
     .order("nom", { ascending: true })
     .order("prenom", { ascending: true });
 
@@ -50,11 +52,8 @@ export function buildFigurantsQuery(
     if (clause) query = query.or(clause);
   }
 
-  if (params.q) {
-    query = query.or(
-      `nom.ilike.%${params.q}%,prenom.ilike.%${params.q}%,email.ilike.%${params.q}%,telephone.ilike.%${params.q}%`
-    );
-  }
+  const searchFilter = buildProfileSearchFilter(params.q);
+  if (searchFilter) query = query.or(searchFilter);
   if (params.ville) {
     query = query.ilike("ville", `%${params.ville}%`);
   }

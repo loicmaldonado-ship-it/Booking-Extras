@@ -1,7 +1,7 @@
 import { nomComplet } from "@/lib/noms";
 import { Fragment } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolvePartageToken } from "@/lib/partage/data";
 import {
@@ -83,16 +83,20 @@ export default async function PartageEssayagesPlanningPage({
         {t(lang, "retour_planning")}
       </Link>
 
-      <div className="print-hide flex items-center justify-between">
+      <div className="print-hide flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">
           {t(lang, "planning_essayage_titre")} — {projetNomPublic(projet)} — {formatDateShort(date)}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <LangToggle lang={lang} basePath={`/partage/essayages/${token}/planning`} otherParams={{ date }} />
           <DownloadPdfButton filename={`planning-essayage-${projet.nom}-${date}.pdf`} orientation="landscape" lang={lang} />
           <PrintButton lang={lang} />
         </div>
       </div>
+
+      <p className="print-hide text-sm text-text-muted md:hidden">
+        {lang === "en" ? "This preview is scaled down. Download the PDF or print it for a readable document." : "Cet aperçu est réduit. Télécharge le PDF ou imprime-le pour lire le document confortablement."}
+      </p>
 
       <PrintSheet orientation="landscape">
         <DocumentLetterhead

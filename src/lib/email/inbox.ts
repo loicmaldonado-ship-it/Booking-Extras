@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { AVERTISSEMENT_EXPEDITEUR } from "@/lib/email/authentification";
 
 // Heuristique par mots-clés uniquement — un simple indice affiché à l'écran,
 // jamais utilisé pour changer automatiquement un statut de booking.
@@ -42,6 +43,8 @@ function normalize(s: string) {
 export type Sentiment = "positif" | "negatif" | null;
 
 export function guessSentiment(text: string): Sentiment {
+  // Expéditeur non vérifié : pas d'indice « oui / non », la personne doit être recontactée.
+  if (text.startsWith(AVERTISSEMENT_EXPEDITEUR)) return null;
   const n = normalize(text);
   const hasPositive = POSITIVE_WORDS.some((w) => n.includes(w));
   const hasNegative = NEGATIVE_WORDS.some((w) => n.includes(w));
@@ -100,14 +103,21 @@ export async function getUnreviewedReplies(projetId?: string | null, figurantIds
 
 // Efface seulement les réponses affichées (celles de la journée).
 export async function clearUnreviewedReplies(messageIds: string[]) {
-  if (messageIds.length === 0) return;
+  if (messageIds.length === 0) return {};
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from("figurant_messages")
     .update({ reviewed_at: new Date().toISOString() })
     .eq("sender", "figurant")
     .is("reviewed_at", null)
     .in("id", messageIds.slice(0, 500));
+  return error ? { error: "Les réponses n'ont pas pu être effacées ; réessaie." } : {};
+}
+
+// Personnes bookées sur ce projet, toutes dates confondues.
+export async function figurantsDuProjet(projetId: string): Promise<string[]> {
+  const { data } = await createAdminClient().from("bookings").select("figurant_id").eq("projet_id", projetId);
+  return [...new Set((data ?? []).map((b) => b.figurant_id))];
 }
 
 // Personnes bookées sur cette journée du projet.

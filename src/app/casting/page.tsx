@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getModelesEquipe } from "@/lib/templates/equipe";
 import { Card } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { CastingRolesListe, type EtatRole } from "@/components/casting/casting-r
 import { getCurrentProjetId, setCurrentProjet } from "@/lib/projet-context";
 import { getCurrentProfile, getAccessibleProjetIds, idsOrNone } from "@/lib/auth/session";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 import { isOwner } from "@/lib/auth/owner";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { CASTING_MODE_LABELS, CASTING_STATUTS, CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
@@ -68,7 +70,8 @@ export default async function CastingPage({
   // Onglet ouvert : une catégorie à la fois (rôles, silhouettes, doublures).
   const CATEGORIES = Object.keys(CATEGORIE_CACHET_LABELS) as CategorieCachet[];
 
-  let allFigurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let allFigurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) allFigurantsQuery = allFigurantsQuery.or(comedienClause);
 
@@ -78,7 +81,7 @@ export default async function CastingPage({
     nbPropositions,
     entries,
     origin,
-    { data: allFigurants },
+    { data: allFigurantsRls },
     { data: templates },
     signature,
     presentielJournees,
@@ -97,6 +100,7 @@ export default async function CastingPage({
     getPresentielAssignmentsByRole(currentProjetId),
     getRetourReel(currentProjetId),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const roleIdsParCategorie = new Map<CategorieCachet, Set<string>>(CATEGORIES.map((c) => [c, new Set<string>()]));
   for (const role of roles) roleIdsParCategorie.get(role.categorie_cachet)?.add(role.id);
@@ -190,7 +194,7 @@ export default async function CastingPage({
                 </ButtonLink>
                 <span className="text-xs text-text-muted">Ce que voit le·la réal, et retirer une photo ou une vidéo du lien.</span>
               </div>
-              {[liensCategorie, lienTout].map((lien) => (
+              {roles.length > 0 && [liensCategorie, lienTout].map((lien) => (
                 <PartageCard
                   key={lien.cat ?? "tout"}
                   projetId={currentProjetId}
@@ -261,6 +265,34 @@ export default async function CastingPage({
           </form>
         </div>
       </div>
+      {roles.length > 0 && (
+        <details className="rounded-2xl border border-border bg-ink-raised/50 p-4">
+          <summary className="cursor-pointer font-medium">Documents, exports et outils du casting</summary>
+          <p className="mt-2 mb-3 text-sm text-text-muted">Trombinoscopes, casting présentiel, distribution et documents à partager.</p>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/casting/trombis" variant="secondary">
+              🖼️ Trombis
+            </ButtonLink>
+            <ButtonLink href="/casting/presentiel" variant="secondary">
+              📅 Présentiel
+            </ButtonLink>
+            <ButtonLink href="/casting/liste-artistique" variant="secondary">
+              📋 Liste artistique
+            </ButtonLink>
+            <ButtonLink href="/casting/fiches-roles" variant="secondary">
+              🪪 Fiches rôles validés
+            </ButtonLink>
+            <ButtonLink href="/casting/distribution" variant="secondary">
+              🎬 Distribution
+            </ButtonLink>
+            <form action={setCurrentProjet.bind(null, currentProjetId, "/bookings")}>
+              <Button type="submit" variant="secondary">
+                📋 Bookings
+              </Button>
+            </form>
+          </div>
+        </details>
+      )}
 
       <nav className="flex flex-wrap gap-2" aria-label="Catégories de casting">
         {CATEGORIES.map((c) => {

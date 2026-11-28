@@ -4,11 +4,29 @@ import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { countFigurantPhotos, insertFigurantPhoto, MAX_PHOTOS_PAR_FIGURANT } from "./photos";
-import { upsertAgent } from "@/lib/agents/actions";
+import { upsertAgent } from "@/lib/agents/upsert";
 import { getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import type { Civilite, Genre, PhotoType, Pronom } from "./types";
+
+// All functions in this module are Server Actions and can be called without
+// using the UI. Enforce authorization even when the caller forges an ID.
+async function requireStaffFigurantAccess(figurantId?: string): Promise<string | null> {
+  const actor = await getCurrentProfile();
+  if (!actor) return "Non autorisé.";
+  if (!figurantId) return null;
+
+  const { data: person, error } = await (await createServerSupabaseClient()).from("figurants")
+    .select("est_comedien, comedien_pool_id").eq("id", figurantId).maybeSingle();
+  if (error || !person) return "Profil introuvable.";
+  if (person.est_comedien && !actor.isOwner && person.comedien_pool_id !== comedienPoolIdFor(actor)) {
+    return "Profil introuvable.";
+  }
+  return null;
+}
 
 function str(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -111,6 +129,8 @@ function requireBaseFields(payload: ReturnType<typeof buildFigurantPayload>): st
 }
 
 export async function createFigurant(_prevState: unknown, formData: FormData) {
+  const accessError = await requireStaffFigurantAccess();
+  if (accessError) return { error: accessError };
   const payload = buildFigurantPayload(formData);
   const fieldsError = requireBaseFields(payload);
   if (fieldsError) return { error: fieldsError };
@@ -119,6 +139,12 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
   const hasPortrait = portrait instanceof File && portrait.size > 0;
   if (!payload.est_comedien && !hasPortrait) {
     return { error: "Une photo portrait est obligatoire." };
+  }
+  // Reject invalid bytes *before* inserting the profile, so a failed
+  // attachment cannot leave an unusable person row behind.
+  if (hasPortrait) {
+    const validated = await validateImageUpload(portrait);
+    if (validated.error) return { error: validated.error };
   }
 
   const supabase = createAdminClient();
@@ -141,30 +167,63 @@ export async function createFigurant(_prevState: unknown, formData: FormData) {
 
   if (hasPortrait) {
     const { error: photoError } = await insertFigurantPhoto(supabase, data.id, "portrait", portrait);
-    if (photoError) return { error: photoError };
+    if (photoError) {
+      const { error: cleanupError } = await supabase.from("figurants").delete().eq("id", data.id);
+      return { error: cleanupError
+        ? `${photoError} Le profil a été créé, mais son nettoyage a échoué : ${cleanupError.message}`
+        : photoError };
+    }
   }
 
   if (payload.agent_nom) {
-    await upsertAgent({
+    const agentResult = await upsertAgent({
       nom: payload.agent_nom,
       agence: payload.agent_agence,
       email: payload.agent_email,
       telephone: payload.agent_telephone,
     });
+    if (agentResult.error) {
+      revalidatePath("/figurants");
+      return { error: "La fiche a été créée, mais l'agent n'a pas pu être enregistré dans le répertoire. Les liens n'ont pas encore été enregistrés. Ouvre la fiche pour reprendre.", createdFigurantId: data.id };
+    }
   }
 
-  await handleLiens(formData, data.id);
+  const liensError = await handleLiens(formData, data.id);
+  if (liensError) {
+    revalidatePath("/figurants");
+    return { error: "La fiche a été créée, mais l’enregistrement des liens n’a pas pu être confirmé. Ouvre la fiche et vérifie les liens avant de réessayer.", createdFigurantId: data.id };
+  }
 
   revalidatePath("/figurants");
   redirect(`/figurants/${data.id}`);
 }
 
 async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ error?: string }> {
+  const accessError = await requireStaffFigurantAccess(id);
+  if (accessError) return { error: accessError };
   const payload = buildFigurantPayload(formData);
   const fieldsError = requireBaseFields(payload);
   if (fieldsError) return { error: fieldsError };
 
   const supabase = createAdminClient();
+
+  // Audit sécurité du 31/10/2026 : une fiche reliée à un compte candidat (acces_compte) est partagée entre équipes.
+  // Son email sert d'identifiant de connexion (lien magique) : le changer depuis une autre équipe permettait de
+  // prendre le compte ; la passer en comédien·ne la cachait des autres équipes et bloquait la connexion de la
+  // personne. Ces deux champs ne se changent donc que par la personne elle-même (espace candidat) ou par le compte
+  // propriétaire ; les autres champs restent modifiables comme avant.
+  const { data: actuel, error: actuelError } = await supabase.from("figurants").select("email, est_comedien, acces_compte").eq("id", id).maybeSingle();
+  if (actuelError || !actuel) return { error: "Impossible de vérifier cette fiche. Réessaie." };
+  const actor = await getCurrentProfile();
+  if (actuel.acces_compte && !actor?.isOwner) {
+    const emailActuel = (actuel.email ?? "").trim().toLowerCase();
+    if ((payload.email ?? "").trim().toLowerCase() !== emailActuel) {
+      return { error: "Cette personne a un compte candidat : son email ne peut être changé que par elle, depuis son espace." };
+    }
+    if (payload.est_comedien !== actuel.est_comedien) {
+      return { error: "Cette personne a un compte candidat : sa fiche ne peut pas être basculée en comédien·ne." };
+    }
+  }
 
   // Ne rattache au pool comédien·nes que si la fiche n'en a pas déjà un —
   // ne change jamais le pool d'une fiche existante en la modifiant (sinon
@@ -172,8 +231,9 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
   // dans le pool de qui édite).
   let comedienPoolId: string | undefined;
   if (payload.est_comedien) {
-    const { data: existing } = await supabase.from("figurants").select("comedien_pool_id").eq("id", id).maybeSingle();
-    if (!existing?.comedien_pool_id) {
+    const { data: existing, error: existingError } = await supabase.from("figurants").select("comedien_pool_id").eq("id", id).maybeSingle();
+    if (existingError || !existing) return { error: "Impossible de vérifier le rattachement de cette fiche. Réessaie." };
+    if (!existing.comedien_pool_id) {
       comedienPoolId = comedienPoolIdFor(await getCurrentProfile()) ?? undefined;
     }
   }
@@ -191,15 +251,25 @@ async function saveFigurantUpdate(id: string, formData: FormData): Promise<{ err
   }
 
   if (payload.agent_nom) {
-    await upsertAgent({
+    const agentResult = await upsertAgent({
       nom: payload.agent_nom,
       agence: payload.agent_agence,
       email: payload.agent_email,
       telephone: payload.agent_telephone,
     });
+    if (agentResult.error) {
+      revalidatePath("/figurants");
+      revalidatePath(`/figurants/${id}`);
+      return { error: "La fiche a été enregistrée, mais le répertoire des agents n'a pas pu être mis à jour. Les liens n'ont pas encore été enregistrés. Réessaie l'enregistrement." };
+    }
   }
 
-  await handleLiens(formData, id);
+  const liensError = await handleLiens(formData, id);
+  if (liensError) {
+    revalidatePath("/figurants");
+    revalidatePath(`/figurants/${id}`);
+    return { error: "La fiche a été enregistrée, mais l’enregistrement des liens n’a pas pu être confirmé. Vérifie les liens avant de réessayer." };
+  }
 
   revalidatePath("/figurants");
   revalidatePath(`/figurants/${id}`);
@@ -235,6 +305,8 @@ export async function updateFigurantAgent(
   figurantId: string,
   formData: FormData
 ): Promise<{ error?: string; success?: true }> {
+  const accessError = await requireStaffFigurantAccess(figurantId);
+  if (accessError) return { error: accessError };
   const agentNom = str(formData, "agent_nom");
   const agentAgence = str(formData, "agent_agence");
   const agentEmail = str(formData, "agent_email");
@@ -253,7 +325,12 @@ export async function updateFigurantAgent(
   if (error) return { error: error.message };
 
   if (agentNom) {
-    await upsertAgent({ nom: agentNom, agence: agentAgence, email: agentEmail, telephone: agentTelephone });
+    const agentResult = await upsertAgent({ nom: agentNom, agence: agentAgence, email: agentEmail, telephone: agentTelephone });
+    if (agentResult.error) {
+      revalidatePath(`/figurants/${figurantId}`);
+      revalidatePath("/casting");
+      return { error: "Les coordonnées ont été enregistrées sur la fiche, mais le répertoire des agents n'a pas pu être mis à jour. Réessaie pour terminer." };
+    }
   }
 
   revalidatePath("/figurants");
@@ -262,33 +339,33 @@ export async function updateFigurantAgent(
   return { success: true };
 }
 
-export async function deleteFigurant(id: string) {
-  const supabase = createAdminClient();
-  await supabase.from("figurants").delete().eq("id", id);
+// A figurant can be shared by multiple teams: global deletion is restricted
+// to the owner and only allowed for an unused, empty profile. To delete
+// personal data while keeping production history, use the RGPD flow.
+async function deleteUnusedFigurantSecurely(id: string): Promise<{ error?: string; success?: true }> {
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner) return { error: "Seul le compte propriétaire peut supprimer définitivement un profil." };
+
+  // The RPC holds a row lock, scans every FK registered in PostgreSQL and
+  // aborts the entire transaction before deletion if ANY linked row exists.
+  // Never call createAdminClient() here: the RPC verifies auth.uid() itself.
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("delete_unused_figurant", { p_id: id });
+  if (error) return { error: "Suppression refusée. Profil introuvable, lié à des données métier ou accès non autorisé. " + error.message };
   revalidatePath("/figurants");
+  return { success: true };
+}
+
+export async function deleteFigurant(id: string, formData: FormData) {
+  if (formData.get("confirmation") !== "SUPPRIMER") return { error: "Confirmation obligatoire : saisis SUPPRIMER." };
+  const result = await deleteUnusedFigurantSecurely(id);
+  if (result.error) return result;
   redirect("/figurants");
 }
 
-// Suppression depuis le panneau "doublons potentiels" — bloquée si le
-// profil a la moindre candidature/booking/essayage associé, pour ne jamais
-// effacer un historique réel par erreur.
-export async function supprimerFigurantDoublon(figurantId: string) {
-  const supabase = createAdminClient();
-  const [{ count: candidaturesCount }, { count: bookingsCount }, { count: essayagesCount }] = await Promise.all([
-    supabase.from("candidatures").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
-    supabase.from("bookings").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
-    supabase.from("essayages").select("id", { count: "exact", head: true }).eq("figurant_id", figurantId),
-  ]);
-
-  if ((candidaturesCount ?? 0) > 0 || (bookingsCount ?? 0) > 0 || (essayagesCount ?? 0) > 0) {
-    return {
-      error: "Ce profil a des candidatures, bookings ou essayages associés — suppression bloquée par sécurité.",
-    };
-  }
-
-  await supabase.from("figurants").delete().eq("id", figurantId);
-  revalidatePath("/figurants");
-  return { success: true as const };
+export async function supprimerFigurantDoublon(figurantId: string, confirmation: string) {
+  if (confirmation !== "SUPPRIMER") return { error: "Confirmation obligatoire." };
+  return deleteUnusedFigurantSecurely(figurantId);
 }
 
 // Une photo à la fois : un lot de plusieurs photos de téléphone dans une
@@ -296,6 +373,8 @@ export async function supprimerFigurantDoublon(figurantId: string) {
 // encaisse ("Failed to parse body as FormData"), même sous la limite de
 // taille configurée. Un fichier par appel reste largement sous ce seuil.
 export async function uploadFigurantPhoto(figurantId: string, _prevState: unknown, formData: FormData) {
+  const accessError = await requireStaffFigurantAccess(figurantId);
+  if (accessError) return { error: accessError };
   const file = formData.get("photo");
   const type = str(formData, "type") as PhotoType | null;
 
@@ -308,6 +387,7 @@ export async function uploadFigurantPhoto(figurantId: string, _prevState: unknow
 
   const supabase = createAdminClient();
   const existing = await countFigurantPhotos(supabase, figurantId);
+  if (existing === null) return { error: "Impossible de vérifier le nombre de photos. Réessaie." };
   if (existing >= MAX_PHOTOS_PAR_FIGURANT) {
     return { error: `Maximum ${MAX_PHOTOS_PAR_FIGURANT} photos par profil.` };
   }
@@ -335,72 +415,78 @@ async function handleLiens(formData: FormData, figurantId: string) {
     .filter((r) => r.label && r.url);
 
   if (rows.length > 0) {
-    await supabase.from("figurant_liens").insert(rows);
+    const { data: existing, count, error: readError } = await supabase.from("figurant_liens")
+      .select("label, url", { count: "exact" }).eq("figurant_id", figurantId);
+    if (readError || !existing || count !== existing.length) return readError ?? new Error("Lecture incomplète des liens");
+    const seen = new Set(existing.map((link) => JSON.stringify([link.label, link.url])));
+    const missing = rows.filter((row) => {
+      const key = JSON.stringify([row.label, row.url]);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (missing.length > 0) {
+      const { error } = await supabase.from("figurant_liens").insert(missing);
+      if (error) return error;
+    }
   }
 }
 
 export async function deletePhoto(photoId: string, figurantId: string) {
+  const accessError = await requireStaffFigurantAccess(figurantId);
+  if (accessError) return { error: accessError };
   const supabase = createAdminClient();
-  const { data: photo } = await supabase
+  const { data: photo, error: readError } = await supabase
     .from("figurant_photos")
     .select("storage_path")
     .eq("id", photoId)
-    .single();
+    .eq("figurant_id", figurantId)
+    .maybeSingle();
+  if (readError || !photo) return { error: "Photo introuvable." };
 
-  await supabase.from("figurant_photos").delete().eq("id", photoId);
-  if (photo) await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
+  const { error } = await supabase.from("figurant_photos").delete()
+    .eq("id", photoId).eq("figurant_id", figurantId);
+  if (error) return { error: error.message };
+  // Une photo reprise sur un profil de casting partage son fichier : on ne l'efface que s'il est orphelin.
+  await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
   revalidatePath(`/figurants/${figurantId}`);
+  return { success: true as const };
 }
 
 export async function deleteLien(lienId: string, figurantId: string) {
+  const accessError = await requireStaffFigurantAccess(figurantId);
+  if (accessError) return { error: accessError };
   const supabase = createAdminClient();
-  await supabase.from("figurant_liens").delete().eq("id", lienId);
+  const { error } = await supabase.from("figurant_liens").delete()
+    .eq("id", lienId).eq("figurant_id", figurantId);
+  if (error) return { error: error.message };
   revalidatePath(`/figurants/${figurantId}`);
+  return { success: true as const };
 }
 
-// Fusionne deux fiches détectées comme doublons possibles (même personne
-// candidatée sous un pseudo/coordonnées différentes) : tout l'historique de
-// mergeId est réattaché à keepId, puis mergeId est supprimé. Ne fusionne
-// jamais deux candidatures de la même annonce (contrainte figurant_id +
-// annonce_id) : dans ce cas le doublon est supprimé plutôt que réattaché.
+// BUG-12 : la fusion s'exécute dans une SEULE transaction PostgreSQL.
+// Une contrainte d'unicité (deux candidatures pour la même annonce, comptes
+ // déjà actifs, etc.) fait échouer l'ensemble sans transfert partiel.
 export async function mergeFigurants(keepId: string, mergeId: string) {
-  if (keepId === mergeId) return { error: "Impossible de fusionner un profil avec lui-même." };
+  if (!keepId || !mergeId || keepId === mergeId) {
+    return { error: "Choisis deux profils différents." };
+  }
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner) return { error: "Fusion réservée au compte propriétaire." };
 
-  const supabase = createAdminClient();
-
-  const [{ data: keep }, { data: merge }] = await Promise.all([
-    supabase.from("figurants").select("confirme, acces_compte").eq("id", keepId).single(),
-    supabase.from("figurants").select("confirme, acces_compte").eq("id", mergeId).single(),
-  ]);
-  if (!keep || !merge) return { error: "Profil introuvable." };
-
-  const { data: keepCandidatures } = await supabase.from("candidatures").select("annonce_id").eq("figurant_id", keepId);
-  const keepAnnonceIds = new Set((keepCandidatures ?? []).map((c) => c.annonce_id));
-
-  const { data: mergeCandidatures } = await supabase.from("candidatures").select("id, annonce_id").eq("figurant_id", mergeId);
-  for (const c of mergeCandidatures ?? []) {
-    if (keepAnnonceIds.has(c.annonce_id)) {
-      await supabase.from("candidatures").delete().eq("id", c.id);
-    } else {
-      await supabase.from("candidatures").update({ figurant_id: keepId }).eq("id", c.id);
+  // The database function checks auth.uid() / owner again. Avoid using the
+  // service-role client here, which bypasses the request identity.
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("merge_figurants_atomique", {
+    p_keep_id: keepId,
+    p_merge_id: mergeId,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Fusion impossible : des données sont en conflit (candidatures, compte ou autres). Les deux profils sont conservés, sans perte d'historique." };
     }
+    return { error: "Fusion non effectuée. Aucun transfert partiel : " + error.message };
   }
-
-  const otherTables = ["bookings", "essayages", "figurant_messages", "figurant_photos", "figurant_liens"];
-  for (const table of otherTables) {
-    await supabase.from(table).update({ figurant_id: keepId }).eq("figurant_id", mergeId);
-  }
-
-  // Ne jamais faire perdre confirme/acces_compte à la fiche conservée si
-  // l'autre les avait déjà.
-  const patch: { confirme?: boolean; acces_compte?: boolean } = {};
-  if (merge.confirme && !keep.confirme) patch.confirme = true;
-  if (merge.acces_compte && !keep.acces_compte) patch.acces_compte = true;
-  if (Object.keys(patch).length > 0) {
-    await supabase.from("figurants").update(patch).eq("id", keepId);
-  }
-
-  await supabase.from("figurants").delete().eq("id", mergeId);
 
   revalidatePath("/figurants");
   revalidatePath("/candidatures");

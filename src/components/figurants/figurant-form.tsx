@@ -1,12 +1,13 @@
 "use client";
 
 import { formatPrenom } from "@/lib/noms";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useId, useState, useTransition } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { DateNaissanceField } from "@/components/ui/date-naissance-field";
 import { AgentNomInput } from "@/components/agents/agent-nom-input";
+import Link from "next/link";
 import { CIVILITES, GENRES, PRONOMS, type Figurant, type FigurantLien } from "@/lib/figurants/types";
 import { addIndisponibilite } from "@/lib/figurants/disponibilites";
 
@@ -16,7 +17,7 @@ const AGENT_NOM_CLASS =
 type Action = (
   prevState: unknown,
   formData: FormData
-) => Promise<{ error?: string } | void>;
+) => Promise<{ error?: string; createdFigurantId?: string } | void>;
 
 export function FigurantForm({
   action,
@@ -27,6 +28,7 @@ export function FigurantForm({
   figurant?: Figurant;
   liens?: FigurantLien[];
 }) {
+  const agentNomId = useId();
   const [state, formAction, pending] = useActionState(action, undefined);
   const [estComedien, setEstComedien] = useState(figurant?.est_comedien ?? false);
   const [aVehicule, setAVehicule] = useState<boolean | null>(figurant?.a_vehicule ?? null);
@@ -53,10 +55,13 @@ export function FigurantForm({
 
   return (
     <div className="flex flex-col gap-6">
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action={formAction} onSubmit={(event) => { if (state?.createdFigurantId) event.preventDefault(); }} className="flex flex-col gap-6">
       {state?.error && (
-        <div className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+        <div role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
           {state.error}
+          {state.createdFigurantId && (
+            <Link href={`/figurants/${state.createdFigurantId}`} className="mt-2 block font-medium underline">Ouvrir la fiche déjà créée</Link>
+          )}
         </div>
       )}
 
@@ -171,8 +176,8 @@ export function FigurantForm({
           <div>
             <span className="mb-1.5 block text-xs font-medium text-text-muted">Agent</span>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Nom de l'agent">
-                <AgentNomInput
+              <Field label="Nom de l'agent" htmlFor={agentNomId}>
+                <AgentNomInput id={agentNomId}
                   name="agent_nom"
                   value={agentNom}
                   onChange={setAgentNom}
@@ -366,7 +371,7 @@ export function FigurantForm({
               name="photo_portrait"
               accept="image/*"
               required={!estComedien}
-              className="text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
+              className="w-full max-w-full text-sm text-text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-ink-raised-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text"
             />
           </Field>
           <p className="text-xs text-text-muted">Les autres photos (pied, selfie...) se gèrent depuis la fiche une fois le profil créé.</p>
@@ -390,9 +395,10 @@ export function FigurantForm({
               <Input
                 name="lien_label"
                 placeholder="Bande démo, Instagram..."
+                aria-label={`Libellé du lien ${i + 1}`}
                 defaultValue={row.label}
               />
-              <Input name="lien_url" placeholder="https://..." defaultValue={row.url} />
+              <Input name="lien_url" aria-label={`Adresse du lien ${i + 1}`} placeholder="https://..." defaultValue={row.url} />
             </div>
           ))}
         </div>
@@ -418,8 +424,8 @@ export function FigurantForm({
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le profil"}
+        <Button type="submit" disabled={pending || !!state?.createdFigurantId}>
+          {state?.createdFigurantId ? "Fiche déjà créée" : pending ? "Enregistrement..." : figurant ? "Enregistrer" : "Créer le profil"}
         </Button>
       </div>
     </form>
@@ -433,6 +439,7 @@ export function FigurantForm({
         <div className="flex items-center gap-3">
           <input
             type="date"
+            aria-label="Date d'indisponibilité à ajouter"
             value={indispoDate}
             onChange={(e) => setIndispoDate(e.target.value)}
             disabled={indispoPending}

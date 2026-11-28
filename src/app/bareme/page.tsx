@@ -5,6 +5,8 @@ import { BaremeMajorationsEditor } from "@/components/bareme/bareme-majorations-
 import type { BaremeCachet, BaremeMajoration } from "@/lib/bareme/types";
 import type { Convention } from "@/lib/projets/types";
 import { getCurrentProfile } from "@/lib/auth/session";
+import { equipesModeles } from "@/lib/templates/equipe";
+import { baremePourEquipes } from "@/lib/bareme/equipe";
 import { Calculator } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +39,13 @@ function ConventionSection({
 
 export default async function BaremePage() {
   const supabase = createAdminClient();
+  const profile = await getCurrentProfile();
+  // Barème de SON équipe (une assistante voit celui de la première équipe qui l'a invitée).
+  const { lecture, ecriture } = await equipesModeles(profile);
+  const cle = ecriture ?? lecture[0] ?? null;
+  const { cachets, majorations } = cle ? await baremePourEquipes(supabase, [cle]) : { cachets: [], majorations: [] };
 
-  const [{ data: cachets }, { data: majorations }, profile] = await Promise.all([
-    supabase.from("bareme_cachets").select("*").order("cachet").returns<BaremeCachet[]>(),
-    supabase.from("bareme_majorations").select("*").order("type").returns<BaremeMajoration[]>(),
-    getCurrentProfile(),
-  ]);
-
-  const isChef = profile?.role === "chef";
+  const isChef = profile?.role === "chef" && !!ecriture;
   const dateEffet = cachets?.[0]?.date_effet;
 
   return (
@@ -55,7 +56,7 @@ export default async function BaremePage() {
           Grille résumé des salaires (conventions Cinéma / Audiovisuelle)
           {dateEffet ? ` — en vigueur depuis le ${dateEffet}` : ""}. Ne remplace
           pas la lecture des conventions collectives complètes.
-          {isChef && " Cliquez sur un montant ou une note pour la modifier."}
+          {isChef && " Cliquez sur un montant ou une note pour la modifier : les changements ne concernent que votre équipe."}
         </p>
       </div>
 

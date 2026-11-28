@@ -1,0 +1,17 @@
+Cleanup fictional profiles/project/bookings only; no real invitations sent
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Forged private profile was booked
+    at file:///Users/eleagravagna/Documents/Booking-Extras-tests-2026-10-22/scripts/check-private-duplicates-local.mjs:44:106
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.16.0

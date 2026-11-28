@@ -1,0 +1,4 @@
+PASS exact/phone duplicate helper: foreign ordinary/actor private profiles excluded; own/shared profiles preserved
+PASS fuzzy duplicates: private foreign profile excluded; local/shared normal profiles preserved; actor exclusion preserved
+PASS quick booking: forged foreign/private ids refused without booking/invitation, visible existing profile accepted
+Cleanup fictional profiles/project/bookings only; no real invitations sent

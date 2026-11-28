@@ -32,7 +32,7 @@ export function ForgotPasswordForm() {
         <Field label="Email" required>
           <Input type="email" name="email" autoComplete="email" required autoFocus />
         </Field>
-        {state?.error && <p className="text-sm text-danger">{state.error}</p>}
+        {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
         <Button type="submit" disabled={pending} className="mt-2">
           {pending ? "Envoi..." : "Envoyer le lien"}
         </Button>

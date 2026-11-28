@@ -2,13 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkVisibleFigurants } from "@/lib/figurants/access";
+import { validateImageUpload, validatePdfUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
 import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers";
 import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CategorieCachet, CastingMode } from "./types";
-import type { BookingStatut } from "@/lib/bookings/types";
+import { STATUTS, type BookingStatut } from "@/lib/bookings/types";
+import { castingStaffVideoPathValid } from "./upload-paths";
+import { validateCastingBulkStatusRequest } from "./bulk-status";
 
 // Questions oui / non posées sur la page d'envoi : une par ligne.
 function parseQuestions(formData: FormData): string[] {
@@ -65,7 +69,8 @@ async function uploadRolePdfIfProvided(
 ): Promise<{ error?: string; pdf_storage_path?: string; pdf_filename?: string }> {
   const pdf = formData.get("pdf");
   if (!(pdf instanceof File) || pdf.size === 0) return {};
-  if (pdf.type !== "application/pdf") return { error: "Le fichier joint doit être un PDF." };
+  const validated = await validatePdfUpload(pdf);
+  if (validated.error) return { error: validated.error };
 
   const path = `${roleId}/${crypto.randomUUID()}.pdf`;
   const { error } = await supabase.storage.from("casting-role-documents").upload(path, pdf, {
@@ -81,7 +86,7 @@ export async function createCastingRole(
   projetId: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: true }> {
+): Promise<{ error?: string; success?: true; roleId?: string }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
 
@@ -149,24 +154,18 @@ export async function createCastingRole(
     .single();
   if (error) return { error: error.code === "23505" ? "Un rôle avec ce nom existe déjà sur ce projet." : error.message };
 
-  const pdfResult = await uploadRolePdfIfProvided(supabase, inserted.id, formData);
-  if (pdfResult.error) return { error: pdfResult.error };
-  if (pdfResult.pdf_storage_path) {
-    await supabase
-      .from("casting_roles")
-      .update({ pdf_storage_path: pdfResult.pdf_storage_path, pdf_filename: pdfResult.pdf_filename })
-      .eq("id", inserted.id);
-  }
+  // The optional PDF is uploaded separately after creation via the
+  // authenticated /casting/roles/[roleId]/pdf route.
 
   revalidatePath("/casting");
-  return { success: true };
+  return { success: true, roleId: inserted.id };
 }
 
 export async function updateCastingRoleCalibration(
   roleId: string,
   _prevState: unknown,
   formData: FormData
-): Promise<{ error?: string; success?: true }> {
+): Promise<{ error?: string; success?: true; roleId?: string }> {
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
@@ -233,24 +232,29 @@ export async function updateCastingRoleCalibration(
   return { success: true };
 }
 
-export async function deleteCastingRole(roleId: string) {
+export async function deleteCastingRole(roleId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: role } = await supabase
     .from("casting_roles")
     .select("projet_id, pdf_storage_path")
     .eq("id", roleId)
     .maybeSingle();
-  if (!role) return;
+  if (!role) return {};
   const accessError = await checkProjetAccess(role.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
-  const { data: entries } = await supabase.from("casting_entries").select("video_storage_paths").eq("role_id", roleId);
+  const { data: entries, error: entriesError } = await supabase.from("casting_entries").select("video_storage_paths").eq("role_id", roleId);
+  if (entriesError) return { error: "Impossible de lire les profils du rôle. Rien n'a été supprimé." };
   const allPaths = (entries ?? []).flatMap((e) => e.video_storage_paths ?? []);
+
+  // BUG-13 : la ligne d'abord (vérifiée), les fichiers ensuite — un échec ne laisse plus un rôle pointant vers des
+  // vidéos déjà effacées.
+  const { error: deleteError } = await supabase.from("casting_roles").delete().eq("id", roleId);
+  if (deleteError) return { error: "La suppression du rôle a échoué. Rien n'a été supprimé ; réessaie." };
   if (allPaths.length > 0) await supabase.storage.from("casting-videos").remove(allPaths);
   if (role.pdf_storage_path) await supabase.storage.from("casting-role-documents").remove([role.pdf_storage_path]);
-
-  await supabase.from("casting_roles").delete().eq("id", roleId);
   revalidatePath("/casting");
+  return {};
 }
 
 // Crée juste l'entrée (avec son request_token) — n'envoie plus rien : le
@@ -263,7 +267,22 @@ async function createCastingEntry(
   entryMode: CastingMode,
   opts?: { bookingId?: string | null; candidatureId?: string | null }
 ): Promise<{ error?: string; created?: boolean }> {
+  const personError = await checkVisibleFigurants([figurantId]);
+  if (personError) return { error: personError };
+
   const supabase = createAdminClient();
+
+  // Audit du 31/10/2026 : le booking et la candidature d'origine doivent appartenir au même projet que le rôle
+  // (sinon des identifiants d'une autre équipe pouvaient être rattachés à l'entrée de casting).
+  if (opts?.bookingId) {
+    const { data: b } = await supabase.from("bookings").select("projet_id").eq("id", opts.bookingId).maybeSingle();
+    if (!b || b.projet_id !== projetId) return { error: "Booking introuvable sur ce projet." };
+  }
+  if (opts?.candidatureId) {
+    const { data: c } = await supabase.from("candidatures").select("annonces(projet_id)").eq("id", opts.candidatureId)
+      .maybeSingle<{ annonces: { projet_id: string } | null }>();
+    if (!c || c.annonces?.projet_id !== projetId) return { error: "Candidature introuvable sur ce projet." };
+  }
 
   const { data: role } = await supabase.from("casting_roles").select("categorie_cachet").eq("id", roleId).maybeSingle();
 
@@ -364,6 +383,9 @@ export async function addFigurantsToCastingRole(
   if (!role) return { error: "Rôle introuvable." };
   const accessError = await checkProjetAccess(role.projet_id);
   if (accessError) return { error: accessError };
+
+  const personError = await checkVisibleFigurants(figurantIds);
+  if (personError) return { error: personError };
 
   let ok = 0;
   let deja = 0;
@@ -751,24 +773,42 @@ export async function updateCastingEntriesStatutBulk(
   entryIds: string[],
   statut: BookingStatut
 ): Promise<{ error?: string; ok?: number }> {
-  if (entryIds.length === 0) return { error: "Aucun profil sélectionné." };
+  // Server Actions reçoivent des valeurs non fiables, même si TypeScript
+  // annonce string[] / BookingStatut côté appelant.
+  const validated = validateCastingBulkStatusRequest(entryIds, statut, STATUTS.map((s) => s.value));
+  if (!validated.ok) return { error: validated.error };
 
   const supabase = createAdminClient();
-  const { data: entries } = await supabase.from("casting_entries").select("id, projet_id").in("id", entryIds);
-  const projetIds = Array.from(new Set((entries ?? []).map((e) => e.projet_id)));
+  const { data: entries, error: readError } = await supabase
+    .from("casting_entries")
+    .select("id, projet_id")
+    .in("id", validated.ids);
+  // Ne jamais poursuivre une mutation service_role si l'autorisation
+  // n'a pas pu être entièrement établie.
+  if (readError || !entries || entries.length !== validated.ids.length) {
+    return { error: "Sélection impossible à vérifier. Actualise la page et réessaie." };
+  }
+  const projetIds = Array.from(new Set(entries.map((e) => e.projet_id)));
   for (const projetId of projetIds) {
     const accessError = await checkProjetAccess(projetId);
     if (accessError) return { error: accessError };
   }
 
-  const { error } = await supabase.from("casting_entries").update({ statut }).in("id", entryIds);
+  const { data: updated, error } = await supabase.from("casting_entries")
+    .update({ statut })
+    .in("id", validated.ids)
+    .select("id");
   if (error) return { error: error.message };
+  if (!updated || updated.length !== validated.ids.length) {
+    return { error: "Mise à jour incomplète. Actualise la page pour voir les statuts réels." };
+  }
 
   revalidatePath("/casting");
-  return { ok: entryIds.length };
+  return { ok: updated.length };
 }
 
 export async function updateCastingEntryStatut(entryId: string, statut: BookingStatut): Promise<{ error?: string; success?: true }> {
+  if (!STATUTS.some((s) => s.value === statut)) return { error: "Statut invalide." };
   const supabase = createAdminClient();
   const { data: entry } = await supabase.from("casting_entries").select("projet_id").eq("id", entryId).maybeSingle();
   if (!entry) return { error: "Introuvable." };
@@ -782,49 +822,53 @@ export async function updateCastingEntryStatut(entryId: string, statut: BookingS
   return { success: true };
 }
 
-export async function deleteCastingEntry(entryId: string) {
+export async function deleteCastingEntry(entryId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
     .select("projet_id, video_storage_paths")
     .eq("id", entryId)
     .maybeSingle();
-  if (!entry) return;
+  if (!entry) return {};
   const accessError = await checkProjetAccess(entry.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
+  const { error: deleteError } = await supabase.from("casting_entries").delete().eq("id", entryId);
+  if (deleteError) return { error: "Le retrait du profil a échoué ; réessaie." };
   if (entry.video_storage_paths?.length) {
     await supabase.storage.from("casting-videos").remove(entry.video_storage_paths);
   }
-  await supabase.from("casting_entries").delete().eq("id", entryId);
   revalidatePath("/casting");
+  return {};
 }
 
 // Retire une photo envoyée par le candidat (staff seulement) — pour laisser
 // la place à un remplacement via addCastingPhoto, ex. si la photo envoyée
 // est floue ou ne correspond pas au libellé demandé.
-export async function deleteCastingPhoto(photoId: string) {
+export async function deleteCastingPhoto(photoId: string): Promise<{ error?: string }> {
   const supabase = createAdminClient();
   const { data: photo } = await supabase
     .from("figurant_photos")
     .select("storage_path, casting_entry_id")
     .eq("id", photoId)
     .maybeSingle();
-  if (!photo?.casting_entry_id) return;
+  if (!photo?.casting_entry_id) return {};
 
   const { data: entry } = await supabase
     .from("casting_entries")
     .select("projet_id")
     .eq("id", photo.casting_entry_id)
     .maybeSingle();
-  if (!entry) return;
+  if (!entry) return {};
   const accessError = await checkProjetAccess(entry.projet_id);
-  if (accessError) throw new Error(accessError);
+  if (accessError) return { error: accessError };
 
-  await supabase.from("figurant_photos").delete().eq("id", photoId);
+  const { error: deleteError } = await supabase.from("figurant_photos").delete().eq("id", photoId);
+  if (deleteError) return { error: "Le retrait de la photo a échoué ; réessaie." };
   // Une photo reprise du profil partage son fichier avec la fiche : on ne l'efface que s'il est orphelin.
   await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
   revalidatePath("/casting");
+  return {};
 }
 
 // Ajoute (ou remplace, une fois l'ancienne retirée) une photo pour un
@@ -848,11 +892,13 @@ export async function addCastingPhoto(
   const photo = formData.get("photo");
   if (!(photo instanceof File) || photo.size === 0) return { error: "Choisis une image." };
 
-  const ext = photo.name.split(".").pop() || "jpg";
-  const path = `${entry.figurant_id}/casting-${label}-${crypto.randomUUID()}.${ext}`;
+  const validated = await validateImageUpload(photo);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
+  const path = `${entry.figurant_id}/staff-casting-${encodeURIComponent(label)}-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("figurant-photos")
-    .upload(path, photo, { contentType: photo.type, upsert: false });
+    .upload(path, photo, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
   const { error } = await supabase.from("figurant_photos").insert({
@@ -863,7 +909,10 @@ export async function addCastingPhoto(
     casting_entry_id: entryId,
     label,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    await supabase.storage.from("figurant-photos").remove([path]);
+    return { error: error.message };
+  }
 
   revalidatePath("/casting");
   return { success: true };
@@ -882,16 +931,23 @@ export async function removeCastingVideo(entryId: string, path: string) {
   const accessError = await checkProjetAccess(entry.projet_id);
   if (accessError) throw new Error(accessError);
 
-  await supabase.storage.from("casting-videos").remove([path]);
   const paths: string[] = entry.video_storage_paths ?? [];
+  if (!paths.includes(path)) throw new Error("Cette vidéo n’appartient pas à cette entrée.");
+  const { data: otherReferences, error: referencesError } = await supabase.from("casting_entries")
+    .select("id").contains("video_storage_paths", [path]).neq("id", entryId).limit(1);
+  if (referencesError) throw new Error("Impossible de vérifier l’utilisation du fichier. Aucun retrait confirmé.");
+  if (!otherReferences?.length) {
+    const { error: storageError } = await supabase.storage.from("casting-videos").remove([path]);
+    if (storageError) throw new Error("La vidéo n’a pas pu être retirée du stockage.");
+  }
   const labels: string[] = entry.video_labels ?? [];
-  const index = paths.indexOf(path);
   const remainingPaths = paths.filter((p) => p !== path);
-  const remainingLabels = index === -1 ? labels : labels.filter((_, i) => i !== index);
-  await supabase
+  const remainingLabels = paths.flatMap((p, index) => p !== path ? [labels[index] || `Vidéo ${index + 1}`] : []);
+  const { error: updateError } = await supabase
     .from("casting_entries")
     .update({ video_storage_paths: remainingPaths, video_labels: remainingLabels })
     .eq("id", entryId);
+  if (updateError) throw new Error("Le fichier a été retiré, mais sa référence n’a pas pu être mise à jour. Recharge et réessaie.");
   revalidatePath("/casting");
 }
 
@@ -914,7 +970,7 @@ export async function createStaffCastingVideoSlot(
 
   const path = `${entry.figurant_id}/${entryId}-video-${crypto.randomUUID()}.mp4`;
   const { data, error } = await supabase.storage.from("casting-videos").createSignedUploadUrl(path);
-  if (error || !data) return { error: error?.message ?? "Impossible de préparer l'envoi." };
+  if (error || !data) return { error: "Impossible de préparer l’envoi. Réessaie." };
 
   return { bucket: "casting-videos", path: data.path, token: data.token };
 }
@@ -929,15 +985,20 @@ export async function addCastingVideo(
   const supabase = createAdminClient();
   const { data: entry } = await supabase
     .from("casting_entries")
-    .select("projet_id, video_storage_paths, video_labels")
+    .select("projet_id, figurant_id, video_storage_paths, video_labels")
     .eq("id", entryId)
     .maybeSingle();
   if (!entry) return { error: "Introuvable." };
   const accessError = await checkProjetAccess(entry.projet_id);
   if (accessError) return { error: accessError };
 
+  if (!castingStaffVideoPathValid(path, entry.figurant_id, entryId)) return { error: "Chemin vidéo non autorisé pour cette entrée." };
+  if ((entry.video_storage_paths ?? []).includes(path)) { revalidatePath("/casting"); return { success: true }; }
+  const { error: storageError } = await supabase.storage.from("casting-videos").info(path);
+  if (storageError) return { error: "La vidéo n’a pas été retrouvée dans le stockage." };
   const paths = [...(entry.video_storage_paths ?? []), path];
-  const labels = [...(entry.video_labels ?? []), label?.trim() || `Vidéo ${paths.length}`];
+  const labels = (entry.video_storage_paths ?? []).map((_: string, index: number) => entry.video_labels?.[index] || `Vidéo ${index + 1}`);
+  labels.push(typeof label === "string" && label.trim() ? label.trim().slice(0, 200) : `Vidéo ${paths.length}`);
   const { error } = await supabase
     .from("casting_entries")
     .update({ video_storage_paths: paths, video_labels: labels })
@@ -1017,6 +1078,18 @@ export async function setCastingVideoPosition(
   return { success: true };
 }
 
+async function roleAttachment(path: string, projetId?: string | null): Promise<{ error?: string; attachments?: { filename: string; content: Buffer }[] }> {
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
+  const supabase = createAdminClient();
+  const { data: role, error } = await supabase.from("casting_roles").select("id, projet_id, pdf_storage_path, pdf_filename").eq("pdf_storage_path", path).maybeSingle();
+  if (error || !role || (projetId && role.projet_id !== projetId) || !path.startsWith(`${role.id}/`) || !path.endsWith(".pdf")) return { error: "Document de rôle introuvable." };
+  const denied = await checkProjetAccess(role.projet_id);
+  if (denied) return { error: denied };
+  const { data: file, error: downloadError } = await supabase.storage.from("casting-role-documents").download(role.pdf_storage_path);
+  if (downloadError || !file) return { error: "Téléchargement du document impossible." };
+  return { attachments: [{ filename: role.pdf_filename || "document.pdf", content: Buffer.from(await file.arrayBuffer()) }] };
+}
+
 export async function recordCastingMessage(
   figurantId: string,
   corps: string,
@@ -1025,14 +1098,10 @@ export async function recordCastingMessage(
   projetId: string | null | undefined,
   opts?: { agentEmail?: string | null; rolePdfPath?: string | null; rolePdfFilename?: string | null; html?: string }
 ) {
-  let attachments: { filename: string; content: Buffer }[] | undefined;
-  if (opts?.rolePdfPath) {
-    const supabase = createAdminClient();
-    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
-    if (data) {
-      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
-    }
-  }
+  if (!(await getCurrentProfile())) return { error: "Non autorisé." };
+  const attachment = opts?.rolePdfPath ? await roleAttachment(opts.rolePdfPath, projetId) : {};
+  if (attachment.error) return { error: attachment.error };
+  const attachments = attachment.attachments;
 
   return recordFigurantMessage({
     figurantId,
@@ -1062,14 +1131,10 @@ export async function recordCastingMessagesBulk(
   projetId: string | null | undefined,
   opts?: { rolePdfPath?: string | null; rolePdfFilename?: string | null }
 ): Promise<{ results: { figurantId: string; error?: string }[] }> {
-  let attachments: { filename: string; content: Buffer }[] | undefined;
-  if (opts?.rolePdfPath) {
-    const supabase = createAdminClient();
-    const { data } = await supabase.storage.from("casting-role-documents").download(opts.rolePdfPath);
-    if (data) {
-      attachments = [{ filename: opts.rolePdfFilename ?? "document.pdf", content: Buffer.from(await data.arrayBuffer()) }];
-    }
-  }
+  if (!(await getCurrentProfile())) return { results: entries.map(e => ({ figurantId: e.figurantId, error: "Non autorisé." })) };
+  const attachment = opts?.rolePdfPath ? await roleAttachment(opts.rolePdfPath, projetId) : {};
+  if (attachment.error) return { results: entries.map(e => ({ figurantId: e.figurantId, error: attachment.error })) };
+  const attachments = attachment.attachments;
 
   const results: { figurantId: string; error?: string }[] = [];
   for (const e of entries) {

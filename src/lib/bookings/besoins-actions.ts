@@ -19,11 +19,10 @@ export async function addBesoin(journeeId: string, _prevState: unknown, formData
   if (!quantite || quantite <= 0) return { error: "Quantité invalide." };
 
   const supabase = createAdminClient();
-  const { data: journee } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
-  if (journee) {
-    const accessError = await checkProjetAccess(journee.projet_id);
-    if (accessError) return { error: accessError };
-  }
+  const { data: journee, error: lookupError } = await supabase.from("journees").select("projet_id").eq("id", journeeId).maybeSingle();
+  if (lookupError || !journee) return { error: "Impossible de vérifier cette journée." };
+  const accessError = await checkProjetAccess(journee.projet_id);
+  if (accessError) return { error: accessError };
   const { error } = await supabase
     .from("journee_besoins")
     .upsert({ journee_id: journeeId, fonction, quantite }, { onConflict: "journee_id,fonction" });
@@ -35,19 +34,14 @@ export async function addBesoin(journeeId: string, _prevState: unknown, formData
 
 export async function deleteBesoin(id: string) {
   const supabase = createAdminClient();
-  const { data: besoin } = await supabase.from("journee_besoins").select("journee_id").eq("id", id).maybeSingle();
-  if (besoin) {
-    const { data: journee } = await supabase
-      .from("journees")
-      .select("projet_id")
-      .eq("id", besoin.journee_id)
-      .maybeSingle();
-    if (journee) {
-      const accessError = await checkProjetAccess(journee.projet_id);
-      if (accessError) throw new Error(accessError);
-    }
-  }
-  await supabase.from("journee_besoins").delete().eq("id", id);
+  const { data: besoin, error: besoinError } = await supabase.from("journee_besoins").select("journee_id").eq("id", id).maybeSingle();
+  if (besoinError || !besoin) throw new Error("Impossible de vérifier ce besoin.");
+  const { data: journee, error: journeeError } = await supabase.from("journees").select("projet_id").eq("id", besoin.journee_id).maybeSingle();
+  if (journeeError || !journee) throw new Error("Impossible de vérifier cette journée.");
+  const accessError = await checkProjetAccess(journee.projet_id);
+  if (accessError) throw new Error(accessError);
+  const { error } = await supabase.from("journee_besoins").delete().eq("id", id);
+  if (error) throw new Error("Impossible de supprimer ce besoin.");
   revalidatePath("/bookings/documents");
 }
 
@@ -83,16 +77,23 @@ export async function updateBesoin(
   let renommes = 0;
   const ancien = besoin.fonction.trim().toLowerCase();
   if (renommerBookings && ancien !== nom.toLowerCase()) {
-    const { data: bookings } = await supabase
+    const { data: bookings, error: bookingsError } = await supabase
       .from("bookings")
       .select("id, fonction")
       .eq("projet_id", besoin.journees.projet_id)
       .eq("date", besoin.journees.date)
       .not("fonction", "is", null);
+    if (bookingsError) {
+      revalidatePath("/bookings/documents");
+      return { error: "Le besoin a été enregistré, mais les bookings n’ont pas pu être vérifiés. Vérifie leurs fonctions." };
+    }
     const ids = (bookings ?? []).filter((b) => b.fonction!.trim().toLowerCase() === ancien).map((b) => b.id);
     if (ids.length > 0) {
       const { error: errBookings } = await supabase.from("bookings").update({ fonction: nom }).in("id", ids);
-      if (errBookings) return { error: errBookings.message };
+      if (errBookings) {
+        revalidatePath("/bookings/documents");
+        return { error: "Le besoin a été enregistré, mais les bookings n’ont pas pu être renommés. Vérifie leurs fonctions." };
+      }
       renommes = ids.length;
     }
   }

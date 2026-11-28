@@ -9,7 +9,7 @@ import { getAnnoncePhotos } from "@/lib/annonces/moodboard";
 import { getAnnoncePhotoUrl } from "@/lib/projets/annonce-photo";
 import { generateQrCodeDataUrl } from "@/lib/annonces/qrcode";
 import { getSiteOrigin } from "@/lib/partage/data";
-import { getAnnonceDates } from "@/lib/annonces/dates";
+import { getAnnonceDates } from "@/lib/annonces/data";
 import { formatAnnonceDatesLabel } from "@/lib/format-date";
 import {
   affichePolice,

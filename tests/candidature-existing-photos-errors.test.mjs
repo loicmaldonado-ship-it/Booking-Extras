@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const src=readFileSync(new URL('../src/lib/candidatures/actions.ts',import.meta.url),'utf8');const file=ts.createSourceFile('actions.ts',src,ts.ScriptTarget.Latest,true);const names=['str','enregistrerPhotosCandidature'];const code=ts.transpileModule(file.statements.filter(s=>ts.isFunctionDeclaration(s)&&names.includes(s.name?.text)).map(s=>s.getText(file)).join('\n'),{compilerOptions:{module:ts.ModuleKind.None,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(failure){const writes=[];const db={from(table){const q={select(){return this},eq(){return this},in(){return this},insert(){writes.push(table);return this},then(ok,bad){const error=failure==='read';const data=failure==='missing'?[{id:'one'},{id:'two'}]:[{id:'one'},{id:'two'},{id:'three'}];return Promise.resolve({data:error?null:data,error:error?{message:'offline'}:null}).then(ok,bad)}};return q}};const action=new Function('createAdminClient','insertFigurantPhoto',code+';return enregistrerPhotosCandidature;')(()=>db,async()=>({id:'new'}));return{action,writes}}
+function form(){const f=new FormData();f.set('photo_portrait__existante','one');f.set('photo_pied__existante','two');f.set('photo_selfie__existante','three');return f}
+for(const failure of ['read','missing'])test(`application refuses ${failure} existing-photo verification`,async()=>{const f=fixture(failure);const r=await f.action('person','application',form());assert.ok(r.error);assert.equal(f.writes.length,0)});
+test('application links verified existing photos',async()=>{const f=fixture();const r=await f.action('person','application',form());assert.equal(r.error,undefined);assert.deepEqual(f.writes,['candidature_photos'])});

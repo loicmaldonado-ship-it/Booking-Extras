@@ -44,10 +44,11 @@ export function CandidatureRow({
           name="fonction_assignee"
           list={projetId ? `fonctions-projet-${projetId}` : undefined}
           placeholder="Fonction (passant...)"
+          aria-label="Fonction assignée"
           defaultValue={fonctionAssignee ?? ""}
           className="w-40"
         />
-        <Select name="cachet_assigne" defaultValue={cachetAssigne ?? ""} className="w-40">
+        <Select name="cachet_assigne" aria-label="Cachet assigné" defaultValue={cachetAssigne ?? ""} className="w-40">
           <option value="">Cachet</option>
           {CACHETS.map((c) => (
             <option key={c} value={c}>

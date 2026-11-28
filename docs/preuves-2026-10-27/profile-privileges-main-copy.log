@@ -1,0 +1,8 @@
+http://127.0.0.1:27194 apply-profile-privileges.sql DO
+http://127.0.0.1:27194 profile-privileges-local.sql DO
+http://127.0.0.1:27194 rls-integration-local.sql DO
+http://127.0.0.1:27194 auth-hardening-local.sql DO
+http://127.0.0.1:29194 apply-profile-privileges.sql DO
+http://127.0.0.1:29194 profile-privileges-local.sql DO
+http://127.0.0.1:29194 rls-integration-local.sql DO
+http://127.0.0.1:29194 auth-hardening-local.sql DO

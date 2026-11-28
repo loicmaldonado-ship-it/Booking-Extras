@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/ui/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/field";
@@ -609,7 +609,13 @@ function Panneau(props: PanneauProps) {
     let actif = true;
     async function relever() {
       setReleve((r) => ({ ...r, enCours: true }));
-      const res = await releverReponsesAuto(projetId);
+      let res;
+      try {
+        res = await releverReponsesAuto(projetId);
+      } catch {
+        if (actif) setReleve((r) => ({ ...r, enCours: false }));
+        return; // appel interrompu : nouvel essai au tour suivant
+      }
       if (!actif) return;
       setReleve({ le: res.releveLe, erreur: res.erreur, enCours: false });
       // Recharge aussi pour les réponses texto remontées par le relais Mac.
@@ -762,16 +768,16 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
       for (let i = 0; i < items.length; i += PAQUET) {
         setProgression(`Envoi… ${envoyes + echecs}/${items.length}`);
         const res = await envoyerEnvoiEmail(prep.envoiId, items.slice(i, i + PAQUET));
+        envoyes += res.envoyes;
+        echecs += res.echecs;
         if (res.error) {
           setErreur(res.error);
           break;
         }
-        envoyes += res.envoyes;
-        echecs += res.echecs;
       }
       setProgression(null);
       setBilan(
-        `✓ Parti à ${envoyes} personne${envoyes > 1 ? "s" : ""}${echecs ? ` · ⚠ ${echecs} non envoyé${echecs > 1 ? "s" : ""} (sans email)` : ""}. Le suivi est juste en dessous.`
+        `✓ Parti à ${envoyes} personne${envoyes > 1 ? "s" : ""}${echecs ? ` · ⚠ ${echecs} échec${echecs > 1 ? "s" : ""} : vérifie le suivi` : ""}. Le suivi est juste en dessous.`
       );
       setEtape("fait");
       router.refresh();
@@ -795,14 +801,15 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
       if (mode === "mac") {
         const res = await textosDepuisMac(liste);
         if (res.error) {
-          await supprimerEnvoi(prep.envoiId);
-          setErreur(res.error);
+          const suppression = await supprimerEnvoi(prep.envoiId);
+          setErreur(suppression.error ? `${res.error} Le suivi créé n’a pas pu être supprimé.` : res.error);
           return;
         }
-        await marquerEnvoiTextos(
+        const suivi = await marquerEnvoiTextos(
           prep.envoiId,
           liste.filter((d) => telephoneInternational(d.telephone)).map((d) => d.cle)
         );
+        if (suivi.error) setErreur(`Les textos ont été mis en file, mais ${suivi.error} Vérifie avant de réessayer.`);
         setBilan(`✓ ${res.enFile} texto${res.enFile > 1 ? "s" : ""} en file sur ton Mac (environ 10 s d'écart). Le suivi est juste en dessous.`);
         setEtape("fait");
         router.refresh();
@@ -817,10 +824,11 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
     if (!prets) return;
     textosDepuisIphone(prets.liste)
       .then(async (nb) => {
-        await marquerEnvoiTextos(
+        const suivi = await marquerEnvoiTextos(
           prets.envoiId,
           prets.liste.filter((d) => telephoneInternational(d.telephone)).map((d) => d.cle)
         );
+        if (suivi.error) setErreur(`Les textos ont été passés au raccourci, mais ${suivi.error} Vérifie avant de réessayer.`);
         setBilan(`✓ ${nb} texto${nb > 1 ? "s" : ""} passé${nb > 1 ? "s" : ""} au raccourci iPhone. Le suivi est juste en dessous.`);
         setEtape("fait");
         router.refresh();
@@ -829,9 +837,15 @@ function Ecrire({ canal, choisis, templates, projetId, date, journeeLieu, public
   }
 
   function annulerIphone() {
-    if (prets) supprimerEnvoi(prets.envoiId).then(() => router.refresh());
-    setPrets(null);
-    setEtape("ecrire");
+    demarrer(async () => {
+      if (prets) {
+        const res = await supprimerEnvoi(prets.envoiId);
+        if (res.error) { setErreur(res.error); return; }
+        router.refresh();
+      }
+      setPrets(null);
+      setEtape("ecrire");
+    });
   }
 
   return (
@@ -1021,7 +1035,12 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
         setInfo(`⚠ ${res.error}`);
         return;
       }
-      await marquerEnvoiTextos(envoi.id, liste.map((x) => x.cle), true);
+      const suivi = await marquerEnvoiTextos(envoi.id, liste.map((x) => x.cle), true);
+      if (suivi.error) {
+        setInfo(`⚠ Textos en file, mais ${suivi.error} Vérifie avant de réessayer.`);
+        router.refresh();
+        return;
+      }
       setInfo(`🔁 ${res.enFile} relance${res.enFile > 1 ? "s" : ""} en file sur ton Mac.`);
       router.refresh();
     });
@@ -1029,8 +1048,9 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
 
   function basculerRecu(id: string, recu: boolean) {
     demarrer(async () => {
-      await marquerRecu(id, recu);
-      router.refresh();
+      const res = await marquerRecu(id, recu);
+      setInfo(res.error ? `⚠ ${res.error}` : null);
+      if (!res.error) router.refresh();
     });
   }
 
@@ -1129,7 +1149,8 @@ function SuiviEnvoi({ envoi, etatDe, rowParFigurant, onFiche, journeeLieu, publi
                 type="button"
                 onClick={() =>
                   demarrer(async () => {
-                    await supprimerEnvoi(envoi.id);
+                    const res = await supprimerEnvoi(envoi.id);
+                    if (res.error) { setInfo(`⚠ ${res.error}`); return; }
                     router.refresh();
                   })
                 }
@@ -1165,6 +1186,7 @@ function FicheProfil({
   const [etatEnvoi, setEtatEnvoi] = useState<string | null>(null);
   const [envoiPending, demarrer] = useTransition();
   const [recuPending, demarrerRecu] = useTransition();
+  const [erreurRecu, setErreurRecu] = useState<string | null>(null);
   // Du plus récent au plus ancien.
   const fil = [...(messagesByFigurant[r.figurant_id ?? ""] ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
   const envoisProfil = envoisParFigurant.get(r.figurant_id ?? "") ?? [];
@@ -1218,6 +1240,7 @@ function FicheProfil({
       </div>
       <ContactIcons telephone={r.figurants?.telephone} email={r.figurants?.email} variant="inline" />
       {erreurLigne && <p className="text-xs text-danger">{erreurLigne}</p>}
+      {erreurRecu && <p role="alert" className="text-xs text-danger">{erreurRecu}</p>}
 
       <span className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">Réponses aux messages</span>
       <div className="flex flex-col gap-1.5">
@@ -1266,8 +1289,9 @@ function FicheProfil({
                   disabled={recuPending}
                   onClick={() =>
                     demarrerRecu(async () => {
-                      await marquerRecu(d.id, !d.accuse_le);
-                      router.refresh();
+                      const res = await marquerRecu(d.id, !d.accuse_le);
+                      setErreurRecu(res.error ?? null);
+                      if (!res.error) router.refresh();
                     })
                   }
                   className={cn(

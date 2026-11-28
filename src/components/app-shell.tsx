@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { signOut } from "@/lib/auth/actions";
+import { StaffLogoutForm } from "@/components/staff-logout-form";
 import { quitterModeSupport } from "@/lib/auth/support";
 import { CommandPalette } from "@/components/command-palette";
 import { NotificationsBell } from "@/components/notifications-bell";
@@ -44,6 +44,7 @@ const NAV_ITEMS: { label: string; href: string; enabled: boolean; icon: LucideIc
   { label: "Partage", href: "/partage", enabled: true, icon: Share2 },
   { label: "Modèles", href: "/modeles", enabled: true, icon: Mail },
   { label: "Barème", href: "/bareme", enabled: true, icon: Calculator },
+  { label: "Mineurs / DRIEETS", href: "/mineurs", enabled: true, icon: ShieldCheck },
   { label: "RGPD", href: "/rgpd", enabled: true, icon: ShieldCheck },
 ];
 
@@ -67,6 +68,8 @@ const PUBLIC_PREFIXES = [
   "/agent/",
   "/recu/",
   "/compte",
+  "/mineurs/depot/",
+  "/mineurs/partage/",
 ];
 
 export function AppShell({
@@ -142,7 +145,7 @@ export function AppShell({
   }
 
   const navItems = [
-    ...NAV_ITEMS.filter((item) => item.href === "/" || hasSectionAccess(profile, item.href as SectionKey)),
+    ...NAV_ITEMS.filter((item) => (item.href !== "/rgpd" || isOwner(profile)) && (item.href === "/" || hasSectionAccess(profile, item.href as SectionKey))),
     ...(profile?.role === "chef"
       ? [{ label: "Équipe", href: "/equipe", enabled: true, icon: UsersRound }]
       : []),
@@ -154,9 +157,9 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <header className="print:hidden relative z-50 flex items-center justify-between border-b border-border bg-ink-raised px-6 py-4">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="shrink-0">
+      <header className="print:hidden relative z-50 flex items-center justify-between border-b border-border bg-ink-raised px-3 py-4 sm:px-6">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link href="/" aria-label="Accueil Booking Extras" className="shrink-0">
             <Logo iconSize={30} textClassName="text-lg" hideTextOnMobile />
           </Link>
 
@@ -164,6 +167,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => router.back()}
+              aria-label="Retour"
               className="flex items-center gap-1 rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
             >
               ← <span className="hidden sm:inline">Retour</span>
@@ -174,6 +178,8 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
+              aria-label={`Navigation : ${current?.label ?? "Menu"}`}
+              aria-expanded={menuOpen}
               className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60"
             >
               {CurrentIcon && <CurrentIcon size={16} strokeWidth={1.75} />}
@@ -219,23 +225,16 @@ export function AppShell({
         </div>
 
         {profile && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <TeamPresenceStrip />
             <NotificationsBell />
             <CommandPalette />
-            <div className="hidden text-right text-xs sm:block">
+            <div className="hidden text-right text-xs lg:block">
               <div className="truncate font-medium text-text">{profile.email}</div>
               <div className="text-text-muted">{profile.role === "chef" ? "Chef·fe" : "Assistant·e"}</div>
             </div>
-            <MyAvatarMenu profile={profile} signOutAction={signOut} />
-            <form action={signOut} className="hidden sm:block">
-              <button
-                type="submit"
-                className="rounded-xl border border-border-strong px-3 py-2 text-sm font-medium text-text transition-colors hover:border-coral/60 hover:text-text"
-              >
-                Se déconnecter
-              </button>
-            </form>
+            <MyAvatarMenu profile={profile} />
+            <StaffLogoutForm />
           </div>
         )}
       </header>

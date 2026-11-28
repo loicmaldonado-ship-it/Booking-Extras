@@ -24,7 +24,7 @@ function detailAjout(res: ResultatAjoutRapide): string {
         : res.mail === "pas_email"
           ? "pas d'email : pas de mail envoyé"
           : `mail non envoyé (${res.mailErreur ?? "erreur"})`;
-  return `${fiche}, ${mail}`;
+  return `${fiche}, ${mail}${res.mail === "envoye" && res.mailErreur ? ` — ${res.mailErreur}` : ""}${res.avertissements?.length ? ` — ${res.avertissements.join(" ")}` : ""}`;
 }
 
 // Ajout express de personnes dans une journée de booking (photo, identité,
@@ -176,7 +176,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
             </div>
 
             <div className="flex items-center gap-3">
-              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-ink text-center text-xs text-text hover:border-coral/60">
+              <label className="relative flex h-24 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-ink text-center text-xs text-text hover:border-coral/60 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-coral">
                 {apercu ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={apercu} alt="" className="h-full w-full object-cover" />
@@ -186,6 +186,7 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
                 <input
                   type="file"
                   name="photo_brute"
+                  aria-label="Choisir une photo"
                   accept={ACCEPT_IMAGES}
                   className="sr-only"
                   disabled={pending}
@@ -197,6 +198,11 @@ export function AjoutRapideBooking({ projetId, date }: { projetId: string; date:
                 <Input name="nom" placeholder="Nom *" required disabled={pending} aria-label="Nom" />
                 <Input name="email" type="email" placeholder="Email" disabled={pending} aria-label="Email" />
                 <Input name="telephone" type="tel" placeholder="Téléphone" disabled={pending} aria-label="Téléphone" />
+                <label className="flex flex-col gap-1 text-xs text-text-muted">
+                  Date de naissance (nouveau profil)
+                  <Input name="date_naissance" type="date" disabled={pending} />
+                </label>
+                <p className="text-xs text-text-muted">Pour un mineur, prépare sa fiche et son dossier dans Mineurs avant le booking.</p>
               </div>
             </div>
 

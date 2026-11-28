@@ -36,6 +36,9 @@ export async function setCandidaturesJourBulk(
   prevu: boolean
 ): Promise<{ error?: string; n?: number }> {
   if (candidatureIds.length === 0) return { n: 0 };
+  if (candidatureIds.length > 300 || new Set(candidatureIds).size !== candidatureIds.length) {
+    return { error: "Sélection invalide ou trop importante (300 candidatures maximum)." };
+  }
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")
@@ -48,16 +51,21 @@ export async function setCandidaturesJourBulk(
   const onglet = await ongletDeLaJournee(annonceDateId);
   if (!onglet) return { error: "Cette journée n'a pas d'onglet." };
 
-  const { data: candidatures } = await supabase
+  const { data: candidatures, error: candidaturesError } = await supabase
     .from("candidatures")
     .select("id, onglet_id")
     .eq("annonce_id", annonceDate.annonce_id)
     .in("id", candidatureIds.slice(0, 300));
+  if (candidaturesError) return { error: "Impossible de vérifier les candidatures. Réessaie." };
   const rows = candidatures ?? [];
-  if (rows.length === 0) return { n: 0 };
+  const idsRecus = new Set(rows.map((c) => c.id));
+  if (rows.length !== candidatureIds.length || idsRecus.size !== candidatureIds.length || candidatureIds.some((id) => !idsRecus.has(id))) {
+    return { error: "Sélection de candidatures incomplète ou hors de cette annonce." };
+  }
   // Les profils rangés dans OUT n'en sortent pas par ici (OUT prévient la
   // personne : seul son onglet le gère).
-  const { data: fixes } = await supabase.from("candidature_onglets").select("id").eq("fixe", true);
+  const { data: fixes, error: fixesError } = await supabase.from("candidature_onglets").select("id").eq("fixe", true);
+  if (fixesError) return { error: "Impossible de vérifier les candidatures protégées. Réessaie." };
   const outIds = new Set((fixes ?? []).map((o) => o.id));
   const ids = rows.filter((c) => !c.onglet_id || !outIds.has(c.onglet_id)).map((c) => c.id);
   if (ids.length === 0) return { n: 0 };
@@ -80,6 +88,9 @@ export async function envoyerCandidaturesDansJour(
   cachet: Cachet | ""
 ): Promise<{ ok: number; deja: number; error?: string }> {
   if (candidatureIds.length === 0) return { ok: 0, deja: 0 };
+  if (candidatureIds.length > 300 || new Set(candidatureIds).size !== candidatureIds.length) {
+    return { ok: 0, deja: 0, error: "Sélection invalide ou trop importante (300 candidatures maximum)." };
+  }
   // Depuis Candidatures : cachet obligatoire, fonction facultative.
   if (!cachet) return { ok: 0, deja: 0, error: "Choisis un cachet." };
   const supabase = createAdminClient();
@@ -93,14 +104,19 @@ export async function envoyerCandidaturesDansJour(
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { ok: 0, deja: 0, error: accessError };
 
-  const { data: candidatures } = await supabase
+  const { data: candidatures, error: candidaturesError } = await supabase
     .from("candidatures")
     .select("id, figurant_id, annonce_id")
     .in("id", candidatureIds.slice(0, 300));
-  const rows = (candidatures ?? []).filter((c) => c.annonce_id === annonceDate.annonce_id);
-  if (rows.length === 0) return { ok: 0, deja: 0, error: "Ces candidatures ne sont pas sur cette annonce." };
+  if (candidaturesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les candidatures. Réessaie." };
+  const rows = candidatures ?? [];
+  const idsRecus = new Set(rows.map((c) => c.id));
+  if (rows.length !== candidatureIds.length || idsRecus.size !== candidatureIds.length ||
+      candidatureIds.some((id) => !idsRecus.has(id)) || rows.some((c) => c.annonce_id !== annonceDate.annonce_id)) {
+    return { ok: 0, deja: 0, error: "Sélection de candidatures incomplète ou hors de cette annonce." };
+  }
 
-  const [{ data: existants }, { data: dejaRattachees }] = await Promise.all([
+  const [{ data: existants, error: existantsError }, { data: dejaRattachees, error: rattacheesError }] = await Promise.all([
     supabase
       .from("bookings")
       .select("figurant_id")
@@ -109,6 +125,7 @@ export async function envoyerCandidaturesDansJour(
       .in("figurant_id", rows.map((r) => r.figurant_id)),
     supabase.from("bookings").select("candidature_id").in("candidature_id", rows.map((r) => r.id)),
   ]);
+  if (existantsError || rattacheesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les bookings existants. Réessaie." };
   const dejaBookes = new Set((existants ?? []).map((b) => b.figurant_id));
   const rattachees = new Set((dejaRattachees ?? []).map((b) => b.candidature_id));
 
@@ -125,14 +142,16 @@ export async function envoyerCandidaturesDansJour(
   const deja = rows.length - payload.length;
   if (payload.length === 0) return { ok: 0, deja };
 
-  await supabase.from("journees").upsert({ projet_id: projetId, date: annonceDate.date }, { onConflict: "projet_id,date" });
+  const { error: journeeError } = await supabase.from("journees").upsert({ projet_id: projetId, date: annonceDate.date }, { onConflict: "projet_id,date" });
+  if (journeeError) return { ok: 0, deja, error: "Impossible de préparer la journée de tournage. Réessaie." };
   const { error } = await supabase.from("bookings").insert(payload);
   if (error) return { ok: 0, deja, error: error.message };
-  await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
+  const { error: profilsError } = await supabase.from("figurants").update({ confirme: true }).in("id", payload.map((p) => p.figurant_id));
 
   revalidatePath("/candidatures");
   revalidatePath("/bookings/planning");
   revalidatePath("/figurants");
+  if (profilsError) return { ok: payload.length, deja, error: "Les bookings ont été créés, mais la mise à jour des profils a échoué. Vérifie les profils concernés avant de poursuivre." };
   return { ok: payload.length, deja };
 }
 
@@ -151,20 +170,25 @@ export async function envoyerJourAuTournage(
   const supabase = createAdminClient();
   const { data: annonceDate } = await supabase
     .from("annonce_dates")
-    .select("annonce_id")
+    .select("annonce_id, annonces(projet_id)")
     .eq("id", annonceDateId)
-    .maybeSingle();
-  const onglet = annonceDate ? await ongletDeLaJournee(annonceDateId) : null;
-  if (!annonceDate || !onglet) return { ok: 0, deja: 0, error: "Date introuvable." };
+    .maybeSingle<{ annonce_id: string; annonces: { projet_id: string } | null }>();
+  if (!annonceDate?.annonces) return { ok: 0, deja: 0, error: "Date introuvable." };
+  const accessError = await checkProjetAccess(annonceDate.annonces.projet_id);
+  if (accessError) return { ok: 0, deja: 0, error: accessError };
+  const onglet = await ongletDeLaJournee(annonceDateId);
+  if (!onglet) return { ok: 0, deja: 0, error: "Date introuvable." };
 
-  const { data: rangees } = await supabase
+  const { data: rangees, error: rangeesError } = await supabase
     .from("candidatures")
     .select("id")
     .eq("annonce_id", annonceDate.annonce_id)
     .eq("onglet_id", onglet.id)
     .is("envoyee_en_booking_le", null)
-    .limit(300);
+    .limit(301);
+  if (rangeesError) return { ok: 0, deja: 0, error: "Impossible de vérifier les candidatures de cette journée. Réessaie." };
   const ids = (rangees ?? []).map((c) => c.id);
+  if (ids.length > 300) return { ok: 0, deja: 0, error: "Cette journée contient plus de 300 candidatures. Envoie-les par sélections de 300 maximum." };
   if (ids.length === 0) return { ok: 0, deja: 0 };
   return envoyerCandidaturesDansJour(annonceDateId, ids, fonction, cachet);
 }

@@ -66,17 +66,18 @@ async function repartir(projetId: string, ancienneDate: string, nouvelleDate: st
   for (let i = 0; i < Math.max(figurantIds.length, ancienIds.length); i += PAQUET_IN) {
     const figs = figurantIds.slice(i, i + PAQUET_IN);
     const ids = ancienIds.slice(i, i + PAQUET_IN);
-    const [{ data: la }, { data: indispos }, { data: miroirs }] = await Promise.all([
+    const [{ data: la, error: laError }, { data: indispos, error: indisposError }, { data: miroirs, error: miroirsError }] = await Promise.all([
       figs.length
         ? supabase.from("bookings").select("figurant_id").eq("projet_id", projetId).eq("date", nouvelleDate).in("figurant_id", figs)
-        : Promise.resolve({ data: [] as { figurant_id: string }[] }),
+        : Promise.resolve({ data: [] as { figurant_id: string }[], error: null }),
       figs.length
         ? supabase.from("figurant_indisponibilites").select("figurant_id").eq("date", nouvelleDate).in("figurant_id", figs)
-        : Promise.resolve({ data: [] as { figurant_id: string }[] }),
+        : Promise.resolve({ data: [] as { figurant_id: string }[], error: null }),
       ids.length
         ? supabase.from("bookings").select("rebook_depuis_booking_id").in("rebook_depuis_booking_id", ids)
-        : Promise.resolve({ data: [] as { rebook_depuis_booking_id: string | null }[] }),
+        : Promise.resolve({ data: [] as { rebook_depuis_booking_id: string | null }[], error: null }),
     ]);
+    if (laError || indisposError || miroirsError) return { error: "Impossible de vérifier les bookings ou les disponibilités." };
     for (const b of la ?? []) dejaLaIds.add(b.figurant_id);
     for (const d of indispos ?? []) indispoIds.add(d.figurant_id);
     for (const m of miroirs ?? []) if (m.rebook_depuis_booking_id) avecMiroir.add(m.rebook_depuis_booking_id);
@@ -115,11 +116,12 @@ export async function apercuModificationPdt(
 
   const { error, r } = await repartir(projetId, ancienneDate, nouvelleDate);
   if (error || !r) return { error: error ?? "Lecture impossible." };
-  const { count } = await createAdminClient()
+  const { count, error: countError } = await createAdminClient()
     .from("journees")
     .select("id", { count: "exact", head: true })
     .eq("projet_id", projetId)
     .eq("date", nouvelleDate);
+  if (countError || count === null) return { error: "Impossible de vérifier la journée cible." };
   const basculees = [...r.aCreer, ...r.aDeplacer];
   return {
     data: {
@@ -148,20 +150,33 @@ export async function modifierPdt(
   const { error: lectureError, r } = await repartir(projetId, ancienneDate, nouvelleDate);
   if (lectureError || !r) return { error: lectureError ?? "Lecture impossible." };
 
+  let modifie = false;
+  const erreurPartielle = (detail: string) => {
+    if (modifie) {
+      revalidatePath("/bookings");
+      revalidatePath("/bookings/documents");
+      revalidatePath("/bookings/planning");
+      return { error: `Le plan de travail a été partiellement modifié : ${detail}. Vérifie les journées avant de réessayer.` };
+    }
+    return { error: `Impossible de modifier le plan de travail : ${detail}.` };
+  };
+
   // Nouvelle journée : si elle n'existe pas encore, elle reprend les infos de
   // l'ancienne (lieu, précisions de convocation, besoins).
-  const { data: ancienneJournee } = await supabase
+  const { data: ancienneJournee, error: ancienneError } = await supabase
     .from("journees")
     .select("id, total_requis, lieu, convocation_precisions, convocation_hmc, convocation_accessoires, convocation_commentaires")
     .eq("projet_id", projetId)
     .eq("date", ancienneDate)
     .maybeSingle();
-  const { data: existante } = await supabase
+  if (ancienneError || !ancienneJournee) return { error: "Impossible de vérifier la journée source." };
+  const { data: existante, error: existanteError } = await supabase
     .from("journees")
     .select("id")
     .eq("projet_id", projetId)
     .eq("date", nouvelleDate)
     .maybeSingle();
+  if (existanteError) return { error: "Impossible de vérifier la journée cible." };
   if (!existante) {
     const infos = ancienneJournee
       ? {
@@ -179,18 +194,24 @@ export async function modifierPdt(
       .select("id")
       .single();
     if (error) return { error: error.message };
+    modifie = true;
     if (ancienneJournee) {
-      const { data: besoins } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", ancienneJournee.id);
+      const { data: besoins, error: besoinsError } = await supabase.from("journee_besoins").select("fonction, quantite").eq("journee_id", ancienneJournee.id);
+      if (besoinsError) return erreurPartielle("lecture des besoins impossible");
       if (besoins && besoins.length > 0) {
-        await supabase.from("journee_besoins").insert(besoins.map((b) => ({ ...b, journee_id: creee.id })));
+        const { error: copieError } = await supabase.from("journee_besoins").insert(besoins.map((b) => ({ ...b, journee_id: creee.id })));
+        if (copieError) return erreurPartielle("copie des besoins impossible");
       }
     }
   }
-  await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("date", ancienneDate);
+  const { error: lienError } = await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("date", ancienneDate);
+  if (lienError) return erreurPartielle("mise à jour de la journée source impossible");
+  modifie = true;
   // Bascules en chaîne (16 → 17 puis 17 → 18) : les journées d'origine
   // pointent désormais vers la nouvelle date.
   if (r.aDeplacer.length > 0) {
-    await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("pdt_vers", ancienneDate);
+    const { error: chaineError } = await supabase.from("journees").update({ pdt_vers: nouvelleDate }).eq("projet_id", projetId).eq("pdt_vers", ancienneDate);
+    if (chaineError) return erreurPartielle("mise à jour des journées précédentes impossible");
   }
 
   const miroirIds: string[] = [];
@@ -215,20 +236,24 @@ export async function modifierPdt(
         }))
       )
       .select("id, rebook_depuis_booking_id");
-    if (error) return { error: error.message };
+    if (error) return erreurPartielle("création des bookings impossible");
     miroirIds.push(...(crees ?? []).map((c) => c.id));
 
     // Les indemnités (transport…) suivent la personne ; les majorations
     // dépendent du jour et sont à refaire.
     const miroirParAncien = new Map((crees ?? []).map((c) => [c.rebook_depuis_booking_id as string, c.id]));
-    const { data: indemnites } = await supabase
+    const { data: indemnites, error: indemnitesError } = await supabase
       .from("booking_indemnites")
       .select("booking_id, projet_indemnite_id")
       .in("booking_id", paquet.map((b) => b.id));
+    if (indemnitesError) return erreurPartielle("lecture des indemnités impossible");
     const copies = (indemnites ?? [])
       .filter((x) => miroirParAncien.has(x.booking_id))
       .map((x) => ({ booking_id: miroirParAncien.get(x.booking_id)!, projet_indemnite_id: x.projet_indemnite_id }));
-    if (copies.length > 0) await supabase.from("booking_indemnites").insert(copies);
+    if (copies.length > 0) {
+      const { error: copieError } = await supabase.from("booking_indemnites").insert(copies);
+      if (copieError) return erreurPartielle("copie des indemnités impossible");
+    }
   }
 
   if (r.aDeplacer.length > 0) {
@@ -238,13 +263,14 @@ export async function modifierPdt(
         .from("bookings")
         .update({ date: nouvelleDate, covoiturage_conducteur_id: null })
         .in("id", ids.slice(i, i + PAQUET_IN));
-      if (error) return { error: error.message };
+      if (error) return erreurPartielle("déplacement des bookings impossible");
     }
     miroirIds.push(...ids);
   }
 
   if (modeleMessage !== null) {
-    await supabase.from("projets").update({ modele_message_pdt: modeleMessage }).eq("id", projetId);
+    const { error: modeleError } = await supabase.from("projets").update({ modele_message_pdt: modeleMessage }).eq("id", projetId);
+    if (modeleError) return erreurPartielle("enregistrement du modèle de message impossible");
   }
 
   revalidatePath("/bookings");
@@ -271,18 +297,25 @@ export async function prevenirProfilsPdt(
 ): Promise<{ error?: string; envoyes: number; echecs: string[] }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError, envoyes: 0, echecs: [] };
+  if (!DATE_RE.test(ancienneDate) || !DATE_RE.test(nouvelleDate) || bookingIds.length === 0 || bookingIds.length > 50 || new Set(bookingIds).size !== bookingIds.length) {
+    return { error: "Sélection ou date invalide pour les messages.", envoyes: 0, echecs: [] };
+  }
   const supabase = createAdminClient();
 
-  const [{ data: projet }, signature, { data: bookings }] = await Promise.all([
+  const [{ data: projet, error: projetError }, signature, { data: bookings, error: bookingsError }] = await Promise.all([
     supabase.from("projets").select("nom, confidentiel, nom_code").eq("id", projetId).single(),
     getProjetSignatureOrOwnerName(supabase, projetId),
     supabase
       .from("bookings")
       .select("id, figurant_id, figurants!bookings_figurant_id_fkey(prenom, nom, email)")
       .eq("projet_id", projetId)
-      .in("id", bookingIds.slice(0, 50))
+      .eq("date", nouvelleDate)
+      .in("id", bookingIds)
       .returns<{ id: string; figurant_id: string; figurants: { prenom: string; nom: string; email: string | null } | null }[]>(),
   ]);
+  if (projetError || !projet || bookingsError || !bookings || bookings.length !== bookingIds.length || new Set(bookings.map((b) => b.id)).size !== bookingIds.length || bookings.some((b) => !bookingIds.includes(b.id))) {
+    return { error: "Impossible de vérifier tous les destinataires ; aucun message envoyé pour ce lot.", envoyes: 0, echecs: [] };
+  }
   const nomProjet = projetNomPublic(projet);
 
   let envoyes = 0;
@@ -304,8 +337,11 @@ export async function prevenirProfilsPdt(
       email: parEmail ? b.figurants?.email : null,
       subject: `${nomProjet} — changement de date de tournage`,
     });
-    if (res.error) echecs.push(nomComplet(b.figurants).trim() || "?");
-    else envoyes += 1;
+    if (res.error) {
+      const nom = nomComplet(b.figurants).trim() || "?";
+      echecs.push(`${nom} : ${res.error}`);
+      if (res.messageEnregistre) envoyes += 1;
+    } else envoyes += 1;
   }
   return { envoyes, echecs };
 }
@@ -318,31 +354,44 @@ export async function supprimerJourneeBasculee(projetId: string, date: string): 
   if (accessError) return { error: accessError };
   const supabase = createAdminClient();
 
-  const { data: journee } = await supabase
+  const { data: journee, error: journeeError } = await supabase
     .from("journees")
     .select("id, pdt_vers")
     .eq("projet_id", projetId)
     .eq("date", date)
     .maybeSingle();
+  if (journeeError) return { error: "Impossible de vérifier la journée." };
   if (!journee?.pdt_vers) return { error: "Cette journée n'a pas été basculée." };
 
-  const { data: restants } = await fetchAll<{ id: string }>((from, to) =>
+  const { data: restants, error: restantsError } = await fetchAll<{ id: string }>((from, to) =>
     supabase.from("bookings").select("id").eq("projet_id", projetId).eq("date", date).order("id").range(from, to)
   );
+  if (restantsError) return { error: "Impossible de vérifier les bookings de la journée." };
   const ids = restants.map((b) => b.id);
   for (let i = 0; i < ids.length; i += PAQUET_IN) {
-    const { count } = await supabase
+    const { count, error: countError } = await supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .in("rebook_depuis_booking_id", ids.slice(i, i + PAQUET_IN));
-    if (count && count > 0) return { error: "Des profils sont encore « À REBOOKER » sur la nouvelle date." };
+    if (countError || count === null) return { error: "Impossible de vérifier les profils à rebooker." };
+    if (count > 0) return { error: "Des profils sont encore « À REBOOKER » sur la nouvelle date." };
   }
+  let suppressions = false;
+  const erreurSuppression = () => {
+    if (suppressions) {
+      revalidatePath("/bookings");
+      revalidatePath("/bookings/planning");
+      return { error: "Des bookings ont été supprimés, mais la suppression est incomplète. Vérifie la journée avant de réessayer." };
+    }
+    return { error: "Impossible de supprimer la journée." };
+  };
   for (let i = 0; i < ids.length; i += PAQUET_IN) {
     const { error } = await supabase.from("bookings").delete().in("id", ids.slice(i, i + PAQUET_IN));
-    if (error) return { error: error.message };
+    if (error) return erreurSuppression();
+    suppressions = true;
   }
   const { error } = await supabase.from("journees").delete().eq("id", journee.id);
-  if (error) return { error: error.message };
+  if (error) return erreurSuppression();
 
   revalidatePath("/bookings");
   revalidatePath("/bookings/planning");

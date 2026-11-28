@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/references/actions.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function fixture(kind){let refresh=0,removed=0;const db={from(){let mode='read';const q={select(){return this},eq(){return this},delete(){mode='delete';return this},async maybeSingle(){return mode==='delete'?(kind==='delete'?{data:null,error:{message:'offline'}}:kind==='missing'?{data:null,error:null}:{data:{id:'fixture',affiche_storage_path:'fake.jpg'},error:null}):{data:{affiche_storage_path:'fake.jpg'},error:null}},then(ok,bad){return Promise.resolve({error:kind==='delete'?{message:'offline'}:null}).then(ok,bad)}};return q},storage:{from:()=>({async remove(){removed++;return{error:kind==='storage'?{message:'offline'}:null}}})}};const mocks={'@/lib/supabase/admin':{createAdminClient:()=>db},'@/lib/auth/session':{getCurrentProfile:async()=>({id:'owner'})},'@/lib/auth/owner':{isOwner:()=>true},'next/cache':{revalidatePath:()=>refresh++}};const out={};new Function('require','exports',code)(n=>mocks[n]??{},out);return{run:()=>out.supprimerReference('fixture'),refresh:()=>refresh,removed:()=>removed}}
+for(const kind of ['delete','missing'])test(`${kind} reference deletion never removes the file`,async()=>{const f=fixture(kind);assert.ok((await f.run()).error);assert.equal(f.removed(),0)});
+test('file deletion failure reports a partial removal',async()=>{const f=fixture('storage');assert.ok((await f.run()).error);assert.equal(f.removed(),1)});
+test('successful deletion refreshes',async()=>{const f=fixture();assert.equal((await f.run()).success,true);assert.equal(f.refresh(),2)});

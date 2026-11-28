@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { SESSION_STARTED_AT_COOKIE, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/session-timeout";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 export async function signIn(_prevState: unknown, formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -32,7 +33,7 @@ export async function signIn(_prevState: unknown, formData: FormData) {
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
 
-  redirect(next.startsWith("/") ? next : "/");
+  redirect(safeNextPath(next));
 }
 
 // Toujours le même message de succès, que l'email existe ou non côté
@@ -53,8 +54,13 @@ export async function requestPasswordReset(_prevState: unknown, formData: FormDa
 }
 
 export async function signOut() {
-  const supabase = await createServerSupabaseClient();
-  await supabase.auth.signOut();
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) return { error: "La déconnexion a échoué. Veuillez réessayer." };
+  } catch {
+    return { error: "La déconnexion a échoué. Veuillez réessayer." };
+  }
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_STARTED_AT_COOKIE);
   redirect("/login");

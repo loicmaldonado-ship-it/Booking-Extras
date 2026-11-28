@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import type { CurrentProfile } from "@/lib/auth/session";
+import { echapperMotif } from "@/lib/texte/motif";
 
 type FigurantSource = {
   prenom: string;
@@ -25,7 +26,7 @@ export async function findOrCreateComedienTwin(
   const poolId = comedienPoolIdFor(profile);
 
   if (source.email) {
-    let query = supabase.from("figurants").select("id").eq("est_comedien", true).ilike("email", source.email);
+    let query = supabase.from("figurants").select("id").eq("est_comedien", true).ilike("email", echapperMotif(source.email));
     query = poolId ? query.eq("comedien_pool_id", poolId) : query.is("comedien_pool_id", null);
     const { data: existing } = await query.maybeSingle();
     if (existing) return existing.id;
@@ -35,7 +36,7 @@ export async function findOrCreateComedienTwin(
       .from("figurants")
       .select("id, telephone")
       .eq("est_comedien", true)
-      .ilike("nom", source.nom);
+      .ilike("nom", echapperMotif(source.nom));
     query = poolId ? query.eq("comedien_pool_id", poolId) : query.is("comedien_pool_id", null);
     const { data: candidats } = await query;
     const doublon = (candidats ?? []).find((f) => f.telephone?.replace(/\s+/g, "") === telephoneNormalise);

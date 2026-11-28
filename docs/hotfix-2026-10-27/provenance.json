@@ -1,0 +1,517 @@
+[
+  {
+    "file": "package-lock.json",
+    "sha256": "4d2bf120cae8ae31e8c0137af566b82e30bcb51bb4a82a5493fb7435d9f865f7",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "package.json",
+    "sha256": "02e511c96895376dd51d8ae34d2e5e6a9d4c20923584656762e49ceaa21315b1",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "public/offline.html",
+    "sha256": "564f102a2931123480a202713f4f3728e2750ccaca69496ddd583e0f69b8f581",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "public/sw.js",
+    "sha256": "4b14b8daaa67298c5b82b06f8d7670abf0117c4e5c1ba6bcb8861422ba2bd4db",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/api/cron/alleger-videos/route.ts",
+    "sha256": "8822f68c0c478703927d9734fba0b9564ca2e3fedce2e29aaebe704b69c8b1e4",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/api/cron/releve-mails/route.ts",
+    "sha256": "3ae9e52651a3402ce467efe42209ec20cab5a4749e4c02dcb45a347fdb080efd",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/figurants/[id]/fiche/page.tsx",
+    "sha256": "d7a3cb07b843d55e5e2c23c5165c46c499ccdbef522d98d3e2609ca52deed9f7",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/figurants/[id]/modifier/page.tsx",
+    "sha256": "172e6d0a87c7fa879901ca9cd8d9faf90095335b409ef7f18a9a7b8b6d2991f2",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/figurants/[id]/page.tsx",
+    "sha256": "fdcc079692c53fa7e0d722774f2004dab28c2474394067ea87f83da5c380a208",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/figurants/fiches/page.tsx",
+    "sha256": "07c79b67731d17d8e27755b5912feac5466ddb7bed703b484d12338d5ef16297",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/app/figurants/page.tsx",
+    "sha256": "ff1b2ef8e3a5e18749828c94d4e07e8eb2a74f9ba48ecda0f8776f59c6cddb7e",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/components/casting/add-to-casting-bar.tsx",
+    "sha256": "52dba348acf810930d57b31d5aeba0fc99111cf38e3be3e39e41574f40ef6f20",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/components/figurants/delete-figurant-confirm.tsx",
+    "sha256": "af045e3f783d647c723fac07ebdb0715481ed8652f6ada60ebbcd2a9aa82ba84",
+    "exact_source_refs": [
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/components/figurants/delete-lien-button.tsx",
+    "sha256": "43f278a4d1152badbc619eeb10b72ea43f7b19cbde885c22fe7b97e9571fed37",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/components/figurants/doublons-panel.tsx",
+    "sha256": "13caf9faa5f8cc4587ea8be4525343e462053cdd308eddd057aa1c4c7a77b5b9",
+    "exact_source_refs": [
+      "dcfab6d"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/agents/actions.ts",
+    "sha256": "e072a0ade543a8d6ff7e54323b2ef1054070228efc3b091ed34f4f0f451061a6",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/bookings/actions.ts",
+    "sha256": "65289dafbb2ca43c4a86148353f2123d60ed5d2117d31e051820ef9f587178e8",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/lib/candidats/actions.ts",
+    "sha256": "26366852b15f21e659886a0a75127f30ad66d521c04f68faf9c99b6234cc38fc",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/lib/candidats/email.ts",
+    "sha256": "6be82d5eb468096d9b3dcd8c2f4559f7cd579703e14df6cdabe44898e9d3c9f4",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/candidats/session.ts",
+    "sha256": "6607734bdf29f039436fcfb845a79990c3af565c89f8e85dc2f88b450968168f",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/casting-presentiel/actions.ts",
+    "sha256": "598e4c4ed84b4cf349b6c1aac025790926817a900978bd37d33caf9b07032f1d",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/lib/casting/actions.ts",
+    "sha256": "cbe7df769f2dfd05a14143dab10c4341692418a01007503fb04395096c871a37",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/lib/documents/data.ts",
+    "sha256": "865ac4fdba1778510b09cb564aeca264ad2a9dd7f8cd1b4ff887a06dbe6497af",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/essayages/actions.ts",
+    "sha256": "04f1c2106b559d20cf32bd6d291625804e3513f4fbaac30b62a4da01596d2e06",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "src/lib/figurants/access.ts",
+    "sha256": "5c681d42023f9c287a0c27011109de379e8010786124f540d35886f05d823cc5",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/actions.ts",
+    "sha256": "6e22e82e1c87db3d057df3547952f40e78c8fbcafd17d9a522381994b4318480",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/comedien-privacy.ts",
+    "sha256": "712d1347baa745c8dbc9485a27ff04cf287dfc43b0bb5e800678f37ff28cb95e",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/doublons.ts",
+    "sha256": "c1531f75c432568cf1be1300333f1d660f35dbc49e77ad479e3111559a6e8230",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/duplicate-normalization.ts",
+    "sha256": "fb6e3d6aadc6e4f62afebf9693fb92646e9574c19dc5fd7996600d92f393aa43",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/duplicates.ts",
+    "sha256": "e231e53d438c4e5a8c2c241ab197a17c6b831f2901d61ca7025bf4e6b804f0f1",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/edit.ts",
+    "sha256": "93c075d7b602449607876f861eb8c97147fc5b054b08686a2f4b6e050de55907",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/photos.ts",
+    "sha256": "3882a783ccfa688dd7e5c168b5a4aabc7136ccaedcb7e5db55e2abba9feb5996",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/figurants/preview.ts",
+    "sha256": "aef13e3ea4b123a8f9b88417a38752f28c2ff6c322678c9983f60211cb90827d",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/media/validate-upload.ts",
+    "sha256": "1edd01293b2d3ad0789bd484665851115692b11cc99e9a0ee023a2696dbcae0f",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/partage/actions.ts",
+    "sha256": "0c55fbb4d33bf1bcb42329c1e20b255c0e751b3deb1e9e525cc54c1290408a07",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "src/lib/partage/data.ts",
+    "sha256": "277bc26b3e3a8bf5e7484bb883fa0cd859e743199929887745ce65da9331e2b2",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261011000001_profiles_protected_columns.sql",
+    "sha256": "24095b4cc2e4f4495ecfacd3ac898af2919dcdc314b6646e604e907a4f565466",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261011000003_casting_presentiel_rls.sql",
+    "sha256": "b9f60cd75477782258f3e2c830317ac333590ed30c1ca7935edfc7e02830378f",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261011000004_merge_figurants_atomique.sql",
+    "sha256": "ffa489dfa0b4b508478fe822dbfd3b07ff1448abe048a5f999f66d6a1813dc82",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261011000005_delete_unused_figurant.sql",
+    "sha256": "8c725bbd2cf6b016d2f773ae606cbd614e87340fbd2b741dc0604328e4719dd4",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261012000001_bloquer_ecritures_directes_figurants.sql",
+    "sha256": "5421a0a88ab9e6ff28d7ebe7fcd2f50f61636724bc94bcd3f0fc1554c75ac5ba",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261012000002_securiser_lectures_figurants_storage.sql",
+    "sha256": "bab551d209123a013909f6d6511def39e2004103f354c783ed206cf727e29dd0",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261012000003_securiser_autres_buckets_storage.sql",
+    "sha256": "eb31caff21fb90a9390cef0e99984db4a37f4277042c2c21c1fb38be9eb7798e",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261026100040_confidentialite_viviers.sql",
+    "sha256": "b565911093986126d62f79675196441094743b3d052d0e84db69b1a8d8c402ab",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261027063626_proteger_acces_complet_profile.sql",
+    "sha256": "a1c489e7fd29c76b5a547e807138dfd94287a0fbcf4399118f4289f8f6537da0",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261027070312_proteger_references_profils_prives.sql",
+    "sha256": "b723a7aae014ecfeb5270c014625c77a949c4bc5aae58c49c3bc48ecc87e9d98",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "supabase/migrations/20261027113539_proteger_lecture_secret_smtp_profiles.sql",
+    "sha256": "f4caf4d5a67d4536f4e1d82dab42ae0fc006d468f2bb8013d8a92d743948ecc8",
+    "exact_source_refs": [],
+    "note": "Correction SQL nouvelle autorisée"
+  },
+  {
+    "file": "tests/access-and-deletion-guards.test.mjs",
+    "sha256": "6c3a703253db55a9cdcfba2dbf35004404768b716f0bb10491f7f4cfebb01ce0",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/figurant-duplicate-normalization.test.mjs",
+    "sha256": "ee70751515cabc260a2ea5367f836d7595d7cd8f9c8fe817dff1cbaec1813b4c",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/figurant-photo-privacy-migration.test.mjs",
+    "sha256": "4b9fe085ed83d128344552fc4e642d9df02b98f570df9b41cc6afad9b9a4a8bf",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/hotfix-rights-local.sql",
+    "sha256": "a871cd2a6551a81b38fb7d38b94b14e64197d96ad4a02574ce30280dfe3438c1",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "tests/hotfix-runtime.test.mjs",
+    "sha256": "1ce118b08eed6bda264834b86c23796420bf7b861a0d83b65ccb0d8c35a26b5f",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "tests/partage-error-handling.test.mjs",
+    "sha256": "496411dd150dc2dc3272e128c5737c510aa78af10dc25af2e08c7721f78f3b77",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/person-reference-access.test.mjs",
+    "sha256": "12c190f86161ff01375a66578dc455cfc5ba9c50ea38ba7257f63a4d5ca22dc0",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/profile-privileges-local.sql",
+    "sha256": "86fe7c7476dd206d037ef87191eddf2ebb6036887a1fc95595510e7e2eaa3c48",
+    "exact_source_refs": [],
+    "note": "Adaptation du portage ou test nouveau"
+  },
+  {
+    "file": "tests/security-cron-auth.test.mjs",
+    "sha256": "4d5fb1477fe93319aa7cf4e7bd073c0628ebe32ba2aa56014562516b56c7fb0a",
+    "exact_source_refs": [
+      "489b6bb",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/server-action-boundaries.test.mjs",
+    "sha256": "30489543c04b6d0627f7a7ee657826723212c962fe8e2eb0e802466e3e0144e6",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/service-worker.test.mjs",
+    "sha256": "de2d700c29f60c54f7cd1fc732ccab18b487c3772dcc0262ec9efa9ade69cd70",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/storage-policy-hardening.test.mjs",
+    "sha256": "30f8d62cda4866117670ffdead196bcd4fb2c001be47258209be36e290e58b7b",
+    "exact_source_refs": [
+      "489b6bb",
+      "dcfab6d",
+      "5644d59"
+    ],
+    "note": null
+  },
+  {
+    "file": "tests/validate-upload.test.mjs",
+    "sha256": "0c2553c830cce12df4332bc01e2b1f3ed04d30969c0f5d32e49eea56e91d7e60",
+    "exact_source_refs": [
+      "489b6bb"
+    ],
+    "note": null
+  }
+]

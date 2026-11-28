@@ -69,7 +69,7 @@ export async function AccueilPublic() {
           )}
         </div>
         <p className="text-sm font-medium text-turquoise">
-          Booking Extras est gratuit et le sera toujours : aucune somme d&apos;argent ne te sera jamais demandée.
+          Booking Extras est gratuit.
         </p>
       </section>
 

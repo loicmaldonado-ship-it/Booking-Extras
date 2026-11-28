@@ -1,3 +1,5 @@
+import "server-only";
+import { getCurrentProfile } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type FigurantInactif = {
@@ -6,29 +8,62 @@ export type FigurantInactif = {
   nom: string;
   email: string | null;
   derniereActivite: string | null;
+  effacementEnCours: boolean;
 };
+
+function estFigurantInactif(value: unknown): value is FigurantInactif {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.id === "string" && item.id.length > 0 &&
+    typeof item.prenom === "string" && typeof item.nom === "string" &&
+    (item.email === null || typeof item.email === "string") &&
+    (item.derniereActivite === null || (typeof item.derniereActivite === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item.derniereActivite))) &&
+    typeof item.effacementEnCours === "boolean";
+}
 
 // Aucune tâche planifiée n'appelle cette fonction : c'est une consultation
 // à la demande, pour préparer une anonymisation manuelle (voir actions.ts).
 export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantInactif[]> {
+  const actor = await getCurrentProfile();
+  if (!actor?.isOwner || actor.role !== "chef") return [];
   const supabase = createAdminClient();
   const seuilDate = new Date();
   seuilDate.setFullYear(seuilDate.getFullYear() - seuilAns);
   const seuilIso = seuilDate.toISOString().slice(0, 10);
 
-  const { data: figurants } = await supabase
+  const snapshot = await supabase.rpc("rgpd_lister_profils_inactifs_snapshot", { p_seuil: seuilIso });
+  if (!snapshot.error) {
+    if (!Array.isArray(snapshot.data) || !snapshot.data.every(estFigurantInactif)) {
+      throw new Error("Historique des profils indisponible.");
+    }
+    return snapshot.data;
+  }
+  // Until this migration is installed, keep the existing fail-closed reader.
+  if (snapshot.error.code !== "PGRST202") throw new Error("Historique des profils indisponible.");
+
+  const { data: figurants, error: figurantsError, count: figurantsCount } = await supabase
     .from("figurants")
-    .select("id, prenom, nom, email, updated_at")
+    .select("id, prenom, nom, email, updated_at, anonymisation_en_cours_at", { count: "exact" })
     .eq("anonymise", false);
 
-  if (!figurants || figurants.length === 0) return [];
+  if (figurantsError || !figurants) throw new Error("Liste des profils indisponible.");
+  if (figurantsCount === null || figurantsCount !== figurants.length) throw new Error("Liste des profils incomplète.");
+  if (figurants.length === 0) return [];
 
   const ids = figurants.map((f) => f.id);
 
-  const [{ data: bookings }, { data: candidatures }] = await Promise.all([
-    supabase.from("bookings").select("figurant_id, date").in("figurant_id", ids),
-    supabase.from("candidatures").select("figurant_id, created_at").in("figurant_id", ids),
+  const [{ data: bookings, error: bookingsError, count: bookingsCount }, { data: candidatures, error: candidaturesError, count: candidaturesCount }] = await Promise.all([
+    supabase.from("bookings").select("figurant_id, date", { count: "exact" }).in("figurant_id", ids),
+    supabase.from("candidatures").select("figurant_id, created_at", { count: "exact" }).in("figurant_id", ids),
   ]);
+
+  if (bookingsError || candidaturesError || !bookings || !candidatures) {
+    throw new Error("Historique des profils indisponible.");
+  }
+
+  if (bookingsCount === null || candidaturesCount === null || bookingsCount !== bookings.length || candidaturesCount !== candidatures.length) {
+    throw new Error("Historique des profils incomplet.");
+  }
 
   const lastByFigurant = new Map<string, string>();
   for (const f of figurants) {
@@ -50,8 +85,9 @@ export async function getFigurantsInactifs(seuilAns: number): Promise<FigurantIn
       prenom: f.prenom,
       nom: f.nom,
       email: f.email,
+      effacementEnCours: f.anonymisation_en_cours_at !== null,
       derniereActivite: lastByFigurant.get(f.id) ?? null,
     }))
-    .filter((f) => f.derniereActivite !== null && f.derniereActivite < seuilIso)
+    .filter((f) => f.effacementEnCours || (f.derniereActivite !== null && f.derniereActivite < seuilIso))
     .sort((a, b) => (a.derniereActivite ?? "").localeCompare(b.derniereActivite ?? ""));
 }

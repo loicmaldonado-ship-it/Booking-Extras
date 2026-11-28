@@ -10,15 +10,17 @@ export function EntryNotesField({
   onSave,
 }: {
   initialValue: string | null;
-  onSave: (value: string) => Promise<unknown>;
+  onSave: (value: string) => Promise<{ error?: string }>;
 }) {
   const [value, setValue] = useState(initialValue ?? "");
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function save() {
     if (value === (initialValue ?? "")) return;
     startTransition(async () => {
-      await onSave(value);
+      const result = await onSave(value);
+      setError(result.error ?? null);
     });
   }
 
@@ -32,6 +34,7 @@ export function EntryNotesField({
         placeholder="Notes (spécificités...)"
         className="w-full resize-none rounded-lg border border-border bg-ink px-2 py-1.5 text-xs outline-none focus:border-coral"
       />
+      {error && <span role="alert" className="text-[10px] text-danger">{error}</span>}
       {pending && <span className="text-[10px] text-text-muted">Enregistrement...</span>}
     </div>
   );

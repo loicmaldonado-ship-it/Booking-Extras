@@ -1,5 +1,6 @@
 import { trierParNom } from "@/lib/noms";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Card, Badge } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { BackLink } from "@/components/ui/back-link";
@@ -16,6 +17,7 @@ import { Shirt } from "lucide-react";
 import { requireProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
 import { comedienPoolClause } from "@/lib/figurants/comedien-privacy";
+import { completerChoix } from "@/lib/figurants/choix";
 
 export const dynamic = "force-dynamic";
 
@@ -45,11 +47,12 @@ export default async function EssayageJourneePage({
   }
 
   const profile = await getCurrentProfile();
-  let figurantsQuery = supabase.from("figurants").select("id, prenom, nom").order("nom").order("prenom");
+  // Liste soumise à la RLS (SEC-04/CAN-02) : profils sans compte et comédiens privés des autres équipes exclus.
+  let figurantsQuery = (await createServerSupabaseClient()).from("figurants").select("id, prenom, nom").order("nom").order("prenom");
   const comedienClause = comedienPoolClause(profile);
   if (comedienClause) figurantsQuery = figurantsQuery.or(comedienClause);
 
-  const [{ data: essayagesRaw }, { data: allFigurants }, { data: creneaux }] = await Promise.all([
+  const [{ data: essayagesRaw }, { data: allFigurantsRls }, { data: creneaux }] = await Promise.all([
     supabase
       .from("essayages")
       .select(
@@ -65,6 +68,7 @@ export default async function EssayageJourneePage({
       .order("heure_debut")
       .returns<Creneau[]>(),
   ]);
+  const allFigurants = await completerChoix(allFigurantsRls, profile, (c) => ({ id: c.id, prenom: c.prenom, nom: c.nom }));
 
   const figurantIds = (essayagesRaw ?? []).map((e) => e.figurant_id);
   const photosByFigurant = await getPhotosByFigurantId(figurantIds);

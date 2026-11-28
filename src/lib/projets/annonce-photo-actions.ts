@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateImageUpload } from "@/lib/media/validate-upload";
 import { checkProjetAccess } from "@/lib/auth/session";
 
 export async function updateProjetAnnoncePhoto(projetId: string, formData: FormData) {
@@ -14,18 +15,23 @@ export async function updateProjetAnnoncePhoto(projetId: string, formData: FormD
   }
 
   const supabase = createAdminClient();
-  const ext = photo.name.split(".").pop() || "jpg";
+  const validated = await validateImageUpload(photo);
+  if (validated.error) return { error: validated.error };
+  const ext = validated.extension;
   const path = `projet/${projetId}/photo-${crypto.randomUUID()}.${ext}`;
   const { error: uploadError } = await supabase.storage
     .from("annonce-medias")
-    .upload(path, photo, { contentType: photo.type, upsert: false });
+    .upload(path, photo, { contentType: validated.mimeType, upsert: false });
   if (uploadError) return { error: uploadError.message };
 
   const { error } = await supabase
     .from("projets")
     .update({ annonce_photo_storage_path: path })
     .eq("id", projetId);
-  if (error) return { error: error.message };
+  if (error) {
+    await supabase.storage.from("annonce-medias").remove([path]);
+    return { error: error.message };
+  }
 
   revalidatePath(`/projets/${projetId}`);
   revalidatePath("/annonces");
