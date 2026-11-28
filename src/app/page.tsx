@@ -27,6 +27,8 @@ import { AccueilPublic } from "@/components/accueil/accueil-public";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Booking Extras — casting rôles, silhouettes et figuration" };
+
 type DashboardProjet = {
   id: string;
   nom: string;
