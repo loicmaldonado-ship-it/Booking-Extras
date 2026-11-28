@@ -171,6 +171,30 @@ export function CastingRoleForm({
         </div>
       </Field>
 
+      <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
+        <label className="flex items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" name="ouvert_agents" defaultChecked={role?.ouvert_agents} className="accent-coral" />
+          Ouvert aux agents (visible sur leur lien)
+        </label>
+        <p className="-mt-1 text-xs text-text-muted">
+          Ce que l&apos;agent voit du rôle sur son lien. Laisse vide ce que tu ne veux pas montrer.
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Field label="Âge recherché">
+            <Input name="agents_age" defaultValue={role?.agents_age ?? ""} placeholder="30 ans, 25-35…" />
+          </Field>
+          <Field label="Séquence(s)">
+            <Input name="agents_sequence" defaultValue={role?.agents_sequence ?? ""} placeholder="6, 4-8…" />
+          </Field>
+        </div>
+        <Field label="Description du profil">
+          <Textarea name="agents_description" rows={3} defaultValue={role?.agents_description ?? ""} placeholder="Cousin d'Eugène, uniquement au téléphone…" />
+        </Field>
+        <Field label="Répliques d'essai (montrées seulement aux agents dont le lien l'autorise)">
+          <Textarea name="agents_repliques" rows={4} defaultValue={role?.agents_repliques ?? ""} />
+        </Field>
+      </div>
+
       <Field label="Corps du mail d'invitation (optionnel)">
         <textarea
           name="message_corps"

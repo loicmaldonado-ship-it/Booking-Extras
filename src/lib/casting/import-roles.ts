@@ -15,6 +15,8 @@ export type LigneImport = {
   categorie: CategorieCachet | null;
   // null = pas de message personnalisé : le message automatique est utilisé.
   messageCorps: string | null;
+  // Fiche vue par les agents : profil, âge, séquence, répliques (colonnes du fichier).
+  agents: { description: string | null; age: string | null; sequence: string | null; repliques: string | null };
   // « ok » : sera créé. Sinon la ligne est écartée, avec la raison.
   etat: "ok" | "doublon_fichier" | "doublon_projet" | "ignoree";
   raison?: string;
@@ -129,6 +131,8 @@ export function analyserCsv(texteBrut: string): AnalyseImport {
   const cRole = col("role");
   const cCategorie = col("categorie");
   const cProfil = col("profil");
+  const cAge = col("age");
+  const cSeq = entete.findIndex((c) => c.startsWith("seq"));
   const cTexte = entete.findIndex((c) => c.startsWith("texte d'essai") || c.startsWith("texte d’essai"));
   if (cCategorie === -1) return { lignes: [], erreur: "Colonne « Catégorie » introuvable dans le fichier." };
 
@@ -144,7 +148,7 @@ export function analyserCsv(texteBrut: string): AnalyseImport {
     // Ligne entièrement vide (ex. fin de fichier) : rien à signaler.
     if (r.every((v) => !v.trim())) continue;
 
-    const base = { ligne: i + 1, episode, role, nom: `${episode} · ${role}`, categorieSource, messageCorps: null };
+    const base = { ligne: i + 1, episode, role, nom: `${episode} · ${role}`, categorieSource, messageCorps: null, agents: { description: null, age: null, sequence: null, repliques: null } };
     if (!episode || !role) {
       lignes.push({ ...base, categorie: null, etat: "ignoree", raison: "Épisode ou rôle manquant." });
       continue;
@@ -170,6 +174,12 @@ export function analyserCsv(texteBrut: string): AnalyseImport {
       ...base,
       categorie,
       messageCorps: messageInvitation(valeur(cProfil), valeur(cTexte)),
+      agents: {
+        description: valeur(cProfil) || null,
+        age: valeur(cAge) || null,
+        sequence: valeur(cSeq) || null,
+        repliques: valeur(cTexte) || null,
+      },
       etat: "ok",
     });
   }

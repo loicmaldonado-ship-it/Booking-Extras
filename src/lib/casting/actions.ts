@@ -31,6 +31,18 @@ function parseCategorieCachet(formData: FormData): CategorieCachet {
   return v === "silhouette" || v === "doublure" ? v : "role";
 }
 
+// Fiche « breakdown » montrée aux agents sur leur lien (vide = rien d'affiché).
+function parseFicheAgents(formData: FormData) {
+  const texte = (k: string, max: number) => String(formData.get(k) ?? "").trim().slice(0, max) || null;
+  return {
+    agents_description: texte("agents_description", 4000),
+    agents_age: texte("agents_age", 60),
+    agents_sequence: texte("agents_sequence", 60),
+    agents_repliques: texte("agents_repliques", 20000),
+    ouvert_agents: formData.get("ouvert_agents") === "on",
+  };
+}
+
 function parseCastingMode(formData: FormData): CastingMode {
   return String(formData.get("mode") ?? "") === "presentiel" ? "presentiel" : "selftape";
 }
@@ -131,6 +143,7 @@ export async function createCastingRole(
       message_corps: messageCorps,
       visible_partage: visiblePartage,
       onglet_id: ongletId,
+      ...parseFicheAgents(formData),
     })
     .select("id")
     .single();
@@ -210,6 +223,7 @@ export async function updateCastingRoleCalibration(
       questions,
       message_corps: messageCorps,
       visible_partage: visiblePartage,
+      ...parseFicheAgents(formData),
       ...pdfPatch,
     })
     .eq("id", roleId);

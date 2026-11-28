@@ -64,6 +64,7 @@ const PUBLIC_PREFIXES = [
   "/partage/casting",
   "/casting/upload",
   "/casting/rejoindre",
+  "/agent/",
   "/recu/",
   "/compte",
 ];
@@ -91,7 +92,8 @@ export function AppShell({
     pathname?.startsWith("/partage/documents") ||
     pathname?.startsWith("/partage/essayages") ||
     pathname?.startsWith("/partage/casting") ||
-    pathname?.startsWith("/partage/validation");
+    pathname?.startsWith("/partage/validation") ||
+    pathname?.startsWith("/agent/");
 
   // Fiche membre obligatoire pour les cheffes (photo, nom, prénom,
   // téléphone) — tant qu'elle n'est pas complète, on bloque le reste de

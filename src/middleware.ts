@@ -18,6 +18,7 @@ const PUBLIC_PREFIXES = [
   "/partage/validation",
   "/casting/upload",
   "/casting/rejoindre",
+  "/agent/",
   "/api/relais-textos",
   "/api/cron/",
   "/api/videos/alleger",

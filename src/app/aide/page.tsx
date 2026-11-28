@@ -547,6 +547,42 @@ export default function AidePage() {
           rôle sans effacer la photo de son profil.
         </Callout>
         <div>
+          <p className="mb-2 text-sm font-semibold">Lien spécial agent</p>
+          <Steps
+            items={[
+              <>
+                <UI>🤝 Agents</UI> (en haut de Casting) : <UI>Créer son lien</UI> pour chaque agent — tape son nom pour le retrouver dans
+                ta base d&apos;agents (agence et email repris) ; un agent nouveau y est ajouté. Chaque agent a{" "}
+                <strong className="text-text">son propre lien</strong> et ne voit jamais les propositions des autres. Coupe le lien
+                quand tu veux ; le supprimer efface ses propositions en attente.
+              </>,
+              <>
+                Choisis les rôles qu&apos;il voit : <UI>🤝 Agents</UI> sur chaque carte, ou <UI>👁️ Visibilité au réal</UI> →{" "}
+                <UI>🤝 Ouvrir ces rôles aux agents</UI> pour tous les rôles affichés d&apos;un coup. Il voit le nom, la description du
+                profil, l&apos;âge et la séquence (à renseigner dans <UI>Calibrer</UI> ou par l&apos;import CSV). Les{" "}
+                <strong className="text-text">répliques d&apos;essai</strong> ne s&apos;affichent que si tu l&apos;autorises : agent par agent,
+                ou pour tous d&apos;un coup avec <UI>Répliques visibles pour tous</UI> / <UI>cachées pour tous</UI>.
+              </>,
+              <>
+                <UI>✉️ Envoyer les liens par email</UI> : coche plusieurs agents du projet (ou ajoute-en depuis ta base en tapant leur
+                nom), relis le message — <UI>{"{agent}"}</UI>, <UI>{"{projet}"}</UI>, <UI>{"{lien}"}</UI> et <UI>{"{signature}"}</UI> sont
+                remplacés pour chacun — et envoie : chaque agent reçoit son lien personnel, créé au passage s&apos;il n&apos;existait pas.
+                Une confirmation liste les destinataires, et le résultat s&apos;affiche agent par agent (30 au maximum par envoi).
+              </>,
+              <>
+                L&apos;agent ouvre un rôle, <strong className="text-text">glisse les photos</strong> du comédien ou de la comédienne,
+                indique prénom, nom, âge, taille, le lien vers sa page de comédien·ne et sa bande démo, et envoie. Une
+                notification te prévient.
+              </>,
+              <>
+                Les propositions arrivent d&apos;abord dans <UI>Propositions à traiter</UI> : <UI>Ajouter au rôle</UI> crée (ou reprend)
+                la fiche dans ta base privée, avec les photos, les liens, l&apos;agent et ses notes, et met le profil dans le rôle
+                (invisible du réal tant que tu ne le rends pas visible). <UI>Refuser</UI> efface les photos reçues.
+              </>,
+            ]}
+          />
+        </div>
+        <div>
           <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
           <Steps
             items={[
