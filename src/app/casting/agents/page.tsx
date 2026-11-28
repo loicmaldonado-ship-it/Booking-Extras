@@ -9,6 +9,7 @@ import { getSiteOrigin } from "@/lib/partage/data";
 import { getCastingRoles } from "@/lib/casting/data";
 import { getAgents, getPropositionsEnAttente } from "@/lib/casting/agents-data";
 import { GestionAgents } from "@/components/casting/gestion-agents";
+import { EnvoiAgents } from "@/components/casting/envoi-agents";
 import { BoiteReceptionAgents } from "@/components/casting/boite-reception-agents";
 import { Handshake } from "lucide-react";
 
@@ -90,6 +91,19 @@ export default async function AgentsPage() {
         }))}
       />
 
+      <EnvoiAgents
+        projetId={projetId}
+        liens={agents.map((a) => ({
+          id: a.id,
+          baseId: a.agent_id,
+          nom: a.nom,
+          agence: a.agence,
+          email: a.email,
+          actif: a.actif,
+          dernierEnvoi: a.dernier_envoi_le,
+        }))}
+      />
+
       <GestionAgents
         projetId={projetId}
         origin={origin}
@@ -101,6 +115,7 @@ export default async function AgentsPage() {
           token: a.token,
           actif: a.actif,
           afficherRepliques: a.afficher_repliques,
+          dansLaBase: !!a.agent_id,
           nbPropositions: a.nbPropositions,
           nbEnAttente: a.nbEnAttente,
         }))}

@@ -5,6 +5,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { comedienPoolIdFor } from "@/lib/figurants/comedien-privacy";
 import { insertFigurantPhoto } from "@/lib/figurants/photos";
+import { sendEmail } from "@/lib/email/send";
+import { getProjetEmailCredentials } from "@/lib/projets/email";
+import { getProjetSignatureOrOwnerName } from "@/lib/projets/signature";
+import { getSiteOrigin } from "@/lib/partage/data";
+import { projetNomPublic } from "@/lib/projets/types";
+import { composerMailAgent } from "./agents-mail";
 
 // Lien spécial agent — côté équipe : créer les liens (un par agent), ouvrir des
 // rôles aux agents, traiter les propositions reçues. Chaque action revérifie
@@ -13,9 +19,47 @@ import { insertFigurantPhoto } from "@/lib/figurants/photos";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BUCKET = "agent-propositions";
 
+// Trouve l'agent dans la base commune (par l'id choisi dans les suggestions, sinon
+// par email, sinon par nom) ou l'y ajoute. Un agent déjà connu n'est jamais modifié :
+// seuls ses champs vides sont complétés.
+async function agentDeLaBase(
+  agentId: string | undefined,
+  champs: { nom: string; agence: string | null; email: string | null }
+): Promise<string | null> {
+  const supabase = createAdminClient();
+  let existant: { id: string; agence: string | null; email: string | null } | null = null;
+  if (agentId) {
+    const { data } = await supabase.from("agents").select("id, agence, email").eq("id", agentId).maybeSingle();
+    existant = data;
+  }
+  if (!existant && champs.email) {
+    const { data } = await supabase.from("agents").select("id, agence, email").ilike("email", champs.email.replace(/[\\%_]/g, "\\$&")).limit(1).maybeSingle();
+    existant = data;
+  }
+  if (!existant) {
+    const { data } = await supabase.from("agents").select("id, agence, email").ilike("nom", champs.nom.replace(/[\\%_]/g, "\\$&")).limit(1).maybeSingle();
+    existant = data;
+  }
+  if (existant) {
+    const completer: Record<string, string> = {};
+    if (!existant.agence && champs.agence) completer.agence = champs.agence;
+    if (!existant.email && champs.email) completer.email = champs.email;
+    if (Object.keys(completer).length > 0) {
+      await supabase.from("agents").update({ ...completer, updated_at: new Date().toISOString() }).eq("id", existant.id);
+    }
+    return existant.id;
+  }
+  const { data: cree } = await supabase
+    .from("agents")
+    .insert({ nom: champs.nom, agence: champs.agence, email: champs.email })
+    .select("id")
+    .single();
+  return cree?.id ?? null;
+}
+
 export async function creerAgent(
   projetId: string,
-  champs: { nom: string; agence?: string; email?: string; afficherRepliques?: boolean }
+  champs: { nom: string; agence?: string; email?: string; afficherRepliques?: boolean; agentId?: string }
 ): Promise<{ id?: string; error?: string }> {
   const accessError = await checkProjetAccess(projetId);
   if (accessError) return { error: accessError };
@@ -23,13 +67,18 @@ export async function creerAgent(
   const email = (champs.email ?? "").trim().toLowerCase();
   if (!nom) return { error: "Donne le nom de l'agent." };
   if (email && !EMAIL_RE.test(email)) return { error: "Adresse email invalide." };
+  const agence = champs.agence?.trim().slice(0, 80) || null;
+
+  // Rattaché à la base commune des agents (créé là-bas s'il n'y est pas encore).
+  const baseId = await agentDeLaBase(champs.agentId, { nom, agence, email: email || null });
 
   const { data, error } = await createAdminClient()
     .from("casting_agents")
     .insert({
       projet_id: projetId,
+      agent_id: baseId,
       nom,
-      agence: champs.agence?.trim().slice(0, 80) || null,
+      agence,
       email: email || null,
       afficher_repliques: !!champs.afficherRepliques,
     })
@@ -60,6 +109,19 @@ export async function majAgent(
   if (patch.afficherRepliques !== undefined) maj.afficher_repliques = patch.afficherRepliques;
   if (Object.keys(maj).length === 0) return {};
   const { error } = await createAdminClient().from("casting_agents").update(maj).eq("id", agentId);
+  if (error) return { error: error.message };
+  revalidatePath("/casting/agents");
+  return {};
+}
+
+// Montre (ou cache) les répliques d'essai à TOUS les agents du projet d'un coup.
+export async function afficherRepliquesATous(projetId: string, afficher: boolean): Promise<{ error?: string }> {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+  const { error } = await createAdminClient()
+    .from("casting_agents")
+    .update({ afficher_repliques: afficher })
+    .eq("projet_id", projetId);
   if (error) return { error: error.message };
   revalidatePath("/casting/agents");
   return {};
@@ -115,7 +177,12 @@ type PropositionLigne = {
   note: string | null;
   photos: string[];
   statut: string;
-  casting_agents: { nom: string; agence: string | null; email: string | null } | null;
+  casting_agents: {
+    nom: string;
+    agence: string | null;
+    email: string | null;
+    agents: { nom: string; agence: string | null; email: string | null; telephone: string | null } | null;
+  } | null;
   casting_roles: { nom: string; mode: "selftape" | "presentiel"; photo_labels: string[] } | null;
 };
 
@@ -129,7 +196,7 @@ export async function accepterProposition(propositionId: string): Promise<{ erro
   const { data: p } = await supabase
     .from("casting_propositions_agents")
     .select(
-      "id, projet_id, agent_id, role_id, prenom, nom, age, taille, lien_page, lien_bande_demo, note, photos, statut, casting_agents(nom, agence, email), casting_roles(nom, mode, photo_labels)"
+      "id, projet_id, agent_id, role_id, prenom, nom, age, taille, lien_page, lien_bande_demo, note, photos, statut, casting_agents(nom, agence, email, agents(nom, agence, email, telephone)), casting_roles(nom, mode, photo_labels)"
     )
     .eq("id", propositionId)
     .maybeSingle<PropositionLigne>();
@@ -147,12 +214,17 @@ export async function accepterProposition(propositionId: string): Promise<{ erro
   const poolId = proprio ? (proprio.comedien_pool_id ?? proprio.id) : comedienPoolIdFor(await getCurrentProfile());
 
   // Même nom déjà dans cette base : on reprend la fiche plutôt que d'en créer une seconde.
-  let q = supabase.from("figurants").select("id, nom, prenom, agent_nom, agent_agence, agent_email, taille_cm").eq("est_comedien", true);
+  let q = supabase.from("figurants").select("id, nom, prenom, agent_nom, agent_agence, agent_email, agent_telephone, taille_cm").eq("est_comedien", true);
   q = poolId ? q.eq("comedien_pool_id", poolId) : q.is("comedien_pool_id", null);
   const { data: candidats } = await q.ilike("nom", p.nom.replace(/[\\%_]/g, "\\$&"));
   const existante = (candidats ?? []).find((f) => normaliser(f.prenom) === normaliser(p.prenom) && normaliser(f.nom) === normaliser(p.nom));
 
-  const agent = p.casting_agents;
+  // Coordonnées de l'agent : celles de la base commune si le lien y est rattaché (plus à jour), sinon celles saisies sur le lien.
+  const lien = p.casting_agents;
+  const base = lien?.agents ?? null;
+  const agent = lien
+    ? { nom: base?.nom ?? lien.nom, agence: base?.agence ?? lien.agence, email: base?.email ?? lien.email, telephone: base?.telephone ?? null }
+    : null;
   const taille = parseInt((p.taille ?? "").replace(/[^\d]/g, ""), 10);
   const tailleCm = Number.isFinite(taille) && taille >= 80 && taille <= 250 ? taille : null;
 
@@ -164,6 +236,7 @@ export async function accepterProposition(propositionId: string): Promise<{ erro
     if (!existante.agent_nom && agent?.nom) maj.agent_nom = agent.nom;
     if (!existante.agent_agence && agent?.agence) maj.agent_agence = agent.agence;
     if (!existante.agent_email && agent?.email) maj.agent_email = agent.email;
+    if (!existante.agent_telephone && agent?.telephone) maj.agent_telephone = agent.telephone;
     if (!existante.taille_cm && tailleCm) maj.taille_cm = tailleCm;
     if (Object.keys(maj).length > 0) await supabase.from("figurants").update(maj).eq("id", figurantId);
   } else {
@@ -179,6 +252,7 @@ export async function accepterProposition(propositionId: string): Promise<{ erro
         agent_nom: agent?.nom ?? null,
         agent_agence: agent?.agence ?? null,
         agent_email: agent?.email ?? null,
+        agent_telephone: agent?.telephone ?? null,
         taille_cm: tailleCm,
       })
       .select("id")
@@ -281,4 +355,108 @@ export async function refuserProposition(propositionId: string): Promise<{ error
   if ((p.photos as string[]).length > 0) await supabase.storage.from(BUCKET).remove(p.photos as string[]);
   revalidatePath("/casting/agents");
   return {};
+}
+
+// ----- Envoi groupé des liens -----
+
+export type CibleEnvoiAgent = { lienId?: string; baseId?: string };
+export type ResultatEnvoiAgent = { nom: string; ok: boolean; message: string };
+
+const MAX_ENVOIS = 30;
+
+// Envoie à plusieurs agents d'un coup leur lien personnel, par email. Pour un agent de
+// la base qui n'a pas encore de lien sur ce projet, le lien est créé à ce moment-là.
+// Chaque envoi est indépendant : une adresse refusée n'arrête pas les autres.
+export async function envoyerLiensAgents(
+  projetId: string,
+  cibles: CibleEnvoiAgent[],
+  sujetModele: string,
+  corpsModele: string,
+  afficherRepliques: boolean
+): Promise<{ resultats?: ResultatEnvoiAgent[]; error?: string }> {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+  if (cibles.length === 0) return { error: "Choisis au moins un agent." };
+  if (cibles.length > MAX_ENVOIS) return { error: `${MAX_ENVOIS} agents au maximum par envoi.` };
+  if (!sujetModele.trim() || !corpsModele.trim()) return { error: "Le message ne peut pas être vide." };
+
+  const supabase = createAdminClient();
+  // Boîte d'envoi du projet : jamais une adresse qui n'est pas la tienne.
+  const { credentials, error: erreurBoite } = await getProjetEmailCredentials(supabase, projetId);
+  if (erreurBoite) return { error: erreurBoite };
+
+  const [{ data: projet }, signature, origin] = await Promise.all([
+    supabase.from("projets").select("nom, confidentiel, nom_code").eq("id", projetId).maybeSingle(),
+    getProjetSignatureOrOwnerName(supabase, projetId),
+    getSiteOrigin(),
+  ]);
+  const nomProjet = projetNomPublic(projet);
+  const resultats: ResultatEnvoiAgent[] = [];
+
+  for (const cible of cibles) {
+    // 1. L'agent et son lien (créé s'il n'existe pas encore).
+    let lien: { id: string; nom: string; email: string | null; token: string; actif: boolean } | null = null;
+    let nomAffiche = "Agent";
+    if (cible.lienId) {
+      const { data } = await supabase
+        .from("casting_agents")
+        .select("id, nom, email, token, actif")
+        .eq("id", cible.lienId)
+        .eq("projet_id", projetId)
+        .maybeSingle();
+      lien = data;
+      nomAffiche = data?.nom ?? nomAffiche;
+    } else if (cible.baseId) {
+      const { data: base } = await supabase.from("agents").select("id, nom, agence, email").eq("id", cible.baseId).maybeSingle();
+      if (!base) {
+        resultats.push({ nom: nomAffiche, ok: false, message: "Agent introuvable dans la base." });
+        continue;
+      }
+      nomAffiche = base.nom;
+      const { data: existant } = await supabase
+        .from("casting_agents")
+        .select("id, nom, email, token, actif")
+        .eq("projet_id", projetId)
+        .eq("agent_id", base.id)
+        .maybeSingle();
+      lien = existant;
+      if (!lien) {
+        const { data: cree } = await supabase
+          .from("casting_agents")
+          .insert({ projet_id: projetId, agent_id: base.id, nom: base.nom, agence: base.agence, email: base.email, afficher_repliques: afficherRepliques })
+          .select("id, nom, email, token, actif")
+          .single();
+        lien = cree;
+      }
+      // L'adresse de la base fait foi (le lien peut avoir été créé sans email).
+      if (lien && base.email && lien.email !== base.email) lien = { ...lien, email: base.email };
+    }
+    if (!lien) {
+      resultats.push({ nom: nomAffiche, ok: false, message: "Lien introuvable." });
+      continue;
+    }
+    if (!lien.actif) {
+      resultats.push({ nom: lien.nom, ok: false, message: "Son lien est coupé : réactive-le avant de l'envoyer." });
+      continue;
+    }
+    if (!lien.email) {
+      resultats.push({ nom: lien.nom, ok: false, message: "Pas d'adresse email pour cet agent." });
+      continue;
+    }
+
+    // 2. Le mail, personnalisé.
+    const valeurs = { agent: lien.nom, projet: nomProjet, lien: `${origin}/agent/${lien.token}`, signature };
+    const sujet = sujetModele.replaceAll("{projet}", nomProjet).replaceAll("{agent}", lien.nom).slice(0, 200);
+    const corps = composerMailAgent(corpsModele, valeurs);
+    const res = await sendEmail(lien.email, sujet, corps, credentials);
+    if (res.error) {
+      resultats.push({ nom: lien.nom, ok: false, message: res.error });
+      continue;
+    }
+    await supabase.from("casting_agents").update({ dernier_envoi_le: new Date().toISOString() }).eq("id", lien.id);
+    resultats.push({ nom: lien.nom, ok: true, message: `Envoyé à ${lien.email}` });
+  }
+
+  revalidatePath("/casting/agents");
+  return { resultats };
 }

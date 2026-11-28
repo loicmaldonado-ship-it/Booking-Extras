@@ -103,6 +103,10 @@ export type CastingAgent = {
   token: string;
   actif: boolean;
   afficher_repliques: boolean;
+  // Agent de la base commune auquel ce lien est rattaché.
+  agent_id: string | null;
+  // Dernier envoi du lien par email (envoi groupé).
+  dernier_envoi_le: string | null;
   created_at: string;
 };
 
