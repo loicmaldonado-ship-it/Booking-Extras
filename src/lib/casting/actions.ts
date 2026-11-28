@@ -586,6 +586,33 @@ export async function basculerMediaReel(
   return { success: true };
 }
 
+// Exclut (ou remet) une photo des documents du casting pour un profil : liste
+// artistique, fiches rôles, distribution, fiches mensuration. Rien n'est supprimé.
+export async function basculerPhotoDocuments(
+  entryId: string,
+  photoId: string,
+  exclue: boolean
+): Promise<{ error?: string; success?: true }> {
+  if (!/^[0-9a-f-]{36}$/i.test(photoId)) return { error: "Photo invalide." };
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, photos_exclues_docs")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const actuelles: string[] = entry.photos_exclues_docs ?? [];
+  const suivantes = exclue ? Array.from(new Set([...actuelles, photoId])) : actuelles.filter((id) => id !== photoId);
+  const { error } = await supabase.from("casting_entries").update({ photos_exclues_docs: suivantes }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting/apercu");
+  return { success: true };
+}
+
 // Changement de statut groupé — depuis une sélection multiple sur la page
 // Casting, plutôt que profil par profil.
 export async function updateCastingEntriesStatutBulk(

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { basculerMediaReel } from "@/lib/casting/actions";
+import { basculerMediaReel, basculerPhotoDocuments } from "@/lib/casting/actions";
 import { cn } from "@/lib/cn";
 
 export type ApercuMedia = {
@@ -13,6 +13,10 @@ export type ApercuMedia = {
   url: string;
   label: string;
   masque: boolean;
+  // Photos seulement : id, exclue des documents, et « c'est celle des documents ».
+  photoId?: string;
+  docsExclue?: boolean;
+  pourDocs?: boolean;
 };
 
 export type ApercuProfil = {
@@ -36,6 +40,26 @@ export function ApercuReel({ blocs }: { blocs: ApercuBloc[] }) {
   const [erreur, setErreur] = useState<string | null>(null);
   // Choix faits à l'écran, affichés tout de suite avant le retour du serveur.
   const [choix, setChoix] = useState<Record<string, boolean>>({});
+
+  const [choixDocs, setChoixDocs] = useState<Record<string, boolean>>({});
+  const exclueDocs = (profilId: string, m: ApercuMedia) =>
+    `${profilId}|${m.photoId}` in choixDocs ? choixDocs[`${profilId}|${m.photoId}`] : !!m.docsExclue;
+
+  function basculerDocs(profilId: string, m: ApercuMedia) {
+    if (!m.photoId) return;
+    const exclue = !exclueDocs(profilId, m);
+    const k = `${profilId}|${m.photoId}`;
+    setErreur(null);
+    setChoixDocs((prev) => ({ ...prev, [k]: exclue }));
+    startTransition(async () => {
+      const res = await basculerPhotoDocuments(profilId, m.photoId!, exclue);
+      if (res.error) {
+        setErreur(res.error);
+        setChoixDocs((prev) => ({ ...prev, [k]: !exclue }));
+      }
+      router.refresh();
+    });
+  }
 
   const masqueDe = (profilId: string, m: ApercuMedia) => (`${profilId}|${m.cle}` in choix ? choix[`${profilId}|${m.cle}`] : m.masque);
 
@@ -124,6 +148,7 @@ export function ApercuReel({ blocs }: { blocs: ApercuBloc[] }) {
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                       {p.medias.map((m) => {
                         const masque = masqueDe(p.id, m);
+                        const exclue = m.type === "photo" && exclueDocs(p.id, m);
                         return (
                           <div key={m.cle} className="flex flex-col gap-1.5">
                             <div className={cn("relative overflow-hidden rounded-lg border border-border bg-ink-raised-2", masque && "opacity-35")}>
@@ -141,6 +166,11 @@ export function ApercuReel({ blocs }: { blocs: ApercuBloc[] }) {
                                   Caché au réal
                                 </span>
                               )}
+                              {m.pourDocs && !exclue && (
+                                <span className="absolute bottom-1 left-1 rounded-full bg-coral px-2 py-0.5 text-[10px] font-semibold text-ink">
+                                  📄 Photo des documents
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"
@@ -154,6 +184,20 @@ export function ApercuReel({ blocs }: { blocs: ApercuBloc[] }) {
                             >
                               {masque ? "↩ Remettre" : "✕ Retirer du lien"}
                             </button>
+                            {m.type === "photo" && (
+                              <button
+                                type="button"
+                                onClick={() => basculerDocs(p.id, m)}
+                                className={cn(
+                                  "rounded-full border-2 px-2.5 py-1 text-xs font-semibold transition-colors",
+                                  exclue
+                                    ? "border-turquoise text-turquoise hover:bg-turquoise/10"
+                                    : "border-border-strong text-text hover:border-danger hover:text-danger"
+                                )}
+                              >
+                                {exclue ? "↩ Remettre aux documents" : "✕ Retirer des documents"}
+                              </button>
+                            )}
                           </div>
                         );
                       })}

@@ -10,7 +10,7 @@ import { getPhotosByFigurantId } from "@/lib/documents/data";
 import { getReelOptions, type OptionsReel } from "@/lib/partage/data";
 import { computeAge } from "@/lib/documents/fields";
 import { nomComplet } from "@/lib/noms";
-import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil, vignetteReel } from "@/lib/casting/reel-affichage";
+import { clePhotoReel, cleVideoReel, mensurationsDe, photoDocument, photosDuProfil, vignetteReel } from "@/lib/casting/reel-affichage";
 import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import { ApercuReel, type ApercuBloc, type ApercuProfil } from "@/components/casting/apercu-reel";
 import { cn } from "@/lib/cn";
@@ -79,6 +79,9 @@ export default async function ApercuReelPage({ searchParams }: { searchParams: P
       ...mensurationsDe(entry.figurants, options).map((m) => `${LIBELLES_MENSURATION[m.cle] ?? m.cle} ${m.valeur}`),
     ].filter((x): x is string => !!x);
     const portrait = vignetteReel(entry, photosByFigurant.get(entry.figurant_id), projetId);
+    // Photo qui apparaît dans les documents du lien (liste artistique, fiches rôles, distribution).
+    const photoDocs = photoDocument(entry, photosByFigurant.get(entry.figurant_id), projetId, true);
+    const exclues = new Set(entry.photos_exclues_docs ?? []);
     return {
       id: entry.id,
       nom: nomComplet(entry.figurants).trim(),
@@ -100,6 +103,9 @@ export default async function ApercuReelPage({ searchParams }: { searchParams: P
           url: p.url,
           label: p.label,
           masque: masques.has(clePhotoReel(p.id)),
+          photoId: p.id,
+          docsExclue: exclues.has(p.id),
+          pourDocs: photoDocs?.id === p.id,
         })),
       ],
     };
@@ -129,7 +135,8 @@ export default async function ApercuReelPage({ searchParams }: { searchParams: P
         </h1>
         <p className="mt-1 text-text-muted">
           {projet.nom} — voilà ce que le·la réal voit sur le lien. Retire une photo ou une vidéo ici : elle disparaît du
-          lien, sans être supprimée, et tu peux la remettre quand tu veux.
+          lien, sans être supprimée. Sous chaque photo, un second bouton choisit si elle peut apparaître dans les documents (liste
+          artistique, fiches rôles, distribution, fiches mensuration). Tout se remet quand tu veux.
         </p>
       </div>
 

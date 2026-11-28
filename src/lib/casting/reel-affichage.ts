@@ -59,3 +59,31 @@ export function vignetteReel(
   const masques = new Set(entry.medias_masques ?? []);
   return (photos ?? []).some((p) => p.url === url && masques.has(clePhotoReel(p.id))) ? null : url;
 }
+
+// Photo principale d'un profil dans les documents du casting (liste artistique,
+// fiches rôles, distribution) : la vignette choisie par l'équipe si elle est
+// autorisée, sinon la meilleure photo autorisée (essayage du projet, portrait,
+// puis les autres). Une photo exclue des documents n'est jamais prise ; sur le
+// lien réal (`surLien`), celles retirées du lien non plus.
+const ORDRE_TYPES_DOC = ["portrait", "pied", "selfie", "autre"];
+export function photoDocument(
+  entry: { photo_vignette_id: string | null; medias_masques?: string[] | null; photos_exclues_docs?: string[] | null },
+  photos: FigurantPhotoWithUrl[] | undefined,
+  projetId: string,
+  surLien = false
+): FigurantPhotoWithUrl | null {
+  const exclues = new Set(entry.photos_exclues_docs ?? []);
+  const retirees = new Set(surLien ? (entry.medias_masques ?? []).filter((c) => c.startsWith("p:")).map((c) => c.slice(2)) : []);
+  const ok = (p: FigurantPhotoWithUrl) => !!p.url && !exclues.has(p.id) && !retirees.has(p.id);
+  const autorisees = (photos ?? []).filter(ok);
+
+  const choisie = entry.photo_vignette_id ? autorisees.find((p) => p.id === entry.photo_vignette_id) : undefined;
+  if (choisie) return choisie;
+  const essayage = autorisees.find((p) => p.type === "tenue" && p.projet_id === projetId);
+  if (essayage) return essayage;
+  for (const type of ORDRE_TYPES_DOC) {
+    const p = autorisees.find((x) => x.type === type);
+    if (p) return p;
+  }
+  return null;
+}

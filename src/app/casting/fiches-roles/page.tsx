@@ -5,7 +5,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { FicheRoleValideSheet } from "@/components/casting/fiche-role-valide-sheet";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
+import { photoDocument } from "@/lib/casting/reel-affichage";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -72,7 +72,7 @@ export default async function FichesRolesPage() {
           <FicheRoleValideSheet
             role={role}
             entry={entry}
-            portraitUrl={vignetteCasting(entry, portraitByFigurant.get(entry.figurant_id), projetId)}
+            portraitUrl={photoDocument(entry, portraitByFigurant.get(entry.figurant_id), projetId)?.url ?? null}
           />
         </PrintSheet>
       ))}

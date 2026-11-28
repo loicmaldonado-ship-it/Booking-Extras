@@ -628,7 +628,10 @@ export default function AidePage() {
           photo et chaque vidéo, <UI>✕ Retirer du lien</UI> la cache au réal — elle reste grisée sur cette page et dans la
           fiche du profil, rien n&apos;est supprimé — et <UI>↩ Remettre</UI> la montre de nouveau. Ça vaut pour tous les
           liens où ce profil apparaît, et aussi pour la liste artistique, les fiches rôles, la distribution et les fiches
-          mensuration du lien.
+          mensuration du lien. Sous chaque photo, <UI>✕ Retirer des documents</UI> l&apos;exclut des documents du casting (liste
+          artistique, fiches rôles, distribution, fiches mensuration) sans la retirer du lien : la photo marquée{" "}
+          <UI>📄 Photo des documents</UI> est celle qui y apparaît — ta vignette si elle est autorisée, sinon la meilleure
+          photo restante.
         </Callout>
         <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Dans <UI>Partager au réal</UI> (en haut à droite de la page

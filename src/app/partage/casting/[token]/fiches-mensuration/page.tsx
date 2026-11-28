@@ -46,13 +46,14 @@ export default async function PartageCastingFichesMensurationPage({
   const supabase = createAdminClient();
   const { data: entrees } = await supabase
     .from("casting_entries")
-    .select("figurant_id, created_at, medias_masques, figurants(*)")
+    .select("figurant_id, created_at, medias_masques, photos_exclues_docs, figurants(*)")
     .eq("role_id", role.id)
     .eq("visible_partage", true)
     .order("created_at")
-    .returns<{ figurant_id: string; medias_masques: string[] | null; figurants: Figurant | null }[]>();
+    .returns<{ figurant_id: string; medias_masques: string[] | null; photos_exclues_docs: string[] | null; figurants: Figurant | null }[]>();
   const fiches = (entrees ?? []).filter(
-    (e): e is { figurant_id: string; medias_masques: string[] | null; figurants: Figurant } => !!e.figurants
+    (e): e is { figurant_id: string; medias_masques: string[] | null; photos_exclues_docs: string[] | null; figurants: Figurant } =>
+      !!e.figurants
   );
   const [documentTemplate, photos] = await Promise.all([
     getDocumentTemplate(supabase, projet.id),
@@ -84,9 +85,10 @@ export default async function PartageCastingFichesMensurationPage({
         </PrintSheet>
       )}
 
-      {fiches.map(({ figurant_id, figurants: f, medias_masques }) => {
-        // Photos que l'équipe a retirées du lien pour ce profil.
+      {fiches.map(({ figurant_id, figurants: f, medias_masques, photos_exclues_docs }) => {
+        // Photos que l'équipe a retirées du lien, ou exclues des documents, pour ce profil.
         const retirees = new Set(medias_masques ?? []);
+        const exclues = new Set(photos_exclues_docs ?? []);
         const age = computeAge(f.date_naissance);
         const infos = [age !== null ? t(lang, "age_ans", { n: String(age) }) : null, f.ville].filter(Boolean);
         return (
@@ -102,7 +104,7 @@ export default async function PartageCastingFichesMensurationPage({
               />
               <MensurationSheet
                 figurant={f}
-                photos={(photos.get(figurant_id) ?? []).filter((p) => !retirees.has(clePhotoReel(p.id)))}
+                photos={(photos.get(figurant_id) ?? []).filter((p) => !retirees.has(clePhotoReel(p.id)) && !exclues.has(p.id))}
                 header={infos.length > 0 ? <p className="text-sm text-gray-600">{infos.join(" · ")}</p> : null}
                 lang={lang}
               />

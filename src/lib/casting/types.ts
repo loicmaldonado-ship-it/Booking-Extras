@@ -112,6 +112,8 @@ export type CastingEntry = {
   photo_vignette_id: string | null;
   // Médias retirés du lien réal : « p:<id photo> » ou « v:<chemin vidéo> ».
   medias_masques: string[];
+  // Ids des photos qu'on ne veut pas dans les documents du casting.
+  photos_exclues_docs: string[];
   figurants: {
     prenom: string;
     nom: string;
