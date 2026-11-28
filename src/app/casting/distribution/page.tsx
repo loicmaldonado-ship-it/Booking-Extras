@@ -5,7 +5,7 @@ import { BackLink } from "@/components/ui/back-link";
 import { DistributionSheet } from "@/components/casting/distribution-sheet";
 import { getListeArtistiqueItems } from "@/lib/casting/liste-artistique";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
+import { photoDocument } from "@/lib/casting/reel-affichage";
 import { getCurrentProjetId } from "@/lib/projet-context";
 import { requireProjetAccess } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -34,8 +34,8 @@ export default async function DistributionPage() {
   ]);
 
   const portraitByFigurant = await getPhotosByFigurantId(items.map((i) => i.entry.figurant_id));
-  const portraitUrlByFigurant = new Map(
-    items.map((i) => [i.entry.figurant_id, vignetteCasting(i.entry, portraitByFigurant.get(i.entry.figurant_id), projetId)])
+  const portraitUrlByEntry = new Map(
+    items.map((i) => [i.entry.id, photoDocument(i.entry, portraitByFigurant.get(i.entry.figurant_id), projetId)?.url ?? null])
   );
   const pages = chunk(items, ROLES_PAR_PAGE);
 
@@ -68,7 +68,7 @@ export default async function DistributionPage() {
         >
           <div className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold text-gray-900">Distribution — {projet?.nom}</h2>
-            <DistributionSheet items={page} portraitByFigurant={portraitUrlByFigurant} />
+            <DistributionSheet items={page} portraitByEntry={portraitUrlByEntry} />
           </div>
         </PrintSheet>
       ))}

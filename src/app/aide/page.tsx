@@ -525,11 +525,27 @@ export default function AidePage() {
                 change-le (par exemple le Préfet en 3), il se place là et les autres se décalent. Les quatre boutons à
                 côté de la recherche (<UI>À traiter</UI>, <UI>Sans profil</UI>, <UI>En attente de retour</UI>,{" "}
                 <UI>Validé</UI>) comptent et filtrent ; la case <UI>Ce qui demande une action d&apos;abord</UI> remet en
-                tête ce qui attend ta réponse.
+                tête ce qui attend ta réponse. <UI>Mode</UI> trie les rôles Selftape ou Présentiel, et{}
+                <UI>Sur le lien réal</UI> ne garde que les visibles ou les invisibles.
+              </>,
+              <>
+                <strong className="text-text">Visible ou invisible pour le réal :</strong> le bouton{" "}
+                <UI>👁️ Visible</UI> / <UI>🙈 Invisible</UI> sur chaque carte change un rôle d&apos;un clic, et{" "}
+                <UI>👁️ Visibilité au réal</UI> rend visibles ou invisibles d&apos;un coup tous les rôles affichés (ou leurs
+                profils) — l&apos;onglet, les filtres et la recherche en cours comptent, et une confirmation s&apos;affiche
+                avant d&apos;appliquer.
               </>,
             ]}
           />
         </div>
+        <Callout>
+          <strong className="text-text">📂 Reprendre une photo du profil ou d&apos;une candidature.</strong> Dans la carte d&apos;un
+          profil, sous chaque emplacement de photo vide (Portrait, Pied…), <UI>📂 Depuis son profil</UI> ouvre ses photos : celles de
+          son profil, puis celles de chacune de ses candidatures, rangées par annonce. Un clic sur une photo la met à cet
+          emplacement, comme si la personne l&apos;avait envoyée pour ce rôle — elle n&apos;a rien à renvoyer.{" "}
+          <UI>📂 Ajouter une photo de son profil ou de sa candidature</UI> en ajoute une de plus. La croix <UI>×</UI> la retire du
+          rôle sans effacer la photo de son profil.
+        </Callout>
         <div>
           <p className="mb-2 text-sm font-semibold">Importer plusieurs rôles d&apos;un coup (CSV)</p>
           <Steps
@@ -612,6 +628,18 @@ export default function AidePage() {
           <UI>Profils validés</UI> puis <UI>Profils à valider</UI>. Tu choisis : un seul lien pour tout, ou plusieurs
           liens séparés — chaque lien a ses propres réglages, son titre et son suivi, et les avis reçus restent sur le
           profil dans l&apos;espace casting.
+        </Callout>
+        <Callout>
+          <strong className="text-text">Aperçu du lien réal.</strong> Dans <UI>Partager au réal</UI>, les boutons{" "}
+          <UI>👁️ Aperçu du lien</UI> ouvrent une page qui montre exactement ce que le·la réal voit : les rôles et les
+          profils marqués visibles, avec les infos cochées dans les réglages du lien (âge, ville, taille…). Sous chaque
+          photo et chaque vidéo, <UI>✕ Retirer du lien</UI> la cache au réal — elle reste grisée sur cette page et dans la
+          fiche du profil, rien n&apos;est supprimé — et <UI>↩ Remettre</UI> la montre de nouveau. Ça vaut pour tous les
+          liens où ce profil apparaît, et aussi pour la liste artistique, les fiches rôles, la distribution et les fiches
+          mensuration du lien. Sous chaque photo, <UI>✕ Retirer des documents</UI> l&apos;exclut des documents du casting (liste
+          artistique, fiches rôles, distribution, fiches mensuration) sans la retirer du lien : la photo marquée{" "}
+          <UI>📄 Photo des documents</UI> est celle qui y apparaît — ta vignette si elle est autorisée, sinon la meilleure
+          photo restante.
         </Callout>
         <Callout>
           <strong className="text-text">Réglages du lien réal.</strong> Dans <UI>Partager au réal</UI> (en haut à droite de la page
@@ -914,7 +942,13 @@ export default function AidePage() {
           Photos des trombis et fiches : dans la journée, <UI>📷 Photos</UI> à côté d&apos;un nom permet de choisir
           jusqu&apos;à 3 photos dans l&apos;ordre (la 1 est la photo principale du trombi). Sans choix : photos de
           l&apos;essayage sur le projet, sinon les 3 premières de la candidature (portrait d&apos;abord), sinon celles
-          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.
+          du compte. Un nouvel essayage reprend la main sur un choix fait avant lui.{" "}
+          <UI>📷 Aperçu des photos</UI>, dans l&apos;onglet Documents de la journée, montre d&apos;un coup les photos retenues pour
+          toutes les personnes (la 1 sur le trombi, les 3 sur la fiche mensuration). <strong className="text-text">Glisse</strong> une photo
+          de son profil, de sa candidature ou de l&apos;essayage sur une case pour l&apos;y mettre (elle remplace celle qui y est si les 3
+          sont prises), glisse les cases pour les réordonner, ou glisse une photo retenue sur la zone du dessous pour la retirer.
+          Sans souris : <UI>★ Photo du trombi</UI>, <UI>✕ Retirer</UI> et un clic sur <UI>＋</UI> font la même chose, et{" "}
+          <UI>Revenir au choix par défaut</UI> annule. Les trombis et les fiches changent aussitôt.
         </p>
         <p className="text-sm text-text-muted">
           Trombis et fiches mensuration : la ligne <UI>Qui</UI> choisit qui sortir. Par défaut les{" "}

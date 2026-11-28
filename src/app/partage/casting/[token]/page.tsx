@@ -1,6 +1,6 @@
 import { nomComplet } from "@/lib/noms";
 import { PresencePartage } from "@/components/partage/presence-partage";
-import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getCategorieLienCasting, getReelOptions, type OptionsReel } from "@/lib/partage/data";
+import { resolvePartageToken, getPartageTitreByToken, getCastingDocsVisibilityByToken, getCategorieLienCasting, getReelOptions } from "@/lib/partage/data";
 import {
   getCastingRoles,
   getCastingEntries,
@@ -8,7 +8,6 @@ import {
   getCastingEntryPhotos,
 } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
 import { Badge } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { CastingRealEntryCard, type CastingRealEntryItem } from "@/components/casting/casting-real-entry-card";
@@ -18,9 +17,10 @@ import { t, parseLang } from "@/lib/i18n/partage";
 import { computeAge } from "@/lib/documents/fields";
 import { getDocumentTemplate } from "@/lib/documents/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CATEGORIE_CACHET_LABELS, type CastingEntry, type CategorieCachet } from "@/lib/casting/types";
+import { CATEGORIE_CACHET_LABELS, type CategorieCachet } from "@/lib/casting/types";
 import { formatDateLong, formatDateShort } from "@/lib/format-date";
 import { projetNomPublic } from "@/lib/projets/types";
+import { clePhotoReel, cleVideoReel, mensurationsDe, photosDuProfil, vignetteReel } from "@/lib/casting/reel-affichage";
 
 // Salle de visionnage : thème sombre propre à cette page (les couleurs du site
 // sont des variables, redéfinies ici seulement ; la fenêtre de profil, rendue
@@ -104,8 +104,13 @@ export default async function PartageCastingPage({
     ),
     getCastingEntryPhotos(entryIds),
   ]);
+  // Photos et vidéos que l'équipe a retirées du lien (jamais supprimées).
+  const masquesDe = new Map(visibleEntries.map((e) => [e.id, new Set(e.medias_masques ?? [])]));
   const videoUrlsByEntry = new Map(
-    visibleEntries.map((e) => [e.id, (videoPairsByEntry.get(e.id) ?? []).map((p) => ({ url: p.url, label: p.label }))])
+    visibleEntries.map((e) => [
+      e.id,
+      (videoPairsByEntry.get(e.id) ?? []).filter((p) => !masquesDe.get(e.id)!.has(cleVideoReel(p.path))).map((p) => ({ url: p.url, label: p.label })),
+    ])
   );
 
   const dateDuRole = (role: (typeof rolesAvecProfils)[number]) =>
@@ -114,6 +119,13 @@ export default async function PartageCastingPage({
         ? t(lang, "tournage_du_au", { debut: formatDateShort(role.date_tournage), fin: formatDateShort(role.date_tournage_fin) })
         : formatDateLong(role.date_tournage, lang === "en" ? "en-US" : "fr-FR")
       : null;
+
+  // Photos envoyées (ou reprises) pour le rôle, puis celles du profil — sans montrer deux fois le même fichier.
+  const photosDeLEntree = (entry: (typeof visibleEntries)[number], l: "fr" | "en") => {
+    const pourLeRole = entryPhotosByEntry.get(entry.id) ?? [];
+    const dejaVues = new Set(pourLeRole.map((p) => p.url));
+    return [...pourLeRole, ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, l).filter((p) => !dejaVues.has(p.url))];
+  };
 
   // Un profil du lien, avec seulement ce que l'équipe a choisi de montrer.
   // Dans la section « Profils validés » (avecRole), le rôle et sa date
@@ -128,12 +140,9 @@ export default async function PartageCastingPage({
     valide: entry.statut === "valide",
     role: avecRole ? role.nom : null,
     roleDate: avecRole ? dateDuRole(role) : null,
-    portraitUrl: vignetteCasting(entry, photosByFigurant.get(entry.figurant_id), projet.id),
+    portraitUrl: vignetteReel(entry, photosByFigurant.get(entry.figurant_id), projet.id),
     videoUrls: videoUrlsByEntry.get(entry.id) ?? [],
-    photos: [
-      ...(entryPhotosByEntry.get(entry.id) ?? []),
-      ...photosDuProfil(photosByFigurant.get(entry.figurant_id), projet.id, lang),
-    ],
+    photos: photosDeLEntree(entry, lang).filter((p) => !masquesDe.get(entry.id)!.has(clePhotoReel(p.id))),
     age: options.age ? computeAge(entry.figurants?.date_naissance ?? null) : null,
     ville: options.ville ? (entry.figurants?.ville?.trim() || null) : null,
     mensurations: mensurationsDe(entry.figurants, options),
@@ -343,38 +352,4 @@ export default async function PartageCastingPage({
     </div>
     </ReelProvider>
   );
-}
-
-// Mensurations montrées au·à la réal (seulement celles renseignées).
-function mensurationsDe(f: CastingEntry["figurants"], options: OptionsReel): CastingRealEntryItem["mensurations"] {
-  if (!f) return [];
-  const liste: CastingRealEntryItem["mensurations"] = [];
-  if (options.taille && f.taille_cm) liste.push({ cle: "mens_taille", valeur: `${f.taille_cm} cm` });
-  if (options.mensurations) {
-    if (f.poids_kg) liste.push({ cle: "mens_poids", valeur: `${f.poids_kg} kg` });
-    if (f.pointure) liste.push({ cle: "mens_pointure", valeur: String(Number(f.pointure)) });
-    if (f.veste) liste.push({ cle: "mens_veste", valeur: f.veste });
-    if (f.pantalon) liste.push({ cle: "mens_pantalon", valeur: f.pantalon });
-  }
-  return liste;
-}
-
-// Photos du profil (portrait, en pied, selfie…), montrées au·à la réal en
-// plus de celles envoyées pour le casting. Les essayages d'autres projets
-// et les photos de véhicule restent de côté.
-const LIBELLES_PHOTO: Record<string, { fr: string; en: string }> = {
-  portrait: { fr: "Portrait", en: "Portrait" },
-  pied: { fr: "En pied", en: "Full length" },
-  selfie: { fr: "Selfie", en: "Selfie" },
-  autre: { fr: "Photo", en: "Photo" },
-  tenue: { fr: "Essayage", en: "Fitting" },
-};
-function photosDuProfil(
-  photos: { type: string; url: string | null; projet_id: string | null }[] | undefined,
-  projetId: string,
-  lang: "fr" | "en"
-): { label: string; url: string }[] {
-  return (photos ?? [])
-    .filter((p) => p.url && p.type in LIBELLES_PHOTO && (p.type !== "tenue" || p.projet_id === projetId))
-    .map((p) => ({ label: LIBELLES_PHOTO[p.type][lang], url: p.url! }));
 }

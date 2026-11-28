@@ -4,7 +4,7 @@ import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { FicheRoleValideSheet } from "@/components/casting/fiche-role-valide-sheet";
 import { getCastingRoles, getCastingEntries } from "@/lib/casting/data";
 import { getPhotosByFigurantId } from "@/lib/documents/data";
-import { vignetteCasting } from "@/lib/casting/vignette";
+import { photoDocument } from "@/lib/casting/reel-affichage";
 import { resolvePartageToken, getCastingDocsVisibilityByToken, getCategorieLienCasting } from "@/lib/partage/data";
 import { projetNomPublic } from "@/lib/projets/types";
 
@@ -67,7 +67,7 @@ export default async function PartageFichesRolesPage({ params }: { params: Promi
           <FicheRoleValideSheet
             role={role}
             entry={entry}
-            portraitUrl={vignetteCasting(entry, portraitByFigurant.get(entry.figurant_id), projet.id)}
+            portraitUrl={photoDocument(entry, portraitByFigurant.get(entry.figurant_id), projet.id, true)?.url ?? null}
             hideContact={visibility.fichesRolesMasquerContact}
           />
         </PrintSheet>

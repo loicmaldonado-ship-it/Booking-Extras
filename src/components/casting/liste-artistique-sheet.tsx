@@ -25,10 +25,11 @@ export function agentLines(entry: CastingEntry): string[] {
 
 export function ListeArtistiqueSheet({
   items,
-  portraitByFigurant,
+  portraitByEntry,
 }: {
   items: ListeArtistiqueItem[];
-  portraitByFigurant: Map<string, string | null>;
+  // Photo de chaque profil, par id de profil de casting (une personne peut être validée sur plusieurs rôles).
+  portraitByEntry: Map<string, string | null>;
 }) {
   return (
     <table className="w-full table-fixed border-collapse text-xs">
@@ -50,7 +51,7 @@ export function ListeArtistiqueSheet({
       </thead>
       <tbody>
         {items.map(({ numero, role, entry }) => {
-          const portraitUrl = portraitByFigurant.get(entry.figurant_id) ?? null;
+          const portraitUrl = portraitByEntry.get(entry.id) ?? null;
           return (
             <tr key={role.id} className="border-b border-gray-300 bg-emerald-100 align-top">
               <td className="py-2 pr-1 font-semibold">{numero}</td>

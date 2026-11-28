@@ -213,6 +213,9 @@ export function JourneeTabs({
             <ButtonLink href={`/bookings/documents/trombis${query}`} variant="secondary">
               🖼️ Trombis
             </ButtonLink>
+            <ButtonLink href={`/bookings/documents/apercu-photos${query}`} variant="secondary">
+              📷 Aperçu des photos
+            </ButtonLink>
             <ButtonLink href={`/bookings/documents/trombis-hmc${query}`} variant="secondary">
               💄 Trombi HMC
             </ButtonLink>

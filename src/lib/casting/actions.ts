@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { checkProjetAccess, getCurrentProfile } from "@/lib/auth/session";
 import { recordFigurantMessage } from "@/lib/candidats/messaging";
 import { findOrCreateComedienTwin } from "@/lib/figurants/comedien-twin";
+import { supprimerFichierPhotoSiOrphelin } from "@/lib/figurants/photos-fichiers";
+import { getCachedSignedUrls } from "@/lib/supabase/signed-urls";
 import type { CategorieCachet, CastingMode } from "./types";
 import type { BookingStatut } from "@/lib/bookings/types";
 
@@ -530,6 +532,205 @@ export async function updateAllCastingEntriesVisiblePartage(
   return { success: true };
 }
 
+// Rend visibles (ou invisibles) sur le lien réal plusieurs rôles d'un coup — ceux
+// affichés à l'écran dans l'onglet ouvert. `profils` : fait de même pour tous
+// les profils de ces rôles (sinon seuls les rôles changent).
+export async function updateCastingRolesVisiblePartage(
+  projetId: string,
+  roleIds: string[],
+  visible: boolean,
+  profils = false
+): Promise<{ error?: string; success?: true }> {
+  const accessError = await checkProjetAccess(projetId);
+  if (accessError) return { error: accessError };
+  if (roleIds.length === 0) return { success: true };
+
+  const supabase = createAdminClient();
+  for (let i = 0; i < roleIds.length; i += 100) {
+    const lot = roleIds.slice(i, i + 100);
+    // Le projet est vérifié sur les rôles eux-mêmes : on n'écrit jamais ailleurs.
+    const requete = profils
+      ? supabase.from("casting_entries").update({ visible_partage: visible }).eq("projet_id", projetId).in("role_id", lot)
+      : supabase.from("casting_roles").update({ visible_partage: visible }).eq("projet_id", projetId).in("id", lot);
+    const { error } = await requete;
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
+// Retire (ou remet) une photo ou une vidéo du lien réal, pour un profil. Rien
+// n'est supprimé : le média reste dans la fiche, il n'est juste plus montré au
+// réal. `cle` : « p:<id photo> » ou « v:<chemin vidéo> ».
+export async function basculerMediaReel(
+  entryId: string,
+  cle: string,
+  masque: boolean
+): Promise<{ error?: string; success?: true }> {
+  if (!/^[pv]:.{1,400}$/.test(cle)) return { error: "Média invalide." };
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, medias_masques")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const actuels: string[] = entry.medias_masques ?? [];
+  const suivants = masque ? Array.from(new Set([...actuels, cle])) : actuels.filter((c) => c !== cle);
+  const { error } = await supabase.from("casting_entries").update({ medias_masques: suivants }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting/apercu");
+  return { success: true };
+}
+
+// Exclut (ou remet) une photo des documents du casting pour un profil : liste
+// artistique, fiches rôles, distribution, fiches mensuration. Rien n'est supprimé.
+export async function basculerPhotoDocuments(
+  entryId: string,
+  photoId: string,
+  exclue: boolean
+): Promise<{ error?: string; success?: true }> {
+  if (!/^[0-9a-f-]{36}$/i.test(photoId)) return { error: "Photo invalide." };
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase
+    .from("casting_entries")
+    .select("projet_id, photos_exclues_docs")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const actuelles: string[] = entry.photos_exclues_docs ?? [];
+  const suivantes = exclue ? Array.from(new Set([...actuelles, photoId])) : actuelles.filter((id) => id !== photoId);
+  const { error } = await supabase.from("casting_entries").update({ photos_exclues_docs: suivantes }).eq("id", entryId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting/apercu");
+  return { success: true };
+}
+
+// Photos existantes d'une personne qu'on peut reprendre pour un rôle : celles de
+// son profil, et celles de ses candidatures (rangées par annonce). Les photos de
+// véhicule et celles déjà reprises pour ce profil de casting sont écartées.
+export type PhotoReprenable = { id: string; url: string; label: string };
+export type GroupePhotosReprenables = { titre: string; photos: PhotoReprenable[] };
+
+const LIBELLES_REPRISE: Record<string, string> = {
+  portrait: "Portrait",
+  pied: "En pied",
+  selfie: "Selfie",
+  autre: "Photo",
+  tenue: "Essayage",
+};
+
+export async function listerPhotosReprenables(
+  entryId: string
+): Promise<{ groupes?: GroupePhotosReprenables[]; error?: string }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id, figurant_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const [{ data: toutes }, { data: dejaReprises }, { data: candidatures }] = await Promise.all([
+    supabase
+      .from("figurant_photos")
+      .select("id, type, storage_path, projet_id, casting_entry_id, created_at")
+      .eq("figurant_id", entry.figurant_id)
+      .order("created_at", { ascending: false }),
+    supabase.from("figurant_photos").select("storage_path").eq("casting_entry_id", entryId),
+    supabase.from("candidatures").select("id, annonces(titre)").eq("figurant_id", entry.figurant_id).order("created_at", { ascending: false }),
+  ]);
+  const dejaChemins = new Set((dejaReprises ?? []).map((p) => p.storage_path));
+  const reprenables = (toutes ?? []).filter(
+    (p) => p.type in LIBELLES_REPRISE && !p.casting_entry_id && !dejaChemins.has(p.storage_path) && (p.type !== "tenue" || p.projet_id === entry.projet_id)
+  );
+  const parId = new Map(reprenables.map((p) => [p.id, p]));
+
+  const ids = (candidatures ?? []).map((c) => c.id);
+  const { data: liens } = ids.length
+    ? await supabase.from("candidature_photos").select("candidature_id, photo_id, ordre").in("candidature_id", ids).order("ordre")
+    : { data: [] as { candidature_id: string; photo_id: string; ordre: number }[] };
+
+  const dejaPlaces = new Set<string>();
+  const groupesBruts: { titre: string; photos: typeof reprenables }[] = [];
+  for (const c of candidatures ?? []) {
+    const annonces = c.annonces as { titre: string } | { titre: string }[] | null;
+    const titre = (Array.isArray(annonces) ? annonces[0]?.titre : annonces?.titre) ?? "annonce";
+    const photos = (liens ?? [])
+      .filter((l) => l.candidature_id === c.id && parId.has(l.photo_id) && !dejaPlaces.has(l.photo_id))
+      .map((l) => parId.get(l.photo_id)!);
+    photos.forEach((p) => dejaPlaces.add(p.id));
+    if (photos.length > 0) groupesBruts.push({ titre: `Candidature · ${titre}`, photos });
+  }
+  const profil = reprenables.filter((p) => !dejaPlaces.has(p.id));
+  const tous = [{ titre: "Photos du profil", photos: profil }, ...groupesBruts].filter((g) => g.photos.length > 0);
+
+  const chemins = Array.from(new Set(tous.flatMap((g) => g.photos.map((p) => p.storage_path)))).sort();
+  const urls = new Map((await getCachedSignedUrls("figurant-photos", chemins)).map((s) => [s.path, s.signedUrl ?? null]));
+  const groupes: GroupePhotosReprenables[] = tous
+    .map((g) => ({
+      titre: g.titre,
+      photos: g.photos.flatMap((p) => {
+        const url = urls.get(p.storage_path);
+        return url ? [{ id: p.id, url, label: LIBELLES_REPRISE[p.type] }] : [];
+      }),
+    }))
+    .filter((g) => g.photos.length > 0);
+  return { groupes };
+}
+
+// Reprend une photo du profil ou d'une candidature comme photo envoyée pour ce
+// rôle (même fichier, rien n'est copié) : elle prend la place de l'étiquette
+// choisie (« Portrait », « Pied »…) comme si la personne l'avait envoyée.
+export async function reprendrePhotoPourRole(
+  entryId: string,
+  photoId: string,
+  label: string
+): Promise<{ error?: string; success?: true }> {
+  const supabase = createAdminClient();
+  const { data: entry } = await supabase.from("casting_entries").select("projet_id, figurant_id").eq("id", entryId).maybeSingle();
+  if (!entry) return { error: "Introuvable." };
+  const accessError = await checkProjetAccess(entry.projet_id);
+  if (accessError) return { error: accessError };
+
+  const nom = label.trim().slice(0, 60) || "Photo";
+  const { data: photo } = await supabase
+    .from("figurant_photos")
+    .select("storage_path, type, figurant_id, casting_entry_id")
+    .eq("id", photoId)
+    .maybeSingle();
+  if (!photo || photo.figurant_id !== entry.figurant_id || photo.casting_entry_id || !(photo.type in LIBELLES_REPRISE)) {
+    return { error: "Photo introuvable sur ce profil." };
+  }
+  const { data: dejaLa } = await supabase
+    .from("figurant_photos")
+    .select("id")
+    .eq("casting_entry_id", entryId)
+    .eq("storage_path", photo.storage_path)
+    .maybeSingle();
+  if (dejaLa) return { error: "Cette photo est déjà sur ce profil." };
+
+  const { error } = await supabase.from("figurant_photos").insert({
+    figurant_id: entry.figurant_id,
+    type: "casting",
+    storage_path: photo.storage_path,
+    projet_id: entry.projet_id,
+    casting_entry_id: entryId,
+    label: nom,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/casting");
+  return { success: true };
+}
+
 // Changement de statut groupé — depuis une sélection multiple sur la page
 // Casting, plutôt que profil par profil.
 export async function updateCastingEntriesStatutBulk(
@@ -606,8 +807,9 @@ export async function deleteCastingPhoto(photoId: string) {
   const accessError = await checkProjetAccess(entry.projet_id);
   if (accessError) throw new Error(accessError);
 
-  await supabase.storage.from("figurant-photos").remove([photo.storage_path]);
   await supabase.from("figurant_photos").delete().eq("id", photoId);
+  // Une photo reprise du profil partage son fichier avec la fiche : on ne l'efface que s'il est orphelin.
+  await supprimerFichierPhotoSiOrphelin(supabase, photo.storage_path);
   revalidatePath("/casting");
 }
 

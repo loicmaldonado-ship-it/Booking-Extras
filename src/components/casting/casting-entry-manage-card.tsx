@@ -30,6 +30,9 @@ import {
   updateCastingEntryNotes,
   updateCastingEntryVisiblePartage,
   choisirVignetteCasting,
+  listerPhotosReprenables,
+  reprendrePhotoPourRole,
+  type GroupePhotosReprenables,
 } from "@/lib/casting/actions";
 import { Modale } from "@/components/ui/modale";
 import type { PhotoVignette } from "@/lib/casting/vignette";
@@ -100,8 +103,91 @@ function PhotoUploadSlot({ entryId, label }: { entryId: string; label: string })
         }}
       />
       <span className="text-center text-[11px] text-text-muted">{label}</span>
+      <ReprisePhoto entryId={entryId} label={label} titreBouton="📂 Depuis son profil" />
       {error && <span className="text-center text-[10px] text-danger">{error}</span>}
     </div>
+  );
+}
+
+// Reprendre une photo existante de la personne — de son profil ou d'une de ses
+// candidatures — comme photo envoyée pour ce rôle, sans qu'elle ait à la renvoyer.
+function ReprisePhoto({ entryId, label, titreBouton }: { entryId: string; label: string; titreBouton: string }) {
+  const router = useRouter();
+  const [ouvert, setOuvert] = useState(false);
+  const [groupes, setGroupes] = useState<GroupePhotosReprenables[] | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function ouvrir() {
+    setOuvert(true);
+    setError(null);
+    setGroupes(null);
+    startTransition(async () => {
+      const res = await listerPhotosReprenables(entryId);
+      if (res.error) setError(res.error);
+      else setGroupes(res.groupes ?? []);
+    });
+  }
+
+  function reprendre(photoId: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await reprendrePhotoPourRole(entryId, photoId, label);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setOuvert(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={ouvrir}
+        className="rounded-full border-2 border-border-strong px-2.5 py-1 text-[11px] font-semibold text-text hover:border-coral"
+      >
+        {titreBouton}
+      </button>
+      {ouvert && (
+        <Modale
+          titre={`📂 Reprendre une photo — ${label}`}
+          sousTitre="Choisis une photo déjà sur son profil ou dans une de ses candidatures : elle devient une photo envoyée pour ce rôle."
+          onClose={() => setOuvert(false)}
+          bloquee={pending}
+          large
+        >
+          {error && <p className="text-sm text-danger">{error}</p>}
+          {groupes === null && !error && <p className="text-sm text-text-muted">Recherche de ses photos…</p>}
+          {groupes !== null && groupes.length === 0 && (
+            <p className="text-sm text-text-muted">Aucune autre photo disponible sur son profil ni dans ses candidatures.</p>
+          )}
+          {(groupes ?? []).map((g) => (
+            <div key={g.titre} className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold">{g.titre}</h3>
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {g.photos.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => reprendre(p.id)}
+                    className="flex flex-col gap-1 text-left disabled:opacity-60"
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden rounded-lg border-2 border-transparent bg-ink-raised-2 hover:border-coral/60">
+                      <Image src={p.url} alt={p.label} fill sizes="150px" className="object-cover" />
+                    </div>
+                    <span className="text-center text-[11px] text-text-muted">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </Modale>
+      )}
+    </>
   );
 }
 
@@ -867,6 +953,9 @@ export function CastingEntryManageCard({
               ))}
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-2">
+            <ReprisePhoto entryId={entry.id} label="Photo" titreBouton="📂 Ajouter une photo de son profil ou de sa candidature" />
+          </div>
         </div>
       )}
 

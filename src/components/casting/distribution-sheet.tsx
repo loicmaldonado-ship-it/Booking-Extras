@@ -9,16 +9,17 @@ import { computeAge } from "@/lib/documents/fields";
 // comédien·ne toujours affiché, et l'agent en plus quand il y en a un.
 export function DistributionSheet({
   items,
-  portraitByFigurant,
+  portraitByEntry,
 }: {
   items: ListeArtistiqueItem[];
-  portraitByFigurant: Map<string, string | null>;
+  // Photo de chaque profil, par id de profil de casting (une personne peut être validée sur plusieurs rôles).
+  portraitByEntry: Map<string, string | null>;
 }) {
   return (
     <div className="flex flex-col gap-4">
       {items.map(({ role, entry }) => {
         const f = entry.figurants;
-        const portraitUrl = portraitByFigurant.get(entry.figurant_id) ?? null;
+        const portraitUrl = portraitByEntry.get(entry.id) ?? null;
         const age = computeAge(f?.date_naissance ?? null);
         const genre = f?.genre ?? null;
         const hasAgent = f?.agent_nom || f?.agent_agence || f?.agent_email || f?.agent_telephone;
