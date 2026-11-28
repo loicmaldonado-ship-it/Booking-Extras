@@ -38,6 +38,8 @@ const PUBLIC_PREFIXES = [
   "/offline",
   "/robots.txt",
   "/sitemap.xml",
+  // Fichier de validation Google Search Console : à garder, sinon la propriété est dévalidée.
+  "/google4b793a29b6128bef.html",
 ];
 
 // « / » est l'accueil public pour un·e visiteur·se non connecté·e (et le
