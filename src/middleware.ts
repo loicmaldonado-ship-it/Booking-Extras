@@ -37,6 +37,7 @@ const PUBLIC_PREFIXES = [
   "/apple-icon",
   "/offline",
   "/robots.txt",
+  "/sitemap.xml",
 ];
 
 // « / » est l'accueil public pour un·e visiteur·se non connecté·e (et le
